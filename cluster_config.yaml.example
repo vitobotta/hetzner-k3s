@@ -1,0 +1,17 @@
+---
+hetzner_token: blah
+cluster_name: test
+kubeconfig_path: "../kubeconfig"
+k3s_version: v1.21.3+k3s1
+ssh_key_path: "~/.ssh/id_rsa.pub"
+location: nbg1
+masters:
+  instance_type: cpx21
+  instance_count: 3
+worker_node_pools:
+- name: small
+  instance_type: cpx21
+  instance_count: 4
+- name: big
+  instance_type: cp321
+  instance_count: 2

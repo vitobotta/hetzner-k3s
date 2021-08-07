@@ -1,0 +1,2 @@
+module Hetzner::Infra
+end
