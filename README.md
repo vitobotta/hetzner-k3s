@@ -53,7 +53,7 @@ worker_node_pools:
   instance_type: cpx21
   instance_count: 4
 - name: big
-  instance_type: cp321
+  instance_type: cpx31
   instance_count: 2
 ```
 
