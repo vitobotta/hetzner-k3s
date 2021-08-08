@@ -29,7 +29,6 @@ class Cluster
     @masters_config = configuration.dig("masters")
     @worker_node_pools = configuration.dig("worker_node_pools")
     @location = configuration.dig("location")
-    @flannel_interface = find_flannel_interface(configuration.dig("masters")["instance_type"])
     @servers = []
 
     create_resources
@@ -66,7 +65,7 @@ class Cluster
 
     attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
                 :masters_config, :worker_node_pools,
-                :location, :flannel_interface, :ssh_key_path, :kubernetes_client,
+                :location, :ssh_key_path, :kubernetes_client,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
                 :config_file
 
@@ -216,6 +215,7 @@ class Cluster
 
     def master_script(master)
       server = master == first_master ? " --cluster-init " : " --server https://#{first_master_private_ip}:6443 "
+      flannel_interface = find_flannel_interface(master)
 
       <<~EOF
       curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
@@ -242,7 +242,9 @@ class Cluster
       EOF
     end
 
-    def worker_script
+    def worker_script(worker)
+      flannel_interface = find_flannel_interface(worker)
+
       <<~EOF
       curl -sfL https://get.k3s.io | K3S_TOKEN="#{k3s_token}" INSTALL_K3S_VERSION="#{k3s_version}" K3S_URL=https://#{first_master_private_ip}:6443 INSTALL_K3S_EXEC="agent \
         --node-name="$(hostname -f)" \
@@ -285,7 +287,7 @@ class Cluster
           puts
           puts "Deploying k3s to worker (#{worker["name"]})..."
 
-          ssh worker, worker_script, print_output: true
+          ssh worker, worker_script(worker), print_output: true
 
           puts
           puts "...k3s has been deployed to worker (#{worker["name"]})."
@@ -471,14 +473,11 @@ class Cluster
       @kubernetes_client = K8s::Client.config(K8s::Config.new(config_hash))
     end
 
-    def find_flannel_interface(server_type)
-      case server_type[0..1]
-      when "cp"
-        "enp7s0"
-      when "cc"
-        "enp7s0"
-      when "cx"
+    def find_flannel_interface(server)
+      if ssh(server, "lscpu | grep Vendor") =~ /Intel/
         "ens10"
+      else
+        "enp7s0"
       end
     end
 

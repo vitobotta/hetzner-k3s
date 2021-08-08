@@ -80,7 +80,6 @@ module Hetzner
             validate_k3s_version
             validate_masters
             validate_worker_node_pools
-            validate_all_nodes_must_be_of_same_series
           when :delete
             validate_kubeconfig_path_must_exist
           when :upgrade
@@ -219,11 +218,6 @@ module Hetzner
               validate_instance_group worker_node_pool
             end
           end
-        end
-
-        def validate_all_nodes_must_be_of_same_series
-          series = used_server_types.map{ |used_server_type| used_server_type[0..1]}
-          errors << "Master and worker node pools must all be of the same server series for networking to function properly (available series: cx, cp, ccx)" unless series.uniq.size == 1
         end
 
         def validate_new_k3s_version_must_be_more_recent
