@@ -208,6 +208,17 @@ The other annotations should be self explanatory. You can find a list of the ava
 
 Once the cluster is ready you can create persistent volumes out of the box with the default storage class `hcloud-volumes`, since the Hetzner CSI driver is installed automatically. This will use Hetzner's block storage (based on Ceph so it's replicated and highly available) for your persistent volumes. Note that the minimum size of a volume is 10Gi. If you specify a smaller size for a volume, the volume will be created with a capacity of 10Gi anyway.
 
+
+## changelog
+
+- 0.3.0
+  - Handle case when an SSH key with the given fingerprint already exists in the Hetzner project
+  - Handle a timeout of 5 seconds for requests to the Hetzner API
+  - Retry waiting for server to be up when timeouts/host-unreachable errors occur
+  - Ignore known_hosts entry to prevent errors when recreating servers with IPs that have been used previously
+
+- 0.2.0
+  - Allow mixing servers of different series Intel/AMD
 ## Contributing and support
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
