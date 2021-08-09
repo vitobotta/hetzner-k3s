@@ -45,6 +45,7 @@ class Cluster
   def delete(configuration:)
     @cluster_name = configuration.dig("cluster_name")
     @kubeconfig_path = File.expand_path(configuration.dig("kubeconfig_path"))
+    @ssh_key_path = File.expand_path(configuration.dig("ssh_key_path"))
 
     delete_resources
   end
@@ -181,12 +182,12 @@ class Cluster
       Hetzner::SSHKey.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).delete
+      ).delete(ssh_key_path: ssh_key_path)
 
       Hetzner::LoadBalancer.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).delete
+      ).delete(ha: (masters.size > 1))
 
     end
 
