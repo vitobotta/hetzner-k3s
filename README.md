@@ -44,6 +44,7 @@ cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.21.3+k3s1
 ssh_key_path: "~/.ssh/id_rsa.pub"
+verify_host_key: false
 location: nbg1
 masters:
   instance_type: cpx21
@@ -73,6 +74,8 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
+
+Note: the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you.
 
 Finally, to create the cluster run:
 
@@ -210,6 +213,9 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 
 ## changelog
+
+- 0.3.1
+  - Allow enabling/disabling the host key verification
 
 - 0.3.0
   - Handle case when an SSH key with the given fingerprint already exists in the Hetzner project

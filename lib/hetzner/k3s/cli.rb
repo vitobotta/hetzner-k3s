@@ -80,6 +80,7 @@ module Hetzner
             validate_k3s_version
             validate_masters
             validate_worker_node_pools
+            validate_verify_host_key
           when :delete
             validate_kubeconfig_path_must_exist
           when :upgrade
@@ -291,6 +292,12 @@ module Hetzner
         rescue
           errors << "Cannot connect to the Kubernetes cluster"
           false
+        end
+
+
+        def validate_verify_host_key
+          return unless [true, false].include?(configuration.fetch("ssh_key_path", false))
+          errors << "Please set the verify_host_key option to either true or false"
         end
     end
   end

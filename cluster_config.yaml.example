@@ -4,6 +4,7 @@ cluster_name: test
 kubeconfig_path: "../kubeconfig"
 k3s_version: v1.21.3+k3s1
 ssh_key_path: "~/.ssh/id_rsa.pub"
+verify_host_key: false
 location: nbg1
 masters:
   instance_type: cpx21

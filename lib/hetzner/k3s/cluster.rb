@@ -29,6 +29,7 @@ class Cluster
     @masters_config = configuration.dig("masters")
     @worker_node_pools = configuration.dig("worker_node_pools")
     @location = configuration.dig("location")
+    @verify_host_key = configuration.fetch("verify_host_key", false)
     @servers = []
 
     create_resources
@@ -68,7 +69,7 @@ class Cluster
                 :masters_config, :worker_node_pools,
                 :location, :ssh_key_path, :kubernetes_client,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
-                :config_file
+                :config_file, :verify_host_key
 
 
     def latest_k3s_version
@@ -138,14 +139,14 @@ class Cluster
         end
       end
 
-      threads.each(&:join)
+      threads.each(&:join) unless threads.empty?
 
       puts
       threads = servers.map do |server|
         Thread.new { wait_for_ssh server }
       end
 
-      threads.each(&:join)
+      threads.each(&:join) unless threads.empty?
     end
 
     def delete_resources
@@ -160,22 +161,22 @@ class Cluster
             end
           end
 
-          threads.each(&:join)
+          threads.each(&:join) unless threads.empty?
         end
-      rescue Timeout::Error
+      rescue Timeout::Error, Excon::Error::Socket
         puts "Unable to fetch nodes from Kubernetes API. Is the cluster online?"
       end
 
       # Deleting nodes defined in the config file just in case there are leftovers i.e. nodes that
       # were not part of the cluster for some reason
 
-      threads = all_servers.each do |server|
+      threads = all_servers.map do |server|
         Thread.new do
           Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: server["name"])
         end
       end
 
-      threads.each(&:join)
+      threads.each(&:join) unless threads.empty?
 
       puts
 
@@ -292,7 +293,7 @@ class Cluster
           end
         end
 
-        threads.each(&:join)
+        threads.each(&:join) unless threads.empty?
       end
 
       threads = workers.map do |worker|
@@ -307,7 +308,7 @@ class Cluster
         end
       end
 
-      threads.each(&:join)
+      threads.each(&:join) unless threads.empty?
     end
 
     def deploy_cloud_controller_manager
@@ -464,18 +465,23 @@ class Cluster
       public_ip = server.dig("public_net", "ipv4", "ip")
       output = ""
 
-      Net::SSH.start(public_ip, "root", verify_host_key: :never) do |session|
+      Net::SSH.start(public_ip, "root", verify_host_key: (verify_host_key ? :always : :never)) do |session|
         session.exec!(command) do |channel, stream, data|
           output << data
           puts data if print_output
         end
       end
-
       output.chop
     rescue Net::SSH::Disconnect => e
       retry unless e.message =~ /Too many authentication failures/
     rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH
       retry
+    rescue Net::SSH::HostKeyMismatch
+      puts
+      puts "Cannot continue: Unable to SSH into server with IP #{public_ip} because the existing fingerprint in the known_hosts file does not match that of the actual host key."
+      puts "This is due to a security check but can also happen when creating a new server that gets assigned the same IP address as another server you've owned in the past."
+      puts "If are sure no security is being violated here and you're just creating new servers, you can eiher remove the relevant lines from your known_hosts (see IPs from the cloud console) or disable host key verification by setting the option 'verify_host_key' to false in the configuration file for the cluster."
+      exit 1
     end
 
     def kubernetes_client
