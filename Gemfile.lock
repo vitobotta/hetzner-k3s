@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.1.0)
+    hetzner-k3s (0.2.0)
       http
       k8s-ruby
       net-ssh
