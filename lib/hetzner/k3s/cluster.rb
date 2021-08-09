@@ -149,6 +149,7 @@ class Cluster
     end
 
     def delete_resources
+      # Deleting nodes defined according to Kubernetes first
       begin
         Timeout::timeout(5) do
           servers = kubernetes_client.api("v1").resource("nodes").list
@@ -164,6 +165,17 @@ class Cluster
       rescue Timeout::Error
         puts "Unable to fetch nodes from Kubernetes API. Is the cluster online?"
       end
+
+      # Deleting nodes defined in the config file just in case there are leftovers i.e. nodes that
+      # were not part of the cluster for some reason
+
+      threads = all_servers.each do |server|
+        Thread.new do
+          Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: server["name"])
+        end
+      end
+
+      threads.each(&:join)
 
       puts
 
