@@ -472,11 +472,9 @@ class Cluster
       end
 
       output.chop
-    rescue Net::SSH::ConnectionTimeout
-      retry
     rescue Net::SSH::Disconnect => e
       retry unless e.message =~ /Too many authentication failures/
-    rescue Errno::ECONNREFUSED
+    rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH
       retry
     end
 
