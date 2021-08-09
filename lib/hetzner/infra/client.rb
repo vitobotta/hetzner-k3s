@@ -9,15 +9,21 @@ module Hetzner
     end
 
     def get(path)
-      JSON.parse HTTP.headers(headers).get(BASE_URI + path).body
+      make_request do
+        JSON.parse HTTP.headers(headers).get(BASE_URI + path).body
+      end
     end
 
     def post(path, data)
-      HTTP.headers(headers).post(BASE_URI + path, json: data)
+      make_request do
+        HTTP.headers(headers).post(BASE_URI + path, json: data)
+      end
     end
 
     def delete(path, id)
-      HTTP.headers(headers).delete(BASE_URI + path + "/" + id.to_s)
+      make_request do
+        HTTP.headers(headers).delete(BASE_URI + path + "/" + id.to_s)
+      end
     end
 
     private
@@ -27,6 +33,14 @@ module Hetzner
           "Authorization": "Bearer #{@token}",
           "Content-Type": "application/json"
         }
+      end
+
+      def make_request &block
+        Timeout::timeout(5) do
+          block.call
+        end
+      rescue Timeout::Error
+        retry
       end
   end
 end
