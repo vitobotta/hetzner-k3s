@@ -444,17 +444,19 @@ class Cluster
     end
 
     def wait_for_ssh(server)
-      server_name = server["name"]
+      Timeout::timeout(5) do
+        server_name = server["name"]
 
-      puts "Waiting for server #{server_name} to be up..."
+        puts "Waiting for server #{server_name} to be up..."
 
-      loop do
-        result = ssh(server, "echo UP")
-        break if result == "UP"
+        loop do
+          result = ssh(server, "echo UP")
+          break if result == "UP"
+        end
+
+        puts "...server #{server_name} is now up."
       end
-
-      puts "...server #{server_name} is now up."
-    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH
+    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error
       retry
     end
 
