@@ -464,7 +464,7 @@ class Cluster
       public_ip = server.dig("public_net", "ipv4", "ip")
       output = ""
 
-      Net::SSH.start(public_ip, "root") do |session|
+      Net::SSH.start(public_ip, "root", verify_host_key: :never) do |session|
         session.exec!(command) do |channel, stream, data|
           output << data
           puts data if print_output
