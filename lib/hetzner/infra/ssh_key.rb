@@ -26,11 +26,17 @@ module Hetzner
       JSON.parse(response)["ssh_key"]["id"]
     end
 
-    def delete
+    def delete(ssh_key_path:)
+      @ssh_key_path = ssh_key_path
+
       if ssh_key = find_ssh_key
-        puts "Deleting ssh_key..."
-        hetzner_client.delete("/ssh_keys", ssh_key["id"])
-        puts "...ssh_key deleted."
+        if ssh_key["name"] == cluster_name
+          puts "Deleting ssh_key..."
+          hetzner_client.delete("/ssh_keys", ssh_key["id"])
+          puts "...ssh_key deleted."
+        else
+          puts "The SSH key existed before creating the cluster, so I won't delete it."
+        end
       else
         puts "SSH key no longer exists, skipping."
       end
@@ -42,15 +48,33 @@ module Hetzner
 
       attr_reader :hetzner_client, :cluster_name, :ssh_key_path
 
+      def public_key
+        @public_key ||= File.read(ssh_key_path).chop
+      end
+
       def ssh_key_config
         {
           name: cluster_name,
-          public_key: File.read(ssh_key_path)
+          public_key: public_key
         }
       end
 
+      def fingerprint
+        @fingerprint ||= ::SSHKey.fingerprint(public_key)
+      end
+
       def find_ssh_key
-        hetzner_client.get("/ssh_keys")["ssh_keys"].detect{ |ssh_key| ssh_key["name"] == cluster_name }
+        key = hetzner_client.get("/ssh_keys")["ssh_keys"].detect do |ssh_key|
+          ssh_key["fingerprint"] == fingerprint
+        end
+
+        unless key
+          key = hetzner_client.get("/ssh_keys")["ssh_keys"].detect do |ssh_key|
+            ssh_key["name"] == cluster_name
+          end
+        end
+
+        key
       end
 
   end
