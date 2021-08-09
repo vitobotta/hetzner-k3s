@@ -441,7 +441,7 @@ class Cluster
       end
 
       puts "...server #{server_name} is now up."
-    rescue Errno::ENETUNREACH
+    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH
       retry
     end
 
