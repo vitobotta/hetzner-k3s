@@ -26,12 +26,12 @@ module Hetzner
       JSON.parse(response)["load_balancer"]["id"]
     end
 
-    def delete
+    def delete(ha:)
       if load_balancer = find_load_balancer
-        puts "Deleting API load balancer..."
+        puts "Deleting API load balancer..." unless ha
         hetzner_client.delete("/load_balancers", load_balancer["id"])
-        puts "...API load balancer deleted."
-      else
+        puts "...API load balancer deleted." unless ha
+      elsif ha
         puts "API load balancer no longer exists, skipping."
       end
 
