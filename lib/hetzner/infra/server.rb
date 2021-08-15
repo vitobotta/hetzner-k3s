@@ -74,7 +74,12 @@ module Hetzner
             - sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config
             - sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
             - systemctl restart sshd
-        EOS
+            - systemctl stop systemd-resolved
+            - systemctl disable systemd-resolved
+            - rm /etc/resolv.conf
+            - echo "nameserver 1.1.1.1" > /etc/resolv.conf
+            - echo "nameserver 1.0.0.1" >> /etc/resolv.conf
+            EOS
       end
 
   end
