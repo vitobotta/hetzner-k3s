@@ -214,6 +214,9 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 ## changelog
 
+- 0.3.2
+  - Configure DNS to use Cloudflare's resolver instead of Hetzner's, since Hetzner's resolvers are not always reliable
+
 - 0.3.1
   - Allow enabling/disabling the host key verification
 
