@@ -44,6 +44,7 @@ module Hetzner
           name: cluster_name,
           rules: [
             {
+              "description": "Allow port 22 (SSH)",
               "direction": "in",
               "protocol": "tcp",
               "port": "22",
@@ -54,6 +55,7 @@ module Hetzner
               "destination_ips": []
             },
             {
+              "description": "Allow ICMP (ping)",
               "direction": "in",
               "protocol": "icmp",
               "port": nil,
@@ -64,6 +66,7 @@ module Hetzner
               "destination_ips": []
             },
             {
+              "description": "Allow port 6443 (Kubernetes API server)",
               "direction": "in",
               "protocol": "tcp",
               "port": "6443",
@@ -74,6 +77,7 @@ module Hetzner
               "destination_ips": []
             },
             {
+              "description": "Allow all TCP traffic between nodes on the private network",
               "direction": "in",
               "protocol": "tcp",
               "port": "any",
@@ -83,6 +87,7 @@ module Hetzner
               "destination_ips": []
             },
             {
+              "description": "Allow all UDP traffic between nodes on the private network",
               "direction": "in",
               "protocol": "udp",
               "port": "any",
