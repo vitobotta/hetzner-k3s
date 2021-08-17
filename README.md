@@ -33,6 +33,16 @@ gem install hetzner-k3s
 
 This will install the `hetzner-k3s` executable in your PATH.
 
+### With Docker
+
+Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
+
+```bash
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s create-cluster --config-file /cluster/test.yaml
+```
+
+Replace `test.yaml` with the name of your config file.
+
 ## Creating a cluster
 
 The tool requires a simple configuration file in order to create/upgrade/delete clusters, in the YAML format like in the example below:
@@ -59,6 +69,9 @@ worker_node_pools:
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
+
+If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is.
+
 
 If you set `masters.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
 
@@ -213,6 +226,9 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 
 ## changelog
+
+- 0.3.4
+  - Added Docker support
 
 - 0.3.3
   - Add some gems required on Linux
