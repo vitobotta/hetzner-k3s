@@ -227,6 +227,9 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 ## changelog
 
+- 0.3.5
+  - Add descriptions for firewall rules
+
 - 0.3.4
   - Added Docker support
 
