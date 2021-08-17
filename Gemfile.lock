@@ -1,7 +1,9 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.3.1)
+    hetzner-k3s (0.3.3)
+      bcrypt_pbkdf
+      ed25519
       http
       k8s-ruby
       net-ssh
@@ -13,6 +15,7 @@ GEM
   specs:
     addressable (2.8.0)
       public_suffix (>= 2.0.2, < 5.0)
+    bcrypt_pbkdf (1.1.0)
     concurrent-ruby (1.1.9)
     diff-lcs (1.4.4)
     domain_name (0.5.20190701)
@@ -43,6 +46,7 @@ GEM
       dry-equalizer (~> 0.2)
       dry-inflector (~> 0.1, >= 0.1.2)
       dry-logic (~> 0.4, >= 0.4.2)
+    ed25519 (1.2.4)
     excon (0.85.0)
     ffi (1.15.3)
     ffi-compiler (1.0.1)

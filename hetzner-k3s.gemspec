@@ -23,6 +23,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency "net-ssh"
   spec.add_dependency "k8s-ruby"
   spec.add_dependency "sshkey"
+  spec.add_dependency "ed25519"
+  spec.add_dependency "bcrypt_pbkdf"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
