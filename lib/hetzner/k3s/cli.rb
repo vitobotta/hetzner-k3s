@@ -110,7 +110,8 @@ module Hetzner
         end
 
         def validate_cluster_name
-          errors << "Cluster name is an invalid format" unless configuration["cluster_name"] =~ /\A([A-Za-z0-9\-\_]+)\Z/
+          errors << "Cluster name is an invalid format (only lowercase letters, digits and dashes are allowed)" unless configuration["cluster_name"] =~ /\A[a-z\d-]+\z/
+          errors << "Ensure that the cluster name starts with a normal letter" unless configuration["cluster_name"] =~ /\A[a-z]+.*\z/
         end
 
         def validate_kubeconfig_path
