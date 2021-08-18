@@ -227,6 +227,9 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 ## changelog
 
+- 0.3.6
+  - Retry SSH commands when IO errors occur
+
 - 0.3.5
   - Add descriptions for firewall rules
 

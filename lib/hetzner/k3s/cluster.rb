@@ -457,7 +457,7 @@ class Cluster
 
         puts "...server #{server_name} is now up."
       end
-    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error
+    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error, IOError
       retry
     end
 
