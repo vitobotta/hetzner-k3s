@@ -235,8 +235,11 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.3.9
+  - Add command "version" to print the version of the tool in use
+
 - 0.3.8
-  - Fix: added a check on a label to ensure that only servers that belong to the cluster are deleted from the project.
+  - Fix: added a check on a label to ensure that only servers that belong to the cluster are deleted from the project
 
 - 0.3.7
   - Ensure that the cluster name only contains lowercase letters, digits and dashes for compatibility with the cloud controller manager
