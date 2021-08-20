@@ -72,7 +72,7 @@ It should hopefully be self explanatory; you can run `hetzner-k3s releases` to s
 
 If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is.
 
-**Important**: The tool assignes label "cluster" to each server it creates, with the clsuter name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
+**Important**: The tool assignes the label "cluster" to each server it creates, with the clsuter name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>` because they will be deleted if delete the cluster. I recommend you create a separate Hetzner project per each cluster, see note at the end for more details.
 
 
