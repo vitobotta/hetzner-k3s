@@ -501,7 +501,7 @@ class Cluster
     end
 
     def all_servers
-      @all_servers ||= hetzner_client.get("/servers")["servers"]
+      @all_servers ||= hetzner_client.get("/servers")["servers"].select{ |server| belongs_to_cluster?(server) == true }
     end
 
     def masters
@@ -622,6 +622,10 @@ class Cluster
       File.write(temp_file_path, manifest)
 
       temp_file_path
+    end
+
+    def belongs_to_cluster?(server)
+      server.dig("labels", "cluster") == cluster_name
     end
 
 end
