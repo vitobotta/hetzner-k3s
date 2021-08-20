@@ -3,12 +3,18 @@ require "http"
 require "sshkey"
 
 require_relative "cluster"
+require_relative "version"
 
 module Hetzner
   module K3s
     class CLI < Thor
       def self.exit_on_failure?
         true
+      end
+
+      desc "version", "Print the version"
+      def version
+        puts Hetzner::K3s::VERSION
       end
 
       desc "create-cluster", "Create a k3s cluster in Hetzner Cloud"
