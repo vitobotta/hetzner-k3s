@@ -73,7 +73,7 @@ It should hopefully be self explanatory; you can run `hetzner-k3s releases` to s
 If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is.
 
 **Important**: The tool assignes the label `cluster` to each server it creates, with the clsuter name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
-the label `cluster=<cluster name>`, because otherwise they will be deleted if delete the cluster. I recommend you create a separate Hetzner project per each cluster, see note at the end for more details.
+the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
 
 If you set `masters.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
