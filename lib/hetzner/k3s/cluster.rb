@@ -31,6 +31,7 @@ class Cluster
     @location = configuration.dig("location")
     @verify_host_key = configuration.fetch("verify_host_key", false)
     @servers = []
+    @networks = configuration.dig("ssh_allowed_networks")
 
     create_resources
 
@@ -69,7 +70,7 @@ class Cluster
                 :masters_config, :worker_node_pools,
                 :location, :ssh_key_path, :kubernetes_client,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
-                :config_file, :verify_host_key
+                :config_file, :verify_host_key, :networks
 
 
     def latest_k3s_version
@@ -78,12 +79,13 @@ class Cluster
     end
 
     def create_resources
+      master_instance_type = masters_config["instance_type"]
       masters_count = masters_config["instance_count"]
 
       firewall_id = Hetzner::Firewall.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).create(ha: (masters_count > 1))
+      ).create(ha: (masters_count > 1), networks: networks)
 
       network_id = Hetzner::Network.new(
         hetzner_client: hetzner_client,
@@ -96,8 +98,6 @@ class Cluster
       ).create(ssh_key_path: ssh_key_path)
 
       server_configs = []
-
-      master_instance_type = masters_config["instance_type"]
 
       masters_count.times do |i|
         server_configs << {

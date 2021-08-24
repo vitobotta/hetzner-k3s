@@ -54,6 +54,8 @@ cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.21.3+k3s1
 ssh_key_path: "~/.ssh/id_rsa.pub"
+ssh_allowed_networks:
+  - 0.0.0.0/0
 verify_host_key: false
 location: nbg1
 masters:
@@ -241,6 +243,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
   - Ensure the masters are removed from the API load balancer before deleting the load balancer
   - Ensure the servers are removed from the firewall before deleting it
   - Allow using an environment variable to specify the Hetzner token
+  - Allow restricting SSH access to the nodes to specific networks
 
 - 0.3.9
   - Add command "version" to print the version of the tool in use
