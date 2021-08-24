@@ -225,6 +225,7 @@ class Cluster
         --kube-scheduler-arg="bind-address=0.0.0.0" \
         --node-taint CriticalAddonsOnly=true:NoExecute \
         --kubelet-arg="cloud-provider=external" \
+        --advertise-address=$(hostname -I | awk '{print $2}') \
         --node-ip=$(hostname -I | awk '{print $2}') \
         --node-external-ip=$(hostname -I | awk '{print $1}') \
         --flannel-iface=#{flannel_interface} \
