@@ -5,7 +5,8 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create
+    def create(ha:)
+      @ha = ha
       puts
 
       if firewall = find_firewall
@@ -42,66 +43,71 @@ module Hetzner
 
     private
 
-      attr_reader :hetzner_client, :cluster_name, :firewall
+      attr_reader :hetzner_client, :cluster_name, :firewall, :ha
 
       def create_firewall_config
+        rules = [
+          {
+            "description": "Allow port 22 (SSH)",
+            "direction": "in",
+            "protocol": "tcp",
+            "port": "22",
+            "source_ips": [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            "destination_ips": []
+          },
+          {
+            "description": "Allow ICMP (ping)",
+            "direction": "in",
+            "protocol": "icmp",
+            "port": nil,
+            "source_ips": [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            "destination_ips": []
+          },
+          {
+            "description": "Allow all TCP traffic between nodes on the private network",
+            "direction": "in",
+            "protocol": "tcp",
+            "port": "any",
+            "source_ips": [
+              "10.0.0.0/16"
+            ],
+            "destination_ips": []
+          },
+          {
+            "description": "Allow all UDP traffic between nodes on the private network",
+            "direction": "in",
+            "protocol": "udp",
+            "port": "any",
+            "source_ips": [
+              "10.0.0.0/16"
+            ],
+            "destination_ips": []
+          }
+        ]
+
+        unless ha
+          rules << {
+            "description": "Allow port 6443 (Kubernetes API server)",
+            "direction": "in",
+            "protocol": "tcp",
+            "port": "6443",
+            "source_ips": [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            "destination_ips": []
+          }
+        end
+
         {
           name: cluster_name,
-          rules: [
-            {
-              "description": "Allow port 22 (SSH)",
-              "direction": "in",
-              "protocol": "tcp",
-              "port": "22",
-              "source_ips": [
-                "0.0.0.0/0",
-                "::/0"
-              ],
-              "destination_ips": []
-            },
-            {
-              "description": "Allow ICMP (ping)",
-              "direction": "in",
-              "protocol": "icmp",
-              "port": nil,
-              "source_ips": [
-                "0.0.0.0/0",
-                "::/0"
-              ],
-              "destination_ips": []
-            },
-            {
-              "description": "Allow port 6443 (Kubernetes API server)",
-              "direction": "in",
-              "protocol": "tcp",
-              "port": "6443",
-              "source_ips": [
-                "0.0.0.0/0",
-                "::/0"
-              ],
-              "destination_ips": []
-            },
-            {
-              "description": "Allow all TCP traffic between nodes on the private network",
-              "direction": "in",
-              "protocol": "tcp",
-              "port": "any",
-              "source_ips": [
-                "10.0.0.0/16"
-              ],
-              "destination_ips": []
-            },
-            {
-              "description": "Allow all UDP traffic between nodes on the private network",
-              "direction": "in",
-              "protocol": "udp",
-              "port": "any",
-              "source_ips": [
-                "10.0.0.0/16"
-              ],
-              "destination_ips": []
-            }
-          ]
+          rules: rules
         }
       end
 
