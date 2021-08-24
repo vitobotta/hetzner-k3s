@@ -244,6 +244,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
   - Ensure the servers are removed from the firewall before deleting it
   - Allow using an environment variable to specify the Hetzner token
   - Allow restricting SSH access to the nodes to specific networks
+  - Do not open the port 6443 on the nodes if a load balancer is created for an HA cluster
 
 - 0.3.9
   - Add command "version" to print the version of the tool in use
