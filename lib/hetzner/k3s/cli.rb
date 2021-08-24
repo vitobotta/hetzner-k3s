@@ -1,6 +1,8 @@
 require "thor"
 require "http"
 require "sshkey"
+require 'ipaddr'
+require 'open-uri'
 
 require_relative "cluster"
 require_relative "version"
@@ -82,6 +84,7 @@ module Hetzner
           case action
           when :create
             validate_ssh_key
+            validate_ssh_allowed_networks
             validate_location
             validate_k3s_version
             validate_masters
@@ -313,11 +316,9 @@ module Hetzner
           config_hash = YAML.load_file(File.expand_path(configuration["kubeconfig_path"]))
           config_hash['current-context'] = configuration["cluster_name"]
           @kubernetes_client = K8s::Client.config(K8s::Config.new(config_hash))
-        rescue
           errors << "Cannot connect to the Kubernetes cluster"
           false
         end
-
 
         def validate_verify_host_key
           return unless [true, false].include?(configuration.fetch("ssh_key_path", false))
@@ -328,6 +329,47 @@ module Hetzner
           @token = ENV["HCLOUD_TOKEN"]
           return @token if @token
           @token = configuration.dig("hetzner_token")
+        end
+
+        def validate_ssh_allowed_networks
+          networks ||= configuration.dig("ssh_allowed_networks")
+
+          if networks.nil? or networks.empty?
+            errors << "At least one network/IP range must be specified for SSH access"
+            return
+          end
+
+          invalid_networks = networks.reject do |network|
+            IPAddr.new(network) rescue false
+          end
+
+          unless invalid_networks.empty?
+            invalid_networks.each do |network|
+              errors << "The network #{network} is an invalid range"
+            end
+          end
+
+          invalid_ranges = networks.reject do |network|
+            network.include? "/"
+          end
+
+          unless invalid_ranges.empty?
+            invalid_ranges.each do |network|
+              errors << "Please use the CIDR notation for the networks to avoid ambiguity"
+            end
+          end
+
+          return unless invalid_networks.empty?
+
+          current_ip = URI.open('http://whatismyip.akamai.com').read
+
+          current_ip_networks = networks.detect do |network|
+            IPAddr.new(network).include?(current_ip) rescue false
+          end
+
+          unless current_ip_networks
+            errors << "Your current IP #{current_ip} is not included into any of the networks you've specified, so we won't be able to SSH into the nodes"
+          end
         end
 
     end

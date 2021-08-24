@@ -5,8 +5,9 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(ha:)
+    def create(ha:, networks:)
       @ha = ha
+      @networks = networks
       puts
 
       if firewall = find_firewall
@@ -43,7 +44,7 @@ module Hetzner
 
     private
 
-      attr_reader :hetzner_client, :cluster_name, :firewall, :ha
+      attr_reader :hetzner_client, :cluster_name, :firewall, :ha, :networks
 
       def create_firewall_config
         rules = [
@@ -52,10 +53,7 @@ module Hetzner
             "direction": "in",
             "protocol": "tcp",
             "port": "22",
-            "source_ips": [
-              "0.0.0.0/0",
-              "::/0"
-            ],
+            "source_ips": networks,
             "destination_ips": []
           },
           {
