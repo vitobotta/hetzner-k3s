@@ -16,12 +16,12 @@ require_relative "../k3s/client_patch"
 
 
 class Cluster
-  def initialize(hetzner_client:)
+  def initialize(hetzner_client:, hetzner_token:)
     @hetzner_client = hetzner_client
+    @hetzner_token = hetzner_token
   end
 
   def create(configuration:)
-    @hetzner_token = configuration.dig("hetzner_token")
     @cluster_name = configuration.dig("cluster_name")
     @kubeconfig_path = File.expand_path(configuration.dig("kubeconfig_path"))
     @ssh_key_path = File.expand_path(configuration.dig("ssh_key_path"))

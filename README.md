@@ -72,6 +72,8 @@ It should hopefully be self explanatory; you can run `hetzner-k3s releases` to s
 
 If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is.
 
+If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
+
 **Important**: The tool assignes the label `cluster` to each server it creates, with the clsuter name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
@@ -238,6 +240,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 - 0.4.0
   - Ensure the masters are removed from the API load balancer before deleting the load balancer
   - Ensure the servers are removed from the firewall before deleting it
+  - Allow using an environment variable to specify the Hetzner token
 
 - 0.3.9
   - Add command "version" to print the version of the tool in use

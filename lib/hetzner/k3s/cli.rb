@@ -23,7 +23,7 @@ module Hetzner
       def create_cluster
         validate_config_file :create
 
-        Cluster.new(hetzner_client: hetzner_client).create configuration: configuration
+        Cluster.new(hetzner_client: hetzner_client, hetzner_token: find_hetzner_token).create configuration: configuration
       end
 
       desc "delete-cluster", "Delete an existing k3s cluster in Hetzner Cloud"
@@ -31,7 +31,7 @@ module Hetzner
 
       def delete_cluster
         validate_config_file :delete
-        Cluster.new(hetzner_client: hetzner_client).delete configuration: configuration
+        Cluster.new(hetzner_client: hetzner_client, hetzner_token: find_hetzner_token).delete configuration: configuration
       end
 
       desc "upgrade-cluster", "Upgrade an existing k3s cluster in Hetzner Cloud to a new version"
@@ -41,7 +41,7 @@ module Hetzner
 
       def upgrade_cluster
         validate_config_file :upgrade
-        Cluster.new(hetzner_client: hetzner_client).upgrade configuration: configuration, new_k3s_version: options[:new_k3s_version], config_file: options[:config_file]
+        Cluster.new(hetzner_client: hetzner_client, hetzner_token: find_hetzner_token).upgrade configuration: configuration, new_k3s_version: options[:new_k3s_version], config_file: options[:config_file]
       end
 
       desc "releases", "List available k3s releases"
@@ -107,12 +107,26 @@ module Hetzner
           end
         end
 
+        def valid_token?
+          return @valid unless @valid.nil?
+
+          begin
+            token = find_hetzner_token
+            @hetzner_client = Hetzner::Client.new(token: token)
+            response = hetzner_client.get("/locations")
+            error_code = response.dig("error", "code")
+            @valid = if error_code and error_code.size > 0
+              false
+            else
+              true
+            end
+          rescue
+            @valid = false
+          end
+        end
+
         def validate_token
-          token = configuration.dig("hetzner_token")
-          @hetzner_client = Hetzner::Client.new(token: token)
-          hetzner_client.get("/locations")
-        rescue
-          errors << "Invalid Hetzner Cloid token"
+          errors << "Invalid Hetzner Cloud token" unless valid_token?
         end
 
         def validate_cluster_name
@@ -149,6 +163,7 @@ module Hetzner
         end
 
         def server_types
+          return [] unless valid_token?
           @server_types ||= hetzner_client.get("/server_types")["server_types"].map{ |server_type| server_type["name"] }
         rescue
           @errors << "Cannot fetch server types with Hetzner API, please try again later"
@@ -156,13 +171,15 @@ module Hetzner
         end
 
         def locations
+          return [] unless valid_token?
           @locations ||= hetzner_client.get("/locations")["locations"].map{ |location| location["name"] }
         rescue
           @errors << "Cannot fetch locations with Hetzner API, please try again later"
-          false
+          []
         end
 
         def validate_location
+          return if locations.empty? && !valid_token?
           errors << "Invalid location - available locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland)" unless locations.include? configuration.dig("location")
         end
 
@@ -271,7 +288,7 @@ module Hetzner
             instance_group_errors << "#{instance_group_type} is in an invalid format"
           end
 
-          unless server_types.include?(instance_group["instance_type"])
+          unless !valid_token? or server_types.include?(instance_group["instance_type"])
             instance_group_errors << "#{instance_group_type} has an invalid instance type"
           end
 
@@ -306,6 +323,13 @@ module Hetzner
           return unless [true, false].include?(configuration.fetch("ssh_key_path", false))
           errors << "Please set the verify_host_key option to either true or false"
         end
+
+        def find_hetzner_token
+          @token = ENV["HCLOUD_TOKEN"]
+          return @token if @token
+          @token = configuration.dig("hetzner_token")
+        end
+
     end
   end
 end
