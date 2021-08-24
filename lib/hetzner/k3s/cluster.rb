@@ -150,42 +150,15 @@ class Cluster
     end
 
     def delete_resources
-      # Deleting nodes defined according to Kubernetes first
-      begin
-        Timeout::timeout(5) do
-          servers = kubernetes_client.api("v1").resource("nodes").list
-
-          threads = servers.map do |node|
-            Thread.new do
-              Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: node.metadata[:name])
-            end
-          end
-
-          threads.each(&:join) unless threads.empty?
-        end
-      rescue Timeout::Error, Excon::Error::Socket
-        puts "Unable to fetch nodes from Kubernetes API. Is the cluster online?"
-      end
-
-      # Deleting nodes defined in the config file just in case there are leftovers i.e. nodes that
-      # were not part of the cluster for some reason
-
-      threads = all_servers.map do |server|
-        Thread.new do
-          Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: server["name"])
-        end
-      end
-
-      threads.each(&:join) unless threads.empty?
-
-      puts
-
-      sleep 5 # give time for the servers to actually be deleted
+      Hetzner::LoadBalancer.new(
+        hetzner_client: hetzner_client,
+        cluster_name: cluster_name
+      ).delete(ha: (masters.size > 1))
 
       Hetzner::Firewall.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).delete
+      ).delete(all_servers)
 
       Hetzner::Network.new(
         hetzner_client: hetzner_client,
@@ -197,11 +170,13 @@ class Cluster
         cluster_name: cluster_name
       ).delete(ssh_key_path: ssh_key_path)
 
-      Hetzner::LoadBalancer.new(
-        hetzner_client: hetzner_client,
-        cluster_name: cluster_name
-      ).delete(ha: (masters.size > 1))
+      threads = all_servers.map do |server|
+        Thread.new do
+          Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: server["name"])
+        end
+      end
 
+      threads.each(&:join) unless threads.empty?
     end
 
     def upgrade_cluster

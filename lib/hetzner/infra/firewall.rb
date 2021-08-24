@@ -16,16 +16,21 @@ module Hetzner
 
       puts "Creating firewall..."
 
-      response = hetzner_client.post("/firewalls", firewall_config).body
+      response = hetzner_client.post("/firewalls", create_firewall_config).body
       puts "...firewall created."
       puts
 
       JSON.parse(response)["firewall"]["id"]
     end
 
-    def delete
+    def delete(servers)
       if firewall = find_firewall
         puts "Deleting firewall..."
+
+        servers.each do |server|
+          hetzner_client.post("/firewalls/#{firewall["id"]}/actions/remove_from_resources", remove_targets_config(server["id"]))
+        end
+
         hetzner_client.delete("/firewalls", firewall["id"])
         puts "...firewall deleted."
       else
@@ -39,7 +44,7 @@ module Hetzner
 
       attr_reader :hetzner_client, :cluster_name, :firewall
 
-      def firewall_config
+      def create_firewall_config
         {
           name: cluster_name,
           rules: [
@@ -95,6 +100,19 @@ module Hetzner
                 "10.0.0.0/16"
               ],
               "destination_ips": []
+            }
+          ]
+        }
+      end
+
+      def remove_targets_config(server_id)
+        {
+          "remove_from": [
+            {
+              "server": {
+                "id": server_id
+              },
+              "type": "server"
             }
           ]
         }

@@ -19,7 +19,7 @@ module Hetzner
 
       puts "Creating API load_balancer..."
 
-      response = hetzner_client.post("/load_balancers", load_balancer_config).body
+      response = hetzner_client.post("/load_balancers", create_load_balancer_config).body
       puts "...API load balancer created."
       puts
 
@@ -29,6 +29,9 @@ module Hetzner
     def delete(ha:)
       if load_balancer = find_load_balancer
         puts "Deleting API load balancer..." unless ha
+
+        hetzner_client.post("/load_balancers/#{load_balancer["id"]}/actions/remove_target", remove_targets_config)
+
         hetzner_client.delete("/load_balancers", load_balancer["id"])
         puts "...API load balancer deleted." unless ha
       elsif ha
@@ -46,7 +49,7 @@ module Hetzner
         "#{cluster_name}-api"
       end
 
-      def load_balancer_config
+      def create_load_balancer_config
         {
           "algorithm": {
             "type": "round_robin"
@@ -73,6 +76,15 @@ module Hetzner
               "use_private_ip": true
             }
           ]
+        }
+      end
+
+      def remove_targets_config
+        {
+          "label_selector": {
+            "selector": "cluster=#{cluster_name},role=master"
+          },
+          "type": "label_selector"
         }
       end
 
