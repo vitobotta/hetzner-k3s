@@ -78,10 +78,12 @@ class Cluster
     end
 
     def create_resources
+      masters_count = masters_config["instance_count"]
+
       firewall_id = Hetzner::Firewall.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).create
+      ).create(ha: (masters_count > 1))
 
       network_id = Hetzner::Network.new(
         hetzner_client: hetzner_client,
@@ -96,7 +98,6 @@ class Cluster
       server_configs = []
 
       master_instance_type = masters_config["instance_type"]
-      masters_count = masters_config["instance_count"]
 
       masters_count.times do |i|
         server_configs << {
