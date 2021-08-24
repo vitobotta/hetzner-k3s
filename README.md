@@ -235,6 +235,10 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.4.0
+  - Ensure the masters are removed from the API load balancer before deleting the load balancer
+  - Ensure the servers are removed from the firewall before deleting it
+
 - 0.3.9
   - Add command "version" to print the version of the tool in use
 
