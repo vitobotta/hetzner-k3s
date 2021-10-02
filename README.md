@@ -59,6 +59,7 @@ ssh_allowed_networks:
   - 0.0.0.0/0
 verify_host_key: false
 location: nbg1
+schedule_workloads_on_masters: false
 masters:
   instance_type: cpx21
   instance_count: 3
