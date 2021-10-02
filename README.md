@@ -53,7 +53,8 @@ hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.21.3+k3s1
-ssh_key_path: "~/.ssh/id_rsa.pub"
+public_ssh_key_path: "~/.ssh/id_rsa.pub"
+private_ssh_key_path: "~/.ssh/id_rsa"
 ssh_allowed_networks:
   - 0.0.0.0/0
 verify_host_key: false
@@ -238,6 +239,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 
 ## changelog
+
+- 0.4.1
+  - Allow to optionally specify the path of the private SSH key
 
 - 0.4.0
   - Ensure the masters are removed from the API load balancer before deleting the load balancer

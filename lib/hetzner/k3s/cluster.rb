@@ -24,7 +24,9 @@ class Cluster
   def create(configuration:)
     @cluster_name = configuration.dig("cluster_name")
     @kubeconfig_path = File.expand_path(configuration.dig("kubeconfig_path"))
-    @ssh_key_path = File.expand_path(configuration.dig("ssh_key_path"))
+    @public_ssh_key_path = File.expand_path(configuration.dig("public_ssh_key_path"))
+    private_ssh_key_path = configuration.dig("private_ssh_key_path")
+    @private_ssh_key_path = File.expand_path(private_ssh_key_path) if private_ssh_key_path
     @k3s_version = configuration.dig("k3s_version")
     @masters_config = configuration.dig("masters")
     @worker_node_pools = configuration.dig("worker_node_pools")
@@ -47,7 +49,7 @@ class Cluster
   def delete(configuration:)
     @cluster_name = configuration.dig("cluster_name")
     @kubeconfig_path = File.expand_path(configuration.dig("kubeconfig_path"))
-    @ssh_key_path = File.expand_path(configuration.dig("ssh_key_path"))
+    @public_ssh_key_path = File.expand_path(configuration.dig("public_ssh_key_path"))
 
     delete_resources
   end
@@ -68,9 +70,9 @@ class Cluster
 
     attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
                 :masters_config, :worker_node_pools,
-                :location, :ssh_key_path, :kubernetes_client,
+                :location, :public_ssh_key_path, :kubernetes_client,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
-                :config_file, :verify_host_key, :networks
+                :config_file, :verify_host_key, :networks, :private_ssh_key_path
 
 
     def latest_k3s_version
@@ -95,7 +97,7 @@ class Cluster
       ssh_key_id = Hetzner::SSHKey.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).create(ssh_key_path: ssh_key_path)
+      ).create(public_ssh_key_path: public_ssh_key_path)
 
       server_configs = []
 
@@ -169,7 +171,7 @@ class Cluster
       Hetzner::SSHKey.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).delete(ssh_key_path: ssh_key_path)
+      ).delete(public_ssh_key_path: public_ssh_key_path)
 
       threads = all_servers.map do |server|
         Thread.new do
@@ -442,7 +444,13 @@ class Cluster
       public_ip = server.dig("public_net", "ipv4", "ip")
       output = ""
 
-      Net::SSH.start(public_ip, "root", verify_host_key: (verify_host_key ? :always : :never)) do |session|
+      params = { verify_host_key: (verify_host_key ? :always : :never) }
+
+      if private_ssh_key_path
+        params[:keys] = [private_ssh_key_path]
+      end
+
+      Net::SSH.start(public_ip, "root", params) do |session|
         session.exec!(command) do |channel, stream, data|
           output << data
           puts data if print_output
@@ -453,6 +461,10 @@ class Cluster
       retry unless e.message =~ /Too many authentication failures/
     rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH
       retry
+    rescue Net::SSH::AuthenticationFailed
+      puts
+      puts "Cannot continue: SSH authentication failed. Please ensure that the private SSH key is correct."
+      exit 1
     rescue Net::SSH::HostKeyMismatch
       puts
       puts "Cannot continue: Unable to SSH into server with IP #{public_ip} because the existing fingerprint in the known_hosts file does not match that of the actual host key."

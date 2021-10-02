@@ -5,15 +5,15 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(ssh_key_path:)
-      @ssh_key_path = ssh_key_path
+    def create(public_ssh_key_path:)
+      @public_ssh_key_path = public_ssh_key_path
 
       puts
 
-      if ssh_key = find_ssh_key
+      if (public_ssh_key = find_public_ssh_key)
         puts "SSH key already exists, skipping."
         puts
-        return ssh_key["id"]
+        return public_ssh_key["id"]
       end
 
       puts "Creating SSH key..."
@@ -26,13 +26,13 @@ module Hetzner
       JSON.parse(response)["ssh_key"]["id"]
     end
 
-    def delete(ssh_key_path:)
-      @ssh_key_path = ssh_key_path
+    def delete(public_ssh_key_path:)
+      @public_ssh_key_path = public_ssh_key_path
 
-      if ssh_key = find_ssh_key
-        if ssh_key["name"] == cluster_name
+      if (public_ssh_key = find_public_ssh_key)
+        if public_ssh_key["name"] == cluster_name
           puts "Deleting ssh_key..."
-          hetzner_client.delete("/ssh_keys", ssh_key["id"])
+          hetzner_client.delete("/ssh_keys", public_ssh_key["id"])
           puts "...ssh_key deleted."
         else
           puts "The SSH key existed before creating the cluster, so I won't delete it."
@@ -46,24 +46,24 @@ module Hetzner
 
     private
 
-      attr_reader :hetzner_client, :cluster_name, :ssh_key_path
+      attr_reader :hetzner_client, :cluster_name, :public_ssh_key_path
 
-      def public_key
-        @public_key ||= File.read(ssh_key_path).chop
+      def public_ssh_key
+        @public_ssh_key ||= File.read(public_ssh_key_path).chop
       end
 
       def ssh_key_config
         {
           name: cluster_name,
-          public_key: public_key
+          public_ssh_key: public_ssh_key
         }
       end
 
       def fingerprint
-        @fingerprint ||= ::SSHKey.fingerprint(public_key)
+        @fingerprint ||= ::SSHKey.fingerprint(public_ssh_key)
       end
 
-      def find_ssh_key
+      def find_public_ssh_key
         key = hetzner_client.get("/ssh_keys")["ssh_keys"].detect do |ssh_key|
           ssh_key["fingerprint"] == fingerprint
         end
