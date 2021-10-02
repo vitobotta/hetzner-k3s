@@ -38,7 +38,7 @@ This will install the `hetzner-k3s` executable in your PATH.
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
 ```bash
-docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.0 create-cluster --config-file /cluster/test.yaml
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.1 create-cluster --config-file /cluster/test.yaml
 ```
 
 Replace `test.yaml` with the name of your config file.
@@ -242,6 +242,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 - 0.4.1
   - Allow to optionally specify the path of the private SSH key
+  - Set correct permissions for the kubeconfig file
 
 - 0.4.0
   - Ensure the masters are removed from the API load balancer before deleting the load balancer
