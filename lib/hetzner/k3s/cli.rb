@@ -241,14 +241,22 @@ module Hetzner
           begin
             worker_node_pools = configuration.dig("worker_node_pools")
           rescue
-            errors << "Invalid node pools configuration"
+            unless schedule_workloads_on_masters?
+              errors << "Invalid node pools configuration"
+              return
+            end
+          end
+
+          if worker_node_pools.nil? && schedule_workloads_on_masters?
             return
           end
 
           if !worker_node_pools.is_a? Array
             errors << "Invalid node pools configuration"
           elsif worker_node_pools.size == 0
-            errors << "At least one node pool is required in order to schedule workloads"
+            unless schedule_workloads_on_masters?
+              errors << "At least one node pool is required in order to schedule workloads"
+            end
           elsif worker_node_pools.map{ |worker_node_pool| worker_node_pool["name"]}.uniq.size != worker_node_pools.size
             errors << "Each node pool must have an unique name"
           elsif server_types
@@ -256,6 +264,11 @@ module Hetzner
               validate_instance_group worker_node_pool
             end
           end
+        end
+
+        def schedule_workloads_on_masters?
+          schedule_workloads_on_masters = configuration.dig("schedule_workloads_on_masters")
+          schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
         end
 
         def validate_new_k3s_version_must_be_more_recent
