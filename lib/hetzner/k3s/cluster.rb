@@ -554,6 +554,8 @@ class Cluster
         gsub("default", cluster_name)
 
       File.write(kubeconfig_path, kubeconfig)
+
+      FileUtils.chmod "go-r", kubeconfig_path
     end
 
     def ugrade_plan_manifest_path

@@ -163,9 +163,6 @@ module Hetzner
 
           path = File.expand_path(private_ssh_key_path)
           errors << "Invalid Private SSH key path" and return unless File.exists?(path)
-
-          # key = File.read(path)
-          # errors << "Private SSH key is invalid" unless ::SSHKey.valid_ssh_private_key? key
         rescue
           errors << "Invalid Private SSH key path"
         end
