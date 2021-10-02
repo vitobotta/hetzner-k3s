@@ -315,7 +315,7 @@ class Cluster
       end
 
 
-      manifest = HTTP.follow.get("https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml").body
+      manifest = fetch_manifest("https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml")
 
       File.write("/tmp/cloud-controller-manager.yaml", manifest)
 
@@ -338,6 +338,13 @@ class Cluster
       puts "...Cloud Controller Manager deployed"
     rescue Excon::Error::Socket
       retry
+    end
+
+    def fetch_manifest(url)
+      retries ||= 1
+      HTTP.follow.get(url).body
+    rescue
+      retry if (retries += 1) <= 10
     end
 
     def deploy_system_upgrade_controller
