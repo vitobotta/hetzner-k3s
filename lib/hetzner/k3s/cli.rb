@@ -83,7 +83,8 @@ module Hetzner
 
           case action
           when :create
-            validate_ssh_key
+            validate_public_ssh_key
+            validate_private_ssh_key
             validate_ssh_allowed_networks
             validate_location
             validate_k3s_version
@@ -147,14 +148,26 @@ module Hetzner
           errors << "Invalid path for the kubeconfig"
         end
 
-        def validate_ssh_key
-          path = File.expand_path(configuration.dig("ssh_key_path"))
+        def validate_public_ssh_key
+          path = File.expand_path(configuration.dig("public_ssh_key_path"))
           errors << "Invalid Public SSH key path" and return unless File.exists? path
 
           key = File.read(path)
-          errors << "Public SSH key is invalid" unless ::SSHKey.valid_ssh_public_key? key
+          errors << "Public SSH key is invalid" unless ::SSHKey.valid_ssh_public_key?(key)
         rescue
           errors << "Invalid Public SSH key path"
+        end
+
+        def validate_private_ssh_key
+          return unless (private_ssh_key_path = configuration.dig("private_ssh_key_path"))
+
+          path = File.expand_path(private_ssh_key_path)
+          errors << "Invalid Private SSH key path" and return unless File.exists?(path)
+
+          # key = File.read(path)
+          # errors << "Private SSH key is invalid" unless ::SSHKey.valid_ssh_private_key? key
+        rescue
+          errors << "Invalid Private SSH key path"
         end
 
         def validate_kubeconfig_path_must_exist
@@ -321,7 +334,7 @@ module Hetzner
         end
 
         def validate_verify_host_key
-          return unless [true, false].include?(configuration.fetch("ssh_key_path", false))
+          return unless [true, false].include?(configuration.fetch("public_ssh_key_path", false))
           errors << "Please set the verify_host_key option to either true or false"
         end
 
