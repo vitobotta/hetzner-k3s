@@ -22,6 +22,7 @@ class Cluster
   end
 
   def create(configuration:)
+    @configuration = configuration
     @cluster_name = configuration.dig("cluster_name")
     @kubeconfig_path = File.expand_path(configuration.dig("kubeconfig_path"))
     @public_ssh_key_path = File.expand_path(configuration.dig("public_ssh_key_path"))
@@ -29,7 +30,7 @@ class Cluster
     @private_ssh_key_path = File.expand_path(private_ssh_key_path) if private_ssh_key_path
     @k3s_version = configuration.dig("k3s_version")
     @masters_config = configuration.dig("masters")
-    @worker_node_pools = configuration.dig("worker_node_pools")
+    @worker_node_pools = find_worker_node_pools(configuration)
     @location = configuration.dig("location")
     @verify_host_key = configuration.fetch("verify_host_key", false)
     @servers = []
@@ -66,13 +67,17 @@ class Cluster
 
   private
 
+    def find_worker_node_pools(configuration)
+      configuration.fetch("worker_node_pools", [])
+    end
+
     attr_accessor :servers
 
     attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
                 :masters_config, :worker_node_pools,
                 :location, :public_ssh_key_path, :kubernetes_client,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
-                :config_file, :verify_host_key, :networks, :private_ssh_key_path
+                :config_file, :verify_host_key, :networks, :private_ssh_key_path, :configuration
 
 
     def latest_k3s_version
@@ -209,6 +214,8 @@ class Cluster
       server = master == first_master ? " --cluster-init " : " --server https://#{first_master_private_ip}:6443 "
       flannel_interface = find_flannel_interface(master)
 
+      taint = schedule_workloads_on_masters? ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
+
       <<~EOF
       curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
         --disable-cloud-controller \
@@ -225,7 +232,7 @@ class Cluster
         --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
         --kube-scheduler-arg="address=0.0.0.0" \
         --kube-scheduler-arg="bind-address=0.0.0.0" \
-        --node-taint CriticalAddonsOnly=true:NoExecute \
+        #{taint} \
         --kubelet-arg="cloud-provider=external" \
         --advertise-address=$(hostname -I | awk '{print $2}') \
         --node-ip=$(hostname -I | awk '{print $2}') \
@@ -624,6 +631,11 @@ class Cluster
 
     def belongs_to_cluster?(server)
       server.dig("labels", "cluster") == cluster_name
+    end
+
+    def schedule_workloads_on_masters?
+      schedule_workloads_on_masters = configuration.dig("schedule_workloads_on_masters")
+      schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
     end
 
 end

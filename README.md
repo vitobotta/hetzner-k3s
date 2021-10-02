@@ -244,6 +244,8 @@ I recommend that you create a separate Hetzner project for each cluster, because
   - Allow to optionally specify the path of the private SSH key
   - Set correct permissions for the kubeconfig file
   - Retry fetching manifests a few times to allow for temporary network issues
+  - Allow to optionally schedule workloads on masters
+  - Allow clusters with no worker node pools if shceduling is enabled for the masters
 
 - 0.4.0
   - Ensure the masters are removed from the API load balancer before deleting the load balancer
