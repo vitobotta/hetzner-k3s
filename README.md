@@ -243,6 +243,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 - 0.4.1
   - Allow to optionally specify the path of the private SSH key
   - Set correct permissions for the kubeconfig file
+  - Retry fetching manifests a few times to allow for temporary network issues
 
 - 0.4.0
   - Ensure the masters are removed from the API load balancer before deleting the load balancer
