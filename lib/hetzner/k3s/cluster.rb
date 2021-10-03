@@ -358,7 +358,7 @@ class Cluster
       puts
       puts "Deploying k3s System Upgrade Controller..."
 
-      manifest = HTTP.follow.get("https://github.com/rancher/system-upgrade-controller/releases/download/v0.7.3/system-upgrade-controller.yaml").body
+      manifest = HTTP.follow.get("https://github.com/rancher/system-upgrade-controller/releases/download/v0.8.0/system-upgrade-controller.yaml").body
 
       File.write("/tmp/system-upgrade-controller.yaml", manifest)
 
