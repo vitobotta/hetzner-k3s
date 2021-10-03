@@ -339,6 +339,7 @@ module Hetzner
           config_hash = YAML.load_file(File.expand_path(configuration["kubeconfig_path"]))
           config_hash['current-context'] = configuration["cluster_name"]
           @kubernetes_client = K8s::Client.config(K8s::Config.new(config_hash))
+        rescue
           errors << "Cannot connect to the Kubernetes cluster"
           false
         end
