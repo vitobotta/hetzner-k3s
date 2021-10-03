@@ -241,6 +241,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.4.2
+  - Updated Hetzner CSI driver to v1.6.0
+
 - 0.4.1
   - Allow to optionally specify the path of the private SSH key
   - Set correct permissions for the kubeconfig file
