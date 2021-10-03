@@ -407,7 +407,7 @@ class Cluster
       end
 
 
-      manifest = HTTP.follow.get("https://raw.githubusercontent.com/hetznercloud/csi-driver/v1.5.3/deploy/kubernetes/hcloud-csi.yml").body
+      manifest = HTTP.follow.get("https://raw.githubusercontent.com/hetznercloud/csi-driver/v1.6.0/deploy/kubernetes/hcloud-csi.yml").body
 
       File.write("/tmp/csi-driver.yaml", manifest)
 
