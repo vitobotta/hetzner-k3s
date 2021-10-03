@@ -78,7 +78,7 @@ If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so 
 
 If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
 
-**Important**: The tool assignes the label `cluster` to each server it creates, with the clsuter name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
+**Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
 
