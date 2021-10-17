@@ -11,4 +11,4 @@ docker build -t ${IMAGE}:v0.4.3 \
   --cache-from ${IMAGE}:v0.4.2 \
   --build-arg BUILDKIT_INLINE_CACHE=1 .
 
-docker push vitobotta/hetzner-k3s:v0.4.2
+docker push vitobotta/hetzner-k3s:v0.4.3
