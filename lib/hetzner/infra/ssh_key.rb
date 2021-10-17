@@ -55,7 +55,7 @@ module Hetzner
       def ssh_key_config
         {
           name: cluster_name,
-          public_ssh_key: public_ssh_key
+          public_key: public_ssh_key
         }
       end
 
