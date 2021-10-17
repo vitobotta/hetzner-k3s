@@ -241,6 +241,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.4.3
+  - Fix an issue with SSH key creation
+
 - 0.4.2
   - Update Hetzner CSI driver to v1.6.0
   - Update System Upgrade Controller to v0.8.0
