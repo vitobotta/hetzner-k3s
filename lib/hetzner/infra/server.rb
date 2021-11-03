@@ -5,7 +5,7 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:)
+    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:)
       puts
 
       server_name = "#{cluster_name}-#{instance_type}-#{instance_id}"
@@ -36,7 +36,8 @@ module Hetzner
         labels: {
           cluster: cluster_name,
           role: (server_name =~ /master/ ? "master" : "worker")
-        }
+        },
+        placement_group: placement_group_id
       }
 
       response = hetzner_client.post("/servers", server_config).body

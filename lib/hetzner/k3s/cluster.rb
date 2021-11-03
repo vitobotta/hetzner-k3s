@@ -11,6 +11,7 @@ require_relative "../infra/network"
 require_relative "../infra/ssh_key"
 require_relative "../infra/server"
 require_relative "../infra/load_balancer"
+require_relative "../infra/placement_group"
 
 require_relative "../k3s/client_patch"
 
@@ -89,6 +90,11 @@ class Cluster
       master_instance_type = masters_config["instance_type"]
       masters_count = masters_config["instance_count"]
 
+      placement_group_id = Hetzner::PlacementGroup.new(
+        hetzner_client: hetzner_client,
+        cluster_name: cluster_name
+      ).create
+
       firewall_id = Hetzner::Firewall.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
@@ -113,7 +119,8 @@ class Cluster
           instance_id: "master#{i+1}",
           firewall_id: firewall_id,
           network_id: network_id,
-          ssh_key_id: ssh_key_id
+          ssh_key_id: ssh_key_id,
+          placement_group_id: placement_group_id
         }
       end
 
@@ -136,7 +143,8 @@ class Cluster
             instance_id: "pool-#{worker_node_pool_name}-worker#{i+1}",
             firewall_id: firewall_id,
             network_id: network_id,
-            ssh_key_id: ssh_key_id
+            ssh_key_id: ssh_key_id,
+            placement_group_id: placement_group_id
           }
         end
       end
@@ -158,6 +166,11 @@ class Cluster
     end
 
     def delete_resources
+      Hetzner::PlacementGroup.new(
+        hetzner_client: hetzner_client,
+        cluster_name: cluster_name
+      ).delete
+
       Hetzner::LoadBalancer.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
