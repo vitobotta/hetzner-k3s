@@ -48,7 +48,7 @@ module Hetzner
           subnets: [
             {
               ip_range: "10.0.0.0/16",
-              network_zone: (location ? "us-east" : "eu-central"),
+              network_zone: (location == "ash" ? "us-east" : "eu-central"),
               type: "cloud"
             }
           ]
