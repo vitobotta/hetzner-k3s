@@ -193,7 +193,7 @@ module Hetzner
 
         def validate_location
           return if locations.empty? && !valid_token?
-          errors << "Invalid location - available locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland)" unless locations.include? configuration.dig("location")
+          errors << "Invalid location - available locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland) or ash (Ashburn, Virginia, USA)" unless locations.include? configuration.dig("location")
         end
 
         def find_available_releases

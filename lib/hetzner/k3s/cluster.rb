@@ -97,7 +97,7 @@ class Cluster
       network_id = Hetzner::Network.new(
         hetzner_client: hetzner_client,
         cluster_name: cluster_name
-      ).create
+      ).create(location: location)
 
       ssh_key_id = Hetzner::SSHKey.new(
         hetzner_client: hetzner_client,
