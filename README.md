@@ -244,6 +244,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 - 0.4.4
   - Add support for the new Ashburn, Virginia (USA) location
+  - Automatically use a placement group so that the instances are all created on different physical hosts for high availability
 
 - 0.4.3
   - Fix an issue with SSH key creation
