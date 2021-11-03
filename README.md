@@ -2,7 +2,7 @@
 
 This is a CLI tool - based on a Ruby gem - to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
 
-Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market. I highly recommend them if European locations (Germany and Finland) are OK for your projects (the Nuremberg data center has decent latency for US users as well). With Hetzner's Cloud Controller Manager and CSI driver you can provision load balancers and persistent volumes very easily.
+Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market. With Hetzner's Cloud Controller Manager and CSI driver you can provision load balancers and persistent volumes very easily.
 
 k3s is my favorite Kubernetes distribution now because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy because it's a single binary.
 
@@ -38,7 +38,7 @@ This will install the `hetzner-k3s` executable in your PATH.
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
 ```bash
-docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.3 create-cluster --config-file /cluster/test.yaml
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.4 create-cluster --config-file /cluster/test.yaml
 ```
 
 Replace `test.yaml` with the name of your config file.
@@ -86,7 +86,8 @@ If you set `masters.instance_count` to 1 then the tool will create a non highly 
 
 You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has three locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkensteing) and one in Finland (`hel1`, Helsinki).
+At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkensteing), one in Finland (`hel1`, Helsinki) and one in the USA (`ash`, Ashburn, Virginia). Please note that the Ashburn, Virginia location has just
+been announced and it's limited to AMD instances for now.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
@@ -240,6 +241,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 
 ## changelog
+
+- 0.4.4
+  - Add support for the new Ashburn, Virginia (USA) location
 
 - 0.4.3
   - Fix an issue with SSH key creation

@@ -5,7 +5,8 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create
+    def create(location:)
+      @location = location
       puts
 
       if network = find_network
@@ -38,7 +39,7 @@ module Hetzner
 
     private
 
-      attr_reader :hetzner_client, :cluster_name
+      attr_reader :hetzner_client, :cluster_name, :location
 
       def network_config
         {
@@ -47,7 +48,7 @@ module Hetzner
           subnets: [
             {
               ip_range: "10.0.0.0/16",
-              network_zone: "eu-central",
+              network_zone: (location ? "us-east" : "eu-central"),
               type: "cloud"
             }
           ]
