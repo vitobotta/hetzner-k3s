@@ -5,7 +5,7 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:)
+    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:)
       puts
 
       server_name = "#{cluster_name}-#{instance_type}-#{instance_id}"
@@ -21,7 +21,7 @@ module Hetzner
       server_config = {
         name: server_name,
         location: location,
-        image: "ubuntu-20.04",
+        image: image,
         firewalls: [
           { firewall: firewall_id }
         ],
