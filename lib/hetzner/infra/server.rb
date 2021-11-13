@@ -40,12 +40,22 @@ module Hetzner
         placement_group: placement_group_id
       }
 
-      response = hetzner_client.post("/servers", server_config).body
+      response = hetzner_client.post("/servers", server_config)
+      response_body = response.body
+
+      server = JSON.parse(response_body)["server"]
+
+      unless server
+        puts "Error creating server #{server_name}. Response details below:"
+        puts
+        p response
+        return
+      end
 
       puts "...server #{server_name} created."
       puts
 
-      JSON.parse(response)["server"]
+      server
     end
 
     def delete(server_name:)
