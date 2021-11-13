@@ -157,6 +157,11 @@ class Cluster
 
       threads.each(&:join) unless threads.empty?
 
+      if server_configs.size != servers.size
+        puts "Something went wrong while creating some servers, please try again."
+        exit 1
+      end
+
       puts
       threads = servers.map do |server|
         Thread.new { wait_for_ssh server }
@@ -230,28 +235,28 @@ class Cluster
       taint = schedule_workloads_on_masters? ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
       <<~EOF
-      curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
-        --disable-cloud-controller \
-        --disable servicelb \
-        --disable traefik \
-        --disable local-storage \
-        --disable metrics-server \
-        --write-kubeconfig-mode=644 \
-        --node-name="$(hostname -f)" \
-        --cluster-cidr=10.244.0.0/16 \
-        --etcd-expose-metrics=true \
-        --kube-controller-manager-arg="address=0.0.0.0" \
-        --kube-controller-manager-arg="bind-address=0.0.0.0" \
-        --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
-        --kube-scheduler-arg="address=0.0.0.0" \
-        --kube-scheduler-arg="bind-address=0.0.0.0" \
-        #{taint} \
-        --kubelet-arg="cloud-provider=external" \
-        --advertise-address=$(hostname -I | awk '{print $2}') \
-        --node-ip=$(hostname -I | awk '{print $2}') \
-        --node-external-ip=$(hostname -I | awk '{print $1}') \
-        --flannel-iface=#{flannel_interface} \
-        #{server} #{tls_sans}" sh -
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
+          --disable-cloud-controller \
+          --disable servicelb \
+          --disable traefik \
+          --disable local-storage \
+          --disable metrics-server \
+          --write-kubeconfig-mode=644 \
+          --node-name="$(hostname -f)" \
+          --cluster-cidr=10.244.0.0/16 \
+          --etcd-expose-metrics=true \
+          --kube-controller-manager-arg="address=0.0.0.0" \
+          --kube-controller-manager-arg="bind-address=0.0.0.0" \
+          --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
+          --kube-scheduler-arg="address=0.0.0.0" \
+          --kube-scheduler-arg="bind-address=0.0.0.0" \
+          #{taint} \
+          --kubelet-arg="cloud-provider=external" \
+          --advertise-address=$(hostname -I | awk '{print $2}') \
+          --node-ip=$(hostname -I | awk '{print $2}') \
+          --node-external-ip=$(hostname -I | awk '{print $1}') \
+          --flannel-iface=#{flannel_interface} \
+          #{server} #{tls_sans}" sh -
       EOF
     end
 
@@ -259,12 +264,12 @@ class Cluster
       flannel_interface = find_flannel_interface(worker)
 
       <<~EOF
-      curl -sfL https://get.k3s.io | K3S_TOKEN="#{k3s_token}" INSTALL_K3S_VERSION="#{k3s_version}" K3S_URL=https://#{first_master_private_ip}:6443 INSTALL_K3S_EXEC="agent \
-        --node-name="$(hostname -f)" \
-        --kubelet-arg="cloud-provider=external" \
-        --node-ip=$(hostname -I | awk '{print $2}') \
-        --node-external-ip=$(hostname -I | awk '{print $1}') \
-        --flannel-iface=#{flannel_interface}" sh -
+        curl -sfL https://get.k3s.io | K3S_TOKEN="#{k3s_token}" INSTALL_K3S_VERSION="#{k3s_version}" K3S_URL=https://#{first_master_private_ip}:6443 INSTALL_K3S_EXEC="agent \
+          --node-name="$(hostname -f)" \
+          --kubelet-arg="cloud-provider=external" \
+          --node-ip=$(hostname -I | awk '{print $2}') \
+          --node-external-ip=$(hostname -I | awk '{print $1}') \
+          --flannel-iface=#{flannel_interface}" sh -
       EOF
     end
 
