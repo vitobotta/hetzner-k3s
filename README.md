@@ -38,7 +38,7 @@ This will install the `hetzner-k3s` executable in your PATH.
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
 ```bash
-docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.6 create-cluster --config-file /cluster/test.yaml
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.4.7 create-cluster --config-file /cluster/test.yaml
 ```
 
 Replace `test.yaml` with the name of your config file.
@@ -97,8 +97,20 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
+By default, the image in use is Ubuntu 20.04, but you can specify an image to use with the `image` config option. This makes it also possible
+to use a snapshot that you have already created from and existing server (for example to preinstall some tools). If you want to use a custom
+snapshot you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. To find
+the ID of your custom image/snapshot, run:
 
-Note: the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you.
+```bash
+curl \
+	-H "Authorization: Bearer $API_TOKEN" \
+	'https://api.hetzner.cloud/v1/images'
+```
+
+Note that if you use a custom image, the creation of the servers may take longer than when using the default image. 
+
+Also note: the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you.
 
 Finally, to create the cluster run:
 
@@ -242,7 +254,10 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
-- 0.4.5
+- 0.4.7
+  - Made it possible to specify a custom image/snapshot for the servers
+
+- 0.4.6
   - Added a check to abort gracefully when for some reason one or more servers are not created, for example due to temporary problems with the Hetzner API.
 
 - 0.4.5

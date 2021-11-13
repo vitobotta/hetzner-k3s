@@ -120,7 +120,8 @@ class Cluster
           firewall_id: firewall_id,
           network_id: network_id,
           ssh_key_id: ssh_key_id,
-          placement_group_id: placement_group_id
+          placement_group_id: placement_group_id,
+          image: image
         }
       end
 
@@ -144,7 +145,8 @@ class Cluster
             firewall_id: firewall_id,
             network_id: network_id,
             ssh_key_id: ssh_key_id,
-            placement_group_id: placement_group_id
+            placement_group_id: placement_group_id,
+            image: image
           }
         end
       end
@@ -157,9 +159,8 @@ class Cluster
 
       threads.each(&:join) unless threads.empty?
 
-      if server_configs.size != servers.size
-        puts "Something went wrong while creating some servers, please try again."
-        exit 1
+      while servers.size != server_configs.size
+        sleep 1
       end
 
       puts
@@ -654,6 +655,10 @@ class Cluster
     def schedule_workloads_on_masters?
       schedule_workloads_on_masters = configuration.dig("schedule_workloads_on_masters")
       schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
+    end
+
+    def image
+      configuration.dig("image") || "ubuntu-20.04"
     end
 
 end
