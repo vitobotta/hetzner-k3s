@@ -211,7 +211,7 @@ kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-serv
 To delete a cluster, running
 
 ```bash
-hetzner-k3s delete-cluster --config-file cluster_config.yam
+hetzner-k3s delete-cluster --config-file cluster_config.yaml
 ```
 
 This will delete all the resources in the Hetzner Cloud project for the cluster being deleted.
