@@ -1,11 +1,15 @@
 ---
-hetzner_token: blah
+hetzner_token: <your token>
 cluster_name: test
-kubeconfig_path: "../kubeconfig"
+kubeconfig_path: "./kubeconfig"
 k3s_version: v1.21.3+k3s1
-ssh_key_path: "~/.ssh/id_rsa.pub"
+public_ssh_key_path: "~/.ssh/id_rsa.pub"
+private_ssh_key_path: "~/.ssh/id_rsa"
+ssh_allowed_networks:
+  - 0.0.0.0/0
 verify_host_key: false
 location: nbg1
+schedule_workloads_on_masters: false
 masters:
   instance_type: cpx21
   instance_count: 3
@@ -14,5 +18,5 @@ worker_node_pools:
   instance_type: cpx21
   instance_count: 4
 - name: big
-  instance_type: cp321
+  instance_type: cpx31
   instance_count: 2

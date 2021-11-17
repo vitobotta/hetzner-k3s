@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.4.5)
+    hetzner-k3s (0.4.7)
       bcrypt_pbkdf
       ed25519
       http
@@ -47,8 +47,8 @@ GEM
       dry-inflector (~> 0.1, >= 0.1.2)
       dry-logic (~> 0.4, >= 0.4.2)
     ed25519 (1.2.4)
-    excon (0.85.0)
-    ffi (1.15.3)
+    excon (0.88.0)
+    ffi (1.15.4)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
