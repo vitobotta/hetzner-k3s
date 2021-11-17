@@ -36,11 +36,13 @@ module Hetzner
       end
 
       def make_request &block
-        Timeout::timeout(5) do
+        retries ||= 0
+
+        Timeout::timeout(30) do
           block.call
         end
       rescue Timeout::Error
-        retry
+        retry if (retries += 1) < 3
       end
   end
 end
