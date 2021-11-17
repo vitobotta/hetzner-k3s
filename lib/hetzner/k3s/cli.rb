@@ -198,7 +198,7 @@ module Hetzner
 
         def find_available_releases
           @available_releases ||= begin
-            response = HTTP.get("https://api.github.com/repos/k3s-io/k3s/tags").body
+            response = HTTP.get("https://api.github.com/repos/k3s-io/k3s/tags?per_page=999").body
             JSON.parse(response).map { |hash| hash["name"] }
           end
         rescue
