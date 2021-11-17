@@ -254,6 +254,10 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.4.8
+  - Increase timeout with API requests to 30 seconds
+  - Limit number of retries for API requests to 3
+
 - 0.4.7
   - Made it possible to specify a custom image/snapshot for the servers
 
