@@ -2,8 +2,8 @@ require 'thread'
 require 'net/ssh'
 require "securerandom"
 require "base64"
-require "k8s-ruby"
 require 'timeout'
+require "subprocess"
 
 require_relative "../infra/client"
 require_relative "../infra/firewall"
@@ -13,10 +13,12 @@ require_relative "../infra/server"
 require_relative "../infra/load_balancer"
 require_relative "../infra/placement_group"
 
-require_relative "../k3s/client_patch"
+require_relative "../utils"
 
 
 class Cluster
+  include Utils
+
   def initialize(hetzner_client:, hetzner_token:)
     @hetzner_client = hetzner_client
     @hetzner_token = hetzner_token
@@ -76,7 +78,7 @@ class Cluster
 
     attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
                 :masters_config, :worker_node_pools,
-                :location, :public_ssh_key_path, :kubernetes_client,
+                :location, :public_ssh_key_path,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
                 :config_file, :verify_host_key, :networks, :private_ssh_key_path, :configuration
 
@@ -207,25 +209,63 @@ class Cluster
     end
 
     def upgrade_cluster
-      resources = K8s::Resource.from_files(ugrade_plan_manifest_path)
+      worker_upgrade_concurrency = workers.size - 1
+      worker_upgrade_concurrency = 1 if worker_upgrade_concurrency == 0
 
-      begin
-        kubernetes_client.api("upgrade.cattle.io/v1").resource("plans").get("k3s-server", namespace: "system-upgrade")
+      run <<~EOF
+        kubectl apply -f - <<-EOF
+          apiVersion: upgrade.cattle.io/v1
+          kind: Plan
+          metadata:
+            name: k3s-server
+            namespace: system-upgrade
+            labels:
+              k3s-upgrade: server
+          spec:
+            concurrency: 1
+            version: #{new_k3s_version}
+            nodeSelector:
+              matchExpressions:
+                - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
+            serviceAccountName: system-upgrade
+            tolerations:
+            - key: "CriticalAddonsOnly"
+              operator: "Equal"
+              value: "true"
+              effect: "NoExecute"
+            cordon: true
+            upgrade:
+              image: rancher/k3s-upgrade
+          ---
+          apiVersion: upgrade.cattle.io/v1
+          kind: Plan
+          metadata:
+            name: k3s-agent
+            namespace: system-upgrade
+            labels:
+              k3s-upgrade: agent
+          spec:
+            concurrency: #{worker_upgrade_concurrency}
+            version: #{new_k3s_version}
+            nodeSelector:
+              matchExpressions:
+                - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
+            serviceAccountName: system-upgrade
+            prepare:
+              image: rancher/k3s-upgrade
+              args: ["prepare", "k3s-server"]
+            cordon: true
+            upgrade:
+              image: rancher/k3s-upgrade
+        EOF
+      EOF
 
-        puts "Aborting - an upgrade is already in progress."
+      puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
+      puts "The API server may be briefly unavailable during the upgrade of the controlplane."
 
-      rescue K8s::Error::NotFound
-        resources.each do |resource|
-          kubernetes_client.create_resource(resource)
-        end
+      configuration["k3s_version"] = new_k3s_version
 
-        puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
-        puts "The API server may be briefly unavailable during the upgrade of the controlplane."
-
-        configuration["k3s_version"] = new_k3s_version
-
-        File.write(config_file, configuration.to_yaml)
-      end
+      File.write(config_file, configuration.to_yaml)
     end
 
 
@@ -317,201 +357,71 @@ class Cluster
     end
 
     def deploy_cloud_controller_manager
+      check_kubectl
+
       puts
       puts "Deploying Hetzner Cloud Controller Manager..."
 
-      begin
-        kubernetes_client.api("v1").resource("secrets").get("hcloud", namespace: "kube-system")
+      cmd = <<~EOS
+        kubectl apply -f - <<-EOF
+          apiVersion: "v1"
+          kind: "Secret"
+          metadata:
+            namespace: 'kube-system'
+            name: 'hcloud'
+          data:
+            network: #{Base64.encode64(cluster_name)}
+            token: #{Base64.encode64(hetzner_token)}
+        EOF
+      EOS
 
-      rescue K8s::Error::NotFound
-        secret = K8s::Resource.new(
-          apiVersion: "v1",
-          kind: "Secret",
-          metadata: {
-            namespace: 'kube-system',
-            name: 'hcloud',
-          },
-          data: {
-            network: Base64.encode64(cluster_name),
-            token: Base64.encode64(hetzner_token)
-          }
-        )
+      run cmd, kubeconfig_path: kubeconfig_path
 
-        kubernetes_client.api('v1').resource('secrets').create_resource(secret)
-      end
+      cmd = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
-
-      manifest = fetch_manifest("https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml")
-
-      File.write("/tmp/cloud-controller-manager.yaml", manifest)
-
-      resources = K8s::Resource.from_files("/tmp/cloud-controller-manager.yaml")
-
-      begin
-        kubernetes_client.api("apps/v1").resource("deployments").get("hcloud-cloud-controller-manager", namespace: "kube-system")
-
-        resources.each do |resource|
-          kubernetes_client.update_resource(resource)
-        end
-
-      rescue K8s::Error::NotFound
-        resources.each do |resource|
-          kubernetes_client.create_resource(resource)
-        end
-
-      end
+      run cmd, kubeconfig_path: kubeconfig_path
 
       puts "...Cloud Controller Manager deployed"
-    rescue Excon::Error::Socket
-      retry
-    end
-
-    def fetch_manifest(url)
-      retries ||= 1
-      HTTP.follow.get(url).body
-    rescue
-      retry if (retries += 1) <= 10
     end
 
     def deploy_system_upgrade_controller
+      check_kubectl
+
       puts
       puts "Deploying k3s System Upgrade Controller..."
 
-      manifest = HTTP.follow.get("https://github.com/rancher/system-upgrade-controller/releases/download/v0.8.1/system-upgrade-controller.yaml").body
+      cmd = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.8.1/system-upgrade-controller.yaml"
 
-      File.write("/tmp/system-upgrade-controller.yaml", manifest)
-
-      resources = K8s::Resource.from_files("/tmp/system-upgrade-controller.yaml")
-
-      begin
-        kubernetes_client.api("apps/v1").resource("deployments").get("system-upgrade-controller", namespace: "system-upgrade")
-
-        resources.each do |resource|
-          kubernetes_client.update_resource(resource)
-        end
-
-      rescue K8s::Error::NotFound
-        resources.each do |resource|
-          kubernetes_client.create_resource(resource)
-        end
-
-      end
+      run cmd, kubeconfig_path: kubeconfig_path
 
       puts "...k3s System Upgrade Controller deployed"
-    rescue Excon::Error::Socket
-      retry
     end
 
     def deploy_csi_driver
+      check_kubectl
+
       puts
       puts "Deploying Hetzner CSI Driver..."
 
-      begin
-        kubernetes_client.api("v1").resource("secrets").get("hcloud-csi", namespace: "kube-system")
+      cmd = <<~EOS
+        kubectl apply -f - <<-EOF
+          apiVersion: "v1"
+          kind: "Secret"
+          metadata:
+            namespace: 'kube-system'
+            name: 'hcloud-csi'
+          data:
+            token: #{Base64.encode64(hetzner_token)}
+        EOF
+      EOS
 
-      rescue K8s::Error::NotFound
-        secret = K8s::Resource.new(
-          apiVersion: "v1",
-          kind: "Secret",
-          metadata: {
-            namespace: 'kube-system',
-            name: 'hcloud-csi',
-          },
-          data: {
-            token: Base64.encode64(hetzner_token)
-          }
-        )
+      run cmd, kubeconfig_path: kubeconfig_path
 
-        kubernetes_client.api('v1').resource('secrets').create_resource(secret)
-      end
+      cmd = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/v1.6.0/deploy/kubernetes/hcloud-csi.yml"
 
-
-      manifest = HTTP.follow.get("https://raw.githubusercontent.com/hetznercloud/csi-driver/v1.6.0/deploy/kubernetes/hcloud-csi.yml").body
-
-      File.write("/tmp/csi-driver.yaml", manifest)
-
-      resources = K8s::Resource.from_files("/tmp/csi-driver.yaml")
-
-      begin
-        kubernetes_client.api("apps/v1").resource("daemonsets").get("hcloud-csi-node", namespace: "kube-system")
-
-
-        resources.each do |resource|
-          begin
-            kubernetes_client.update_resource(resource)
-          rescue K8s::Error::Invalid => e
-            raise e unless e.message =~ /must be specified/i
-          end
-        end
-
-      rescue K8s::Error::NotFound
-        resources.each do |resource|
-          kubernetes_client.create_resource(resource)
-        end
-
-      end
+      run cmd, kubeconfig_path: kubeconfig_path
 
       puts "...CSI Driver deployed"
-    rescue Excon::Error::Socket
-      retry
-    end
-
-    def wait_for_ssh(server)
-      Timeout::timeout(5) do
-        server_name = server["name"]
-
-        puts "Waiting for server #{server_name} to be up..."
-
-        loop do
-          result = ssh(server, "echo UP")
-          break if result == "UP"
-        end
-
-        puts "...server #{server_name} is now up."
-      end
-    rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error, IOError
-      retry
-    end
-
-    def ssh(server, command, print_output: false)
-      public_ip = server.dig("public_net", "ipv4", "ip")
-      output = ""
-
-      params = { verify_host_key: (verify_host_key ? :always : :never) }
-
-      if private_ssh_key_path
-        params[:keys] = [private_ssh_key_path]
-      end
-
-      Net::SSH.start(public_ip, "root", params) do |session|
-        session.exec!(command) do |channel, stream, data|
-          output << data
-          puts data if print_output
-        end
-      end
-      output.chop
-    rescue Net::SSH::Disconnect => e
-      retry unless e.message =~ /Too many authentication failures/
-    rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH
-      retry
-    rescue Net::SSH::AuthenticationFailed
-      puts
-      puts "Cannot continue: SSH authentication failed. Please ensure that the private SSH key is correct."
-      exit 1
-    rescue Net::SSH::HostKeyMismatch
-      puts
-      puts "Cannot continue: Unable to SSH into server with IP #{public_ip} because the existing fingerprint in the known_hosts file does not match that of the actual host key."
-      puts "This is due to a security check but can also happen when creating a new server that gets assigned the same IP address as another server you've owned in the past."
-      puts "If are sure no security is being violated here and you're just creating new servers, you can eiher remove the relevant lines from your known_hosts (see IPs from the cloud console) or disable host key verification by setting the option 'verify_host_key' to false in the configuration file for the cluster."
-      exit 1
-    end
-
-    def kubernetes_client
-      return @kubernetes_client if @kubernetes_client
-
-      config_hash = YAML.load_file(kubeconfig_path)
-      config_hash['current-context'] = cluster_name
-      @kubernetes_client = K8s::Client.config(K8s::Config.new(config_hash))
     end
 
     def find_flannel_interface(server)
@@ -591,63 +501,6 @@ class Cluster
       FileUtils.chmod "go-r", kubeconfig_path
     end
 
-    def ugrade_plan_manifest_path
-      worker_upgrade_concurrency = workers.size - 1
-      worker_upgrade_concurrency = 1 if worker_upgrade_concurrency == 0
-
-      manifest = <<~EOF
-        apiVersion: upgrade.cattle.io/v1
-        kind: Plan
-        metadata:
-          name: k3s-server
-          namespace: system-upgrade
-          labels:
-            k3s-upgrade: server
-        spec:
-          concurrency: 1
-          version: #{new_k3s_version}
-          nodeSelector:
-            matchExpressions:
-              - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
-          serviceAccountName: system-upgrade
-          tolerations:
-          - key: "CriticalAddonsOnly"
-            operator: "Equal"
-            value: "true"
-            effect: "NoExecute"
-          cordon: true
-          upgrade:
-            image: rancher/k3s-upgrade
-        ---
-        apiVersion: upgrade.cattle.io/v1
-        kind: Plan
-        metadata:
-          name: k3s-agent
-          namespace: system-upgrade
-          labels:
-            k3s-upgrade: agent
-        spec:
-          concurrency: #{worker_upgrade_concurrency}
-          version: #{new_k3s_version}
-          nodeSelector:
-            matchExpressions:
-              - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
-          serviceAccountName: system-upgrade
-          prepare:
-            image: rancher/k3s-upgrade
-            args: ["prepare", "k3s-server"]
-          cordon: true
-          upgrade:
-            image: rancher/k3s-upgrade
-      EOF
-
-      temp_file_path = "/tmp/k3s-upgrade-plan.yaml"
-
-      File.write(temp_file_path, manifest)
-
-      temp_file_path
-    end
-
     def belongs_to_cluster?(server)
       server.dig("labels", "cluster") == cluster_name
     end
@@ -659,6 +512,13 @@ class Cluster
 
     def image
       configuration.dig("image") || "ubuntu-20.04"
+    end
+
+    def check_kubectl
+      unless which("kubectl")
+        puts "Please ensure kubectl is installed and in your PATH."
+        exit 1
+      end
     end
 
 end
