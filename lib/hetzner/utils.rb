@@ -40,10 +40,10 @@ module Utils
 
     rescue Subprocess::NonZeroExit
       puts "Command failed: non-zero exit code"
-      false
+      exit 1
     rescue Interrupt
       puts "Command interrupted"
-      false
+      exit 1
     end
   end
 
