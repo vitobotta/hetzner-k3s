@@ -315,7 +315,6 @@ class Cluster
     end
 
     def deploy_kubernetes
-      return
       puts
       puts "Deploying k3s to first master (#{first_master["name"]})..."
 
