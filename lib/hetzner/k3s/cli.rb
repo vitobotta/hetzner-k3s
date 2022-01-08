@@ -24,7 +24,6 @@ module Hetzner
 
       def create_cluster
         validate_config_file :create
-
         Cluster.new(hetzner_client: hetzner_client, hetzner_token: find_hetzner_token).create configuration: configuration
       end
 
@@ -64,14 +63,17 @@ module Hetzner
           if File.exists?(config_file_path)
             begin
               @configuration = YAML.load_file(options[:config_file])
-              raise "invalid" unless configuration.is_a? Hash
+              unless configuration.is_a? Hash
+                raise "Configuration is invalid"
+                exit 1
+              end
             rescue
               puts "Please ensure that the config file is a correct YAML manifest."
-              return
+              exit 1
             end
           else
             puts "Please specify a correct path for the config file."
-            return
+            exit 1
           end
 
           @errors = []
