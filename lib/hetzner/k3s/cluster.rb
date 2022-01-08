@@ -315,6 +315,7 @@ class Cluster
     end
 
     def deploy_kubernetes
+      return
       puts
       puts "Deploying k3s to first master (#{first_master["name"]})..."
 
@@ -369,9 +370,9 @@ class Cluster
           metadata:
             namespace: 'kube-system'
             name: 'hcloud'
-          data:
-            network: #{Base64.encode64(cluster_name)}
-            token: #{Base64.encode64(hetzner_token)}
+          stringData:
+            network: "#{cluster_name}"
+            token: "#{hetzner_token}"
         EOF
       EOS
 
@@ -403,15 +404,15 @@ class Cluster
       puts
       puts "Deploying Hetzner CSI Driver..."
 
-      cmd = <<~EOS
+      cmd = <<-EOS
         kubectl apply -f - <<-EOF
           apiVersion: "v1"
           kind: "Secret"
           metadata:
             namespace: 'kube-system'
             name: 'hcloud-csi'
-          data:
-            token: #{Base64.encode64(hetzner_token)}
+          stringData:
+            token: "#{hetzner_token}"
         EOF
       EOS
 
