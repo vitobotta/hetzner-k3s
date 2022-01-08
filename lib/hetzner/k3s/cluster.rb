@@ -155,7 +155,7 @@ class Cluster
 
       threads = server_configs.map do |server_config|
         Thread.new do
-          servers << Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(server_config)
+          servers << Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(**server_config)
         end
       end
 
