@@ -38,6 +38,7 @@ class Cluster
     @verify_host_key = configuration.fetch("verify_host_key", false)
     @servers = []
     @networks = configuration.dig("ssh_allowed_networks")
+    @enable_ipsec_encryption = configuration.fetch("enable_ipsec_encryption", false)
 
     create_resources
 
@@ -80,7 +81,8 @@ class Cluster
                 :masters_config, :worker_node_pools,
                 :location, :public_ssh_key_path,
                 :hetzner_token, :tls_sans, :new_k3s_version, :configuration,
-                :config_file, :verify_host_key, :networks, :private_ssh_key_path, :configuration
+                :config_file, :verify_host_key, :networks, :private_ssh_key_path,
+                :configuration, :enable_ipsec_encryption
 
 
     def latest_k3s_version
@@ -282,6 +284,7 @@ class Cluster
     def master_script(master)
       server = master == first_master ? " --cluster-init " : " --server https://#{first_master_private_ip}:6443 "
       flannel_interface = find_flannel_interface(master)
+      flannel_ipsec = enable_ipsec_encryption ? " --flannel-backend=ipsec " : " "
 
       taint = schedule_workloads_on_masters? ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
@@ -296,6 +299,7 @@ class Cluster
           --node-name="$(hostname -f)" \
           --cluster-cidr=10.244.0.0/16 \
           --etcd-expose-metrics=true \
+          #{flannel_ipsec} \
           --kube-controller-manager-arg="address=0.0.0.0" \
           --kube-controller-manager-arg="bind-address=0.0.0.0" \
           --kube-proxy-arg="metrics-bind-address=0.0.0.0" \

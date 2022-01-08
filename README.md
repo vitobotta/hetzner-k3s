@@ -70,6 +70,9 @@ worker_node_pools:
 - name: big
   instance_type: cpx31
   instance_count: 2
+additional_packages:
+- somepackage
+enable_ipsec_encryption: true
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
@@ -256,6 +259,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 - 0.5.0
   - Allow installing additional packages when creating the servers
+  - Allow enabling ipsec encryption
 
 - 0.4.9
   - Ensure the program always exits with exit code 1 if the config file fails validation
