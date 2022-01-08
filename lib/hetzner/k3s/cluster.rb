@@ -123,7 +123,8 @@ class Cluster
           network_id: network_id,
           ssh_key_id: ssh_key_id,
           placement_group_id: placement_group_id,
-          image: image
+          image: image,
+          additional_packages: additional_packages,
         }
       end
 
@@ -148,7 +149,8 @@ class Cluster
             network_id: network_id,
             ssh_key_id: ssh_key_id,
             placement_group_id: placement_group_id,
-            image: image
+            image: image,
+            additional_packages: additional_packages,
           }
         end
       end
@@ -520,6 +522,10 @@ class Cluster
 
     def image
       configuration.dig("image") || "ubuntu-20.04"
+    end
+
+    def additional_packages
+      configuration.dig("additional_packages") || []
     end
 
     def check_kubectl

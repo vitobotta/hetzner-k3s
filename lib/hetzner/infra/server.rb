@@ -5,7 +5,9 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:)
+    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:, additional_packages: [])
+      @additional_packages = additional_packages
+
       puts
 
       server_name = "#{cluster_name}-#{instance_type}-#{instance_id}"
@@ -70,17 +72,20 @@ module Hetzner
 
     private
 
-      attr_reader :hetzner_client, :cluster_name
+      attr_reader :hetzner_client, :cluster_name, :additional_packages
 
       def find_server(server_name)
         hetzner_client.get("/servers")["servers"].detect{ |network| network["name"] == server_name }
       end
 
       def user_data
+        packages = ["fail2ban"]
+        packages += additional_packages if additional_packages
+        packages = "'" + packages.join("', '") + "'"
+
         <<~EOS
           #cloud-config
-          packages:
-            - fail2ban
+          packages: [#{packages}]
           runcmd:
             - sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config
             - sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
@@ -90,7 +95,7 @@ module Hetzner
             - rm /etc/resolv.conf
             - echo "nameserver 1.1.1.1" > /etc/resolv.conf
             - echo "nameserver 1.0.0.1" >> /etc/resolv.conf
-            EOS
+        EOS
       end
 
   end

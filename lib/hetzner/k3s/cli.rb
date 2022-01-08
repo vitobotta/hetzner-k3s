@@ -95,6 +95,7 @@ module Hetzner
             validate_masters
             validate_worker_node_pools
             validate_verify_host_key
+            validate_additional_packages
           when :delete
             validate_kubeconfig_path_must_exist
           when :upgrade
@@ -356,6 +357,11 @@ module Hetzner
           unless current_ip_networks
             errors << "Your current IP #{current_ip} is not included into any of the networks you've specified, so we won't be able to SSH into the nodes"
           end
+        end
+
+        def validate_additional_packages
+          additional_packages = configuration.dig("additional_packages")
+          errors << "Invalid additional packages configuration - it should be an array" if additional_packages && !additional_packages.is_a?(Array)
         end
 
     end
