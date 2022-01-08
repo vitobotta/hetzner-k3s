@@ -443,7 +443,7 @@ class Cluster
     end
 
     def all_servers
-      @all_servers ||= hetzner_client.get("/servers")["servers"].select{ |server| belongs_to_cluster?(server) == true }
+      @all_servers ||= hetzner_client.get("/servers?sort=created:desc")["servers"].select{ |server| belongs_to_cluster?(server) == true }
     end
 
     def masters

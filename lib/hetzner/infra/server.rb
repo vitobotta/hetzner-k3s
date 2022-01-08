@@ -75,7 +75,7 @@ module Hetzner
       attr_reader :hetzner_client, :cluster_name, :additional_packages
 
       def find_server(server_name)
-        hetzner_client.get("/servers")["servers"].detect{ |network| network["name"] == server_name }
+        hetzner_client.get("/servers?sort=created:desc")["servers"].detect{ |network| network["name"] == server_name }
       end
 
       def user_data
