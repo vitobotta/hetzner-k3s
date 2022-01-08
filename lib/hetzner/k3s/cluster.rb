@@ -212,7 +212,7 @@ class Cluster
       worker_upgrade_concurrency = workers.size - 1
       worker_upgrade_concurrency = 1 if worker_upgrade_concurrency == 0
 
-      run <<~EOF
+      cmd = <<~EOS
         kubectl apply -f - <<-EOF
           apiVersion: upgrade.cattle.io/v1
           kind: Plan
@@ -236,7 +236,13 @@ class Cluster
             cordon: true
             upgrade:
               image: rancher/k3s-upgrade
-          ---
+        EOF
+      EOS
+
+      run cmd, kubeconfig_path: kubeconfig_path
+
+      cmd = <<~EOS
+        kubectl apply -f - <<-EOF
           apiVersion: upgrade.cattle.io/v1
           kind: Plan
           metadata:
@@ -258,7 +264,9 @@ class Cluster
             upgrade:
               image: rancher/k3s-upgrade
         EOF
-      EOF
+      EOS
+
+      run cmd, kubeconfig_path: kubeconfig_path
 
       puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
       puts "The API server may be briefly unavailable during the upgrade of the controlplane."
@@ -403,7 +411,7 @@ class Cluster
       puts
       puts "Deploying Hetzner CSI Driver..."
 
-      cmd = <<-EOS
+      cmd = <<~EOS
         kubectl apply -f - <<-EOF
           apiVersion: "v1"
           kind: "Secret"
