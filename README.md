@@ -108,7 +108,7 @@ curl \
 	'https://api.hetzner.cloud/v1/images'
 ```
 
-Note that if you use a custom image, the creation of the servers may take longer than when using the default image. 
+Note that if you use a custom image, the creation of the servers may take longer than when using the default image.
 
 Also note: the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you.
 
@@ -253,6 +253,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 
 ## changelog
+
+- 0.4.9
+  - Ensure the program always exits with exit code 1 if the config file fails validation
 
 - 0.4.8
   - Increase timeout with API requests to 30 seconds
