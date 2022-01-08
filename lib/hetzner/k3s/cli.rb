@@ -3,9 +3,11 @@ require "http"
 require "sshkey"
 require 'ipaddr'
 require 'open-uri'
+require "yaml"
 
 require_relative "cluster"
 require_relative "version"
+
 
 module Hetzner
   module K3s
@@ -67,7 +69,7 @@ module Hetzner
                 raise "Configuration is invalid"
                 exit 1
               end
-            rescue
+            rescue => e
               puts "Please ensure that the config file is a correct YAML manifest."
               exit 1
             end
@@ -98,7 +100,6 @@ module Hetzner
           when :upgrade
             validate_kubeconfig_path_must_exist
             validate_new_k3s_version
-            validate_new_k3s_version_must_be_more_recent
           end
 
           errors.flatten!
@@ -273,36 +274,6 @@ module Hetzner
           schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
         end
 
-        def validate_new_k3s_version_must_be_more_recent
-          return if options[:force] == "true"
-          return unless kubernetes_client
-
-          begin
-            Timeout::timeout(5) do
-              servers = kubernetes_client.api("v1").resource("nodes").list
-
-              if servers.size == 0
-                errors << "The cluster seems to have no nodes, nothing to upgrade"
-              else
-                available_releases = find_available_releases
-
-                current_k3s_version = servers.first.dig(:status, :nodeInfo, :kubeletVersion)
-                current_k3s_version_index = available_releases.index(current_k3s_version) || 1000
-
-                new_k3s_version = options[:new_k3s_version]
-                new_k3s_version_index = available_releases.index(new_k3s_version) || 1000
-
-                unless new_k3s_version_index < current_k3s_version_index
-                  errors << "The new k3s version must be more recent than the current one"
-                end
-              end
-            end
-
-          rescue Timeout::Error
-            puts "Cannot upgrade: Unable to fetch nodes from Kubernetes API. Is the cluster online?"
-          end
-        end
-
         def validate_instance_group(instance_group, workers: true)
           instance_group_errors = []
 
@@ -333,17 +304,6 @@ module Hetzner
           used_server_types << instance_group["instance_type"]
 
           errors << instance_group_errors
-        end
-
-        def kubernetes_client
-          return @kubernetes_client if @kubernetes_client
-
-          config_hash = YAML.load_file(File.expand_path(configuration["kubeconfig_path"]))
-          config_hash['current-context'] = configuration["cluster_name"]
-          @kubernetes_client = K8s::Client.config(K8s::Config.new(config_hash))
-        rescue
-          errors << "Cannot connect to the Kubernetes cluster"
-          false
         end
 
         def validate_verify_host_key
