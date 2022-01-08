@@ -254,6 +254,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.5.0
+  - Allow installing additional packages when creating the servers
+
 - 0.4.9
   - Ensure the program always exits with exit code 1 if the config file fails validation
   - Upgrade System Upgrade Controller to 0.8.1
