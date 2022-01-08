@@ -256,6 +256,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 - 0.4.9
   - Ensure the program always exits with exit code 1 if the config file fails validation
+  - Upgrade System Upgrade Controller to 0.8.1
 
 - 0.4.8
   - Increase timeout with API requests to 30 seconds
