@@ -258,6 +258,7 @@ I recommend that you create a separate Hetzner project for each cluster, because
   - Ensure the program always exits with exit code 1 if the config file fails validation
   - Upgrade System Upgrade Controller to 0.8.1
   - Remove dependency on unmaintained gem k8s-ruby
+  - Make the gem compatible with Ruby 3.1.0
 
 - 0.4.8
   - Increase timeout with API requests to 30 seconds
