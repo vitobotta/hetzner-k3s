@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 module Hetzner
   class Client
-    BASE_URI = "https://api.hetzner.cloud/v1"
+    BASE_URI = 'https://api.hetzner.cloud/v1'
 
     attr_reader :token
 
@@ -22,27 +24,27 @@ module Hetzner
 
     def delete(path, id)
       make_request do
-        HTTP.headers(headers).delete(BASE_URI + path + "/" + id.to_s)
+        HTTP.headers(headers).delete("#{BASE_URI}#{path}/#{id}")
       end
     end
 
     private
 
-      def headers
-        {
-          "Authorization": "Bearer #{@token}",
-          "Content-Type": "application/json"
-        }
-      end
+    def headers
+      {
+        Authorization: "Bearer #{@token}",
+        'Content-Type': 'application/json'
+      }
+    end
 
-      def make_request &block
-        retries ||= 0
+    def make_request(&block)
+      retries ||= 0
 
-        Timeout::timeout(30) do
-          block.call
-        end
-      rescue Timeout::Error
-        retry if (retries += 1) < 3
+      Timeout.timeout(30) do
+        block.call
       end
+    rescue Timeout::Error
+      retry if (retries += 1) < 3
+    end
   end
 end
