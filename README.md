@@ -25,7 +25,7 @@ All that is needed to use this tool is
 
 ## Installation
 
-Once you have the Ruby runtime up and running (2.7.2 or newer), you just need to install the gem:
+Once you have the Ruby runtime up and running (3.1.0 or newer), you just need to install the gem:
 
 ```bash
 gem install hetzner-k3s
