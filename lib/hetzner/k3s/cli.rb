@@ -253,7 +253,7 @@ module Hetzner
       def validate_instance_group(instance_group, workers: true)
         instance_group_errors = []
 
-        instance_group_type = workers ? "Worker mode pool #{instance_group['name']}" : 'Masters pool'
+        instance_group_type = workers ? "Worker mode pool '#{instance_group['name']}'" : 'Masters pool'
 
         instance_group_errors << "#{instance_group_type} has an invalid name" unless !workers || instance_group['name'] =~ /\A([A-Za-z0-9\-_]+)\Z/
 
@@ -264,6 +264,8 @@ module Hetzner
         if instance_group['instance_count'].is_a? Integer
           if instance_group['instance_count'] < 1
             instance_group_errors << "#{instance_group_type} must have at least one node"
+          elsif instance_group['instance_count'] > 10
+            instance_group_errors << "#{instance_group_type} cannot have more than 10 nodes due to a limitation with the Hetzner placement groups. You can add more node pools if you need more nodes."
           elsif !workers
             instance_group_errors << 'Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster' unless instance_group['instance_count'].odd?
           end

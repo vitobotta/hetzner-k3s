@@ -52,9 +52,12 @@ class Cluster
   end
 
   def delete(configuration:)
+    @configuration = configuration
     @cluster_name = configuration['cluster_name']
     @kubeconfig_path = File.expand_path(configuration['kubeconfig_path'])
     @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
+    @masters_config = configuration['masters']
+    @worker_node_pools = find_worker_node_pools(configuration)
 
     delete_resources
   end
@@ -94,9 +97,16 @@ class Cluster
     create_load_balancer if masters.size > 1
   end
 
-  def delete_resources
+  def delete_placement_groups
     Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:).delete
 
+    worker_node_pools.each do |pool|
+      pool_name = pool['name']
+      Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:, pool_name:).delete
+    end
+  end
+
+  def delete_resources
     Hetzner::LoadBalancer.new(hetzner_client:, cluster_name:).delete(high_availability: (masters.size > 1))
 
     Hetzner::Firewall.new(hetzner_client:, cluster_name:).delete(all_servers)
@@ -105,6 +115,7 @@ class Cluster
 
     Hetzner::SSHKey.new(hetzner_client:, cluster_name:).delete(public_ssh_key_path:)
 
+    delete_placement_groups
     delete_servers
   end
 
@@ -438,8 +449,9 @@ class Cluster
     exit 1
   end
 
-  def placement_group_id
-    @placement_group_id ||= Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:).create
+  def placement_group_id(pool_name = nil)
+    @placement_groups ||= {}
+    @placement_groups[pool_name || '__masters__'] ||= Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:, pool_name:).create
   end
 
   def master_instance_type
@@ -462,19 +474,33 @@ class Cluster
     @ssh_key_id ||= Hetzner::SSHKey.new(hetzner_client:, cluster_name:).create(public_ssh_key_path:)
   end
 
-  def master_definitions
+  def master_definitions_for_create
     definitions = []
+
     masters_count.times do |i|
       definitions << {
         instance_type: master_instance_type,
         instance_id: "master#{i + 1}",
+        placement_group_id:,
         location:,
         firewall_id:,
         network_id:,
         ssh_key_id:,
-        placement_group_id:,
         image:,
         additional_packages:
+      }
+    end
+
+    definitions
+  end
+
+  def master_definitions_for_delete
+    definitions = []
+
+    masters_count.times do |i|
+      definitions << {
+        instance_type: master_instance_type,
+        instance_id: "master#{i + 1}"
       }
     end
 
@@ -492,11 +518,11 @@ class Cluster
       definitions << {
         instance_type: worker_instance_type,
         instance_id: "pool-#{worker_node_pool_name}-worker#{i + 1}",
+        placement_group_id: placement_group_id(worker_node_pool_name),
         location:,
         firewall_id:,
         network_id:,
         ssh_key_id:,
-        placement_group_id:,
         image:,
         additional_packages:
       }
@@ -512,7 +538,7 @@ class Cluster
   def server_configs
     return @server_configs if @server_configs
 
-    @server_configs = master_definitions
+    @server_configs = master_definitions_for_create
 
     worker_node_pools.each do |worker_node_pool|
       @server_configs += worker_node_pool_definitions(worker_node_pool)

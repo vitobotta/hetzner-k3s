@@ -38,7 +38,7 @@ This will install the `hetzner-k3s` executable in your PATH.
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
 ```bash
-docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.5.0 create-cluster --config-file /cluster/test.yaml
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.5.1 create-cluster --config-file /cluster/test.yaml
 ```
 
 Replace `test.yaml` with the name of your config file.
@@ -256,6 +256,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 
 ## changelog
+
+- 0.5.1
+  - Each node pool gets its own placement group. This is to minimize issues due to the max 10 nodes limitation for a single node group. A validation has also been added to limit pools to 10 nodes each because of this.
 
 - 0.5.0
   - Allow installing additional packages when creating the servers
