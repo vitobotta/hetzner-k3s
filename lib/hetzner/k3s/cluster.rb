@@ -188,7 +188,7 @@ class Cluster
   end
 
   def master_script(master)
-    server = master == first_master ? ' --cluster-init ' : " --server https://#{first_master_private_ip}:6443 "
+    server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
     flannel_interface = find_flannel_interface(master)
     flannel_ipsec = enable_ipsec_encryption ? ' --flannel-backend=ipsec ' : ' '
 

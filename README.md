@@ -257,6 +257,9 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 ## changelog
 
+- 0.5.2
+  - Ensure that in a HA cluster the nodes connect to the load balancer for the API server, instead of the first master
+
 - 0.5.1
   - Each node pool gets its own placement group. This is to minimize issues due to the max 10 nodes limitation for a single node group. A validation has also been added to limit pools to 10 nodes each because of this.
 
