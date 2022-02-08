@@ -14,6 +14,7 @@ Using this tool, creating a highly available k3s cluster with 3 masters for the 
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
 - installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to make upgrades to a newer version of k3s easy and quick
 
+See roadmap [here](https://github.com/vitobotta/hetzner-k3s/projects/1) for the features planned or in progress.
 
 ## Requirements
 
