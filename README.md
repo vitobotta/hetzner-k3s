@@ -39,7 +39,7 @@ This will install the `hetzner-k3s` executable in your PATH.
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
 ```bash
-docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.5.2 create-cluster --config-file /cluster/test.yaml
+docker run --rm -it -v ${PWD}:/cluster -v ${HOME}/.ssh:/tmp/.ssh vitobotta/hetzner-k3s:v0.5.3 create-cluster --config-file /cluster/test.yaml
 ```
 
 Replace `test.yaml` with the name of your config file.
@@ -73,7 +73,7 @@ worker_node_pools:
   instance_count: 2
 additional_packages:
 - somepackage
-enable_ipsec_encryption: true
+enable_encryption: true
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
@@ -256,9 +256,6 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 I recommend that you create a separate Hetzner project for each cluster, because otherwise multiple clusters will attempt to create overlapping routes. I will make the pod cidr configurable in the future to avoid this, but I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
 
 
-## changelog
-
-See changelog [here](https://github.com/vitobotta/hetzner-k3s/wiki/Changelog).
 ## Contributing and support
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
