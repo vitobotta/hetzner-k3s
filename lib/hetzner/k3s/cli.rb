@@ -349,6 +349,12 @@ module Hetzner
         validate_worker_node_pools
         validate_verify_host_key
         validate_additional_packages
+        validate_kube_api_server_args
+        validate_kube_scheduler_args
+        validate_kube_controller_manager_args
+        validate_kube_cloud_controller_manager_args
+        validate_kubelet_args
+        validate_kube_proxy_args
       end
 
       def validate_upgrade
@@ -374,6 +380,48 @@ module Hetzner
           puts 'Please specify a correct path for the config file.'
           exit 1
         end
+      end
+
+      def validate_kube_api_server_args
+        kube_api_server_args = configuration['kube_api_server_args']
+        return unless kube_api_server_args
+
+        errors << 'kube_api_server_args must be an array of arguments' unless kube_api_server_args.is_a? Array
+      end
+
+      def validate_kube_scheduler_args
+        kube_scheduler_args = configuration['kube_scheduler_args']
+        return unless kube_scheduler_args
+
+        errors << 'kube_scheduler_args must be an array of arguments' unless kube_scheduler_args.is_a? Array
+      end
+
+      def validate_kube_controller_manager_args
+        kube_controller_manager_args = configuration['kube_controller_manager_args']
+        return unless kube_controller_manager_args
+
+        errors << 'kube_controller_manager_args must be an array of arguments' unless kube_controller_manager_args.is_a? Array
+      end
+
+      def validate_kube_cloud_controller_manager_args
+        kube_cloud_controller_manager_args = configuration['kube_cloud_controller_manager_args']
+        return unless kube_cloud_controller_manager_args
+
+        errors << 'kube_cloud_controller_manager_args must be an array of arguments' unless kube_cloud_controller_manager_args.is_a? Array
+      end
+
+      def validate_kubelet_args
+        kubelet_args = configuration['kubelet_args']
+        return unless kubelet_args
+
+        errors << 'kubelet_args must be an array of arguments' unless kubelet_args.is_a? Array
+      end
+
+      def validate_kube_proxy_args
+        kube_proxy_args = configuration['kube_proxy_args']
+        return unless kube_proxy_args
+
+        errors << 'kube_proxy_args must be an array of arguments' unless kube_proxy_args.is_a? Array
       end
     end
   end

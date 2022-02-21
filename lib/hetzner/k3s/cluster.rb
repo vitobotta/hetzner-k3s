@@ -39,6 +39,12 @@ class Cluster
     @servers = []
     @networks = configuration['ssh_allowed_networks']
     @enable_encryption = configuration.fetch('enable_encryption', false)
+    @kube_api_server_args = configuration.fetch('kube_api_server_args', [])
+    @kube_scheduler_args = configuration.fetch('kube_scheduler_args', [])
+    @kube_controller_manager_args = configuration.fetch('kube_controller_manager_args', [])
+    @kube_cloud_controller_manager_args = configuration.fetch('kube_cloud_controller_manager_args', [])
+    @kubelet_args = configuration.fetch('kubelet_args', [])
+    @kube_proxy_args = configuration.fetch('kube_proxy_args', [])
 
     create_resources
 
@@ -81,7 +87,9 @@ class Cluster
               :location, :public_ssh_key_path,
               :hetzner_token, :new_k3s_version, :configuration,
               :config_file, :verify_host_key, :networks, :private_ssh_key_path,
-              :enable_encryption
+              :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
+              :kube_controller_manager_args, :kube_cloud_controller_manager_args,
+              :kubelet_args, :kube_proxy_args
 
   def find_worker_node_pools(configuration)
     configuration.fetch('worker_node_pools', [])
@@ -191,7 +199,7 @@ class Cluster
     server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
     flannel_interface = find_flannel_interface(master)
     flannel_wireguard = enable_encryption ? ' --flannel-backend=wireguard ' : ' '
-
+    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
 
     <<~SCRIPT
@@ -211,7 +219,7 @@ class Cluster
         --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
         --kube-scheduler-arg="address=0.0.0.0" \
         --kube-scheduler-arg="bind-address=0.0.0.0" \
-        #{taint} \
+        #{taint} #{extra_args} \
         --kubelet-arg="cloud-provider=external" \
         --advertise-address=$(hostname -I | awk '{print $2}') \
         --node-ip=$(hostname -I | awk '{print $2}') \
@@ -579,5 +587,53 @@ class Cluster
     end
 
     threads.each(&:join) unless threads.empty?
+  end
+
+  def kube_api_server_args_list
+    return '' if kube_api_server_args.empty?
+
+    kube_api_server_args.map do |arg|
+      " --kube-apiserver-arg=\"#{arg}\" "
+    end.join
+  end
+
+  def kube_scheduler_args_list
+    return '' if kube_scheduler_args.empty?
+
+    kube_scheduler_args.map do |arg|
+      " --kube-scheduler-arg=\"#{arg}\" "
+    end.join
+  end
+
+  def kube_controller_manager_args_list
+    return '' if kube_controller_manager_args.empty?
+
+    kube_controller_manager_args.map do |arg|
+      " --kube-controller-manager-arg=\"#{arg}\" "
+    end.join
+  end
+
+  def kube_cloud_controller_manager_args_list
+    return '' if kube_cloud_controller_manager_args.empty?
+
+    kube_cloud_controller_manager_args.map do |arg|
+      " --kube-cloud-controller-manager-arg=\"#{arg}\" "
+    end.join
+  end
+
+  def kubelet_args_list
+    return '' if kubelet_args.empty?
+
+    kubelet_args.map do |arg|
+      " --kubelet-arg=\"#{arg}\" "
+    end.join
+  end
+
+  def kube_proxy_args_list
+    return '' if kube_proxy_args.empty?
+
+    kube_api_server_args.map do |arg|
+      " --kube-proxy-arg=\"#{arg}\" "
+    end.join
   end
 end
