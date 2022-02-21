@@ -34,7 +34,7 @@ class Cluster
     @k3s_version = configuration['k3s_version']
     @masters_config = configuration['masters']
     @worker_node_pools = find_worker_node_pools(configuration)
-    @location = configuration['location']
+    @masters_location = configuration['location']
     @verify_host_key = configuration.fetch('verify_host_key', false)
     @servers = []
     @networks = configuration['ssh_allowed_networks']
@@ -84,7 +84,7 @@ class Cluster
 
   attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
               :masters_config, :worker_node_pools,
-              :location, :public_ssh_key_path,
+              :masters_location, :public_ssh_key_path,
               :hetzner_token, :new_k3s_version, :configuration,
               :config_file, :verify_host_key, :networks, :private_ssh_key_path,
               :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
@@ -475,7 +475,7 @@ class Cluster
   end
 
   def network_id
-    @network_id ||= Hetzner::Network.new(hetzner_client:, cluster_name:).create(location:)
+    @network_id ||= Hetzner::Network.new(hetzner_client:, cluster_name:).create(location: masters_location)
   end
 
   def ssh_key_id
@@ -489,8 +489,8 @@ class Cluster
       definitions << {
         instance_type: master_instance_type,
         instance_id: "master#{i + 1}",
+        location: masters_location,
         placement_group_id:,
-        location:,
         firewall_id:,
         network_id:,
         ssh_key_id:,
@@ -519,6 +519,7 @@ class Cluster
     worker_node_pool_name = worker_node_pool['name']
     worker_instance_type = worker_node_pool['instance_type']
     worker_count = worker_node_pool['instance_count']
+    worker_location = worker_node_pool['location'] || masters_location
 
     definitions = []
 
@@ -527,7 +528,7 @@ class Cluster
         instance_type: worker_instance_type,
         instance_id: "pool-#{worker_node_pool_name}-worker#{i + 1}",
         placement_group_id: placement_group_id(worker_node_pool_name),
-        location:,
+        location: worker_location,
         firewall_id:,
         network_id:,
         ssh_key_id:,
