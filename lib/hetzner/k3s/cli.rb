@@ -178,11 +178,16 @@ module Hetzner
         []
       end
 
-      def validate_location
+      def valid_location?(location)
         return if locations.empty? && !valid_token?
-        return if locations.include? configuration['location']
 
-        errors << 'Invalid location - available locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland) or ash (Ashburn, Virginia, USA)'
+        locations.include? location
+      end
+
+      def validate_masters_location
+        return if valid_location?(configuration['location'])
+
+        errors << 'Invalid location for master nodes - valid locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland) or ash (Ashburn, Virginia, USA)'
       end
 
       def available_releases
@@ -260,6 +265,14 @@ module Hetzner
         instance_group_errors << "#{instance_group_type} is in an invalid format" unless instance_group.is_a? Hash
 
         instance_group_errors << "#{instance_group_type} has an invalid instance type" unless !valid_token? || server_types.include?(instance_group['instance_type'])
+
+        if workers
+          location = instance_group.fetch('location', configuration['location'])
+          instance_group_errors << "#{instance_group_type} has an invalid location - valid locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland) or ash (Ashburn, Virginia, USA)" unless valid_location?(location)
+
+          in_network_zone = configuration['location'] == 'ash' ? location == 'ash' : location != 'ash'
+          instance_group_errors << "#{instance_group_type} must be in the same network zone as the masters. If the masters are located in Ashburn, all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn." unless in_network_zone
+        end
 
         if instance_group['instance_count'].is_a? Integer
           if instance_group['instance_count'] < 1
@@ -343,7 +356,7 @@ module Hetzner
         validate_public_ssh_key
         validate_private_ssh_key
         validate_ssh_allowed_networks
-        validate_location
+        validate_masters_location
         validate_k3s_version
         validate_masters
         validate_worker_node_pools
@@ -355,6 +368,7 @@ module Hetzner
         validate_kube_cloud_controller_manager_args
         validate_kubelet_args
         validate_kube_proxy_args
+        validate_network_zone
       end
 
       def validate_upgrade
