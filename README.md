@@ -74,6 +74,25 @@ worker_node_pools:
 additional_packages:
 - somepackage
 enable_encryption: true
+# kube_api_server_args:
+# - arg1
+# - ...
+# kube_scheduler_args:
+# - arg1
+# - ...
+# kube_controller_manager_args:
+# - arg1
+# - ...
+# kube_cloud_controller_manager_args:
+# - arg1
+# - ...
+# kubelet_args:
+# - arg1
+# - ...
+# kube_proxy_args:
+# - arg1
+# - ...
+
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
