@@ -109,7 +109,7 @@ If you set `masters.instance_count` to 1 then the tool will create a non highly 
 
 You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkensteing), one in Finland (`hel1`, Helsinki) and one in the USA (`ash`, Ashburn, Virginia). Please note that the Ashburn, Virginia location has just
+At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and one in the USA (`ash`, Ashburn, Virginia). Please note that the Ashburn, Virginia location has just
 been announced and it's limited to AMD instances for now.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
