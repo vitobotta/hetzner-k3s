@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.5.4)
+    hetzner-k3s (0.5.5)
       bcrypt_pbkdf
       ed25519
       http
