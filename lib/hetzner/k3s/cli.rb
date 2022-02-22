@@ -368,7 +368,6 @@ module Hetzner
         validate_kube_cloud_controller_manager_args
         validate_kubelet_args
         validate_kube_proxy_args
-        validate_network_zone
       end
 
       def validate_upgrade
