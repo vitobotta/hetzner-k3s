@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Utils
   CMD_FILE_PATH = '/tmp/cli.cmd'
 
@@ -32,6 +34,7 @@ module Utils
       at_exit do
         process&.send_signal('SIGTERM')
       rescue Errno::ESRCH, Interrupt
+        puts 'Interrupted'
       end
 
       Subprocess.check_call(['bash', '-c', CMD_FILE_PATH], env:) do |p|
