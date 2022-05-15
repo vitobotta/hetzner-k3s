@@ -81,7 +81,7 @@ module Hetzner
     end
 
     def user_data
-      packages = ['fail2ban', 'wireguard']
+      packages = %w[fail2ban wireguard]
       packages += additional_packages if additional_packages
       packages = "'#{packages.join("', '")}'"
 
