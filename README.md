@@ -229,7 +229,8 @@ I have noticed that sometimes I need to re-run the upgrade command a couple of t
 You can also check the logs of the system upgrade controller's pod:
 
 ```bash
-kubectl -n system-upgrade logs -f $(kubectl -n system-upgrade get pod -l pod-template-hash -o jsonpath="{.items[0].metadata.name}")
+kubectl -n system-upgrade \
+  logs -f $(kubectl -n system-upgrade get pod -l pod-template-hash -o jsonpath="{.items[0].metadata.name}")
 ```
 
 A final note about upgrades is that if for some reason the upgrade gets stuck after upgrading the masters and before upgrading the worker nodes, just cleaning up the resources as described above might not be enough. In that case also try running the following to tell the upgrade job for the workers that the masters have already been upgraded, so the upgrade can continue for the workers:
