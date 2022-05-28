@@ -102,7 +102,7 @@ module Hetzner
 
       post_create_commands += additional_post_create_commands if additional_post_create_commands
 
-      post_create_commands += ['shutdown -r now'] if post_create_commands.grep(/shutdown|reboot/).reject{ |command| command.match?(/@reboot/) }.empty?
+      post_create_commands += ['shutdown -r now'] if post_create_commands.grep(/shutdown|reboot/).grep_v(/@reboot/).empty?
 
       post_create_commands = "  - #{post_create_commands.join("\n  - ")}"
 
