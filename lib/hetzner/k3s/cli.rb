@@ -298,8 +298,8 @@ module Hetzner
       end
 
       def hetzner_token
-        @token = ENV['HCLOUD_TOKEN']
-        return @token if @token
+        @token = ENV.fetch('HCLOUD_TOKEN', nil)
+        return @token unless @token.nil?
 
         @token = configuration['hetzner_token']
       end

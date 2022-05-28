@@ -119,3 +119,17 @@ Metrics/ParameterLists:
 Style/FrozenStringLiteralComment:
   Exclude:
     - exe/hetzner-k3s
+Lint/RefinementImportMethods: # new in 1.27
+  Enabled: true
+Security/CompoundHash: # new in 1.28
+  Enabled: true
+Style/EnvHome: # new in 1.29
+  Enabled: true
+Style/FetchEnvVar: # new in 1.28
+  Enabled: true
+Style/NestedFileDirname: # new in 1.26
+  Enabled: true
+Style/ObjectThen: # new in 1.28
+  Enabled: true
+Style/RedundantInitialize: # new in 1.27
+  Enabled: true
