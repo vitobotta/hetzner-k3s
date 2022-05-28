@@ -204,16 +204,6 @@ Note that the API server will briefly be unavailable during the upgrade of the c
 
 To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
 
-## Upgrading the OS on nodes
-
-The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes services. To do this:
-
-- drain one node
-- delete the node from Kubernetes
-- delete the node from the Hetzner console
-- re-run the script to recreate the deleted node with an updated OS
-- proceed with the next node
-
 ### What to do if the upgrade doesn't go smoothly
 
 If the upgrade gets stuck for some reason, or it doesn't upgrade all the nodes:
@@ -247,6 +237,16 @@ A final note about upgrades is that if for some reason the upgrade gets stuck af
 ```bash
 kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-server=upgraded
 ```
+
+## Upgrading the OS on nodes
+
+The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes services. To do this:
+
+- drain one node
+- delete the node from Kubernetes
+- delete the node from the Hetzner console
+- re-run the script to recreate the deleted node with an updated OS
+- proceed with the next node
 
 ## Deleting a cluster
 
