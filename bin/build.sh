@@ -2,8 +2,6 @@
 
 set -e
 
-
-
 IMAGE="vitobotta/hetzner-k3s"
 
 docker build -t ${IMAGE}:v0.5.6 \
