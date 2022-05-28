@@ -499,7 +499,8 @@ class Cluster
         network_id:,
         ssh_key_id:,
         image:,
-        additional_packages:
+        additional_packages:,
+        additional_post_create_commands:
       }
     end
 
