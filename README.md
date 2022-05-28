@@ -206,7 +206,7 @@ To check the upgrade progress, run `watch kubectl get nodes -owide`. You will se
 
 ## Upgrading the OS on nodes
 
-The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes service. To do this:
+The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes services. To do this:
 
 - drain one node
 - delete the node from Kubernetes
