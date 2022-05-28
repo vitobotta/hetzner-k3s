@@ -283,7 +283,7 @@ I set `load-balancer.hetzner.cloud/hostname` to a valid hostname that I configur
 
 The annotation `load-balancer.hetzner.cloud/use-private-ip: "true"` ensures that the communication between the load balancer and the nodes happens through the private network, so we don't have to open any ports on the nodes (other than the port 6443 for the Kubernetes API server).
 
-The other annotations should be self explanatory. You can find a list of the available annotations here.
+The other annotations should be self explanatory. You can find a list of the available annotations [here](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation).
 
 ## Persistent volumes
 
