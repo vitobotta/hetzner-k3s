@@ -7,8 +7,9 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:, additional_packages: [])
+    def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:, additional_packages: [], additional_post_create_commands: [])
       @additional_packages = additional_packages
+      @additional_post_create_commands = additional_post_create_commands
 
       puts
 
@@ -74,7 +75,7 @@ module Hetzner
 
     private
 
-    attr_reader :hetzner_client, :cluster_name, :additional_packages
+    attr_reader :hetzner_client, :cluster_name, :additional_packages, :additional_post_create_commands
 
     def find_server(server_name)
       hetzner_client.get('/servers?sort=created:desc')['servers'].detect { |network| network['name'] == server_name }
@@ -85,18 +86,31 @@ module Hetzner
       packages += additional_packages if additional_packages
       packages = "'#{packages.join("', '")}'"
 
+      post_create_commands = [
+        'crontab -l > /etc/cron_bkp',
+        'echo "@reboot echo true > /etc/ready" >> /etc/cron_bkp',
+        'crontab /etc/cron_bkp',
+        'sed -i \'s/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g\' /etc/ssh/sshd_config',
+        'sed -i \'s/[#]*PasswordAuthentication yes/PasswordAuthentication no/g\' /etc/ssh/sshd_config',
+        'systemctl restart sshd',
+        'systemctl stop systemd-resolved',
+        'systemctl disable systemd-resolved',
+        'rm /etc/resolv.conf',
+        'echo \'nameserver 1.1.1.1\' > /etc/resolv.conf',
+        'echo \'nameserver 1.0.0.1\' >> /etc/resolv.conf'
+      ]
+
+      post_create_commands += additional_post_create_commands if additional_post_create_commands
+
+      post_create_commands += ['shutdown -r now'] if post_create_commands.grep(/shutdown|reboot/).empty?
+
+      post_create_commands = "  - #{post_create_commands.join("\n  - ")}"
+
       <<~YAML
         #cloud-config
         packages: [#{packages}]
         runcmd:
-          - sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config
-          - sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-          - systemctl restart sshd
-          - systemctl stop systemd-resolved
-          - systemctl disable systemd-resolved
-          - rm /etc/resolv.conf
-          - echo "nameserver 1.1.1.1" > /etc/resolv.conf
-          - echo "nameserver 1.0.0.1" >> /etc/resolv.conf
+        #{post_create_commands}
       YAML
     end
   end

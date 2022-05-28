@@ -352,6 +352,11 @@ module Hetzner
         errors << 'Invalid additional packages configuration - it should be an array' if additional_packages && !additional_packages.is_a?(Array)
       end
 
+      def validate_post_create_commands
+        post_create_commands = configuration['post_create_commands']
+        errors << 'Invalid post create commands configuration - it should be an array' if post_create_commands && !post_create_commands.is_a?(Array)
+      end
+
       def validate_create
         validate_public_ssh_key
         validate_private_ssh_key
@@ -362,6 +367,7 @@ module Hetzner
         validate_worker_node_pools
         validate_verify_host_key
         validate_additional_packages
+        validate_post_create_commands
         validate_kube_api_server_args
         validate_kube_scheduler_args
         validate_kube_controller_manager_args

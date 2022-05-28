@@ -450,6 +450,10 @@ class Cluster
     configuration['additional_packages'] || []
   end
 
+  def additional_post_create_commands
+    configuration['post_create_commands'] || []
+  end
+
   def check_kubectl
     return if which('kubectl')
 
@@ -533,7 +537,8 @@ class Cluster
         network_id:,
         ssh_key_id:,
         image:,
-        additional_packages:
+        additional_packages:,
+        additional_post_create_commands:
       }
     end
 

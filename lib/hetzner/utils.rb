@@ -34,7 +34,7 @@ module Utils
       at_exit do
         process&.send_signal('SIGTERM')
       rescue Errno::ESRCH, Interrupt
-        puts 'Interrupted'
+        # ignore
       end
 
       Subprocess.check_call(['bash', '-c', CMD_FILE_PATH], env:) do |p|
@@ -58,8 +58,8 @@ module Utils
       puts "Waiting for server #{server_name} to be up..."
 
       loop do
-        result = ssh(server, 'echo UP')
-        break if result == 'UP'
+        result = ssh(server, 'cat /etc/ready')
+        break if result == 'true'
       end
 
       puts "...server #{server_name} is now up."
@@ -81,7 +81,7 @@ module Utils
 
     Net::SSH.start(public_ip, 'root', params) do |session|
       session.exec!(command) do |_channel, _stream, data|
-        output << data
+        output = "#{output}#{data}"
         puts data if print_output
       end
     end

@@ -73,6 +73,11 @@ worker_node_pools:
   instance_count: 2
 additional_packages:
 - somepackage
+post_create_commands:
+- apt update
+- apt upgrade -y
+- apt autoremove -y
+- shutdown -r now
 enable_encryption: true
 # kube_api_server_args:
 # - arg1
