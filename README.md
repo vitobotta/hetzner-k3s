@@ -241,12 +241,10 @@ kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-serv
 
 ## Upgrading the OS on nodes
 
-The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes services. To do this:
-
 - drain one node
-- delete the node from Kubernetes
-- delete the node from the Hetzner console
-- re-run the script to recreate the deleted node with an updated OS
+- update etc
+- reboot
+- uncordon
 - proceed with the next node
 
 ## Deleting a cluster
