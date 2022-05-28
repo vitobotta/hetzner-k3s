@@ -64,7 +64,7 @@ module Utils
 
       puts "...server #{server_name} is now up."
     end
-  rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error, IOError
+  rescue Errno::ENETUNREACH, Errno::EHOSTUNREACH, Timeout::Error, IOError, Errno::ECONNRESET
     retries += 1
     retry if retries <= 15
   end
