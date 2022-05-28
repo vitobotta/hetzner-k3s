@@ -204,7 +204,7 @@ Note that the API server will briefly be unavailable during the upgrade of the c
 
 To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
 
-## Upgrade the OS on nodes
+## Upgrading the OS on nodes
 
 The easiest way to upgrade the OS on existing nodes is actually to replace them, as it happens with managed Kubernetes service. To do this:
 
