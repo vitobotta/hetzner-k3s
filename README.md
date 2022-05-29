@@ -243,6 +243,7 @@ kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-serv
 
 ## Upgrading the OS on nodes
 
+- consider adding a temporary node during the process if you don't have enough spare capacity in the cluster
 - drain one node
 - update etc
 - reboot
