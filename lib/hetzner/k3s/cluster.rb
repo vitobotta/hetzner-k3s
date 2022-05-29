@@ -19,13 +19,11 @@ require_relative '../utils'
 class Cluster
   include Utils
 
-  def initialize(hetzner_client:, hetzner_token:)
-    @hetzner_client = hetzner_client
-    @hetzner_token = hetzner_token
+  def initialize(configuration:)
+    @configuration = configuration
   end
 
-  def create(configuration:)
-    @configuration = configuration
+  def create
     @cluster_name = configuration['cluster_name']
     @kubeconfig_path = File.expand_path(configuration['kubeconfig_path'])
     @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
@@ -57,8 +55,7 @@ class Cluster
     deploy_system_upgrade_controller
   end
 
-  def delete(configuration:)
-    @configuration = configuration
+  def delete
     @cluster_name = configuration['cluster_name']
     @kubeconfig_path = File.expand_path(configuration['kubeconfig_path'])
     @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
@@ -68,8 +65,7 @@ class Cluster
     delete_resources
   end
 
-  def upgrade(configuration:, new_k3s_version:, config_file:)
-    @configuration = configuration
+  def upgrade(new_k3s_version:, config_file:)
     @cluster_name = configuration['cluster_name']
     @kubeconfig_path = File.expand_path(configuration['kubeconfig_path'])
     @new_k3s_version = new_k3s_version
@@ -82,10 +78,10 @@ class Cluster
 
   attr_accessor :servers
 
-  attr_reader :hetzner_client, :cluster_name, :kubeconfig_path, :k3s_version,
+  attr_reader :configuration, :cluster_name, :kubeconfig_path, :k3s_version,
               :masters_config, :worker_node_pools,
               :masters_location, :public_ssh_key_path,
-              :hetzner_token, :new_k3s_version, :configuration,
+              :hetzner_token, :new_k3s_version,
               :config_file, :verify_host_key, :networks, :private_ssh_key_path,
               :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
               :kube_controller_manager_args, :kube_cloud_controller_manager_args,
@@ -190,9 +186,10 @@ class Cluster
     puts 'Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster.'
     puts 'The API server may be briefly unavailable during the upgrade of the controlplane.'
 
-    configuration['k3s_version'] = new_k3s_version
+    updated_configuration = configuration.raw
+    updated_configuration['k3s_version'] = new_k3s_version
 
-    File.write(config_file, configuration.to_yaml)
+    File.write(config_file, updated_configuration.to_yaml)
   end
 
   def master_script(master)
@@ -299,7 +296,7 @@ class Cluster
           name: 'hcloud'
         stringData:
           network: "#{cluster_name}"
-          token: "#{hetzner_token}"
+          token: "#{configuration.hetzner_token}"
       EOF
     BASH
 
@@ -339,7 +336,7 @@ class Cluster
           namespace: 'kube-system'
           name: 'hcloud-csi'
         stringData:
-          token: "#{hetzner_token}"
+          token: "#{configuration.hetzner_token}"
       EOF
     BASH
 
@@ -642,5 +639,9 @@ class Cluster
     kube_api_server_args.map do |arg|
       " --kube-proxy-arg=\"#{arg}\" "
     end.join
+  end
+
+  def hetzner_client
+    configuration.hetzner_client
   end
 end
