@@ -13,16 +13,19 @@ module Hetzner
 
     def validate(action:)
       validate_token
-      validate_cluster_name
-      validate_kubeconfig_path
 
-      case action
-      when :create
-        validate_create
-      when :delete
-        validate_kubeconfig_path_must_exist
-      when :upgrade
-        validate_upgrade
+      if valid_token?
+        validate_cluster_name
+        validate_kubeconfig_path
+
+        case action
+        when :create
+          validate_create
+        when :delete
+          validate_kubeconfig_path_must_exist
+        when :upgrade
+          validate_upgrade
+        end
       end
 
       errors.flatten!
@@ -34,6 +37,8 @@ module Hetzner
       errors.each do |error|
         puts " - #{error}"
       end
+
+      exit 1
     end
 
     def self.available_releases
@@ -307,9 +312,9 @@ module Hetzner
     def validate_cluster_name
       errors << 'Cluster name is an invalid format (only lowercase letters, digits and dashes are allowed)' unless configuration['cluster_name'] =~ /\A[a-z\d-]+\z/
 
-      return if configuration['cluster_name'] =~ /\A[a-z]+.*\z/
+      return if configuration['cluster_name'] =~ /\A[a-z]+.*([a-z]|\d)+\z/
 
-      errors << 'Ensure that the cluster name starts with a normal letter'
+      errors << 'Ensure that the cluster name starts and ends with a normal letter'
     end
 
     def validate_new_k3s_version
@@ -325,7 +330,7 @@ module Hetzner
         @hetzner_client = Hetzner::Client.new(token:)
         response = hetzner_client.get('/locations')
         error_code = response.dig('error', 'code')
-        @valid = error_code&.size != 0
+        @valid = error_code != 'unauthorized'
       rescue StandardError
         @valid = false
       end
