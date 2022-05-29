@@ -64,6 +64,10 @@ module Hetzner
       configuration.fetch(key, default)
     end
 
+    def raw
+      configuration
+    end
+
     private
 
     attr_reader :configuration, :errors, :options

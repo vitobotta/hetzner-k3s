@@ -186,9 +186,10 @@ class Cluster
     puts 'Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster.'
     puts 'The API server may be briefly unavailable during the upgrade of the controlplane.'
 
-    configuration['k3s_version'] = new_k3s_version
+    updated_configuration = configuration.raw
+    updated_configuration['k3s_version'] = new_k3s_version
 
-    File.write(config_file, configuration.to_yaml)
+    File.write(config_file, updated_configuration.to_yaml)
   end
 
   def master_script(master)
