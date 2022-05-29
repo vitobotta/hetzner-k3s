@@ -16,6 +16,8 @@ Using this tool, creating a highly available k3s cluster with 3 masters for the 
 
 See roadmap [here](https://github.com/vitobotta/hetzner-k3s/projects/1) for the features planned or in progress.
 
+Also see this [wiki page](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster) for a tutorial on how to set up a cluster with the most common setup to get you started.
+
 ## Requirements
 
 All that is needed to use this tool is
