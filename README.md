@@ -299,6 +299,10 @@ I recommend that you create a separate Hetzner project for each cluster, because
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
 
+Contributors:
+
+- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster)
+
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
