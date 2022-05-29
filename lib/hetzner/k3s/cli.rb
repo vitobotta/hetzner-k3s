@@ -19,7 +19,6 @@ module Hetzner
 
       def initialize(*args)
         @errors = []
-        @used_server_types = []
 
         super
       end
@@ -64,7 +63,7 @@ module Hetzner
       private
 
       attr_reader :configuration, :hetzner_client, :k3s_version
-      attr_accessor :errors, :used_server_types
+      attr_accessor :errors
 
       def validate_configuration(action)
         validate_configuration_file
@@ -285,8 +284,6 @@ module Hetzner
         else
           instance_group_errors << "#{instance_group_type} has an invalid instance count"
         end
-
-        used_server_types << instance_group['instance_type']
 
         errors << instance_group_errors
       end
