@@ -295,7 +295,7 @@ class Cluster
           name: 'hcloud'
         stringData:
           network: "#{cluster_name}"
-          token: "#{hetzner_token}"
+          token: "#{configuration.hetzner_token}"
       EOF
     BASH
 
@@ -335,7 +335,7 @@ class Cluster
           namespace: 'kube-system'
           name: 'hcloud-csi'
         stringData:
-          token: "#{hetzner_token}"
+          token: "#{configuration.hetzner_token}"
       EOF
     BASH
 
