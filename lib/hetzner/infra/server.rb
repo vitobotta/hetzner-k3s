@@ -8,12 +8,18 @@ module Hetzner
     end
 
     def create(location:, instance_type:, instance_id:, firewall_id:, network_id:, ssh_key_id:, placement_group_id:, image:, additional_packages: [], additional_post_create_commands: [])
+      @location = location
+      @instance_type = instance_type
+      @instance_id = instance_id
+      @firewall_id = firewall_id
+      @network_id = network_id
+      @ssh_key_id = ssh_key_id
+      @placement_group_id = placement_group_id
+      @image = image
       @additional_packages = additional_packages
       @additional_post_create_commands = additional_post_create_commands
 
       puts
-
-      server_name = "#{cluster_name}-#{instance_type}-#{instance_id}"
 
       if (server = find_server(server_name))
         puts "Server #{server_name} already exists, skipping."
@@ -23,44 +29,16 @@ module Hetzner
 
       puts "Creating server #{server_name}..."
 
-      server_config = {
-        name: server_name,
-        location:,
-        image:,
-        firewalls: [
-          { firewall: firewall_id }
-        ],
-        networks: [
-          network_id
-        ],
-        server_type: instance_type,
-        ssh_keys: [
-          ssh_key_id
-        ],
-        user_data:,
-        labels: {
-          cluster: cluster_name,
-          role: (server_name =~ /master/ ? 'master' : 'worker')
-        },
-        placement_group: placement_group_id
-      }
+      if (server = make_request)
+        puts "...server #{server_name} created."
+        puts
 
-      response = hetzner_client.post('/servers', server_config)
-      response_body = response.body
-
-      server = JSON.parse(response_body)['server']
-
-      unless server
+        server
+      else
         puts "Error creating server #{server_name}. Response details below:"
         puts
         p response
-        return
       end
-
-      puts "...server #{server_name} created."
-      puts
-
-      server
     end
 
     def delete(server_name:)
@@ -75,7 +53,7 @@ module Hetzner
 
     private
 
-    attr_reader :hetzner_client, :cluster_name, :additional_packages, :additional_post_create_commands
+    attr_reader :hetzner_client, :cluster_name, :location, :instance_type, :instance_id, :firewall_id, :network_id, :ssh_key_id, :placement_group_id, :image, :additional_packages, :additional_post_create_commands
 
     def find_server(server_name)
       hetzner_client.get('/servers?sort=created:desc')['servers'].detect { |network| network['name'] == server_name }
@@ -112,6 +90,41 @@ module Hetzner
         runcmd:
         #{post_create_commands}
       YAML
+    end
+
+    def server_name
+      @server_name ||= "#{cluster_name}-#{instance_type}-#{instance_id}"
+    end
+
+    def server_config
+      @server_config ||= {
+        name: server_name,
+        location:,
+        image:,
+        firewalls: [
+          { firewall: firewall_id }
+        ],
+        networks: [
+          network_id
+        ],
+        server_type: instance_type,
+        ssh_keys: [
+          ssh_key_id
+        ],
+        user_data:,
+        labels: {
+          cluster: cluster_name,
+          role: (server_name =~ /master/ ? 'master' : 'worker')
+        },
+        placement_group: placement_group_id
+      }
+    end
+
+    def make_request
+      response = hetzner_client.post('/servers', server_config)
+      response_body = response.body
+
+      JSON.parse(response_body)['server']
     end
   end
 end
