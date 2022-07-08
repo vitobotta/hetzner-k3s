@@ -171,7 +171,7 @@ The `create-cluster` command can be run any number of times with the same config
 
 To add one or more nodes to a node pool, just change the instance count in the configuration file for that node pool and re-run the create command.
 
-**Important**: if you are increasing the size of a node pool created prior to v0.5.7, please see [this thread](https://github.com/vitobotta/hetzner-k3s/issues/80#issuecomment-1151597903).
+**Important**: if you are increasing the size of a node pool created prior to v0.5.7, please see [this thread](https://github.com/vitobotta/hetzner-k3s/issues/80).
 
 ### Scaling down a node pool
 
