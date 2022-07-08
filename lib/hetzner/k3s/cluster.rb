@@ -211,10 +211,8 @@ class Cluster
         --cluster-cidr=10.244.0.0/16 \
         --etcd-expose-metrics=true \
         #{flannel_wireguard} \
-        --kube-controller-manager-arg="address=0.0.0.0" \
         --kube-controller-manager-arg="bind-address=0.0.0.0" \
         --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
-        --kube-scheduler-arg="address=0.0.0.0" \
         --kube-scheduler-arg="bind-address=0.0.0.0" \
         #{taint} #{extra_args} \
         --kubelet-arg="cloud-provider=external" \
