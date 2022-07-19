@@ -37,6 +37,7 @@ class Cluster
     @servers = []
     @networks = configuration['ssh_allowed_networks']
     @enable_encryption = configuration.fetch('enable_encryption', false)
+    @wireguard_native = configuration.fetch('wireguard_native', false)
     @kube_api_server_args = configuration.fetch('kube_api_server_args', [])
     @kube_scheduler_args = configuration.fetch('kube_scheduler_args', [])
     @kube_controller_manager_args = configuration.fetch('kube_controller_manager_args', [])
@@ -83,9 +84,9 @@ class Cluster
               :masters_location, :public_ssh_key_path,
               :hetzner_token, :new_k3s_version,
               :config_file, :verify_host_key, :networks, :private_ssh_key_path,
-              :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
-              :kube_controller_manager_args, :kube_cloud_controller_manager_args,
-              :kubelet_args, :kube_proxy_args
+              :enable_encryption, :wireguard_native, :kube_api_server_args,
+              :kube_scheduler_args, :kube_controller_manager_args,
+              :kube_cloud_controller_manager_args, :kubelet_args, :kube_proxy_args
 
   def find_worker_node_pools(configuration)
     configuration.fetch('worker_node_pools', [])
@@ -195,7 +196,7 @@ class Cluster
   def master_script(master)
     server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
     flannel_interface = find_flannel_interface(master)
-    flannel_wireguard = enable_encryption ? ' --flannel-backend=wireguard ' : ' '
+    flannel_wireguard =  and wireguard_native and ' --flannel-backend=wireguard-native ' or enable_encryption and ' --flannel-backend=wireguard ' or ' '
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
 

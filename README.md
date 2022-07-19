@@ -86,6 +86,7 @@ post_create_commands:
 - apt autoremove -y
 - shutdown -r now
 enable_encryption: true
+wireguard_native: false
 # kube_api_server_args:
 # - arg1
 # - ...
@@ -264,6 +265,12 @@ This will delete all the resources in the Hetzner Cloud project for the cluster 
 
 
 ## Additional info
+
+### WireGuard
+
+To use WireGuard as flannel backend, enable it in your config file, i.e. set `enable_encryption: true`. As of k3s version >= v1.23.6+k3s1 you might additionally enable the native WireGuard implementation in your config file, i.e. additionally setting `wireguard_native: true`.
+
+Upgrading existing clusters from `wireguard` to `wireguard-native` does work however it requires a restart of all master nodes.
 
 ### Load balancers
 
