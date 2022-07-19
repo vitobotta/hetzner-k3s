@@ -196,7 +196,7 @@ class Cluster
   def master_script(master)
     server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
     flannel_interface = find_flannel_interface(master)
-    flannel_wireguard =  and wireguard_native and ' --flannel-backend=wireguard-native ' or enable_encryption and ' --flannel-backend=wireguard ' or ' '
+    flannel_wireguard = enable_encryption and wireguard_native and ' --flannel-backend=wireguard-native ' or enable_encryption and ' --flannel-backend=wireguard ' or ' '
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
 
