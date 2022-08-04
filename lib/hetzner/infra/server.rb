@@ -29,15 +29,16 @@ module Hetzner
 
       puts "Creating server #{server_name}..."
 
-      if (server = make_request)
+      server, error = make_request
+      if (server.present?)
         puts "...server #{server_name} created."
         puts
 
-        server
+        return server
       else
         puts "Error creating server #{server_name}. Response details below:"
         puts
-        p response
+        p error
       end
     end
 
@@ -123,8 +124,13 @@ module Hetzner
     def make_request
       response = hetzner_client.post('/servers', server_config)
       response_body = response.body
+      s = JSON.parse(response_body)['server']
 
-      JSON.parse(response_body)['server']
+      if (s.present?)
+        return s, response
+      else
+        return nil, response
+      end
     end
   end
 end

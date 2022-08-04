@@ -24,6 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'ed25519'
   spec.add_dependency 'http'
   spec.add_dependency 'net-ssh'
+  spec.add_dependency 'activesupport'
   spec.add_dependency 'sshkey'
   spec.add_dependency 'subprocess'
   spec.add_dependency 'thor'
