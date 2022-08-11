@@ -44,7 +44,7 @@ Alternatively, if you don't want to set up a Ruby runtime but have Docker instal
 docker run --rm -it \
   -v ${PWD}:/cluster \
   -v ${HOME}/.ssh:/tmp/.ssh \
-  vitobotta/hetzner-k3s:v0.5.7 \
+  vitobotta/hetzner-k3s:v0.5.8 \
   create-cluster \
   --config-file /cluster/test.yaml
 ```
