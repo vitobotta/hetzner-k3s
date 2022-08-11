@@ -2,6 +2,9 @@
 
 module Hetzner
   class Configuration
+    GITHUB_DELIM_LINKS = ','.freeze
+    GITHUB_LINK_REGEX = /<([^>]+)>; rel=\"([^\"]+)\"/
+
     attr_reader :hetzner_client
 
     def initialize(options:)
@@ -43,11 +46,32 @@ module Hetzner
 
     def self.available_releases
       @available_releases ||= begin
-        response = HTTP.get('https://api.github.com/repos/k3s-io/k3s/tags?per_page=999').body
-        JSON.parse(response).map { |hash| hash['name'] }
+        releases = []
+
+        response, page_releases = fetch_releases('https://api.github.com/repos/k3s-io/k3s/tags?per_page=100')
+        releases = page_releases
+        link_header = response.headers['link']
+
+        while !link_header.nil?
+          next_page_url = extract_next_github_page_url(link_header)
+
+          break if next_page_url.nil?
+
+          response, page_releases = fetch_releases(next_page_url)
+
+          releases += page_releases
+
+          link_header = response.headers['link']
+        end
+
+        releases.sort
       end
     rescue StandardError
-      errors << 'Cannot fetch the releases with Hetzner API, please try again later'
+      if defined?errors
+        errors << 'Cannot fetch the releases with Hetzner API, please try again later'
+      else
+        puts 'Cannot fetch the releases with Hetzner API, please try again later'
+      end
     end
 
     def hetzner_token
@@ -71,6 +95,30 @@ module Hetzner
     private
 
     attr_reader :configuration, :errors, :options
+
+    def self.fetch_releases(url)
+      response = HTTP.get(url)
+      [response, JSON.parse(response.body).map { |hash| hash['name'] }]
+    end
+
+    def self.extract_next_github_page_url(link_header)
+      link_header.split(GITHUB_DELIM_LINKS).each do |link|
+        GITHUB_LINK_REGEX.match(link.strip) do |match|
+          url_part, meta_part = match[1], match[2]
+          next if !url_part || !meta_part
+          return url_part if meta_part == "next"
+        end
+      end
+
+      nil
+    end
+
+    def self.assign_url_part(meta_part, url_part)
+      case meta_part
+      when "next"
+        url_part
+      end
+    end
 
     def validate_create
       validate_public_ssh_key
