@@ -2,9 +2,10 @@
 
 module Hetzner
   class Network
-    def initialize(hetzner_client:, cluster_name:)
+    def initialize(hetzner_client:, cluster_name:, existing_network:)
       @hetzner_client = hetzner_client
       @cluster_name = cluster_name
+      @existing_network = existing_network
     end
 
     def create(location:)
@@ -29,9 +30,13 @@ module Hetzner
 
     def delete
       if (network = find_network)
-        puts 'Deleting network...'
-        hetzner_client.delete('/networks', network['id'])
-        puts '...network deleted.'
+        if network["name"] == existing_network
+          puts "Network existed before cluster, skipping."
+        else
+          puts 'Deleting network...'
+          hetzner_client.delete('/networks', network['id'])
+          puts '...network deleted.'
+        end
       else
         puts 'Network no longer exists, skipping.'
       end
@@ -39,9 +44,18 @@ module Hetzner
       puts
     end
 
+    def find_network
+      network_name = existing_network || cluster_name
+      hetzner_client.get('/networks')['networks'].detect { |network| network['name'] == network_name }
+    end
+
+    def get
+      find_network
+    end
+
     private
 
-    attr_reader :hetzner_client, :cluster_name, :location
+    attr_reader :hetzner_client, :cluster_name, :location, :existing_network
 
     def network_config
       {
@@ -55,10 +69,6 @@ module Hetzner
           }
         ]
       }
-    end
-
-    def find_network
-      hetzner_client.get('/networks')['networks'].detect { |network| network['name'] == cluster_name }
     end
   end
 end

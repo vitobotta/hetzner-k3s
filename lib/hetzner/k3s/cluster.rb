@@ -115,7 +115,7 @@ class Cluster
 
     Hetzner::Firewall.new(hetzner_client:, cluster_name:).delete(all_servers)
 
-    Hetzner::Network.new(hetzner_client:, cluster_name:).delete
+    Hetzner::Network.new(hetzner_client:, cluster_name:, existing_network:).delete
 
     Hetzner::SSHKey.new(hetzner_client:, cluster_name:).delete(public_ssh_key_path:)
 
@@ -293,7 +293,7 @@ class Cluster
           namespace: 'kube-system'
           name: 'hcloud'
         stringData:
-          network: "#{cluster_name}"
+          network: "#{existing_network || cluster_name}"
           token: "#{configuration.hetzner_token}"
       EOF
     BASH
@@ -474,7 +474,7 @@ class Cluster
   end
 
   def network_id
-    @network_id ||= Hetzner::Network.new(hetzner_client:, cluster_name:).create(location: masters_location)
+    @network_id ||= Hetzner::Network.new(hetzner_client:, cluster_name:, existing_network:).create(location: masters_location)
   end
 
   def ssh_key_id
@@ -641,5 +641,9 @@ class Cluster
 
   def hetzner_client
     configuration.hetzner_client
+  end
+
+  def existing_network
+    configuration["existing_network"]
   end
 end

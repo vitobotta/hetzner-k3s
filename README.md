@@ -104,6 +104,7 @@ enable_encryption: true
 # kube_proxy_args:
 # - arg1
 # - ...
+# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 
 ```
 
