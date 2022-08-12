@@ -196,11 +196,25 @@ class Cluster
   def master_script(master)
     server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
     flannel_interface = find_flannel_interface(master)
-    flannel_wireguard = enable_encryption ? ' --flannel-backend=wireguard ' : ' '
+
+    available_k3s_releases = Hetzner::Configuration.available_releases
+    wireguard_native_min_version_index = available_k3s_releases.find_index('v1.23.6+k3s1')
+    selected_version_index = available_k3s_releases.find_index(k3s_version)
+
+    flannel_wireguard = if enable_encryption
+      if selected_version_index >= wireguard_native_min_version_index
+        ' --flannel-backend=wireguard-native '
+      else
+        ' --flannel-backend=wireguard '
+      end
+    else
+      ' '
+    end
+
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
 
-    <<~SCRIPT
+    script =  <<~SCRIPT
       curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
         --disable-cloud-controller \
         --disable servicelb \
@@ -223,6 +237,10 @@ class Cluster
         --flannel-iface=#{flannel_interface} \
         #{server} #{tls_sans}" sh -
     SCRIPT
+
+    puts script
+
+    script
   end
 
   def worker_script(worker)
