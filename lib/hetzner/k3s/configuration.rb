@@ -125,6 +125,7 @@ module Hetzner
       validate_public_ssh_key
       validate_private_ssh_key
       validate_ssh_allowed_networks
+      validate_api_allowed_networks
       validate_masters_location
       validate_k3s_version
       validate_masters
@@ -167,11 +168,11 @@ module Hetzner
       errors << 'Invalid Private SSH key path'
     end
 
-    def validate_ssh_allowed_networks
-      networks ||= configuration['ssh_allowed_networks']
+    def validate_networks(configuration_option, access_type)
+      networks ||= configuration[configuration_option]
 
       if networks.nil? || networks.empty?
-        errors << 'At least one network/IP range must be specified for SSH access'
+        errors << "At least one network/IP range must be specified for #{access_type} access"
         return
       end
 
@@ -183,7 +184,7 @@ module Hetzner
 
       unless invalid_networks.empty?
         invalid_networks.each do |network|
-          errors << "The network #{network} is an invalid range"
+          errors << "The #{access_type} network #{network} is an invalid range"
         end
       end
 
@@ -193,7 +194,7 @@ module Hetzner
 
       unless invalid_ranges.empty?
         invalid_ranges.each do |_network|
-          errors << 'Please use the CIDR notation for the networks to avoid ambiguity'
+          errors << 'Please use the CIDR notation for the #{access_type} networks to avoid ambiguity'
         end
       end
 
@@ -201,13 +202,30 @@ module Hetzner
 
       current_ip = URI.open('http://whatismyip.akamai.com').read
 
-      current_ip_networks = networks.detect do |network|
+      current_ip_network = networks.detect do |network|
         IPAddr.new(network).include?(current_ip)
       rescue StandardError
         false
       end
 
-      errors << "Your current IP #{current_ip} is not included into any of the networks you've specified, so we won't be able to SSH into the nodes" unless current_ip_networks
+      unless current_ip_network
+        case access_type
+        when "SSH"
+          errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to SSH into the nodes "
+        when "API"
+          errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to connect to the Kubernetes API"
+        end
+      end
+    end
+
+
+    def validate_ssh_allowed_networks
+      return
+      validate_networks('ssh_allowed_networks', 'SSH')
+    end
+
+    def validate_api_allowed_networks
+      validate_networks('api_allowed_networks', 'API')
     end
 
     def validate_masters_location
@@ -458,7 +476,7 @@ module Hetzner
         existing_network = Hetzner::Network.new(hetzner_client:, cluster_name: configuration["cluster_name"], existing_network: configuration["existing_network"]).get
 
         unless existing_network
-          @errors << "You have specified that you want to use the existing network named '#{existing_network} but this network doesn't exist"
+          @errors << "You have specified that you want to use the existing network named '#{configuration["existing_network"]} but this network doesn't exist"
         end
       end
     end

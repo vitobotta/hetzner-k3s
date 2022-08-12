@@ -65,6 +65,8 @@ public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
 ssh_allowed_networks:
   - 0.0.0.0/0
+api_allowed_networks:
+  - 0.0.0.0/0
 verify_host_key: false
 location: nbg1
 schedule_workloads_on_masters: false
@@ -144,9 +146,11 @@ curl \
 	'https://api.hetzner.cloud/v1/images'
 ```
 
-Note that if you use a custom image, the creation of the servers may take longer than when using the default image.
+Notes:
 
-Also note: the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you.
+- if you use a custom image, the creation of the servers may take longer than when using the default image
+- the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you
+- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls.
 
 Finally, to create the cluster run:
 

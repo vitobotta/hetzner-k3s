@@ -35,7 +35,8 @@ class Cluster
     @masters_location = configuration['location']
     @verify_host_key = configuration.fetch('verify_host_key', false)
     @servers = []
-    @networks = configuration['ssh_allowed_networks']
+    @ssh_networks = configuration['ssh_allowed_networks']
+    @api_networks = configuration['api_allowed_networks']
     @enable_encryption = configuration.fetch('enable_encryption', false)
     @kube_api_server_args = configuration.fetch('kube_api_server_args', [])
     @kube_scheduler_args = configuration.fetch('kube_scheduler_args', [])
@@ -82,10 +83,10 @@ class Cluster
               :masters_config, :worker_node_pools,
               :masters_location, :public_ssh_key_path,
               :hetzner_token, :new_k3s_version,
-              :config_file, :verify_host_key, :networks, :private_ssh_key_path,
+              :config_file, :verify_host_key, :ssh_networks, :private_ssh_key_path,
               :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
               :kube_controller_manager_args, :kube_cloud_controller_manager_args,
-              :kubelet_args, :kube_proxy_args
+              :kubelet_args, :kube_proxy_args, :api_networks
 
   def find_worker_node_pools(configuration)
     configuration.fetch('worker_node_pools', [])
@@ -470,7 +471,7 @@ class Cluster
   end
 
   def firewall_id
-    @firewall_id ||= Hetzner::Firewall.new(hetzner_client:, cluster_name:).create(high_availability: (masters_count > 1), networks:)
+    @firewall_id ||= Hetzner::Firewall.new(hetzner_client:, cluster_name:).create(high_availability: (masters_count > 1), ssh_networks:, api_networks:)
   end
 
   def network_id
