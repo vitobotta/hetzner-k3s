@@ -214,7 +214,7 @@ class Cluster
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
 
-    script =  <<~SCRIPT
+    <<~SCRIPT
       curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
         --disable-cloud-controller \
         --disable servicelb \
@@ -237,10 +237,6 @@ class Cluster
         --flannel-iface=#{flannel_interface} \
         #{server} #{tls_sans}" sh -
     SCRIPT
-
-    puts script
-
-    script
   end
 
   def worker_script(worker)
@@ -359,7 +355,7 @@ class Cluster
 
     run cmd, kubeconfig_path: kubeconfig_path
 
-    cmd = 'kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/v1.6.0/deploy/kubernetes/hcloud-csi.yml'
+    cmd = 'kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml'
 
     run cmd, kubeconfig_path: kubeconfig_path
 
