@@ -2,8 +2,8 @@
 
 module Hetzner
   class Configuration
-    GITHUB_DELIM_LINKS = ','.freeze
-    GITHUB_LINK_REGEX = /<([^>]+)>; rel=\"([^\"]+)\"/
+    GITHUB_DELIM_LINKS = ','
+    GITHUB_LINK_REGEX = /<([^>]+)>; rel="([^"]+)"/
 
     attr_reader :hetzner_client
 
@@ -52,7 +52,7 @@ module Hetzner
         releases = page_releases
         link_header = response.headers['link']
 
-        while !link_header.nil?
+        until link_header.nil?
           next_page_url = extract_next_github_page_url(link_header)
 
           break if next_page_url.nil?
@@ -67,10 +67,10 @@ module Hetzner
         releases.sort
       end
     rescue StandardError
-      if defined?errors
-        errors << 'Cannot fetch the releases with Hetzner API, please try again later'
+      if defined? errors
+        errors << 'Cannot fetch the releases with Github API, please try again later. This may be due to API rate limits.'
       else
-        puts 'Cannot fetch the releases with Hetzner API, please try again later'
+        puts 'Cannot fetch the releases with Github API, please try again later. This may be due to API rate limits.'
       end
     end
 
@@ -104,9 +104,10 @@ module Hetzner
     def self.extract_next_github_page_url(link_header)
       link_header.split(GITHUB_DELIM_LINKS).each do |link|
         GITHUB_LINK_REGEX.match(link.strip) do |match|
-          url_part, meta_part = match[1], match[2]
+          url_part = match[1]
+          meta_part = match[2]
           next if !url_part || !meta_part
-          return url_part if meta_part == "next"
+          return url_part if meta_part == 'next'
         end
       end
 
@@ -115,7 +116,7 @@ module Hetzner
 
     def self.assign_url_part(meta_part, url_part)
       case meta_part
-      when "next"
+      when 'next'
         url_part
       end
     end
@@ -137,6 +138,7 @@ module Hetzner
       validate_kube_cloud_controller_manager_args
       validate_kubelet_args
       validate_kube_proxy_args
+      validate_existing_network
     end
 
     def validate_upgrade
@@ -449,6 +451,16 @@ module Hetzner
     rescue StandardError
       @errors << 'Cannot fetch server types with Hetzner API, please try again later'
       false
+    end
+
+    def validate_existing_network
+      if configuration["existing_network"]
+        existing_network = Hetzner::Network.new(hetzner_client:, cluster_name: configuration["cluster_name"], existing_network: configuration["existing_network"]).get
+
+        unless existing_network
+          @errors << "You have specified that you want to use the existing network named '#{existing_network} but this network doesn't exist"
+        end
+      end
     end
   end
 end
