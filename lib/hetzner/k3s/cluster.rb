@@ -328,7 +328,7 @@ class Cluster
     puts
     puts 'Deploying k3s System Upgrade Controller...'
 
-    cmd = 'kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.8.1/system-upgrade-controller.yaml'
+    cmd = 'kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.9.1/system-upgrade-controller.yaml'
 
     run cmd, kubeconfig_path: kubeconfig_path
 
