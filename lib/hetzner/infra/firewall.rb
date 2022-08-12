@@ -7,9 +7,10 @@ module Hetzner
       @cluster_name = cluster_name
     end
 
-    def create(high_availability:, networks:)
+    def create(high_availability:, ssh_networks:, api_networks:)
       @high_availability = high_availability
-      @networks = networks
+      @ssh_networks = ssh_networks
+      @api_networks = api_networks
       puts
 
       if (firewall = find_firewall)
@@ -47,7 +48,7 @@ module Hetzner
 
     private
 
-    attr_reader :hetzner_client, :cluster_name, :firewall, :high_availability, :networks
+    attr_reader :hetzner_client, :cluster_name, :firewall, :high_availability, :ssh_networks, :api_networks
 
     def create_firewall_config
       rules = [
@@ -56,7 +57,7 @@ module Hetzner
           direction: 'in',
           protocol: 'tcp',
           port: '22',
-          source_ips: networks,
+          source_ips: ssh_networks,
           destination_ips: []
         },
         {
@@ -98,10 +99,7 @@ module Hetzner
           direction: 'in',
           protocol: 'tcp',
           port: '6443',
-          source_ips: [
-            '0.0.0.0/0',
-            '::/0'
-          ],
+          source_ips: api_networks,
           destination_ips: []
         }
       end
