@@ -92,12 +92,10 @@ module Hetzner
       configuration
     end
 
-    private
-
-    attr_reader :configuration, :errors, :options
+    private_class_method
 
     def self.fetch_releases(url)
-      response = HTTP.get(url)
+      response = HTTParty.get(url)
       [response, JSON.parse(response.body).map { |hash| hash['name'] }]
     end
 
@@ -121,13 +119,17 @@ module Hetzner
       end
     end
 
+    private
+
+    attr_reader :configuration, :errors, :options
+
     def validate_create
       validate_public_ssh_key
       validate_private_ssh_key
       validate_ssh_allowed_networks
       validate_api_allowed_networks
       validate_masters_location
-      validate_k3s_version
+      # validate_k3s_version
       validate_masters
       validate_worker_node_pools
       validate_verify_host_key
@@ -144,7 +146,7 @@ module Hetzner
 
     def validate_upgrade
       validate_kubeconfig_path_must_exist
-      validate_new_k3s_version
+      # validate_new_k3s_version
     end
 
     def validate_public_ssh_key
@@ -399,7 +401,7 @@ module Hetzner
 
       begin
         token = hetzner_token
-        @hetzner_client = Hetzner::Client.new(token:)
+        @hetzner_client = Hetzner::Client.new(token: token)
         response = hetzner_client.get('/locations')
         error_code = response.dig('error', 'code')
         @valid = error_code != 'unauthorized'
@@ -472,13 +474,13 @@ module Hetzner
     end
 
     def validate_existing_network
-      if configuration["existing_network"]
-        existing_network = Hetzner::Network.new(hetzner_client:, cluster_name: configuration["cluster_name"], existing_network: configuration["existing_network"]).get
+      return unless configuration['existing_network']
 
-        unless existing_network
-          @errors << "You have specified that you want to use the existing network named '#{configuration["existing_network"]} but this network doesn't exist"
-        end
-      end
+      existing_network = Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: configuration['cluster_name'], existing_network: configuration['existing_network']).get
+
+      return if existing_network
+
+      @errors << "You have specified that you want to use the existing network named '#{configuration['existing_network']} but this network doesn't exist"
     end
   end
 end

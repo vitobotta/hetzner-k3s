@@ -37,7 +37,6 @@ module Hetzner
       else
         puts "Error creating server #{server_name}. Response details below:"
         puts
-        p response
       end
     end
 
@@ -99,8 +98,8 @@ module Hetzner
     def server_config
       @server_config ||= {
         name: server_name,
-        location:,
-        image:,
+        location: location,
+        image: image,
         firewalls: [
           { firewall: firewall_id }
         ],
@@ -111,7 +110,7 @@ module Hetzner
         ssh_keys: [
           ssh_key_id
         ],
-        user_data:,
+        user_data: user_data,
         labels: {
           cluster: cluster_name,
           role: (server_name =~ /master/ ? 'master' : 'worker')

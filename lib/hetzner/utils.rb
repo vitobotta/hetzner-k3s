@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+Net::SSH::Transport::Algorithms::ALGORITHMS.values.each { |algs| algs.reject! { |a| a =~ /^ecd(sa|h)-sha2/ } }
+Net::SSH::KnownHosts::SUPPORTED_TYPE.reject! { |t| t =~ /^ecd(sa|h)-sha2/ }
+
+require 'childprocess'
+
 module Utils
   CMD_FILE_PATH = '/tmp/cli.cmd'
 
@@ -19,8 +24,6 @@ module Utils
   end
 
   def run(command, kubeconfig_path:)
-    env = ENV.to_hash.merge({ 'KUBECONFIG' => kubeconfig_path })
-
     write_file CMD_FILE_PATH, <<-CONTENT
     set -euo pipefail
     #{command}
@@ -29,20 +32,19 @@ module Utils
     FileUtils.chmod('+x', CMD_FILE_PATH)
 
     begin
-      process = nil
+      process = ChildProcess.build('bash', '-c', CMD_FILE_PATH)
+      process.io.inherit!
+      process.environment['KUBECONFIG'] = kubeconfig_path
+      process.environment['HCLOUD_TOKEN'] = ENV.fetch('HCLOUD_TOKEN', '')
 
       at_exit do
-        process&.send_signal('SIGTERM')
+        process.stop
       rescue Errno::ESRCH, Interrupt
         # ignore
       end
 
-      Subprocess.check_call(['bash', '-c', CMD_FILE_PATH], env:) do |p|
-        process = p
-      end
-    rescue Subprocess::NonZeroExit
-      puts 'Command failed: non-zero exit code'
-      exit 1
+      process.start
+      process.wait
     rescue Interrupt
       puts 'Command interrupted'
       exit 1
@@ -86,6 +88,13 @@ module Utils
       end
     end
     output.chop
+  # rescue StandardError => e
+  #   p [e.class, e.message]
+  #   retries += 1
+  #   retry unless retries > 15 || e.message =~ /Bad file descriptor/
+  rescue Timeout::Error, IOError, Errno::EBADF
+    retries += 1
+    retry unless retries > 15
   rescue Net::SSH::Disconnect => e
     retries += 1
     retry unless retries > 15 || e.message =~ /Too many authentication failures/

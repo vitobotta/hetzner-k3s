@@ -12,19 +12,19 @@ module Hetzner
 
     def get(path)
       make_request do
-        JSON.parse HTTP.headers(headers).get(BASE_URI + path).body
+        JSON.parse HTTParty.get(BASE_URI + path, headers: headers).body
       end
     end
 
     def post(path, data)
       make_request do
-        HTTP.headers(headers).post(BASE_URI + path, json: data)
+        HTTParty.post(BASE_URI + path, body: data.to_json, headers: headers)
       end
     end
 
     def delete(path, id)
       make_request do
-        HTTP.headers(headers).delete("#{BASE_URI}#{path}/#{id}")
+        HTTParty.delete("#{BASE_URI}#{path}/#{id}", headers: headers)
       end
     end
 
@@ -32,8 +32,8 @@ module Hetzner
 
     def headers
       {
-        Authorization: "Bearer #{@token}",
-        'Content-Type': 'application/json'
+        'Authorization' => "Bearer #{@token}",
+        'Content-Type' => 'application/json'
       }
     end
 

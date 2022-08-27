@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description   = 'A CLI to create a Kubernetes cluster in Hetzner Cloud very quickly using k3s.'
   spec.homepage      = 'https://github.com/vitobotta/hetzner-k3s'
   spec.license       = 'MIT'
-  spec.required_ruby_version = Gem::Requirement.new('>= 3.1.2')
+  spec.required_ruby_version = Gem::Requirement.new('~> 2.7.1')
 
   # spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
 
@@ -20,12 +20,12 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
   spec.metadata['changelog_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
 
-  spec.add_dependency 'bcrypt_pbkdf'
+  spec.add_dependency 'childprocess'
   spec.add_dependency 'ed25519'
-  spec.add_dependency 'http'
+  spec.add_dependency 'httparty'
+  spec.add_dependency 'bcrypt_pbkdf'
   spec.add_dependency 'net-ssh'
   spec.add_dependency 'sshkey'
-  spec.add_dependency 'subprocess'
   spec.add_dependency 'thor'
   spec.add_development_dependency 'rubocop'
 
