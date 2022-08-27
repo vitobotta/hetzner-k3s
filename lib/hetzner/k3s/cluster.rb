@@ -103,22 +103,22 @@ class Cluster
   end
 
   def delete_placement_groups
-    Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:).delete
+    Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete
 
     worker_node_pools.each do |pool|
       pool_name = pool['name']
-      Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:, pool_name:).delete
+      Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name, pool_name: pool_name).delete
     end
   end
 
   def delete_resources
-    Hetzner::LoadBalancer.new(hetzner_client:, cluster_name:).delete(high_availability: (masters.size > 1))
+    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(high_availability: (masters.size > 1))
 
-    Hetzner::Firewall.new(hetzner_client:, cluster_name:).delete(all_servers)
+    Hetzner::Firewall.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(all_servers)
 
-    Hetzner::Network.new(hetzner_client:, cluster_name:, existing_network:).delete
+    Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: cluster_name, existing_network: existing_network).delete
 
-    Hetzner::SSHKey.new(hetzner_client:, cluster_name:).delete(public_ssh_key_path:)
+    Hetzner::SSHKey.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(public_ssh_key_path: public_ssh_key_path)
 
     delete_placement_groups
     delete_servers
@@ -202,14 +202,14 @@ class Cluster
     selected_version_index = available_k3s_releases.find_index(k3s_version)
 
     flannel_wireguard = if enable_encryption
-      if selected_version_index >= wireguard_native_min_version_index
-        ' --flannel-backend=wireguard-native '
-      else
-        ' --flannel-backend=wireguard '
-      end
-    else
-      ' '
-    end
+                          if selected_version_index >= wireguard_native_min_version_index
+                            ' --flannel-backend=wireguard-native '
+                          else
+                            ' --flannel-backend=wireguard '
+                          end
+                        else
+                          ' '
+                        end
 
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
@@ -473,7 +473,7 @@ class Cluster
 
   def placement_group_id(pool_name = nil)
     @placement_groups ||= {}
-    @placement_groups[pool_name || '__masters__'] ||= Hetzner::PlacementGroup.new(hetzner_client:, cluster_name:, pool_name:).create
+    @placement_groups[pool_name || '__masters__'] ||= Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name, pool_name: pool_name).create
   end
 
   def master_instance_type
@@ -485,15 +485,15 @@ class Cluster
   end
 
   def firewall_id
-    @firewall_id ||= Hetzner::Firewall.new(hetzner_client:, cluster_name:).create(high_availability: (masters_count > 1), ssh_networks:, api_networks:)
+    @firewall_id ||= Hetzner::Firewall.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(high_availability: (masters_count > 1), ssh_networks: ssh_networks, api_networks: api_networks)
   end
 
   def network_id
-    @network_id ||= Hetzner::Network.new(hetzner_client:, cluster_name:, existing_network:).create(location: masters_location)
+    @network_id ||= Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: cluster_name, existing_network: existing_network).create(location: masters_location)
   end
 
   def ssh_key_id
-    @ssh_key_id ||= Hetzner::SSHKey.new(hetzner_client:, cluster_name:).create(public_ssh_key_path:)
+    @ssh_key_id ||= Hetzner::SSHKey.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(public_ssh_key_path: public_ssh_key_path)
   end
 
   def master_definitions_for_create
@@ -504,13 +504,13 @@ class Cluster
         instance_type: master_instance_type,
         instance_id: "master#{i + 1}",
         location: masters_location,
-        placement_group_id:,
-        firewall_id:,
-        network_id:,
-        ssh_key_id:,
-        image:,
-        additional_packages:,
-        additional_post_create_commands:
+        placement_group_id: placement_group_id,
+        firewall_id: firewall_id,
+        network_id: network_id,
+        ssh_key_id: ssh_key_id,
+        image: image,
+        additional_packages: additional_packages,
+        additional_post_create_commands: additional_post_create_commands
       }
     end
 
@@ -544,12 +544,12 @@ class Cluster
         instance_id: "pool-#{worker_node_pool_name}-worker#{i + 1}",
         placement_group_id: placement_group_id(worker_node_pool_name),
         location: worker_location,
-        firewall_id:,
-        network_id:,
-        ssh_key_id:,
-        image:,
-        additional_packages:,
-        additional_post_create_commands:
+        firewall_id: firewall_id,
+        network_id: network_id,
+        ssh_key_id: ssh_key_id,
+        image: image,
+        additional_packages: additional_packages,
+        additional_post_create_commands: additional_post_create_commands
       }
     end
 
@@ -557,7 +557,7 @@ class Cluster
   end
 
   def create_load_balancer
-    Hetzner::LoadBalancer.new(hetzner_client:, cluster_name:).create(location: masters_location, network_id:)
+    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(location: masters_location, network_id: network_id)
   end
 
   def server_configs
@@ -577,7 +577,7 @@ class Cluster
 
     threads = server_configs.map do |server_config|
       Thread.new do
-        servers << Hetzner::Server.new(hetzner_client:, cluster_name:).create(**server_config)
+        servers << Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(**server_config)
       end
     end
 
@@ -599,7 +599,7 @@ class Cluster
   def delete_servers
     threads = all_servers.map do |server|
       Thread.new do
-        Hetzner::Server.new(hetzner_client:, cluster_name:).delete(server_name: server['name'])
+        Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(server_name: server['name'])
       end
     end
 
@@ -659,6 +659,6 @@ class Cluster
   end
 
   def existing_network
-    configuration["existing_network"]
+    configuration['existing_network']
   end
 end

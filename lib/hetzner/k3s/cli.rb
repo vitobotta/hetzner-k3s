@@ -27,14 +27,14 @@ module Hetzner
       option :config_file, required: true
       def create_cluster
         configuration.validate action: :create
-        Cluster.new(configuration:).create
+        Cluster.new(configuration: configuration).create
       end
 
       desc 'delete-cluster', 'Delete an existing k3s cluster in Hetzner Cloud'
       option :config_file, required: true
       def delete_cluster
         configuration.validate action: :delete
-        Cluster.new(configuration:).delete
+        Cluster.new(configuration: configuration).delete
       end
 
       desc 'upgrade-cluster', 'Upgrade an existing k3s cluster in Hetzner Cloud to a new version'
@@ -43,7 +43,7 @@ module Hetzner
       option :force, default: 'false'
       def upgrade_cluster
         configuration.validate action: :upgrade
-        Cluster.new(configuration:).upgrade(new_k3s_version: options[:new_k3s_version], config_file: options[:config_file])
+        Cluster.new(configuration: configuration).upgrade(new_k3s_version: options[:new_k3s_version], config_file: options[:config_file])
       end
 
       desc 'releases', 'List available k3s releases'
@@ -59,7 +59,7 @@ module Hetzner
 
       def configuration
         @configuration ||= begin
-          config = ::Hetzner::Configuration.new(options:)
+          config = ::Hetzner::Configuration.new(options: options)
           @hetzner_token = config.hetzner_token
           config
         end
