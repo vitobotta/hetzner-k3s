@@ -92,12 +92,10 @@ module Hetzner
       configuration
     end
 
-    private
-
-    attr_reader :configuration, :errors, :options
+    private_class_method
 
     def self.fetch_releases(url)
-      response = HTTP.get(url)
+      response = HTTParty.get(url)
       [response, JSON.parse(response.body).map { |hash| hash['name'] }]
     end
 
@@ -120,6 +118,10 @@ module Hetzner
         url_part
       end
     end
+
+    private
+
+    attr_reader :configuration, :errors, :options
 
     def validate_create
       validate_public_ssh_key

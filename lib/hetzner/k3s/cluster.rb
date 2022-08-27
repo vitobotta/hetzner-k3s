@@ -92,7 +92,7 @@ class Cluster
   end
 
   def latest_k3s_version
-    response = HTTP.get('https://api.github.com/repos/k3s-io/k3s/tags').body
+    response = HTTParty.get('https://api.github.com/repos/k3s-io/k3s/tags').body
     JSON.parse(response).first['name']
   end
 

@@ -2,7 +2,7 @@
 
 require 'thor'
 require 'openssl'
-require 'http'
+require 'httparty'
 require 'sshkey'
 require 'ipaddr'
 require 'open-uri'

@@ -24,8 +24,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'childprocess'
   spec.add_dependency 'ed25519'
-  spec.add_dependency 'http'
-  spec.add_dependency 'http-parser', '~> 1.2.3'
+  spec.add_dependency 'httparty'
+  # spec.add_dependency 'http-parser', '~> 1.2.3'
   spec.add_dependency 'jruby-openssl'
   spec.add_dependency 'net-ssh'
   spec.add_dependency 'sshkey'

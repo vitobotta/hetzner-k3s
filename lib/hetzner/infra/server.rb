@@ -37,7 +37,6 @@ module Hetzner
       else
         puts "Error creating server #{server_name}. Response details below:"
         puts
-        p response
       end
     end
 
