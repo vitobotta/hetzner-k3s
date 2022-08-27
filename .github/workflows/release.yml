@@ -6,7 +6,7 @@ on:
     - '*'
 
 jobs:
-  mcos:
+  macos:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
@@ -15,13 +15,10 @@ jobs:
         with:
           ruby-version: '2.7.1'
 
-      - name: Get ruby-packer
+      - name: Build for macOS
         run: |
           curl -o rubyc-macos https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
           chmod +x rubyc-macos
-
-      - name: Build for macOS
-        run: |
           ./rubyc-macos -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
 
       - uses: ncipollo/release-action@v1
