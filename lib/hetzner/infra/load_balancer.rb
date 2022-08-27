@@ -57,7 +57,7 @@ module Hetzner
           type: 'round_robin'
         },
         load_balancer_type: 'lb11',
-        location:,
+        location: location,
         name: load_balancer_name,
         network: network_id,
         public_interface: true,

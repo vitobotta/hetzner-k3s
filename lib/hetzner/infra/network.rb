@@ -30,8 +30,8 @@ module Hetzner
 
     def delete
       if (network = find_network)
-        if network["name"] == existing_network
-          puts "Network existed before cluster, skipping."
+        if network['name'] == existing_network
+          puts 'Network existed before cluster, skipping.'
         else
           puts 'Deleting network...'
           hetzner_client.delete('/networks', network['id'])

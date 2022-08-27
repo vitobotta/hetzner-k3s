@@ -106,7 +106,7 @@ module Hetzner
 
       {
         name: cluster_name,
-        rules:
+        rules: rules
       }
     end
 
