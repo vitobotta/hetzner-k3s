@@ -84,7 +84,7 @@ jobs:
       matrix:
         os: [ARM64]
         include:
-          - os: macos-latest
+          - os: ARM64
             release_suffix: mac-arm
     runs-on: ${{ matrix.os }}
     steps:
@@ -92,7 +92,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Run Mac Build ARM
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'ARM64'
         run: |
           wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
           chmod +x rubyc
