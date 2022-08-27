@@ -11,6 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set output
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7.1'
@@ -19,14 +23,14 @@ jobs:
         run: |
           brew install squashfs openssl@1.1
 
-      - name: Build for macOS
-        run: |
-          wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
-          chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
+      # - name: Build for macOS
+      #   run: |
+      #     wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
+      #     chmod +x rubyc
+      #     ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
 
       - uses: ncipollo/release-action@v1
         with:
-          tag: v$(ruby -r ./lib/hetzner/k3s/version -e 'puts Hetzner::K3s::VERSION')
-          artifacts: "hetzner-k3s-macos"
+          tag: ${{ steps.vars.outputs.tag }}
+          artifacts: "Gemfle"
           token: ${{ secrets.GITHUB_TOKEN }}
