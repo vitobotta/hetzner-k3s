@@ -78,6 +78,7 @@ DEPENDENCIES
   ed25519
   hetzner-k3s!
   http
+  http-parser
   jruby-openssl
   net-ssh
   rake (~> 12.0)
