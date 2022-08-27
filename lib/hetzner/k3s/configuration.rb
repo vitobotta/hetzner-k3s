@@ -399,7 +399,7 @@ module Hetzner
 
       begin
         token = hetzner_token
-        @hetzner_client = Hetzner::Client.new(token:)
+        @hetzner_client = Hetzner::Client.new(token: token)
         response = hetzner_client.get('/locations')
         error_code = response.dig('error', 'code')
         @valid = error_code != 'unauthorized'
@@ -472,13 +472,13 @@ module Hetzner
     end
 
     def validate_existing_network
-      if configuration["existing_network"]
-        existing_network = Hetzner::Network.new(hetzner_client:, cluster_name: configuration["cluster_name"], existing_network: configuration["existing_network"]).get
+      return unless configuration['existing_network']
 
-        unless existing_network
-          @errors << "You have specified that you want to use the existing network named '#{configuration["existing_network"]} but this network doesn't exist"
-        end
-      end
+      existing_network = Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: configuration['cluster_name'], existing_network: configuration['existing_network']).get
+
+      return if existing_network
+
+      @errors << "You have specified that you want to use the existing network named '#{configuration['existing_network']} but this network doesn't exist"
     end
   end
 end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+
+
 module Utils
   CMD_FILE_PATH = '/tmp/cli.cmd'
 
@@ -37,7 +39,7 @@ module Utils
         # ignore
       end
 
-      Subprocess.check_call(['bash', '-c', CMD_FILE_PATH], env:) do |p|
+      Subprocess.check_call(['bash', '-c', CMD_FILE_PATH], env: env) do |p|
         process = p
       end
     rescue Subprocess::NonZeroExit
