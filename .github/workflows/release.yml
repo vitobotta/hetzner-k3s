@@ -22,7 +22,7 @@ jobs:
 
       - name: Build for macOS
         run: |
-          env CC="xcrun clang -mmacosx-version-min=10.10 -Wno-implicit-function-declaration" time ./rubyc-macos -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
+          ./rubyc-macos -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
 
       - uses: ncipollo/release-action@v1
         with:
