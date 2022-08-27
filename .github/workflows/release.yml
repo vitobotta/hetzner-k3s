@@ -17,7 +17,7 @@ jobs:
           name: ${{ github.ref_name }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
 
   build_release:
     name: Build Release
@@ -30,16 +30,12 @@ jobs:
             release_suffix: ubuntu
           - os: macos-latest
             release_suffix: mac
-          - os: windows-latest
-            release_suffix: windows
+          # - os: windows-latest
+          #   release_suffix: windows
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      # - name: Run Linux Build
-      #   if: matrix.os == 'ubuntu-latest'
-      #   run: |
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -54,9 +50,25 @@ jobs:
           ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=$(openssl version -d | awk -F'"' '$0=$2')
           chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
 
+      - name: Run Linux Build
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          wget https://gw.alipayobjects.com/os/enclose-prod/1fd23e6b-d48f-4ed0-94dd-f0f539960253/rubyc-v0.4.0-linux-x64.gz
+          tar gzunzip rubyc-v0.4.0-linux-x64.gz
+          chmod +x rubyc-v0.4.0-linux-x64
+          ./rubyc-v0.4.0-linux-x64 -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=$(openssl version -d | awk -F'"' '$0=$2')
+          chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
+
       # - name: Run Windows Build
       #   if: matrix.os == 'windows-latest'
-      #   run: echo "Windows Latest" > release_windows
+      #   run: |
+      #     choco install --no-progress squashfs
+      #     choco install wget
+      #     choco install strawberryperl
+      #     echo "##[add-path]C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin"
+      #     wget https://github.com/pmq20/ruby-packer/releases/download/windows-x64/rubyc.exe
+      #     call "C:\Program Files (x86)\Microsoft Visual Studio\${{ matrix.vs }}\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      #     rubyc.exe  -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s
 
       - name: Release
         uses: softprops/action-gh-release@v1
@@ -66,32 +78,3 @@ jobs:
 
 
 
-
-  # release:
-  #   runs-on: macos-12
-  #   steps:
-  #     - uses: actions/checkout@v3
-
-  #     - name: Set output
-  #       id: vars
-  #       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-
-  #     - uses: ruby/setup-ruby@v1
-  #       with:
-  #         ruby-version: '2.7.1'
-
-  #     - name: "Install dependencies"
-  #       run: |
-  #         brew install squashfs openssl@1.1
-
-  #     - name: Build for macOS
-  #       run: |
-  #         wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
-  #         chmod +x rubyc
-  #         ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
-
-  #     - uses: ncipollo/release-action@v1
-  #       with:
-  #         tag: ${{ steps.vars.outputs.tag }}
-  #         artifacts: "hetzner-k3s-macos"
-  #         token: ${{ secrets.GITHUB_TOKEN }}
