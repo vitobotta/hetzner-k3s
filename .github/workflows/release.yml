@@ -49,6 +49,7 @@ jobs:
       - name: Run Linux Build
         if: matrix.os == 'ubuntu-latest'
         run: |
+          apt install squashfs-tools
           wget https://gw.alipayobjects.com/os/enclose-prod/1fd23e6b-d48f-4ed0-94dd-f0f539960253/rubyc-v0.4.0-linux-x64.gz
           gunzip rubyc-v0.4.0-linux-x64.gz
           chmod +x rubyc-v0.4.0-linux-x64
