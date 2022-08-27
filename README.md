@@ -28,7 +28,35 @@ All that is needed to use this tool is
 
 ## Installation
 
-Once you have the Ruby runtime up and running (3.1.2 or newer), you just need to install the gem:
+### macOS (Intel)
+
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.0/hetzner-k3s-mac-x64
+chmod +x hetzner-k3s-mac-x64
+sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
+```
+
+### macOS (Apple Silicon/M1/ARM)
+
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.0/hetzner-k3s-mac-arm
+chmod +x hetzner-k3s-mac-arm
+sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
+```
+
+NOTE: currently the ARM version still requires [Rosetta](https://support.apple.com/en-us/HT211861) to function because it's not really an ARM-compiled version yet. It's a different build specifically for ARM Macs because of some differences in openssl between ARM and Intel Macs. A proper ARM version will be available in the future.
+
+### Linux
+
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.0/hetzner-k3s-linux-x64
+chmod +x hetzner-k3s-linux-x64
+sudo mv hetzner-k3s-linux-x64 /usr/local/bin/hetzner-k3s
+```
+
+### As Ruby gem executable
+
+Once you have the Ruby runtime up and running (2.7.1 required), you just need to install the gem:
 
 ```bash
 gem install hetzner-k3s
