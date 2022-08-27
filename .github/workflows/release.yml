@@ -1,36 +1,97 @@
-name: Release
+name: Create Release
 
 on:
   push:
     tags:
-    - '*'
+      - 'v*'
 
 jobs:
-  release:
-    runs-on: macos-12
+  create_release:
+    name: Create Release
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
 
-      - name: Set output
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+  build_release:
+    name: Build Release
+    needs: create_release
+    strategy:
+      matrix:
+        os: [macos-latest]
+        include:
+          - os: ubuntu-latest
+            release_suffix: ubuntu
+          - os: macos-latest
+            release_suffix: mac
+          - os: windows-latest
+            release_suffix: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # - name: Run Linux Build
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: |
 
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7.1'
 
-      - name: "Install dependencies"
+      - name: Run Mac Build
+        if: matrix.os == 'macos-latest'
         run: |
           brew install squashfs openssl@1.1
-
-      - name: Build for macOS
-        run: |
           wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
           chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
+          ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
+          chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
 
-      - uses: ncipollo/release-action@v1
+      # - name: Run Windows Build
+      #   if: matrix.os == 'windows-latest'
+      #   run: echo "Windows Latest" > release_windows
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag: ${{ steps.vars.outputs.tag }}
-          artifacts: "hetzner-k3s-macos"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ needs.create_release.outputs.tag-name }}
+          files: hetzner-k3s-${{ matrix.release_suffix }}
+
+
+
+
+  # release:
+  #   runs-on: macos-12
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     - name: Set output
+  #       id: vars
+  #       run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: '2.7.1'
+
+  #     - name: "Install dependencies"
+  #       run: |
+  #         brew install squashfs openssl@1.1
+
+  #     - name: Build for macOS
+  #       run: |
+  #         wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
+  #         chmod +x rubyc
+  #         ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
+
+  #     - uses: ncipollo/release-action@v1
+  #       with:
+  #         tag: ${{ steps.vars.outputs.tag }}
+  #         artifacts: "hetzner-k3s-macos"
+  #         token: ${{ secrets.GITHUB_TOKEN }}

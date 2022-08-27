@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.5.9)
+    hetzner-k3s (0.6.0.pre11)
       bcrypt_pbkdf
       childprocess
       ed25519
@@ -24,7 +24,7 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2022.0105)
     multi_xml (0.6.0)
-    net-ssh (6.1.0)
+    net-ssh (7.0.1)
     parallel (1.20.1)
     parser (3.1.2.1)
       ast (~> 2.4.1)
