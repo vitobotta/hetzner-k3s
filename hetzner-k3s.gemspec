@@ -22,6 +22,13 @@ Gem::Specification.new do |spec|
 
   spec.platform = 'java'
 
+  spec.add_dependency 'childprocess'
+  spec.add_dependency 'ed25519'
+  spec.add_dependency 'http'
+  spec.add_dependency 'jruby-openssl'
+  spec.add_dependency 'net-ssh'
+  spec.add_dependency 'sshkey'
+  spec.add_dependency 'thor'
   spec.add_development_dependency 'rubocop'
 
   # Specify which files should be added to the gem when it is released.
