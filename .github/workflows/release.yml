@@ -82,9 +82,9 @@ jobs:
     needs: create_release
     strategy:
       matrix:
-        os: [macos_arm]
+        os: [ARM64]
         include:
-          - os: macos_arm
+          - os: macos-latest
             release_suffix: mac-arm
     runs-on: ${{ matrix.os }}
     steps:
