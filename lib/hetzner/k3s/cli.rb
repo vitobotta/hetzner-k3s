@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'thor'
+require 'openssl'
 require 'http'
 require 'sshkey'
 require 'ipaddr'

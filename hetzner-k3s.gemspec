@@ -20,13 +20,14 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
   spec.metadata['changelog_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
 
-  # spec.add_dependency 'bcrypt_pbkdf-ruby'
-  # spec.add_dependency 'ed25519'
-  spec.add_dependency 'jruby-openssl'
+  spec.platform = 'java'
+
+  spec.add_dependency 'childprocess'
+  spec.add_dependency 'ed25519'
   spec.add_dependency 'http'
-  spec.add_dependency 'net-ssh', '~> 6.1'
+  spec.add_dependency 'jruby-openssl'
+  spec.add_dependency 'net-ssh'
   spec.add_dependency 'sshkey'
-  spec.add_dependency 'subprocess'
   spec.add_dependency 'thor'
   spec.add_development_dependency 'rubocop'
 
