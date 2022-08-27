@@ -6,7 +6,7 @@ on:
     - '*'
 
 jobs:
-  macos:
+  release:
     runs-on: macos-12
     steps:
       - uses: actions/checkout@v3
@@ -32,5 +32,5 @@ jobs:
       - uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.vars.outputs.tag }}
-          artifacts: "Gemfle"
+          artifacts: "Gemfile"
           token: ${{ secrets.GITHUB_TOKEN }}
