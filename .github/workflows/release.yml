@@ -15,6 +15,10 @@ jobs:
         with:
           ruby-version: '2.7.1'
 
+      - name: "Install dependencies"
+        run: |
+          brew install squashfs
+
       - name: Build for macOS
         run: |
           curl -o rubyc-macos https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
