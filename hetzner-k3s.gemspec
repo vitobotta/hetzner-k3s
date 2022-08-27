@@ -20,8 +20,6 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
   spec.metadata['changelog_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
 
-  # spec.platform = 'java'
-
   spec.add_dependency 'childprocess'
   spec.add_dependency 'ed25519'
   spec.add_dependency 'httparty'
