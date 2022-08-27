@@ -127,7 +127,7 @@ module Hetzner
       validate_ssh_allowed_networks
       validate_api_allowed_networks
       validate_masters_location
-      validate_k3s_version
+      # validate_k3s_version
       validate_masters
       validate_worker_node_pools
       validate_verify_host_key
@@ -144,7 +144,7 @@ module Hetzner
 
     def validate_upgrade
       validate_kubeconfig_path_must_exist
-      validate_new_k3s_version
+      # validate_new_k3s_version
     end
 
     def validate_public_ssh_key

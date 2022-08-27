@@ -4,7 +4,6 @@ require 'net/ssh'
 require 'securerandom'
 require 'base64'
 require 'timeout'
-require 'subprocess'
 
 require_relative '../infra/client'
 require_relative '../infra/firewall'
@@ -423,7 +422,7 @@ class Cluster
 
     masters.each do |master|
       master_private_ip = master['private_net'][0]['ip']
-      sans << " --tls-san=#{master_private_ip} "
+      sans += " --tls-san=#{master_private_ip} "
     end
 
     sans
