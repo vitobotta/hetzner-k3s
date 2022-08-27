@@ -17,13 +17,13 @@ jobs:
 
       - name: "Install dependencies"
         run: |
-          brew install squashfs
+          brew install squashfs openssl@1.1
 
       - name: Build for macOS
         run: |
           wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
           chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
+          ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s --openssl-dir=/usr/local/etc/openssl@1.1/
 
       - uses: ncipollo/release-action@v1
         with:
