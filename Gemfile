@@ -7,3 +7,11 @@ gemspec
 
 gem 'rake', '~> 12.0'
 gem 'rspec', '~> 3.0'
+
+gem 'childprocess'
+gem 'ed25519'
+gem 'http'
+gem 'jruby-openssl'
+gem 'net-ssh'
+gem 'sshkey'
+gem 'thor'
