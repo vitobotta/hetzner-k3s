@@ -94,7 +94,7 @@ jobs:
       - name: Run Mac Build ARM
         if: matrix.os == 'ARM64'
         run: |
-          /opt/homebrew/bin/wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
+          wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
           chmod +x rubyc
           ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=$(openssl version -d | awk -F'"' '$0=$2')
           chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
