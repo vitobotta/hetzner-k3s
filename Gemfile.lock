@@ -2,13 +2,6 @@ PATH
   remote: .
   specs:
     hetzner-k3s (0.5.9-java)
-      childprocess
-      ed25519
-      http
-      jruby-openssl
-      net-ssh
-      sshkey
-      thor
 
 GEM
   remote: https://rubygems.org/
@@ -81,11 +74,17 @@ PLATFORMS
   universal-java-17
 
 DEPENDENCIES
+  childprocess
   ed25519
   hetzner-k3s!
+  http
+  jruby-openssl
+  net-ssh
   rake (~> 12.0)
   rspec (~> 3.0)
   rubocop
+  sshkey
+  thor
 
 BUNDLED WITH
    2.3.21
