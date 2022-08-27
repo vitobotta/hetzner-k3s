@@ -21,9 +21,9 @@ jobs:
 
       - name: Build for macOS
         run: |
-          curl -o rubyc-macos https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
-          chmod +x rubyc-macos
-          ./rubyc-macos -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
+          wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
+          chmod +x rubyc
+          ./rubyc -r ./ -o ./hetzner-k3s-macos exe/hetzner-k3s
 
       - uses: ncipollo/release-action@v1
         with:
