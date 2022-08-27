@@ -4,6 +4,7 @@ require 'net/ssh'
 require 'securerandom'
 require 'base64'
 require 'timeout'
+require 'fileutils'
 
 require_relative '../infra/client'
 require_relative '../infra/firewall'
