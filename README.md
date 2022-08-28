@@ -2,7 +2,6 @@
 
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vitobotta/hetzner-k3s/Create%20Release)
 ![GitHub top language](https://img.shields.io/github/languages/top/vitobotta/hetzner-k3s)
-![GitHub all releases](https://img.shields.io/github/downloads/vitobotta/hetzner-k3s/total)
 ![GitHub issues](https://img.shields.io/github/issues-raw/vitobotta/hetzner-k3s)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/vitobotta/hetzner-k3s)
 ![GitHub](https://img.shields.io/github/license/vitobotta/hetzner-k3s)
