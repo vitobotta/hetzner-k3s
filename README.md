@@ -158,7 +158,6 @@ enable_encryption: true
 # - arg1
 # - ...
 # existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
-
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
