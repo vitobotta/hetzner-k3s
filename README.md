@@ -174,7 +174,7 @@ enable_encryption: true
 # existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 ```
 
-It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available releases from the most recent to the oldest available.
+It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
 If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is. Also set the config file path to `/cluster/<filename>`.
 
@@ -221,7 +221,7 @@ Finally, to create the cluster run:
 hetzner-k3s create-cluster --config-file cluster_config.yaml
 ```
 
-This will take a couple of minutes or less depending on the number of masters and worker nodes.
+This will take a few minutes depending on the number of masters and worker nodes.
 
 If you are creating an HA cluster and see the following in the output you can safely ignore it - it happens when additional masters are joining the first one:
 
