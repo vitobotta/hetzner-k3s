@@ -27,9 +27,9 @@ jobs:
         os: [macos-latest]
         include:
           - os: macos-latest
-            release_suffix: mac-x64
+            release_suffix: mac-amd64
           - os: ubuntu-latest
-            release_suffix: linux-x64
+            release_suffix: linux-x86_64
           # - os: windows-latest
           #   release_suffix: windows
     runs-on: ${{ matrix.os }}
@@ -81,7 +81,7 @@ jobs:
         os: [ARM64]
         include:
           - os: ARM64
-            release_suffix: mac-arm
+            release_suffix: mac-arm64
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
