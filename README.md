@@ -58,14 +58,6 @@ NOTE: currently the ARM version still requires [Rosetta](https://support.apple.c
 
 ### Linux
 
-#### with Homebrew
-
-```bash
-brew install vitobotta/tap/hetzner-k3s
-```
-
-#### Binary installation
-
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x64
