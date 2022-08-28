@@ -1,6 +1,6 @@
 # Create production grade Kubernetes clusters in Hetzner Cloud in a couple of minutes or less
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vitobotta/hetzner-k3s/release)
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vitobotta/hetzner-k3s/Create%20Release)
 ## What is this?
 
 This is a CLI tool to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
