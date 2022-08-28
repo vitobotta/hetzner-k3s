@@ -7,6 +7,8 @@ public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
 ssh_allowed_networks:
   - 0.0.0.0/0
+api_allowed_networks:
+  - 0.0.0.0/0
 verify_host_key: false
 location: nbg1
 schedule_workloads_on_masters: false
@@ -20,3 +22,30 @@ worker_node_pools:
 - name: big
   instance_type: cpx31
   instance_count: 2
+additional_packages:
+- somepackage
+post_create_commands:
+- apt update
+- apt upgrade -y
+- apt autoremove -y
+- shutdown -r now
+enable_encryption: true
+# kube_api_server_args:
+# - arg1
+# - ...
+# kube_scheduler_args:
+# - arg1
+# - ...
+# kube_controller_manager_args:
+# - arg1
+# - ...
+# kube_cloud_controller_manager_args:
+# - arg1
+# - ...
+# kubelet_args:
+# - arg1
+# - ...
+# kube_proxy_args:
+# - arg1
+# - ...
+# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
