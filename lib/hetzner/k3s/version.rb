@@ -2,6 +2,6 @@
 
 module Hetzner
   module K3s
-    VERSION = '0.6.1'
+    VERSION = '0.6.2.pre1'
   end
 end
