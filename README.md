@@ -60,8 +60,8 @@ NOTE: currently the ARM version still requires [Rosetta](https://support.apple.c
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-linux-x86_64
-chmod +x hetzner-k3s-linux-x64
-sudo mv hetzner-k3s-linux-x64 /usr/local/bin/hetzner-k3s
+chmod +x hetzner-k3s-linux-x86_64
+sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
 
 ### As Ruby gem executable
