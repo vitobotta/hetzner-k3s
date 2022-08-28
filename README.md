@@ -37,7 +37,7 @@ ___
 
 I'm a Senior Backend Engineer and DevOps based in Finland and working for event management platform [Brella](https://www.brella.io/).
 
-I also write a [technical blog](https://vitobotta.com/) on programming, devops and related technologies.
+I also write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
 
 ___
 ## Prerequisites
@@ -45,7 +45,7 @@ ___
 All that is needed to use this tool is
 
 - an Hetzner Cloud account
-- an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so ensure you take note of it somewhere safe
+- an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
 - a recent Ruby runtime installed if you install the tool as Ruby gem (see [this page](https://www.ruby-lang.org/en/documentation/installation/) for instructions if you are not familiar with Ruby). I recommend you use the standalone binaries either downloaded directly or installed with Homebrew though, since it's easier and you don't have to set up Ruby.
 
 ___
@@ -55,7 +55,7 @@ Before using the tool, be sure to have kubectl installed as it's required to ins
 
 ### macOS
 
-#### with Homebrew
+#### With Homebrew
 
 ```bash
 brew install vitobotta/tap/hetzner-k3s
@@ -86,6 +86,8 @@ wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
+
+## macOS, Linux, Windows
 
 ### As Ruby gem executable
 
