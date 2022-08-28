@@ -16,7 +16,7 @@ jobs:
         with:
           name: ${{ github.ref_name }}
           draft: false
-          prerelease: false
+          prerelease: true
           generate_release_notes: false
 
   build_release_x64:
