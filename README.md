@@ -305,6 +305,10 @@ hetzner-k3s delete-cluster --config-file cluster_config.yaml
 
 This will delete all the resources in the Hetzner Cloud project for the cluster being deleted.
 
+## Troubleshooting
+
+See [this page](https://github.com/vitobotta/hetzner-k3s/wiki/Troubleshooting) for solutions to common issues.
+
 
 ## Additional info
 
