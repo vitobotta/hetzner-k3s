@@ -87,9 +87,9 @@ chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
 
-## macOS, Linux, Windows
+### macOS, Linux, Windows
 
-### As Ruby gem executable
+#### As Ruby gem executable
 
 Once you have the Ruby runtime up and running (2.7.1 required), you just need to install the gem:
 
@@ -99,7 +99,7 @@ gem install hetzner-k3s
 
 This will install the `hetzner-k3s` executable in your PATH.
 
-### With Docker
+#### With Docker
 
 Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
 
