@@ -30,7 +30,15 @@ All that is needed to use this tool is
 
 Before using the tool, be sure to have installed kubectl as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
 
-### macOS (Intel)
+### macOS
+
+#### with Homebrew
+
+```bash
+brew install vitobotta/tap/hetzner-k3s
+```
+
+#### Binary installation (Intel)
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-mac-amd64
@@ -38,7 +46,7 @@ chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
 
-### macOS (Apple Silicon/M1/ARM)
+#### Binary installation (Apple Silicon/M1)
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-mac-arm64
