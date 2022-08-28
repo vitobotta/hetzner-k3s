@@ -1,14 +1,15 @@
 # Create production grade Kubernetes clusters in Hetzner Cloud in a couple of minutes or less
 
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vitobotta/hetzner-k3s)
+![GitHub Release Date](https://img.shields.io/github/release-date/vitobotta/hetzner-k3s)
+![GitHub last commit](https://img.shields.io/github/last-commit/vitobotta/hetzner-k3s)
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vitobotta/hetzner-k3s/Create%20Release)
-![GitHub top language](https://img.shields.io/github/languages/top/vitobotta/hetzner-k3s)
 ![GitHub issues](https://img.shields.io/github/issues-raw/vitobotta/hetzner-k3s)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/vitobotta/hetzner-k3s)
 ![GitHub](https://img.shields.io/github/license/vitobotta/hetzner-k3s)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vitobotta/hetzner-k3s)
-![GitHub last commit](https://img.shields.io/github/last-commit/vitobotta/hetzner-k3s)
-![GitHub Release Date](https://img.shields.io/github/release-date/vitobotta/hetzner-k3s)
 ![GitHub Discussions](https://img.shields.io/github/discussions/vitobotta/hetzner-k3s)
+![GitHub top language](https://img.shields.io/github/languages/top/vitobotta/hetzner-k3s)
+
 ![GitHub forks](https://img.shields.io/github/forks/vitobotta/hetzner-k3s?style=social)
 ![GitHub Repo stars](https://img.shields.io/github/stars/vitobotta/hetzner-k3s?style=social)
 ## What is this?
