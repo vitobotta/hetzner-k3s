@@ -1,14 +1,16 @@
 # Create production grade Kubernetes clusters in Hetzner Cloud in a couple of minutes or less
 
-This is a CLI tool - based on a Ruby gem - to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
+## What is this?
+
+This is a CLI tool to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
 
 Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market. With Hetzner's Cloud Controller Manager and CSI driver you can provision load balancers and persistent volumes very easily.
 
 k3s is my favorite Kubernetes distribution now because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy because it's a single binary.
 
-Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes about **a couple of minutes** only. This includes
+Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes about **a few minutes** only. This includes
 
-- creating the infra resources (servers, private network, firewall, load balancer for the API server for HA clusters)
+- creating the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
@@ -18,7 +20,15 @@ See roadmap [here](https://github.com/vitobotta/hetzner-k3s/projects/1) for the 
 
 Also see this [wiki page](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster) for a tutorial on how to set up a cluster with the most common setup to get you started.
 
-## Requirements
+___
+## Who am I?
+
+I'm a Senior Backend Engineer and DevOps based in Finland and working for event management platform [Brella](https://www.brella.io/).
+
+I also write a [technical blog](https://vitobotta.com/) on programming, devops and related technologies.
+
+___
+## Prerequisites
 
 All that is needed to use this tool is
 
@@ -26,9 +36,10 @@ All that is needed to use this tool is
 - an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so ensure you take note of it somewhere safe
 - a recent Ruby runtime installed if you install the tool as Ruby gem (see [this page](https://www.ruby-lang.org/en/documentation/installation/) for instructions if you are not familiar with Ruby). I recommend you use the standalone binaries either downloaded directly or installed with Homebrew though, since it's easier and you don't have to set up Ruby.
 
-## Installation
+___
+## Getting Started - Installation
 
-Before using the tool, be sure to have installed kubectl as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
+Before using the tool, be sure to have kubectl installed as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
 
 ### macOS
 
@@ -88,6 +99,8 @@ docker run --rm -it \
 ```
 
 Replace `test.yaml` with the name of your config file.
+
+___
 
 ## Creating a cluster
 
@@ -156,7 +169,6 @@ If you don't want to specify the Hetzner token in the config file (for example i
 
 **Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
-
 
 If you set `masters.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
 
@@ -237,6 +249,7 @@ In a future relese I will add some automation for the cleanup.
 
 It's easy to convert a non-HA with a single master cluster to HA with multiple masters. Just change the masters instance count and re-run the create command. This will create a load balancer for the API server and update the kubeconfig so that all the API requests go through the load balancer.
 
+___
 ## Upgrading to a new version of k3s
 
 If it's the first time you upgrade the cluster, all you need to do to upgrade it to a newer version of k3s is run the following command:
@@ -285,7 +298,7 @@ A final note about upgrades is that if for some reason the upgrade gets stuck af
 ```bash
 kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-server=upgraded
 ```
-
+___
 ## Upgrading the OS on nodes
 
 - consider adding a temporary node during the process if you don't have enough spare capacity in the cluster
@@ -295,6 +308,7 @@ kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-serv
 - uncordon
 - proceed with the next node
 
+___
 ## Deleting a cluster
 
 To delete a cluster, running
@@ -309,7 +323,7 @@ This will delete all the resources in the Hetzner Cloud project for the cluster 
 
 See [this page](https://github.com/vitobotta/hetzner-k3s/wiki/Troubleshooting) for solutions to common issues.
 
-
+___
 ## Additional info
 
 ### Load balancers
@@ -335,16 +349,15 @@ The annotation `load-balancer.hetzner.cloud/use-private-ip: "true"` ensures that
 
 The other annotations should be self explanatory. You can find a list of the available annotations [here](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation).
 
-## Persistent volumes
+### Persistent volumes
 
 Once the cluster is ready you can create persistent volumes out of the box with the default storage class `hcloud-volumes`, since the Hetzner CSI driver is installed automatically. This will use Hetzner's block storage (based on Ceph so it's replicated and highly available) for your persistent volumes. Note that the minimum size of a volume is 10Gi. If you specify a smaller size for a volume, the volume will be created with a capacity of 10Gi anyway.
 
-
-## Keeping a project per cluster
+### Keeping a project per cluster
 
 I recommend that you create a separate Hetzner project for each cluster, because otherwise multiple clusters will attempt to create overlapping routes. I will make the pod cidr configurable in the future to avoid this, but I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
 
-
+___
 ## Contributing and support
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
@@ -353,10 +366,12 @@ Contributors:
 
 - [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster)
 
+___
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
+___
 ## Code of Conduct
 
 Everyone interacting in the hetzner-k3s project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
