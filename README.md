@@ -20,7 +20,7 @@ Hetzner Cloud is an awesome cloud provider which offers a truly great service wi
 
 k3s is my favorite Kubernetes distribution now because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy because it's a single binary.
 
-Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes about **a few minutes** only. This includes
+Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes about **a couple of minutes** only. This includes
 
 - creating the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
