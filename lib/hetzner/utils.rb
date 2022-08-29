@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+Net::SSH::Transport::Algorithms::ALGORITHMS.values.each { |algs| algs.reject! { |a| a =~ /^ecd(sa|h)-sha2/ } }
+Net::SSH::KnownHosts::SUPPORTED_TYPE.reject! { |t| t =~ /^ecd(sa|h)-sha2/ }
+
 require 'childprocess'
 
 module Utils
@@ -89,6 +92,9 @@ module Utils
   #   p [e.class, e.message]
   #   retries += 1
   #   retry unless retries > 15 || e.message =~ /Bad file descriptor/
+  rescue Timeout::Error, IOError, Errno::EBADF
+    retries += 1
+    retry unless retries > 15
   rescue Net::SSH::Disconnect => e
     retries += 1
     retry unless retries > 15 || e.message =~ /Too many authentication failures/

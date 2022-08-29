@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'childprocess'
   spec.add_dependency 'ed25519'
   spec.add_dependency 'httparty'
-  spec.add_dependency 'net-ssh', '= 6.0.2'
+  spec.add_dependency 'net-ssh'
   spec.add_dependency 'sshkey'
   spec.add_dependency 'thor'
   spec.add_development_dependency 'rubocop'
