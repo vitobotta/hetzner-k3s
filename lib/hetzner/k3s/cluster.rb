@@ -14,6 +14,8 @@ require_relative '../infra/server'
 require_relative '../infra/load_balancer'
 require_relative '../infra/placement_group'
 
+require_relative '../kubernetes/client'
+
 require_relative '../utils'
 
 class Cluster
@@ -25,38 +27,18 @@ class Cluster
 
   def create
     @cluster_name = configuration['cluster_name']
-    @kubeconfig_path = File.expand_path(configuration['kubeconfig_path'])
-    @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
-    private_ssh_key_path = configuration['private_ssh_key_path']
-    @private_ssh_key_path = private_ssh_key_path && File.expand_path(private_ssh_key_path)
-    @k3s_version = configuration['k3s_version']
     @masters_config = configuration['masters']
     @worker_node_pools = find_worker_node_pools(configuration)
     @masters_location = configuration['location']
-    @verify_host_key = configuration.fetch('verify_host_key', false)
     @servers = []
     @ssh_networks = configuration['ssh_allowed_networks']
     @api_networks = configuration['api_allowed_networks']
-    @enable_encryption = configuration.fetch('enable_encryption', false)
-    @kube_api_server_args = configuration.fetch('kube_api_server_args', [])
-    @kube_scheduler_args = configuration.fetch('kube_scheduler_args', [])
-    @kube_controller_manager_args = configuration.fetch('kube_controller_manager_args', [])
-    @kube_cloud_controller_manager_args = configuration.fetch('kube_cloud_controller_manager_args', [])
-    @kubelet_args = configuration.fetch('kubelet_args', [])
-    @kube_proxy_args = configuration.fetch('kube_proxy_args', [])
+    @private_ssh_key_path = File.expand_path(configuration['private_ssh_key_path'])
+    @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
 
     create_resources
 
-    deploy_kubernetes
-
-    sleep 10
-
-    label_nodes
-    taint_nodes
-
-    deploy_cloud_controller_manager
-    deploy_csi_driver
-    deploy_system_upgrade_controller
+    kubernetes_client.deploy(masters: masters, workers: workers, master_definitions: master_definitions_for_create, worker_definitions: workers_definitions_for_marking)
   end
 
   def delete
@@ -75,378 +57,26 @@ class Cluster
     @new_k3s_version = new_k3s_version
     @config_file = config_file
 
-    upgrade_cluster
+    kubernetes_client.upgrade
   end
 
   private
 
   attr_accessor :servers
 
-  attr_reader :configuration, :cluster_name, :kubeconfig_path, :k3s_version,
+  attr_reader :configuration, :cluster_name, :kubeconfig_path,
               :masters_config, :worker_node_pools,
-              :masters_location, :public_ssh_key_path,
+              :masters_location, :private_ssh_key_path, :public_ssh_key_path,
               :hetzner_token, :new_k3s_version,
-              :config_file, :verify_host_key, :ssh_networks, :private_ssh_key_path,
-              :enable_encryption, :kube_api_server_args, :kube_scheduler_args,
-              :kube_controller_manager_args, :kube_cloud_controller_manager_args,
-              :kubelet_args, :kube_proxy_args, :api_networks
+              :config_file, :ssh_networks,
+              :api_networks
 
   def find_worker_node_pools(configuration)
     configuration.fetch('worker_node_pools', [])
   end
 
-  def latest_k3s_version
-    response = HTTParty.get('https://api.github.com/repos/k3s-io/k3s/tags').body
-    JSON.parse(response).first['name']
-  end
-
-  def create_resources
-    create_servers
-    create_load_balancer if masters.size > 1
-  end
-
-  def delete_placement_groups
-    Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete
-
-    worker_node_pools.each do |pool|
-      pool_name = pool['name']
-      Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name, pool_name: pool_name).delete
-    end
-  end
-
-  def delete_resources
-    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(high_availability: (masters.size > 1))
-
-    Hetzner::Firewall.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(all_servers)
-
-    Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: cluster_name, existing_network: existing_network).delete
-
-    Hetzner::SSHKey.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(public_ssh_key_path: public_ssh_key_path)
-
-    delete_placement_groups
-    delete_servers
-  end
-
-  def upgrade_cluster
-    worker_upgrade_concurrency = workers.size - 1
-    worker_upgrade_concurrency = 1 if worker_upgrade_concurrency.zero?
-
-    cmd = <<~BASH
-      kubectl apply -f - <<-EOF
-        apiVersion: upgrade.cattle.io/v1
-        kind: Plan
-        metadata:
-          name: k3s-server
-          namespace: system-upgrade
-          labels:
-            k3s-upgrade: server
-        spec:
-          concurrency: 1
-          version: #{new_k3s_version}
-          nodeSelector:
-            matchExpressions:
-              - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
-          serviceAccountName: system-upgrade
-          tolerations:
-          - key: "CriticalAddonsOnly"
-            operator: "Equal"
-            value: "true"
-            effect: "NoExecute"
-          cordon: true
-          upgrade:
-            image: rancher/k3s-upgrade
-      EOF
-    BASH
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    cmd = <<~BASH
-      kubectl apply -f - <<-EOF
-        apiVersion: upgrade.cattle.io/v1
-        kind: Plan
-        metadata:
-          name: k3s-agent
-          namespace: system-upgrade
-          labels:
-            k3s-upgrade: agent
-        spec:
-          concurrency: #{worker_upgrade_concurrency}
-          version: #{new_k3s_version}
-          nodeSelector:
-            matchExpressions:
-              - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
-          serviceAccountName: system-upgrade
-          prepare:
-            image: rancher/k3s-upgrade
-            args: ["prepare", "k3s-server"]
-          cordon: true
-          upgrade:
-            image: rancher/k3s-upgrade
-      EOF
-    BASH
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    puts 'Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster.'
-    puts 'The API server may be briefly unavailable during the upgrade of the controlplane.'
-
-    updated_configuration = configuration.raw
-    updated_configuration['k3s_version'] = new_k3s_version
-
-    File.write(config_file, updated_configuration.to_yaml)
-  end
-
-  def master_script(master)
-    server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
-    flannel_interface = find_flannel_interface(master)
-
-    available_k3s_releases = Hetzner::Configuration.available_releases
-    wireguard_native_min_version_index = available_k3s_releases.find_index('v1.23.6+k3s1')
-    selected_version_index = available_k3s_releases.find_index(k3s_version)
-
-    flannel_wireguard = if enable_encryption
-                          if selected_version_index >= wireguard_native_min_version_index
-                            ' --flannel-backend=wireguard-native '
-                          else
-                            ' --flannel-backend=wireguard '
-                          end
-                        else
-                          ' '
-                        end
-
-    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
-    taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
-
-    <<~SCRIPT
-      curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
-        --disable-cloud-controller \
-        --disable servicelb \
-        --disable traefik \
-        --disable local-storage \
-        --disable metrics-server \
-        --write-kubeconfig-mode=644 \
-        --node-name="$(hostname -f)" \
-        --cluster-cidr=10.244.0.0/16 \
-        --etcd-expose-metrics=true \
-        #{flannel_wireguard} \
-        --kube-controller-manager-arg="bind-address=0.0.0.0" \
-        --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
-        --kube-scheduler-arg="bind-address=0.0.0.0" \
-        #{taint} #{extra_args} \
-        --kubelet-arg="cloud-provider=external" \
-        --advertise-address=$(hostname -I | awk '{print $2}') \
-        --node-ip=$(hostname -I | awk '{print $2}') \
-        --node-external-ip=$(hostname -I | awk '{print $1}') \
-        --flannel-iface=#{flannel_interface} \
-        #{server} #{tls_sans}" sh -
-    SCRIPT
-  end
-
-  def worker_script(worker)
-    flannel_interface = find_flannel_interface(worker)
-
-    <<~BASH
-      curl -sfL https://get.k3s.io | K3S_TOKEN="#{k3s_token}" INSTALL_K3S_VERSION="#{k3s_version}" K3S_URL=https://#{first_master_private_ip}:6443 INSTALL_K3S_EXEC="agent \
-        --node-name="$(hostname -f)" \
-        --kubelet-arg="cloud-provider=external" \
-        --node-ip=$(hostname -I | awk '{print $2}') \
-        --node-external-ip=$(hostname -I | awk '{print $1}') \
-        --flannel-iface=#{flannel_interface}" sh -
-    BASH
-  end
-
-  def deploy_kubernetes
-    puts
-    puts "Deploying k3s to first master (#{first_master['name']})..."
-
-    ssh first_master, master_script(first_master), print_output: true
-
-    puts
-    puts '...k3s has been deployed to first master.'
-
-    save_kubeconfig
-
-    if masters.size > 1
-      threads = masters[1..].map do |master|
-        Thread.new do
-          puts
-          puts "Deploying k3s to master #{master['name']}..."
-
-          ssh master, master_script(master), print_output: true
-
-          puts
-          puts "...k3s has been deployed to master #{master['name']}."
-        end
-      end
-
-      threads.each(&:join) unless threads.empty?
-    end
-
-    threads = workers.map do |worker|
-      Thread.new do
-        puts
-        puts "Deploying k3s to worker (#{worker['name']})..."
-
-        ssh worker, worker_script(worker), print_output: true
-
-        puts
-        puts "...k3s has been deployed to worker (#{worker['name']})."
-      end
-    end
-
-    threads.each(&:join) unless threads.empty?
-  end
-
-  def label_nodes
-    check_kubectl
-
-    if master_definitions_for_create.first[:labels]
-      master_labels = master_definitions_for_create.first[:labels].map{ |k, v| "#{k}=#{v}" }.join(' ')
-      master_node_names = []
-
-      master_definitions_for_create.each do |master|
-        master_node_names << "#{configuration['cluster_name']}-#{master[:instance_type]}-#{master[:instance_id]}"
-      end
-
-      master_node_names = master_node_names.join(' ')
-
-      cmd = "kubectl label --overwrite nodes #{master_node_names} #{master_labels}"
-
-      run cmd, kubeconfig_path: kubeconfig_path
-    end
-
-    workers = []
-
-    worker_node_pools.each do |worker_node_pool|
-      workers += worker_node_pool_definitions(worker_node_pool)
-    end
-
-    return unless workers.any?
-
-    workers.each do |worker|
-      next unless worker[:labels]
-
-      worker_labels = worker[:labels].map{ |k, v| "#{k}=#{v}" }.join(' ')
-      worker_node_name = "#{configuration['cluster_name']}-#{worker[:instance_type]}-#{worker[:instance_id]}"
-
-      cmd = "kubectl label --overwrite nodes #{worker_node_name} #{worker_labels}"
-
-      run cmd, kubeconfig_path: kubeconfig_path
-    end
-  end
-
-  def taint_nodes
-    check_kubectl
-
-    if master_definitions_for_create.first[:taints]
-      master_taints = master_definitions_for_create.first[:taints].map{ |k, v| "#{k}=#{v}" }.join(' ')
-      master_node_names = []
-
-      master_definitions_for_create.each do |master|
-        master_node_names << "#{configuration['cluster_name']}-#{master[:instance_type]}-#{master[:instance_id]}"
-      end
-
-      master_node_names = master_node_names.join(' ')
-
-      cmd = "kubectl taint --overwrite nodes #{master_node_names} #{master_taints}"
-
-      run cmd, kubeconfig_path: kubeconfig_path
-    end
-
-    workers = []
-
-    worker_node_pools.each do |worker_node_pool|
-      workers += worker_node_pool_definitions(worker_node_pool)
-    end
-
-    return unless workers.any?
-
-    workers.each do |worker|
-      next unless worker[:taints]
-
-      worker_taints = worker[:taints].map{ |k, v| "#{k}=#{v}" }.join(' ')
-      worker_node_name = "#{configuration['cluster_name']}-#{worker[:instance_type]}-#{worker[:instance_id]}"
-
-      cmd = "kubectl taint --overwrite nodes #{worker_node_name} #{worker_taints}"
-
-      run cmd, kubeconfig_path: kubeconfig_path
-    end
-  end
-
-  def deploy_cloud_controller_manager
-    check_kubectl
-
-    puts
-    puts 'Deploying Hetzner Cloud Controller Manager...'
-
-    cmd = <<~BASH
-      kubectl apply -f - <<-EOF
-        apiVersion: "v1"
-        kind: "Secret"
-        metadata:
-          namespace: 'kube-system'
-          name: 'hcloud'
-        stringData:
-          network: "#{existing_network || cluster_name}"
-          token: "#{configuration.hetzner_token}"
-      EOF
-    BASH
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    cmd = 'kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml'
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    puts '...Cloud Controller Manager deployed'
-  end
-
-  def deploy_system_upgrade_controller
-    check_kubectl
-
-    puts
-    puts 'Deploying k3s System Upgrade Controller...'
-
-    cmd = 'kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.9.1/system-upgrade-controller.yaml'
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    puts '...k3s System Upgrade Controller deployed'
-  end
-
-  def deploy_csi_driver
-    check_kubectl
-
-    puts
-    puts 'Deploying Hetzner CSI Driver...'
-
-    cmd = <<~BASH
-      kubectl apply -f - <<-EOF
-        apiVersion: "v1"
-        kind: "Secret"
-        metadata:
-          namespace: 'kube-system'
-          name: 'hcloud-csi'
-        stringData:
-          token: "#{configuration.hetzner_token}"
-      EOF
-    BASH
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    cmd = 'kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml'
-
-    run cmd, kubeconfig_path: kubeconfig_path
-
-    puts '...CSI Driver deployed'
-  end
-
-  def find_flannel_interface(server)
-    if ssh(server, 'lscpu | grep Vendor') =~ /Intel/
-      'ens10'
-    else
-      'enp7s0'
-    end
+  def belongs_to_cluster?(server)
+    server.dig('labels', 'cluster') == cluster_name
   end
 
   def all_servers
@@ -463,74 +93,6 @@ class Cluster
     @workers = all_servers.select { |server| server['name'] =~ /worker\d+\Z/ }.sort { |a, b| a['name'] <=> b['name'] }
   end
 
-  def k3s_token
-    @k3s_token ||= begin
-      token = ssh(first_master, '{ TOKEN=$(< /var/lib/rancher/k3s/server/node-token); } 2> /dev/null; echo $TOKEN')
-
-      if token.empty?
-        SecureRandom.hex
-      else
-        token.split(':').last
-      end
-    end
-  end
-
-  def first_master_private_ip
-    @first_master_private_ip ||= first_master['private_net'][0]['ip']
-  end
-
-  def first_master
-    masters.first
-  end
-
-  def api_server_ip
-    return @api_server_ip if @api_server_ip
-
-    @api_server_ip = if masters.size > 1
-                       load_balancer_name = "#{cluster_name}-api"
-                       load_balancer = hetzner_client.get('/load_balancers')['load_balancers'].detect do |lb|
-                         lb['name'] == load_balancer_name
-                       end
-                       load_balancer['public_net']['ipv4']['ip']
-                     else
-                       first_master_public_ip
-                     end
-  end
-
-  def tls_sans
-    sans = " --tls-san=#{api_server_ip} "
-
-    masters.each do |master|
-      master_private_ip = master['private_net'][0]['ip']
-      sans += " --tls-san=#{master_private_ip} "
-    end
-
-    sans
-  end
-
-  def first_master_public_ip
-    @first_master_public_ip ||= first_master.dig('public_net', 'ipv4', 'ip')
-  end
-
-  def save_kubeconfig
-    kubeconfig = ssh(first_master, 'cat /etc/rancher/k3s/k3s.yaml')
-                 .gsub('127.0.0.1', api_server_ip)
-                 .gsub('default', cluster_name)
-
-    File.write(kubeconfig_path, kubeconfig)
-
-    FileUtils.chmod 'go-r', kubeconfig_path
-  end
-
-  def belongs_to_cluster?(server)
-    server.dig('labels', 'cluster') == cluster_name
-  end
-
-  def schedule_workloads_on_masters?
-    schedule_workloads_on_masters = configuration['schedule_workloads_on_masters']
-    schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
-  end
-
   def image
     configuration['image'] || 'ubuntu-20.04'
   end
@@ -543,32 +105,17 @@ class Cluster
     configuration['post_create_commands'] || []
   end
 
-  def check_kubectl
-    return if which('kubectl')
+  def master_instance_type
+    @master_instance_type ||= masters_config['instance_type']
+  end
 
-    puts 'Please ensure kubectl is installed and in your PATH.'
-    exit 1
+  def masters_count
+    @masters_count ||= masters_config['instance_count']
   end
 
   def placement_group_id(pool_name = nil)
     @placement_groups ||= {}
     @placement_groups[pool_name || '__masters__'] ||= Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name, pool_name: pool_name).create
-  end
-
-  def master_instance_type
-    @master_instance_type ||= masters_config['instance_type']
-  end
-
-  def master_labels
-    @master_labels ||= masters_config['labels']
-  end
-
-  def master_taints
-    @master_taints ||= masters_config['taints']
-  end
-
-  def masters_count
-    @masters_count ||= masters_config['instance_count']
   end
 
   def firewall_id
@@ -598,8 +145,8 @@ class Cluster
         image: image,
         additional_packages: additional_packages,
         additional_post_create_commands: additional_post_create_commands,
-        labels: master_labels,
-        taints: master_taints
+        labels: masters_config['labels'],
+        taints: masters_config['taints']
       }
     end
 
@@ -649,10 +196,6 @@ class Cluster
     definitions
   end
 
-  def create_load_balancer
-    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(location: masters_location, network_id: network_id)
-  end
-
   def server_configs
     return @server_configs if @server_configs
 
@@ -663,6 +206,47 @@ class Cluster
     end
 
     @server_configs
+  end
+
+  def hetzner_client
+    configuration.hetzner_client
+  end
+
+  def kubernetes_client
+    @kubernetes_client ||= Kubernetes::Client.new(configuration: configuration)
+  end
+
+  def workers_definitions_for_marking
+    worker_node_pools.map do |worker_node_pool|
+      worker_node_pool_definitions(worker_node_pool)
+    end.flatten
+  end
+
+  def create_resources
+    create_servers
+    create_load_balancer if masters.size > 1
+  end
+
+  def delete_placement_groups
+    Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete
+
+    worker_node_pools.each do |pool|
+      pool_name = pool['name']
+      Hetzner::PlacementGroup.new(hetzner_client: hetzner_client, cluster_name: cluster_name, pool_name: pool_name).delete
+    end
+  end
+
+  def delete_resources
+    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(high_availability: (masters.size > 1))
+
+    Hetzner::Firewall.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(all_servers)
+
+    Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: cluster_name, existing_network: existing_network).delete
+
+    Hetzner::SSHKey.new(hetzner_client: hetzner_client, cluster_name: cluster_name).delete(public_ssh_key_path: public_ssh_key_path)
+
+    delete_placement_groups
+    delete_servers
   end
 
   def create_servers
@@ -701,56 +285,8 @@ class Cluster
     threads.each(&:join) unless threads.empty?
   end
 
-  def kube_api_server_args_list
-    return '' if kube_api_server_args.empty?
-
-    kube_api_server_args.map do |arg|
-      " --kube-apiserver-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def kube_scheduler_args_list
-    return '' if kube_scheduler_args.empty?
-
-    kube_scheduler_args.map do |arg|
-      " --kube-scheduler-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def kube_controller_manager_args_list
-    return '' if kube_controller_manager_args.empty?
-
-    kube_controller_manager_args.map do |arg|
-      " --kube-controller-manager-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def kube_cloud_controller_manager_args_list
-    return '' if kube_cloud_controller_manager_args.empty?
-
-    kube_cloud_controller_manager_args.map do |arg|
-      " --kube-cloud-controller-manager-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def kubelet_args_list
-    return '' if kubelet_args.empty?
-
-    kubelet_args.map do |arg|
-      " --kubelet-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def kube_proxy_args_list
-    return '' if kube_proxy_args.empty?
-
-    kube_api_server_args.map do |arg|
-      " --kube-proxy-arg=\"#{arg}\" "
-    end.join
-  end
-
-  def hetzner_client
-    configuration.hetzner_client
+  def create_load_balancer
+    Hetzner::LoadBalancer.new(hetzner_client: self, cluster_name: cluster_name).create(location: masters_location, network_id: network_id)
   end
 
   def existing_network
