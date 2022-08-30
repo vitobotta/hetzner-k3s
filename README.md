@@ -58,13 +58,13 @@ Before using the tool, be sure to have kubectl installed as it's required to ins
 #### With Homebrew
 
 ```bash
-brew install vitobotta/tap/hetzner-k3s
+brew install vitobotta/tap/hetzner_k3s
 ```
 
 #### Binary installation (Intel)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.2/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -72,7 +72,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 #### Binary installation (Apple Silicon/M1)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.2/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -82,7 +82,7 @@ NOTE: currently the ARM version still requires [Rosetta](https://support.apple.c
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.1/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.2/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -107,7 +107,7 @@ Alternatively, if you don't want to set up a Ruby runtime but have Docker instal
 docker run --rm -it \
   -v ${PWD}:/cluster \
   -v ${HOME}/.ssh:/tmp/.ssh \
-  vitobotta/hetzner-k3s:v0.6.1 \
+  vitobotta/hetzner-k3s:v0.6.2 \
   create-cluster \
   --config-file /cluster/test.yaml
 ```

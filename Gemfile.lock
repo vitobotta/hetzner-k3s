@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    hetzner-k3s (0.6.1)
+    hetzner-k3s (0.6.2)
       bcrypt_pbkdf
       childprocess
       ed25519
