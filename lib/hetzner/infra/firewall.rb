@@ -33,8 +33,7 @@ module Hetzner
         puts 'Deleting firewall...'
 
         servers.each do |server|
-          hetzner_client.post("/firewalls/#{firewall['id']}/actions/remove_from_resources",
-                              remove_targets_config(server['id']))
+          hetzner_client.post("/firewalls/#{firewall['id']}/actions/remove_from_resources", remove_targets_config(server['id']))
         end
 
         hetzner_client.delete('/firewalls', firewall['id'])
