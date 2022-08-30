@@ -3,7 +3,7 @@
 module Hetzner
   class Configuration
     GITHUB_DELIM_LINKS = ','
-    GITHUB_LINK_REGEX = /<([^>]+)>; rel="([^"]+)"/
+    GITHUB_LINK_REGEX = /<([^>]+)>; rel="([^"]+)"/.freeze
 
     attr_reader :hetzner_client
 
@@ -91,8 +91,6 @@ module Hetzner
     def raw
       configuration
     end
-
-    private_class_method
 
     def self.fetch_releases(url)
       response = HTTParty.get(url)
@@ -196,7 +194,7 @@ module Hetzner
 
       unless invalid_ranges.empty?
         invalid_ranges.each do |_network|
-          errors << 'Please use the CIDR notation for the #{access_type} networks to avoid ambiguity'
+          errors << "Please use the CIDR notation for the #{access_type} networks to avoid ambiguity"
         end
       end
 
@@ -210,19 +208,17 @@ module Hetzner
         false
       end
 
-      unless current_ip_network
-        case access_type
-        when "SSH"
-          errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to SSH into the nodes "
-        when "API"
-          errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to connect to the Kubernetes API"
-        end
+      return if current_ip_network
+
+      case access_type
+      when 'SSH'
+        errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to SSH into the nodes "
+      when 'API'
+        errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to connect to the Kubernetes API"
       end
     end
 
-
     def validate_ssh_allowed_networks
-      return
       validate_networks('ssh_allowed_networks', 'SSH')
     end
 
@@ -440,6 +436,9 @@ module Hetzner
       else
         instance_group_errors << "#{instance_group_type} has an invalid instance count"
       end
+
+      instance_group_errors << "#{instance_group_type} has an invalid labels format - a hash is expected" if !instance_group['labels'].nil? && !instance_group['labels'].is_a?(Hash)
+      instance_group_errors << "#{instance_group_type} has an invalid taints format - a hash is expected" if !instance_group['taints'].nil? && !instance_group['taints'].is_a?(Hash)
 
       errors << instance_group_errors
     end

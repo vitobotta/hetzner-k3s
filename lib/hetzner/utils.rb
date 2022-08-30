@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-Net::SSH::Transport::Algorithms::ALGORITHMS.values.each { |algs| algs.reject! { |a| a =~ /^ecd(sa|h)-sha2/ } }
-Net::SSH::KnownHosts::SUPPORTED_TYPE.reject! { |t| t =~ /^ecd(sa|h)-sha2/ }
-
 require 'childprocess'
 
 module Utils
