@@ -85,10 +85,6 @@ module Utils
       end
     end
     output.chop
-  # rescue StandardError => e
-  #   p [e.class, e.message]
-  #   retries += 1
-  #   retry unless retries > 15 || e.message =~ /Bad file descriptor/
   rescue Timeout::Error, IOError, Errno::EBADF
     retries += 1
     retry unless retries > 15
@@ -108,5 +104,9 @@ module Utils
     If are sure no security is being violated here and you're just creating new servers, you can eiher remove the relevant lines from your known_hosts (see IPs from the cloud console) or disable host key verification by setting the option 'verify_host_key' to false in the configuration file for the cluster.
     MESSAGE
     exit 1
+  end
+
+  def verify_host_key
+    @verify_host_key ||= configuration.fetch('verify_host_key', false)
   end
 end

@@ -114,8 +114,7 @@ module Hetzner
         'systemctl disable systemd-resolved',
         'rm /etc/resolv.conf',
         'echo \'nameserver 1.1.1.1\' > /etc/resolv.conf',
-        'echo \'nameserver 1.0.0.1\' >> /etc/resolv.conf',
-        'shutdown'
+        'echo \'nameserver 1.0.0.1\' >> /etc/resolv.conf'
       ]
 
       commands += additional_post_create_commands if additional_post_create_commands

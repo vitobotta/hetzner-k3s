@@ -6,10 +6,6 @@ module Hetzner
 
     attr_reader :token
 
-    def initialize(token:)
-      @token = token
-    end
-
     def get(path)
       make_request do
         JSON.parse HTTParty.get(BASE_URI + path, headers: headers).body
@@ -29,6 +25,10 @@ module Hetzner
     end
 
     private
+
+    def initialize(token:)
+      @token = token
+    end
 
     def headers
       {
