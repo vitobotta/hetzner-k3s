@@ -51,6 +51,9 @@ class Cluster
 
     sleep 10
 
+    label_nodes
+    taint_nodes
+
     deploy_cloud_controller_manager
     deploy_csi_driver
     deploy_system_upgrade_controller
@@ -294,6 +297,82 @@ class Cluster
     threads.each(&:join) unless threads.empty?
   end
 
+  def label_nodes
+    check_kubectl
+
+    if master_definitions_for_create.first[:labels]
+      master_labels = master_definitions_for_create.first[:labels].map{ |k, v| "#{k}=#{v}" }.join(' ')
+      master_node_names = []
+
+      master_definitions_for_create.each do |master|
+        master_node_names << "#{configuration['cluster_name']}-#{master[:instance_type]}-#{master[:instance_id]}"
+      end
+
+      master_node_names = master_node_names.join(' ')
+
+      cmd = "kubectl label --overwrite nodes #{master_node_names} #{master_labels}"
+
+      run cmd, kubeconfig_path: kubeconfig_path
+    end
+
+    workers = []
+
+    worker_node_pools.each do |worker_node_pool|
+      workers += worker_node_pool_definitions(worker_node_pool)
+    end
+
+    return unless workers.any?
+
+    workers.each do |worker|
+      next unless worker[:labels]
+
+      worker_labels = worker[:labels].map{ |k, v| "#{k}=#{v}" }.join(' ')
+      worker_node_name = "#{configuration['cluster_name']}-#{worker[:instance_type]}-#{worker[:instance_id]}"
+
+      cmd = "kubectl label --overwrite nodes #{worker_node_name} #{worker_labels}"
+
+      run cmd, kubeconfig_path: kubeconfig_path
+    end
+  end
+
+  def taint_nodes
+    check_kubectl
+
+    if master_definitions_for_create.first[:taints]
+      master_taints = master_definitions_for_create.first[:taints].map{ |k, v| "#{k}=#{v}" }.join(' ')
+      master_node_names = []
+
+      master_definitions_for_create.each do |master|
+        master_node_names << "#{configuration['cluster_name']}-#{master[:instance_type]}-#{master[:instance_id]}"
+      end
+
+      master_node_names = master_node_names.join(' ')
+
+      cmd = "kubectl taint --overwrite nodes #{master_node_names} #{master_taints}"
+
+      run cmd, kubeconfig_path: kubeconfig_path
+    end
+
+    workers = []
+
+    worker_node_pools.each do |worker_node_pool|
+      workers += worker_node_pool_definitions(worker_node_pool)
+    end
+
+    return unless workers.any?
+
+    workers.each do |worker|
+      next unless worker[:taints]
+
+      worker_taints = worker[:taints].map{ |k, v| "#{k}=#{v}" }.join(' ')
+      worker_node_name = "#{configuration['cluster_name']}-#{worker[:instance_type]}-#{worker[:instance_id]}"
+
+      cmd = "kubectl taint --overwrite nodes #{worker_node_name} #{worker_taints}"
+
+      run cmd, kubeconfig_path: kubeconfig_path
+    end
+  end
+
   def deploy_cloud_controller_manager
     check_kubectl
 
@@ -480,6 +559,14 @@ class Cluster
     @master_instance_type ||= masters_config['instance_type']
   end
 
+  def master_labels
+    @master_labels ||= masters_config['labels']
+  end
+
+  def master_taints
+    @master_taints ||= masters_config['taints']
+  end
+
   def masters_count
     @masters_count ||= masters_config['instance_count']
   end
@@ -510,7 +597,9 @@ class Cluster
         ssh_key_id: ssh_key_id,
         image: image,
         additional_packages: additional_packages,
-        additional_post_create_commands: additional_post_create_commands
+        additional_post_create_commands: additional_post_create_commands,
+        labels: master_labels,
+        taints: master_taints
       }
     end
 
@@ -535,6 +624,8 @@ class Cluster
     worker_instance_type = worker_node_pool['instance_type']
     worker_count = worker_node_pool['instance_count']
     worker_location = worker_node_pool['location'] || masters_location
+    labels = worker_node_pool['labels']
+    taints = worker_node_pool['taints']
 
     definitions = []
 
@@ -549,7 +640,9 @@ class Cluster
         ssh_key_id: ssh_key_id,
         image: image,
         additional_packages: additional_packages,
-        additional_post_create_commands: additional_post_create_commands
+        additional_post_create_commands: additional_post_create_commands,
+        labels: labels,
+        taints: taints
       }
     end
 
@@ -576,8 +669,10 @@ class Cluster
     servers = []
 
     threads = server_configs.map do |server_config|
+      config = server_config.reject! { |k, _v| %i[labels taints].include?(k) }
+
       Thread.new do
-        servers << Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(**server_config)
+        servers << Hetzner::Server.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(**config)
       end
     end
 
