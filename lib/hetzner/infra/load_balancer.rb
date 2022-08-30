@@ -33,8 +33,8 @@ module Hetzner
         puts 'Deleting API load balancer...' unless high_availability
 
         hetzner_client.post("/load_balancers/#{load_balancer['id']}/actions/remove_target", remove_targets_config)
-
         hetzner_client.delete('/load_balancers', load_balancer['id'])
+
         puts '...API load balancer deleted.' unless high_availability
       elsif high_availability
         puts 'API load balancer no longer exists, skipping.'
