@@ -112,11 +112,6 @@ module Kubernetes
       set_up_first_master
       set_up_additional_masters
       set_up_workers
-
-      puts
-      puts 'Waiting for the control plane to be ready...'
-
-      sleep 10
     end
 
     def set_up_first_master
@@ -124,6 +119,11 @@ module Kubernetes
       puts "Deploying k3s to first master (#{first_master['name']})..."
 
       ssh first_master, master_install_script(first_master), print_output: true
+
+      puts
+      puts 'Waiting for the control plane to be ready...'
+
+      sleep 10
 
       puts
       puts '...k3s has been deployed to first master.'
