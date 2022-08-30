@@ -437,6 +437,9 @@ module Hetzner
         instance_group_errors << "#{instance_group_type} has an invalid instance count"
       end
 
+      instance_group_errors << "#{instance_group_type} has an invalid labels format - a hash is expected" if !instance_group['labels'].nil? && !instance_group['labels'].is_a?(Hash)
+      instance_group_errors << "#{instance_group_type} has an invalid taints format - a hash is expected" if !instance_group['taints'].nil? && !instance_group['taints'].is_a?(Hash)
+
       errors << instance_group_errors
     end
 
