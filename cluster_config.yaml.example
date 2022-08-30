@@ -15,10 +15,20 @@ schedule_workloads_on_masters: false
 masters:
   instance_type: cpx21
   instance_count: 3
+  # labels:
+  #   purpose: master
+  #   size: cpx21
+  # taints:
+  #   something: value1:NoSchedule
 worker_node_pools:
 - name: small
   instance_type: cpx21
   instance_count: 4
+  # labels:
+  #   purpose: worker
+  #   size: cpx21
+  # taints:
+  #   something: GpuWorkloadsOnly:NoSchedule
 - name: big
   instance_type: cpx31
   instance_count: 2
