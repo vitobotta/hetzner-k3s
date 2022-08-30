@@ -286,7 +286,7 @@ class Cluster
   end
 
   def create_load_balancer
-    Hetzner::LoadBalancer.new(hetzner_client: self, cluster_name: cluster_name).create(location: masters_location, network_id: network_id)
+    Hetzner::LoadBalancer.new(hetzner_client: hetzner_client, cluster_name: cluster_name).create(location: masters_location, network_id: network_id)
   end
 
   def existing_network
