@@ -59,30 +59,6 @@ module Hetzner
     end
 
     def user_data
-      packages = %w[fail2ban wireguard]
-      packages += additional_packages if additional_packages
-      packages = "'#{packages.join("', '")}'"
-
-      post_create_commands = [
-        'crontab -l > /etc/cron_bkp',
-        'echo "@reboot echo true > /etc/ready" >> /etc/cron_bkp',
-        'crontab /etc/cron_bkp',
-        'sed -i \'s/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g\' /etc/ssh/sshd_config',
-        'sed -i \'s/[#]*PasswordAuthentication yes/PasswordAuthentication no/g\' /etc/ssh/sshd_config',
-        'systemctl restart sshd',
-        'systemctl stop systemd-resolved',
-        'systemctl disable systemd-resolved',
-        'rm /etc/resolv.conf',
-        'echo \'nameserver 1.1.1.1\' > /etc/resolv.conf',
-        'echo \'nameserver 1.0.0.1\' >> /etc/resolv.conf'
-      ]
-
-      post_create_commands += additional_post_create_commands if additional_post_create_commands
-
-      post_create_commands += ['shutdown -r now'] if post_create_commands.grep(/shutdown|reboot/).grep_v(/@reboot/).empty?
-
-      post_create_commands = "  - #{post_create_commands.join("\n  - ")}"
-
       <<~YAML
         #cloud-config
         packages: [#{packages}]
@@ -124,6 +100,34 @@ module Hetzner
       response_body = response.body
 
       JSON.parse(response_body)['server']
+    end
+
+    def post_create_commands
+      commands = [
+        'crontab -l > /etc/cron_bkp',
+        'echo "@reboot echo true > /etc/ready" >> /etc/cron_bkp',
+        'crontab /etc/cron_bkp',
+        'sed -i \'s/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g\' /etc/ssh/sshd_config',
+        'sed -i \'s/[#]*PasswordAuthentication yes/PasswordAuthentication no/g\' /etc/ssh/sshd_config',
+        'systemctl restart sshd',
+        'systemctl stop systemd-resolved',
+        'systemctl disable systemd-resolved',
+        'rm /etc/resolv.conf',
+        'echo \'nameserver 1.1.1.1\' > /etc/resolv.conf',
+        'echo \'nameserver 1.0.0.1\' >> /etc/resolv.conf'
+      ]
+
+      commands += additional_post_create_commands if additional_post_create_commands
+
+      commands << 'shutdown -r now' if commands.grep(/shutdown|reboot/).grep_v(/@reboot/).empty?
+
+      "  - #{commands.join("\n  - ")}"
+    end
+
+    def packages
+      packages = %w[fail2ban wireguard]
+      packages += additional_packages if additional_packages
+      "'#{packages.join("', '")}'"
     end
   end
 end
