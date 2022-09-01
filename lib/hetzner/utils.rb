@@ -69,7 +69,7 @@ module Utils
   end
 
   def ssh(server, command, print_output: false)
-    debug = !!ENV.fetch("SSH_DEBUG", false)
+    debug = ENV.fetch('SSH_DEBUG', false)
     retries = 0
 
     public_ip = server.dig('public_net', 'ipv4', 'ip')
