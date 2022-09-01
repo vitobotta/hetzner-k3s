@@ -69,6 +69,7 @@ module Utils
   end
 
   def ssh(server, command, print_output: false)
+    debug = !!ENV.fetch("SSH_DEBUG", false)
     retries = 0
 
     public_ip = server.dig('public_net', 'ipv4', 'ip')
@@ -77,6 +78,7 @@ module Utils
     params = { verify_host_key: (verify_host_key ? :always : :never) }
 
     params[:keys] = private_ssh_key_path && [private_ssh_key_path]
+    params[:verbose] = :debug if debug
 
     Net::SSH.start(public_ip, 'root', params) do |session|
       session.exec!(command) do |_channel, _stream, data|
@@ -85,19 +87,24 @@ module Utils
       end
     end
     output.chop
-  rescue Timeout::Error, IOError, Errno::EBADF
+  rescue Timeout::Error, IOError, Errno::EBADF => e
+    puts "SSH CONNECTION DEBUG: #{e.message}" if debug
     retries += 1
     retry unless retries > 15
   rescue Net::SSH::Disconnect => e
+    puts "SSH CONNECTION DEBUG: #{e.message}" if debug
     retries += 1
     retry unless retries > 15 || e.message =~ /Too many authentication failures/
-  rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH
+  rescue Net::SSH::ConnectionTimeout, Errno::ECONNREFUSED, Errno::ENETUNREACH, Errno::EHOSTUNREACH => e
+    puts "SSH CONNECTION DEBUG: #{e.message}" if debug
     retries += 1
     retry if retries <= 15
-  rescue Net::SSH::AuthenticationFailed
+  rescue Net::SSH::AuthenticationFailed => e
+    puts "SSH CONNECTION DEBUG: #{e.message}" if debug
     puts '\nCannot continue: SSH authentication failed. Please ensure that the private SSH key is correct.'
     exit 1
-  rescue Net::SSH::HostKeyMismatch
+  rescue Net::SSH::HostKeyMismatch => e
+    puts "SSH CONNECTION DEBUG: #{e.message}" if debug
     puts <<-MESSAGE
     Cannot continue: Unable to SSH into server with IP #{public_ip} because the existing fingerprint in the known_hosts file does not match that of the actual host key.\n
     This is due to a security check but can also happen when creating a new server that gets assigned the same IP address as another server you've owned in the past.\n
