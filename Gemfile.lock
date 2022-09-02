@@ -2,13 +2,6 @@ PATH
   remote: .
   specs:
     hetzner-k3s (0.6.4)
-      bcrypt_pbkdf
-      childprocess
-      ed25519
-      httparty
-      net-ssh
-      sshkey
-      thor
 
 GEM
   remote: https://rubygems.org/
@@ -67,10 +60,17 @@ PLATFORMS
   x86_64-darwin-21
 
 DEPENDENCIES
+  bcrypt_pbkdf (~> 1.0)
+  childprocess
+  ed25519 (~> 1.2)
   hetzner-k3s!
+  httparty
+  net-ssh
   rake (~> 12.0)
   rspec (~> 3.0)
   rubocop
+  sshkey
+  thor
 
 BUNDLED WITH
    2.3.21
