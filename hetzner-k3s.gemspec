@@ -20,13 +20,13 @@ Gem::Specification.new do |spec|
   spec.metadata['source_code_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
   spec.metadata['changelog_uri'] = 'https://github.com/vitobotta/hetzner-k3s'
 
-  spec.add_dependency 'bcrypt_pbkdf'
-  spec.add_dependency 'childprocess'
-  spec.add_dependency 'ed25519'
-  spec.add_dependency 'httparty'
-  spec.add_dependency 'net-ssh'
-  spec.add_dependency 'sshkey'
-  spec.add_dependency 'thor'
+  # spec.add_dependency "ed25519", "~> 1.2" # ed25519 ssh key support
+  # spec.add_dependency "bcrypt_pbkdf", "~> 1.0" # ed25519 ssh key support
+  # spec.add_dependency 'childprocess'
+  # spec.add_dependency 'httparty'
+  # spec.add_dependency 'net-ssh'
+  # spec.add_dependency 'sshkey'
+  # spec.add_dependency 'thor'
   spec.add_development_dependency 'rubocop'
 
   # Specify which files should be added to the gem when it is released.
