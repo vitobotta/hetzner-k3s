@@ -128,6 +128,7 @@ class Hetzner::K3s::Configuration
   end
 
   private def validate_create
+    validate_k3s_version
     validate_public_ssh_key
     validate_private_ssh_key
     validate_ssh_allowed_networks
@@ -187,5 +188,15 @@ class Hetzner::K3s::Configuration
 
   private def validate_api_allowed_networks
     validate_networks("API")
+  end
+
+  private def validate_k3s_version
+    k3s_version = get("k3s_version")
+
+    if k3s_version.nil?
+      errors << "K3s version is required"
+    elsif ! ::K3s.available_releases.includes?(k3s_version.as_s)
+      errors << "K3s version is not valid, run `hetzner-k3s releases` to see available versions"
+    end
   end
 end
