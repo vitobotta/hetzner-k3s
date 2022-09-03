@@ -1,0 +1,13 @@
+name: hetzner-k3s
+version: 0.1.0
+
+authors:
+  - Vito Botta <vito@botta.me>
+
+targets:
+  hetzner-k3s:
+    main: src/hetzner-k3s.cr
+
+crystal: 1.5.0
+
+license: MIT
