@@ -19,3 +19,5 @@ dependencies:
     github: icyleaf/totem
   crest:
     github: mamantoha/crest
+  ssh2:
+    github: spider-gazelle/ssh2.cr

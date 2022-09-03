@@ -16,7 +16,10 @@ module Hetzner::K3s
                   required: true
 
       def run
-        configuration = Configuration.new(configuration_file_path: flags.configuration_file_path)
+        configuration = Configuration.new(
+          configuration_file_path: flags.configuration_file_path,
+          command: :create
+        )
       end
     end
 
