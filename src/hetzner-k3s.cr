@@ -1,11 +1,13 @@
 require "option_parser"
 
+require "./k3s/configuration"
+
 module Hetzner::K3s
   class CLI
     VERSION = "0.6.5"
 
     property command = :none
-    property configuration_file = ""
+    property configuration_file_path = ""
     property new_k3s_version =" "
     property parser = OptionParser.new
 
@@ -18,7 +20,7 @@ module Hetzner::K3s
 
           parser.banner = "Usage: hetzner-k3s create [arguments]"
 
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file| self.configuration_file = _configuration_file }
+          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
 
           parser.invalid_option do |flag|
             STDERR.puts "ERROR: #{flag} is not a valid option."
@@ -32,7 +34,7 @@ module Hetzner::K3s
 
           parser.banner = "Usage: hetzner-k3s delete [arguments]"
 
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file| self.configuration_file = _configuration_file }
+          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
 
           parser.invalid_option do |flag|
             STDERR.puts "ERROR: #{flag} is not a valid option."
@@ -46,7 +48,7 @@ module Hetzner::K3s
 
           parser.banner = "Usage: hetzner-k3s upgrade [arguments]"
 
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file| self.configuration_file = _configuration_file }
+          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
 
           parser.on("--version=VERSION", "Specify the new version of k3s") { |_new_k3s_version| self.new_k3s_version = _new_k3s_version }
 
@@ -72,25 +74,18 @@ module Hetzner::K3s
       case command
       when :create
         puts "creating"
-        # create_cluster(configuration_file)
+        configuration
+        # create_cluster(configuration_file_path)
       when :delete
         puts "deleting"
-        # delete_cluster(configuration_file)
+        # delete_cluster(configuration_file_path)
       when :upgrade
         puts "upgrading"
       end
-
-      validate
     end
 
-    private def validate
-      if configuration_file.empty?
-        STDERR.puts "ERROR: #{command} is not a valid command."
-        STDERR.puts parser
-        exit(1)
-      end
-
-
+    def configuration
+      @configuration ||= Configuration.new(configuration_file_path: configuration_file_path)
     end
   end
 end
