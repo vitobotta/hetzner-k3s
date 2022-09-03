@@ -21,6 +21,7 @@ module Hetzner::K3s
     private def validate
       # validate_hetzner_token
       validate_cluster_name
+      validate_kubeconfig_path_must_exist
 
       unless errors.empty?
         puts "Some information in the configuration file requires your attention:"
@@ -74,6 +75,18 @@ module Hetzner::K3s
         errors << "Cluster name is an invalid format (only lowercase letters, digits and dashes are allowed)"
       elsif ! /\A[a-z]+.*([a-z]|\d)+\z/.match cluster_name.as_s
         errors << "Ensure that the cluster name starts and ends with a normal letter"
+      end
+    end
+
+    private def validate_kubeconfig_path_must_exist
+      kubeconfig_path = get("kubeconfig_path")
+
+      if kubeconfig_path.nil?
+        errors << "Kubeconfig path is required"
+      elsif ! File.exists?(kubeconfig_path.as_s)
+        errors << "Kubeconfig path does not exist"
+      elsif File.directory?(kubeconfig_path.as_s)
+        errors << "Kubeconfig path is not a file"
       end
     end
   end
