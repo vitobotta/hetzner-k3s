@@ -1,10 +1,14 @@
 require "totem"
 
+require "../hetzner/client"
+
 module Hetzner::K3s
   class Configuration
     property configuration_file_path = ""
     property settings =  Totem::Config.new
     property errors = [] of String
+    property valid_token : Bool = false
+    property hetzner_token : String | Nil = ""
 
     def initialize(configuration_file_path : String)
       @configuration_file_path = configuration_file_path
@@ -34,18 +38,31 @@ module Hetzner::K3s
     end
 
     private def validate_hetzner_token
-      token = get("hetzner_token")
+      hetzner_token = get("hetzner_token")
 
-      if token.nil?
+      if hetzner_token.nil?
         errors << "hetzner_token is required"
         return
       end
+
+      @hetzner_token = hetzner_token.as_s
+
+      hetzner_client.get("/locations")["locations"]
+
+    rescue ex : Crest::RequestFailed
+      errors << "hetzner_token is not valid, unable to consume to Hetzner API"
+      return
     end
 
-    private def get(key : String) : Totem::Any?
+    private def get(key : String) : Totem::Any | Nil
       settings.get(key)
     rescue Totem::Exception::NotFoundConfigKeyError
       nil
+    end
+
+
+    private def hetzner_client
+      @hetzner_client ||= Hetzner::Client.new(hetzner_token)
     end
   end
 end

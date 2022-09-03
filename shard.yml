@@ -17,3 +17,5 @@ dependencies:
     github: jwaldrip/admiral.cr
   totem:
     github: icyleaf/totem
+  crest:
+    github: mamantoha/crest
