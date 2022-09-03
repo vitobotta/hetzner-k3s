@@ -1,17 +1,20 @@
 require "totem"
+require "ssh2"
 
 require "../hetzner/client"
 
 module Hetzner::K3s
   class Configuration
-    property configuration_file_path = ""
-    property settings =  Totem::Config.new
-    property errors = [] of String
-    property valid_token : Bool = false
-    property hetzner_token : String | Nil = ""
+    getter configuration_file_path = ""
+    getter settings =  Totem::Config.new
+    getter errors = [] of String
+    getter valid_token : Bool = false
+    getter hetzner_token : String | Nil = ""
+    getter command : Symbol = :create
 
-    def initialize(configuration_file_path : String)
+    def initialize(configuration_file_path : String, command : Symbol)
       @configuration_file_path = configuration_file_path
+      @command = command
 
       load_yaml
 
@@ -22,6 +25,15 @@ module Hetzner::K3s
       # validate_hetzner_token
       validate_cluster_name
       validate_kubeconfig_path_must_exist
+
+      case command
+      when :create
+        validate_create
+      when :delete
+
+      when :upgrade
+
+      end
 
       unless errors.empty?
         puts "Some information in the configuration file requires your attention:"
@@ -78,16 +90,39 @@ module Hetzner::K3s
       end
     end
 
-    private def validate_kubeconfig_path_must_exist
-      kubeconfig_path = get("kubeconfig_path")
+    private def validate_file_path(key : String, description : String)
+      path = get(key)
 
-      if kubeconfig_path.nil?
-        errors << "Kubeconfig path is required"
-      elsif ! File.exists?(kubeconfig_path.as_s)
-        errors << "Kubeconfig path does not exist"
-      elsif File.directory?(kubeconfig_path.as_s)
-        errors << "Kubeconfig path is not a file"
+      if path.nil?
+        errors << "#{description} is required"
+      else
+        path = path.as_s
+
+        path = Path[path].expand(home: true).to_s
+
+        if ! File.exists?(path)
+          errors << "#{description} does not exist"
+        elsif ! File.file?(path)
+          errors << "#{description} is not a file"
+        end
       end
+    end
+
+    private def validate_kubeconfig_path_must_exist
+      validate_file_path("kubeconfig_path", "Kubeconfig path")
+    end
+
+    private def validate_create
+      validate_public_ssh_key
+      validate_private_ssh_key
+    end
+
+    def validate_public_ssh_key
+      validate_file_path("public_ssh_key_path", "Public SSH key")
+    end
+
+    def validate_private_ssh_key
+      validate_file_path("private_ssh_key_path", "Private SSH key")
     end
   end
 end
