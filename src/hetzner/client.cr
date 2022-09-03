@@ -23,15 +23,36 @@ class Hetzner::K3s::Hetzner::Client
   end
 
   def post(path, params = {} of KeyType => ValueType)
-    super(path, params, headers, json: true)
+    response = Crest.post(
+      "#{api_url}#{path}",
+      params: params,
+      json: true,
+      headers: headers
+    )
+
+    JSON.parse response.body
   end
 
   def put(path, params = {} of KeyType => ValueType)
-    super(path, params, headers, json: true)
+    response = Crest.put(
+      "#{api_url}#{path}",
+      params: params,
+      json: true,
+      headers: headers
+    )
+
+    JSON.parse response.body
   end
 
   def delete(path, params = {} of KeyType => ValueType)
-    super(path, params, headers, json: true)
+    response = Crest.delete(
+      "#{api_url}#{path}",
+      params: params,
+      json: true,
+      headers: headers
+    )
+
+    JSON.parse response.body
   end
 
   private def headers
