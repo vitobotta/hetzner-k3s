@@ -1,7 +1,38 @@
 require "totem"
-require "ssh2"
+require "ipaddress"
+require "crest"
 
 require "../hetzner/client"
+
+module IPAddress
+  class IPv4
+    def includes?(other : IPv6)
+      false
+    end
+
+    def includes?(*others : IPv6)
+      false
+    end
+
+    def includes?(others : Array(IPv6))
+      false
+    end
+  end
+
+  class IPv6
+    def includes?(other : IPv4)
+      false
+    end
+
+    def includes?(*others : IPv4)
+      false
+    end
+
+    def includes?(others : Array(IPv4))
+      false
+    end
+  end
+end
 
 module Hetzner::K3s
   class Configuration
@@ -115,14 +146,75 @@ module Hetzner::K3s
     private def validate_create
       validate_public_ssh_key
       validate_private_ssh_key
+      validate_ssh_allowed_networks
+      validate_api_allowed_networks
     end
 
-    def validate_public_ssh_key
+    private def validate_public_ssh_key
       validate_file_path("public_ssh_key_path", "Public SSH key")
     end
 
-    def validate_private_ssh_key
+    private def validate_private_ssh_key
       validate_file_path("private_ssh_key_path", "Private SSH key")
+    end
+
+    private def validate_networks(network_type : String)
+      networks = get("#{network_type.downcase}_allowed_networks")
+
+      if networks.nil?
+        errors << "#{network_type} allowed networks are required"
+      else
+        networks = networks.as_a
+
+        if networks.empty?
+          errors << "#{network_type} allowed networks are required"
+        else
+          networks.each do |network|
+            network_cidr = ""
+
+            begin
+              network_cidr = network.as_s
+            rescue
+              errors << "#{network_type} allowed network #{network_cidr} is not a valid network in CIDR notation"
+              next
+            end
+
+            if ! network_cidr.is_a?(String)
+              errors << "#{network_type} allowed network #{network_cidr} is not a valid network in CIDR notation"
+              next
+            end
+
+            begin
+              IPAddress.new(network_cidr).network?
+            rescue ArgumentError
+              errors << "#{network_type} allowed network #{network_cidr} is not a valid network in CIDR notation"
+              next
+            end
+
+            network = IPAddress.new(network_cidr).network
+            current_ip = IPAddress.new("127.0.0.1")
+
+            begin
+              current_ip = IPAddress.new(Crest.get("http://whatismyip.akamai.com").body)
+            rescue ex : Crest::RequestFailed
+              errors << "Unable to verify if your current IP belongs to the #{network_type} allowed network #{network_cidr}"
+              next
+            end
+
+            unless network.includes? current_ip
+              errors << "Your current IP #{current_ip} does not belong to the #{network_type} allowed network #{network_cidr}"
+            end
+          end
+        end
+      end
+    end
+
+    private def validate_ssh_allowed_networks
+      validate_networks("SSH")
+    end
+
+    private def validate_api_allowed_networks
+      validate_networks("API")
     end
   end
 end

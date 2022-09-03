@@ -16,6 +16,10 @@ shards:
     git: https://github.com/mamantoha/http_proxy.git
     version: 0.9.0
 
+  ipaddress:
+    git: https://github.com/sija/ipaddress.cr.git
+    version: 0.2.1
+
   popcorn:
     git: https://github.com/icyleaf/popcorn.git
     version: 0.3.0
