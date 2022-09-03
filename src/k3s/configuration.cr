@@ -53,7 +53,19 @@ module Hetzner::K3s
     end
 
     private def validate
-      # validate_hetzner_token
+      validate_file_path(configuration_file_path, "Configuration file path is not valid")
+
+      unless errors.empty?
+        puts "Some information in the configuration file requires your attention:"
+
+        errors.each do |error|
+          STDERR.puts "  - #{error}"
+        end
+
+        exit 1
+      end
+
+      validate_hetzner_token
       validate_cluster_name
       validate_kubeconfig_path_must_exist
 
@@ -121,14 +133,10 @@ module Hetzner::K3s
       end
     end
 
-    private def validate_file_path(key : String, description : String)
-      path = get(key)
-
+    private def validate_file_path(path : String, description : String)
       if path.nil?
         errors << "#{description} is required"
       else
-        path = path.as_s
-
         path = Path[path].expand(home: true).to_s
 
         if ! File.exists?(path)
@@ -140,7 +148,13 @@ module Hetzner::K3s
     end
 
     private def validate_kubeconfig_path_must_exist
-      validate_file_path("kubeconfig_path", "Kubeconfig path")
+      path = get("kubeconfig_path")
+
+      if path.nil?
+        errors << "Kubeconfig path is required"
+      else
+        validate_file_path(path.as_s, "Kubeconfig path")
+      end
     end
 
     private def validate_create
@@ -151,11 +165,23 @@ module Hetzner::K3s
     end
 
     private def validate_public_ssh_key
-      validate_file_path("public_ssh_key_path", "Public SSH key")
+      path = get("public_ssh_key_path")
+
+      if path.nil?
+        errors << "public_ssh_key_path is required"
+      else
+        validate_file_path(path.as_s, "Public SSH key")
+      end
     end
 
     private def validate_private_ssh_key
-      validate_file_path("private_ssh_key_path", "Private SSH key")
+      path = get("private_ssh_key_path")
+
+      if path.nil?
+        errors << "private_ssh_key_path path is required"
+      else
+        validate_file_path(path.as_s, "Private SSH key")
+      end
     end
 
     private def validate_networks(network_type : String)
