@@ -3,7 +3,7 @@ require "yaml"
 module Hetzner::K3s
   class Configuration
     property configuration_file_path = ""
-    property yaml =  YAML::Any.new("---")
+    property settings =  YAML::Any.new("---")
     property errors = [] of String
 
     def initialize(configuration_file_path : String)
@@ -27,14 +27,14 @@ module Hetzner::K3s
     end
 
     private def load_yaml
-      @yaml = YAML.parse(File.read(configuration_file_path))
+      @settings = YAML.parse(File.read(configuration_file_path))
     rescue
       STDERR.puts "Could not load configuration file: #{configuration_file_path}"
       exit 1
     end
 
     private def validate_hetzner_token
-      token = yaml["hetzner_token"]?
+      token = settings["hetzner_token"]?
 
       if token.nil?
         errors << "hetzner_token is required"

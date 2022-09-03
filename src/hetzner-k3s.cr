@@ -1,94 +1,76 @@
-require "option_parser"
+require "admiral"
 
 require "./k3s/configuration"
 
 module Hetzner::K3s
-  class CLI
+  class CLI < Admiral::Command
     VERSION = "0.6.5"
 
-    property command = :none
-    property configuration_file_path = ""
-    property new_k3s_version =" "
-    property parser = OptionParser.new
+    class Create < Admiral::Command
+      define_help description: "create - Create a cluster"
 
-    def start
-      self.parser = OptionParser.parse do |parser|
-        parser.banner = "Usage: hetzner-k3s [command] [arguments]"
+      define_flag configuration_file_path : String,
+                  description: "The path of the YAML configuration file",
+                  long: "config",
+                  short: "c",
+                  required: true
 
-        parser.on("create", "Create a cluster") do
-          self.command = :create
-
-          parser.banner = "Usage: hetzner-k3s create [arguments]"
-
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
-
-          parser.invalid_option do |flag|
-            STDERR.puts "ERROR: #{flag} is not a valid option."
-            STDERR.puts parser
-            exit(1)
-          end
-        end
-
-        parser.on("delete", "Delete a cluster") do
-          self.command = :delete
-
-          parser.banner = "Usage: hetzner-k3s delete [arguments]"
-
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
-
-          parser.invalid_option do |flag|
-            STDERR.puts "ERROR: #{flag} is not a valid option."
-            STDERR.puts parser
-            exit(1)
-          end
-        end
-
-        parser.on("upgrade", "Upgrade a cluster") do
-          self.command = :upgrade
-
-          parser.banner = "Usage: hetzner-k3s upgrade [arguments]"
-
-          parser.on("-c CONFIG_FILE", "--config=CONFIG_FILE", "Specify the name to salute") { |_configuration_file_path| self.configuration_file_path = _configuration_file_path }
-
-          parser.on("--version=VERSION", "Specify the new version of k3s") { |_new_k3s_version| self.new_k3s_version = _new_k3s_version }
-
-          parser.invalid_option do |flag|
-            STDERR.puts "ERROR: #{flag} is not a valid option."
-            STDERR.puts parser
-            exit(1)
-          end
-        end
-
-        parser.on("-h", "--help", "Show this help") do
-          puts parser
-          exit
-        end
-
-        parser.invalid_option do |command|
-          STDERR.puts "ERROR: #{command} is not a valid command."
-          STDERR.puts parser
-          exit(1)
-        end
-      end
-
-      case command
-      when :create
-        puts "creating"
-        configuration
-        # create_cluster(configuration_file_path)
-      when :delete
-        puts "deleting"
-        # delete_cluster(configuration_file_path)
-      when :upgrade
-        puts "upgrading"
+      def run
+        configuration = Configuration.new(configuration_file_path: flags.configuration_file_path)
+        p  configuration
       end
     end
 
-    def configuration
-      @configuration ||= Configuration.new(configuration_file_path: configuration_file_path)
+    class Delete < Admiral::Command
+      define_help description: "delete - Delete a cluster"
+
+      define_flag configuration_file_path : String,
+                  description: "The path of the YAML configuration file",
+                  long: "config",
+                  short: "c",
+                  required: true
+
+      def run
+        puts "deleting"
+        # configuration = Hetzner::K3s::Configuration.from_yaml(configuration_file_path)
+        # puts configuration
+      end
+    end
+
+    class Upgrade < Admiral::Command
+      define_help description: "upgrade - Upgrade a cluster to a newer version of k3s"
+
+      define_flag configuration_file_path : String,
+                  description: "The path of the YAML configuration file",
+                  long: "config",
+                  short: "c",
+                  required: true
+
+      define_flag new_k3s_version : String,
+                  description: "The new version of k3s to upgrade to",
+                  long: "--k3s-version",
+                  required: true
+
+      def run
+        puts "deleting"
+        # configuration = Hetzner::K3s::Configuration.from_yaml(configuration_file_path)
+        # puts configuration
+      end
+    end
+
+    define_version VERSION
+
+    define_help description: "hetzner-k3s - A tool to create k3s clusters on Hetzner Cloud"
+
+    register_sub_command create : Create, description: "Create a cluster"
+    register_sub_command delete : Delete, description: "Delete a cluster"
+    register_sub_command upgrade : Upgrade, description: "Upgrade a cluster to a new version of k3s"
+
+    def run
+      puts help
     end
   end
 end
 
-Hetzner::K3s::CLI.new.start
+Hetzner::K3s::CLI.run
 
