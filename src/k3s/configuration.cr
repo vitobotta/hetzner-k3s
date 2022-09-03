@@ -60,7 +60,6 @@ module Hetzner::K3s
       nil
     end
 
-
     private def hetzner_client
       @hetzner_client ||= Hetzner::Client.new(hetzner_token)
     end
