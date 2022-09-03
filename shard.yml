@@ -15,3 +15,5 @@ license: MIT
 dependencies:
   admiral:
     github: jwaldrip/admiral.cr
+  totem:
+    github: icyleaf/totem

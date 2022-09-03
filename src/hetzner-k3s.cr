@@ -17,7 +17,6 @@ module Hetzner::K3s
 
       def run
         configuration = Configuration.new(configuration_file_path: flags.configuration_file_path)
-        p  configuration
       end
     end
 
