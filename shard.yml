@@ -21,3 +21,5 @@ dependencies:
     github: mamantoha/crest
   ssh2:
     github: spider-gazelle/ssh2.cr
+  ipaddress:
+    github: sija/ipaddress.cr
