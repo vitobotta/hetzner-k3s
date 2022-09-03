@@ -19,7 +19,8 @@ module Hetzner::K3s
     end
 
     private def validate
-      validate_hetzner_token
+      # validate_hetzner_token
+      validate_cluster_name
 
       unless errors.empty?
         puts "Some information in the configuration file requires your attention:"
@@ -37,11 +38,15 @@ module Hetzner::K3s
       exit 1
     end
 
+    private def hetzner_client
+      @hetzner_client ||= Hetzner::Client.new(hetzner_token)
+    end
+
     private def validate_hetzner_token
       hetzner_token = get("hetzner_token")
 
       if hetzner_token.nil?
-        errors << "hetzner_token is required"
+        errors << "Hetzner token is required"
         return
       end
 
@@ -50,7 +55,7 @@ module Hetzner::K3s
       hetzner_client.get("/locations")["locations"]
 
     rescue ex : Crest::RequestFailed
-      errors << "hetzner_token is not valid, unable to consume to Hetzner API"
+      errors << "Hetzner token is not valid, unable to consume to Hetzner API"
       return
     end
 
@@ -60,8 +65,16 @@ module Hetzner::K3s
       nil
     end
 
-    private def hetzner_client
-      @hetzner_client ||= Hetzner::Client.new(hetzner_token)
+    private def validate_cluster_name
+      cluster_name = get("cluster_name")
+
+      if cluster_name.nil?
+        errors << "Cluster name is required"
+      elsif ! /\A[a-z\d-]+\z/.match cluster_name.as_s
+        errors << "Cluster name is an invalid format (only lowercase letters, digits and dashes are allowed)"
+      elsif ! /\A[a-z]+.*([a-z]|\d)+\z/.match cluster_name.as_s
+        errors << "Ensure that the cluster name starts and ends with a normal letter"
+      end
     end
   end
 end
