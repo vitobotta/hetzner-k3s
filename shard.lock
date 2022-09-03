@@ -4,3 +4,11 @@ shards:
     git: https://github.com/jwaldrip/admiral.cr.git
     version: 1.12.1
 
+  popcorn:
+    git: https://github.com/icyleaf/popcorn.git
+    version: 0.3.0
+
+  totem:
+    git: https://github.com/icyleaf/totem.git
+    version: 0.7.0
+

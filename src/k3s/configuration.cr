@@ -1,20 +1,20 @@
-require "yaml"
+require "totem"
 
 module Hetzner::K3s
   class Configuration
     property configuration_file_path = ""
-    property settings =  YAML::Any.new("---")
+    property settings =  Totem::Config.new
     property errors = [] of String
 
     def initialize(configuration_file_path : String)
       @configuration_file_path = configuration_file_path
 
+      load_yaml
+
       validate
     end
 
     private def validate
-      load_yaml
-
       validate_hetzner_token
 
       unless errors.empty?
@@ -27,21 +27,25 @@ module Hetzner::K3s
     end
 
     private def load_yaml
-      @settings = YAML.parse(File.read(configuration_file_path))
+      @settings = Totem.from_file(configuration_file_path)
     rescue
       STDERR.puts "Could not load configuration file: #{configuration_file_path}"
       exit 1
     end
 
     private def validate_hetzner_token
-      token = settings["hetzner_token"]?
+      token = get("hetzner_token")
 
       if token.nil?
         errors << "hetzner_token is required"
         return
       end
+    end
 
-
+    private def get(key : String) : Totem::Any?
+      settings.get(key)
+    rescue Totem::Exception::NotFoundConfigKeyError
+      nil
     end
   end
 end
