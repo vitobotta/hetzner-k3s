@@ -55,7 +55,12 @@ class Configuration::Main
     configuration_file_path = Path[configuration_file_path].expand(home: true).to_s
 
     if File.exists? configuration_file_path
-      Configuration::Main.from_yaml(File.read(configuration_file_path))
+      if File.directory? configuration_file_path
+        puts "Configuration path points to a directory, not a file"
+        exit 1
+      else
+        Configuration::Main.from_yaml(File.read(configuration_file_path))
+      end
     else
       puts "Configuration file not found at #{configuration_file_path}"
       exit 1
