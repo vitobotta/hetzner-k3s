@@ -1,14 +1,42 @@
 require "crest"
-require "totem"
+require "yaml"
 require "json"
 
-class Hetzner::K3s::Hetzner::Client
+class Hetzner::Client
   getter token : String | Nil
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
+  getter locations : Array(String) = [] of String
 
   def initialize(token : String | Nil)
     @token = token
+  end
+
+  def valid_token?
+    return @valid_token unless @valid_token.nil?
+
+    if token.nil? || token.try &.empty?
+      @valid_token = false
+      return false
+    end
+
+    @locations = get("/locations")["locations"].as_a.map do |location|
+      location["name"].as_s
+    end
+
+    @valid_token = true
+  rescue ex : Crest::RequestFailed
+    @valid_token = false
+  end
+
+  def server_types : Array(String)
+    return [] of String unless valid_token?
+
+    @server_types ||= get("/server_types")["server_types"].as_a.map do |server_type|
+      server_type["name"].as_s
+    end
+  rescue ex : Crest::RequestFailed
+    @server_types = [] of String
   end
 
   def get(path, params = {} of String => String | Bool | Nil) : JSON::Any

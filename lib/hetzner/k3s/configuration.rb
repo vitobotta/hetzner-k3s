@@ -131,6 +131,7 @@ module Hetzner
       validate_masters
       validate_worker_node_pools
       validate_verify_host_key
+
       validate_additional_packages
       validate_post_create_commands
       validate_kube_api_server_args

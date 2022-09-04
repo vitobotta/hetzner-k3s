@@ -1,6 +1,6 @@
 require "admiral"
 
-require "./k3s/configuration"
+require "./configuration/main"
 require "./k3s"
 
 module Hetzner::K3s
@@ -17,10 +17,8 @@ module Hetzner::K3s
                   required: true
 
       def run
-        configuration = Configuration.new(
-          configuration_file_path: flags.configuration_file_path,
-          command: :create
-        )
+        configuration = Configuration::Main.load(flags.configuration_file_path)
+        configuration.validate(:create)
       end
     end
 

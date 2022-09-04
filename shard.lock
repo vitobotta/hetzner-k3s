@@ -20,15 +20,7 @@ shards:
     git: https://github.com/sija/ipaddress.cr.git
     version: 0.2.1
 
-  popcorn:
-    git: https://github.com/icyleaf/popcorn.git
-    version: 0.3.0
-
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
     version: 1.5.3
-
-  totem:
-    git: https://github.com/icyleaf/totem.git
-    version: 0.7.0
 
