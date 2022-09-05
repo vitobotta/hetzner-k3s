@@ -87,4 +87,3 @@ module Hetzner::K3s
 end
 
 Hetzner::K3s::CLI.run
-

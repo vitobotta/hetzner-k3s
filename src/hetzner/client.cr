@@ -91,5 +91,3 @@ class Hetzner::Client
     }
   end
 end
-
-
