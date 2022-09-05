@@ -74,6 +74,17 @@ class Configuration::Main
     puts "Validating configuration..."
 
     validate_hetzner_token
+
+    unless errors.empty?
+      puts "\nSome information in the configuration file requires your attention:"
+
+      errors.each do |error|
+        STDERR.puts "  - #{error}"
+      end
+
+      exit 1
+    end
+
     validate_cluster_name
 
     case command
@@ -96,6 +107,8 @@ class Configuration::Main
       errors.each do |error|
         STDERR.puts "  - #{error}"
       end
+
+      exit 1
     end
   end
 
