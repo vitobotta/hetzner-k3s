@@ -7,7 +7,7 @@ module K3s
   RELEASES_FILENAME = "./k3s-releases.yaml"
 
   def self.available_releases
-    all_releases = if File.exists?(RELEASES_FILENAME)
+    if File.exists?(RELEASES_FILENAME)
       YAML.parse(File.read(RELEASES_FILENAME)).as_a
     else
       response = Crest.get("https://api.github.com/repos/k3s-io/k3s/tags?per_page=100", json: true)
@@ -27,7 +27,7 @@ module K3s
         link_header = response.headers["Link"].to_s
       end
 
-      releases = releases.to_a.map { |release| release.to_s }.sort
+      releases = releases.to_a.map(&.to_s).sort!
 
       File.open(RELEASES_FILENAME, "w") { |f| YAML.dump(releases, f) }
 
