@@ -18,7 +18,7 @@ class Configuration::Main
   property private_ssh_key_path : String?
   property ssh_allowed_networks : Array(String)?
   property api_allowed_networks : Array(String)?
-  property verify_host_key : Bool?
+  property verify_host_key : Bool? = false
   property schedule_workloads_on_masters : Bool?
   property enable_encryption : Bool?
   property masters_pool : Configuration::NodePool?
@@ -74,6 +74,8 @@ class Configuration::Main
     puts "Validating configuration..."
 
     validate_hetzner_token
+
+    p verify_host_key
 
     unless errors.empty?
       puts "\nSome information in the configuration file requires your attention:"
