@@ -4,6 +4,10 @@ shards:
     git: https://github.com/jwaldrip/admiral.cr.git
     version: 1.12.1
 
+  ameba:
+    git: https://github.com/crystal-ameba/ameba.git
+    version: 1.0.1
+
   crest:
     git: https://github.com/mamantoha/crest.git
     version: 1.3.1

@@ -21,3 +21,8 @@ dependencies:
     github: spider-gazelle/ssh2.cr
   ipaddress:
     github: sija/ipaddress.cr
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.0.0
