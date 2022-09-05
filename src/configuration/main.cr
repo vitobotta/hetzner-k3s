@@ -20,7 +20,7 @@ class Configuration::Main
   property api_allowed_networks : Array(String)?
   property verify_host_key : Bool? = false
   property schedule_workloads_on_masters : Bool? = false
-  property enable_encryption : Bool?
+  property enable_encryption : Bool? = false
   property masters_pool : Configuration::NodePool?
   property worker_node_pools : Array(Configuration::NodePool)?
   property post_create_commands : Array(String)?
@@ -74,8 +74,6 @@ class Configuration::Main
     puts "Validating configuration..."
 
     validate_hetzner_token
-
-    p verify_host_key
 
     unless errors.empty?
       puts "\nSome information in the configuration file requires your attention:"
