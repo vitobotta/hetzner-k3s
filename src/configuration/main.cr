@@ -75,15 +75,7 @@ class Configuration::Main
 
     validate_hetzner_token
 
-    unless errors.empty?
-      puts "\nSome information in the configuration file requires your attention:"
-
-      errors.each do |error|
-        STDERR.puts "  - #{error}"
-      end
-
-      exit 1
-    end
+    print_errors
 
     validate_cluster_name
 
@@ -93,23 +85,13 @@ class Configuration::Main
       validate_create
     when :delete
       validate_kubeconfig_path(file_must_exist: true)
-
     when :upgrade
       validate_kubeconfig_path(file_must_exist: true)
-
     end
 
-    if errors.empty?
-      puts "...configuration seems valid.\n"
-    else
-      puts "\nSome information in the configuration file requires your attention:"
+    print_errors
 
-      errors.each do |error|
-        STDERR.puts "  - #{error}"
-      end
-
-      exit 1
-    end
+    puts "...configuration seems valid.\n"
   end
 
   def hetzner_client
@@ -308,6 +290,18 @@ class Configuration::Main
 
   private def masters_location : String | Nil
     masters_pool.try &.location
+  end
+
+  private def print_errors
+    return if errors.empty?
+
+    puts "\nSome information in the configuration file requires your attention:"
+
+    errors.each do |error|
+      STDERR.puts "  - #{error}"
+    end
+
+    exit 1
   end
 
   # private def validate_existing_network
