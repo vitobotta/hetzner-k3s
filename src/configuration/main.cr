@@ -19,7 +19,7 @@ class Configuration::Main
   property ssh_allowed_networks : Array(String)?
   property api_allowed_networks : Array(String)?
   property verify_host_key : Bool? = false
-  property schedule_workloads_on_masters : Bool?
+  property schedule_workloads_on_masters : Bool? = false
   property enable_encryption : Bool?
   property masters_pool : Configuration::NodePool?
   property worker_node_pools : Array(Configuration::NodePool)?
