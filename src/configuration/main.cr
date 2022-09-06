@@ -110,7 +110,7 @@ class Configuration::Main
     elsif ! /\A[a-z\d-]+\z/.match cluster_name.not_nil!
       errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)"
     elsif ! /\A[a-z]+.*([a-z]|\d)+\z/.match cluster_name.not_nil!
-      errors << "Ensure that the cluster_name starts and ends with a normal letter"
+      errors << "Ensure that cluster_name starts and ends with a normal letter"
     end
   end
 
