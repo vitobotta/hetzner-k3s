@@ -2,10 +2,12 @@ require "yaml"
 require "crest"
 
 require "../hetzner/client"
+require "../hetzner/server_type"
+require "../hetzner/location"
+
 require "./node_pool"
 require "../network"
 require "../instance_group"
-
 
 class Configuration::Main
   include YAML::Serializable
@@ -40,10 +42,10 @@ class Configuration::Main
   setter hetzner_client : Hetzner::Client | Nil
 
   @[YAML::Field(key: "locations", ignore: true)]
-  private getter locations : Array(String) = [] of String
+  private getter locations : Array(Hetzner::Location) = [] of Hetzner::Location
 
   @[YAML::Field(key: "server_types", ignore: true)]
-  private getter server_types : Array(String) = [] of String
+  private getter server_types : Array(Hetzner::ServerType) = [] of Hetzner::ServerType
 
   @[YAML::Field(key: "server_types_loaded", ignore: true)]
   private property server_types_loaded : Bool = false
@@ -258,7 +260,7 @@ class Configuration::Main
     end
   end
 
-  private def server_types : Array(String)
+  private def server_types : Array(Hetzner::ServerType)
     return @server_types if @server_types_loaded
 
     server_types = hetzner_client.server_types
@@ -271,7 +273,7 @@ class Configuration::Main
     @server_types = server_types
   end
 
-  private def locations : Array(String)
+  private def locations : Array(Hetzner::Location)
     return @locations if @locations_loaded
 
     locations = hetzner_client.locations

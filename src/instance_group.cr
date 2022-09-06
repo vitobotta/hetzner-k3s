@@ -1,21 +1,24 @@
 require "./configuration/node_pool"
 
+require "./hetzner/location"
+require "./hetzner/server_type"
+
 class InstanceGroup
   getter group : Configuration::NodePool | Nil
   getter group_type : String
   getter workers : Bool = true
   getter masters : Bool = true
   getter errors : Array(String) = [] of String
-  getter server_types : Array(String) = [] of String
-  getter locations : Array(String) = [] of String
+  getter server_types : Array(Hetzner::ServerType) = [] of Hetzner::ServerType
+  getter locations : Array(Hetzner::Location) = [] of Hetzner::Location
   getter masters_location : String | Nil
 
   def initialize(
         group : Configuration::NodePool | Nil,
         masters_location : String | Nil,
         type : Symbol = :workers,
-        server_types : Array(String) = [] of String,
-        locations : Array(String) = [] of String
+        server_types : Array(Hetzner::ServerType) = [] of Hetzner::ServerType,
+        locations : Array(Hetzner::Location) = [] of Hetzner::Location
       )
 
     @group = group
@@ -69,7 +72,7 @@ class InstanceGroup
 
     if instance_type.nil?
       @errors << "#{group_type} has an invalid instance type"
-    elsif !server_types.includes?(instance_type.not_nil!)
+    elsif !server_types.map(&.name).includes?(instance_type.not_nil!)
       @errors << "#{group_type} has an invalid instance type"
     end
   end
@@ -80,7 +83,7 @@ class InstanceGroup
     if location.nil?
       @errors << "#{group_type} has an invalid location"
     else
-      if locations.includes?(location)
+      if locations.map(&.name).includes?(location)
         if workers && masters_location
           in_network_zone = masters_location == "ash" ? location == "ash" : location != "ash"
 
