@@ -2,6 +2,7 @@ require "admiral"
 
 require "./configuration/main"
 require "./k3s"
+require "./clusters/create_cluster"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
@@ -19,6 +20,8 @@ module Hetzner::K3s
       def run
         configuration = Configuration::Main.load(flags.configuration_file_path)
         configuration.validate(:create)
+
+        Clusters::CreateCluster.new(configuration).run
       end
     end
 

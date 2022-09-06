@@ -2,11 +2,16 @@ require "crest"
 require "yaml"
 require "json"
 
+require "./location"
+require "./locations_list"
+require "./server_type"
+require "./server_type_list"
+
 class Hetzner::Client
   getter token : String | Nil
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
-  getter locations : Array(String) = [] of String
+  getter locations : Array(Location) = [] of Location
 
   def initialize(token : String | Nil)
     @token = token
@@ -20,26 +25,22 @@ class Hetzner::Client
       return false
     end
 
-    @locations = get("/locations")["locations"].as_a.map do |location|
-      location["name"].as_s
-    end
+    @locations = Hetzner::LocationsList.from_json(get("/locations")).locations
 
     @valid_token = true
   rescue ex : Crest::RequestFailed
     @valid_token = false
   end
 
-  def server_types : Array(String)
-    return [] of String unless valid_token?
+  def server_types : Array(ServerType)
+    return [] of ServerType unless valid_token?
 
-    @server_types ||= get("/server_types")["server_types"].as_a.map do |server_type|
-      server_type["name"].as_s
-    end
+    @server_types ||= Hetzner::ServerTypesList.from_json(get("/server_types")).server_types
   rescue ex : Crest::RequestFailed
-    @server_types = [] of String
+    @server_types = [] of ServerType
   end
 
-  def get(path, params = {} of String => String | Bool | Nil) : JSON::Any
+  def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String
     response = Crest.get(
       "#{api_url}#{path}",
       params: params,
@@ -47,7 +48,7 @@ class Hetzner::Client
       headers: headers
     )
 
-    JSON.parse response.body
+    response.body
   end
 
   def post(path, params = {} of KeyType => ValueType)
@@ -58,7 +59,7 @@ class Hetzner::Client
       headers: headers
     )
 
-    JSON.parse response.body
+    response.body
   end
 
   def put(path, params = {} of KeyType => ValueType)
@@ -69,7 +70,7 @@ class Hetzner::Client
       headers: headers
     )
 
-    JSON.parse response.body
+    response.body
   end
 
   def delete(path, params = {} of KeyType => ValueType)
@@ -80,7 +81,7 @@ class Hetzner::Client
       headers: headers
     )
 
-    JSON.parse response.body
+    response.body
   end
 
   private def headers
