@@ -99,13 +99,9 @@ class Configuration::Main
   end
 
   private def validate_hetzner_token
-    return if valid_hetzner_token?
+    return if hetzner_client.valid_token?
 
     errors << "Hetzner token is not valid, unable to consume to Hetzner API"
-  end
-
-  private def valid_hetzner_token?
-    hetzner_client.valid_token?
   end
 
   private def validate_cluster_name
