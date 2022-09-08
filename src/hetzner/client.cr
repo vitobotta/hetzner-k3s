@@ -5,7 +5,7 @@ require "json"
 require "./location"
 require "./locations_list"
 require "./server_type"
-require "./server_type_list"
+require "./server_types_list"
 
 class Hetzner::Client
   getter token : String | Nil
@@ -51,7 +51,7 @@ class Hetzner::Client
     response.body
   end
 
-  def post(path, params = {} of KeyType => ValueType)
+  def post(path, params)
     response = Crest.post(
       "#{api_url}#{path}",
       params: params,

@@ -9,9 +9,9 @@ class Clusters::CreateCluster
   end
 
   def run
-    @placement_group = Hetzner::PlacementGroup.new(
+    placement_group = Hetzner::PlacementGroup.create(
       hetzner_client = configuration.hetzner_client,
       placement_group_name = "test"
-    ).create
+    )
   end
 end

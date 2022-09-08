@@ -35,11 +35,11 @@ class Configuration::Main
   property kube_proxy_args : Array(String)?
   property existing_network : String?
 
+  @[YAML::Field(key: "hetzner_client", ignore: true)]
+  getter hetzner_client : Hetzner::Client?
+
   @[YAML::Field(key: "errors", ignore: true)]
   getter errors : Array(String) = [] of String
-
-  @[YAML::Field(key: "hetzner_client", ignore: true)]
-  setter hetzner_client : Hetzner::Client | Nil
 
   @[YAML::Field(key: "locations", ignore: true)]
   private getter locations : Array(Hetzner::Location) = [] of Hetzner::Location
