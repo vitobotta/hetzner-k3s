@@ -1,4 +1,4 @@
-require "./client"
+require "./server_type"
 
 class Hetzner::ServerTypesList
   include JSON::Serializable
