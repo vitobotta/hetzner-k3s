@@ -63,7 +63,7 @@ module Hetzner
         ip_range: '10.0.0.0/16',
         subnets: [
           {
-            ip_range: '10.0.0.0/16',
+            ip_range: '10.0.0.0/24',
             network_zone: (location == 'ash' ? 'us-east' : 'eu-central'),
             type: 'cloud'
           }
