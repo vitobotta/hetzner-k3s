@@ -51,10 +51,10 @@ class Hetzner::Client
     response.body
   end
 
-  def post(path, params)
+  def post(path, params = {} of KeyType => ValueType)
     response = Crest.post(
       "#{api_url}#{path}",
-      params,
+      params.to_json,
       json: true,
       headers: headers
     )
@@ -65,7 +65,7 @@ class Hetzner::Client
   def put(path, params = {} of KeyType => ValueType)
     response = Crest.put(
       "#{api_url}#{path}",
-      params,
+      params.to_json,
       json: true,
       headers: headers
     )
@@ -76,7 +76,7 @@ class Hetzner::Client
   def delete(path, params = {} of KeyType => ValueType)
     response = Crest.delete(
       "#{api_url}#{path}",
-      params,
+      params.to_json,
       json: true,
       headers: headers
     )
@@ -87,8 +87,6 @@ class Hetzner::Client
   private def headers
     {
       "Authorization" => "Bearer #{token}",
-      "Content-Type" => "application/json",
-      "Accept" => "application/json"
     }
   end
 end
