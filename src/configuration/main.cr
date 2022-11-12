@@ -144,7 +144,7 @@ class Configuration::Main
     end
   end
 
-  private def public_ssh_key_path
+  def public_ssh_key_path
     unless @public_ssh_key_path.nil?
       Path[@public_ssh_key_path.not_nil!].expand(home: true).to_s
     end

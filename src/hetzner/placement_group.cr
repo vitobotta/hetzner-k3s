@@ -30,6 +30,8 @@ class Hetzner::PlacementGroup
       placement_group
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create placement group #{placement_group_name}: #{ex.message}"
+      STDERR.puts ex.response
+
       exit 1
     end
   end
