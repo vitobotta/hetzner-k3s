@@ -12,7 +12,7 @@ class Hetzner::PlacementGroup
 
     if placement_group = find(hetzner_client, placement_group_name)
       puts "Placement group #{placement_group_name} already exists, skipping.\n"
-      return
+      return placement_group
     end
 
     puts "Creating placement group #{placement_group_name}..."
