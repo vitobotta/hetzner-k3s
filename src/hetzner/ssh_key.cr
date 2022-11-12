@@ -38,16 +38,17 @@ class Hetzner::SSHKey
   end
 
   private def self.find(hetzner_client, ssh_key_name, public_ssh_key_path)
-    fingerprint = `ssh-keygen -E md5 -lf #{public_ssh_key_path}`.split[1].split(":")[1..-1].join(":")
-
     ssh_keys = SSHKeysList.from_json(hetzner_client.not_nil!.get("/ssh_keys")).ssh_keys
 
-    key = ssh_keys.find do |ssh_Key|
-      ssh_Key.fingerprint == fingerprint
+    private_key = File.read(public_ssh_key_path).split[1]
+    fingerprint = Digest::MD5.hexdigest(Base64.decode(private_key)).chars.each_slice(2).map(&.join).join(":")
+
+    key = ssh_keys.find do |ssh_key|
+      ssh_key.fingerprint == fingerprint
     end
 
-    key ||= ssh_keys.find do |ssh_Key|
-      ssh_Key.name == ssh_key_name
+    key ||= ssh_keys.find do |ssh_key|
+      ssh_key.name == ssh_key_name
     end
 
     key
