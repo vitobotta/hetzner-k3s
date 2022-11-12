@@ -43,7 +43,7 @@ class Hetzner::Client
   def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String
     response = Crest.get(
       "#{api_url}#{path}",
-      params: params,
+      params,
       json: true,
       headers: headers
     )
@@ -54,7 +54,7 @@ class Hetzner::Client
   def post(path, params)
     response = Crest.post(
       "#{api_url}#{path}",
-      params: params,
+      params,
       json: true,
       headers: headers
     )
@@ -65,7 +65,7 @@ class Hetzner::Client
   def put(path, params = {} of KeyType => ValueType)
     response = Crest.put(
       "#{api_url}#{path}",
-      params: params,
+      params,
       json: true,
       headers: headers
     )
@@ -76,7 +76,7 @@ class Hetzner::Client
   def delete(path, params = {} of KeyType => ValueType)
     response = Crest.delete(
       "#{api_url}#{path}",
-      params: params,
+      params,
       json: true,
       headers: headers
     )
