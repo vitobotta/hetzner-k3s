@@ -20,7 +20,7 @@ class Clusters::CreateCluster
   end
 
   private def create_masters
-    p  network
+    p firewall
   end
 
   private def placement_group(node_pool)

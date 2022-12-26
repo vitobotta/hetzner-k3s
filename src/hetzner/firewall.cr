@@ -16,12 +16,14 @@ class Hetzner::Firewall
       if firewall = find(hetzner_client, firewall_name)
         puts "Updating firewall...\n"
 
-        firewall = hetzner_client.not_nil!.post("/firewalls/#{firewall.id}/actions/set_rules", config)
+        hetzner_client.not_nil!.post("/firewalls/#{firewall.id}/actions/set_rules", config)
       else
         puts "Creating firewall..."
 
-        firewall = hetzner_client.not_nil!.post("/firewalls", config)
+        hetzner_client.not_nil!.post("/firewalls", config)
       end
+
+      firewall = find(hetzner_client, firewall_name)
 
       puts "...done.\n"
 
