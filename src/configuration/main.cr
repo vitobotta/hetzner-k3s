@@ -34,6 +34,7 @@ class Configuration::Main
   property kubelet_args : Array(String)?
   property kube_proxy_args : Array(String)?
   property existing_network : String?
+  property image : String?
 
   @[YAML::Field(key: "hetzner_client", ignore: true)]
   getter hetzner_client : Hetzner::Client?
@@ -98,6 +99,10 @@ class Configuration::Main
 
   def hetzner_client
     @hetzner_client ||= Hetzner::Client.new(hetzner_token)
+  end
+
+  def image
+    @image || "ubuntu-20.04"
   end
 
   private def validate_hetzner_token
