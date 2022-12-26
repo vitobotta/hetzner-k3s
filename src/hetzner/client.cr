@@ -8,12 +8,12 @@ require "./server_type"
 require "./server_types_list"
 
 class Hetzner::Client
-  getter token : String | Nil
+  getter token : String?
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
   getter locations : Array(Location) = [] of Location
 
-  def initialize(token : String | Nil)
+  def initialize(token)
     @token = token
   end
 

@@ -12,31 +12,29 @@ require "../instance_group"
 class Configuration::Main
   include YAML::Serializable
 
-  property hetzner_token : String?
-  property cluster_name : String?
-  property kubeconfig_path : String?
-  property k3s_version : String?
-  property public_ssh_key_path : String?
-  property private_ssh_key_path : String?
-  property ssh_allowed_networks : Array(String)?
-  property api_allowed_networks : Array(String)?
-  property verify_host_key : Bool? = false
-  property schedule_workloads_on_masters : Bool? = false
-  property enable_encryption : Bool? = false
-  property masters_pool : Configuration::NodePool?
-  property worker_node_pools : Array(Configuration::NodePool)?
-  property post_create_commands : Array(String)?
-  property additional_packages : Array(String)?
-  property kube_api_server_args : Array(String)?
-  property kube_scheduler_args : Array(String)?
-  property kube_controller_manager_args : Array(String)?
-  property kube_cloud_controller_manager_args : Array(String)?
-  property kubelet_args : Array(String)?
-  property kube_proxy_args : Array(String)?
+  property hetzner_token : String
+  property cluster_name : String
+  property kubeconfig_path : String
+  property k3s_version : String
+  property public_ssh_key_path : String
+  property private_ssh_key_path : String
+  property ssh_allowed_networks : Array(String) = [] of String
+  property api_allowed_networks : Array(String) = [] of String
+  property verify_host_key : Bool = false
+  property schedule_workloads_on_masters : Bool = false
+  property enable_encryption : Bool = false
+  property masters_pool : Configuration::NodePool
+  property worker_node_pools : Array(Configuration::NodePool)
+  property post_create_commands : Array(String) = [] of String
+  property additional_packages : Array(String) = [] of String
+  property kube_api_server_args : Array(String) = [] of String
+  property kube_scheduler_args : Array(String) = [] of String
+  property kube_controller_manager_args : Array(String) = [] of String
+  property kube_cloud_controller_manager_args : Array(String) = [] of String
+  property kubelet_args : Array(String) = [] of String
+  property kube_proxy_args : Array(String) = [] of String
   property existing_network : String?
-  property image : String?
-  property additioanl_packages : Array(String)?
-  property post_create_commands : Array(String)?
+  property image : String = "ubuntu-20.04"
 
   @[YAML::Field(key: "hetzner_client", ignore: true)]
   getter hetzner_client : Hetzner::Client?
@@ -103,18 +101,6 @@ class Configuration::Main
     @hetzner_client ||= Hetzner::Client.new(hetzner_token)
   end
 
-  def image
-    @image || "ubuntu-20.04"
-  end
-
-  def additional_packages
-    @additional_packages || [] of String
-  end
-
-  def post_create_commands
-    @post_create_commands || [] of String
-  end
-
   private def validate_hetzner_token
     return if hetzner_client.valid_token?
 
@@ -131,7 +117,7 @@ class Configuration::Main
     end
   end
 
-  private def validate_kubeconfig_path(file_must_exist : Bool)
+  private def validate_kubeconfig_path(file_must_exist)
     if kubeconfig_path.nil?
       errors << "kubeconfig_path is required"
     elsif File.exists?(kubeconfig_path.not_nil!) && File.directory?(kubeconfig_path.not_nil!)
@@ -160,15 +146,11 @@ class Configuration::Main
   end
 
   def public_ssh_key_path
-    unless @public_ssh_key_path.nil?
-      Path[@public_ssh_key_path.not_nil!].expand(home: true).to_s
-    end
+    Path[@public_ssh_key_path.not_nil!].expand(home: true).to_s
   end
 
   private def private_ssh_key_path
-    unless @private_ssh_key_path.nil?
-      Path[@private_ssh_key_path.not_nil!].expand(home: true).to_s
-    end
+    Path[@private_ssh_key_path.not_nil!].expand(home: true).to_s
   end
 
   private def validate_public_ssh_key

@@ -1,4 +1,4 @@
-require "./firewall"
+require "./network"
 
 class Hetzner::NetworksList
   include JSON::Serializable

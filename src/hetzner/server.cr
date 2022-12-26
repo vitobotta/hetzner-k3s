@@ -5,12 +5,12 @@ require "./public_net"
 class Hetzner::Server
   include JSON::Serializable
 
-  property id : Int32?
-  property name : String?
+  property id : Int32
+  property name : String
   getter public_net : PublicNet?
 
   def ip_address
-    public_net.not_nil!.ipv4.not_nil!.ip.not_nil!
+    public_net.try(&.ipv4).try(&.ip)
   end
 
   def self.create(
@@ -32,8 +32,6 @@ class Hetzner::Server
     begin
       if server = find(hetzner_client, server_name)
         puts "Server #{server_name} already exists, skipping. \n"
-
-        return server
       else
         puts "Creating server #{server_name}..."
 
@@ -50,12 +48,14 @@ class Hetzner::Server
           additional_post_create_commands
         )
 
-        hetzner_client.not_nil!.post("/servers", config)
+        hetzner_client.post("/servers", config)
+
+        puts "...server #{server_name} created.\n"
+
+        server = find(hetzner_client, server_name)
       end
 
-      puts "...done.\n"
-
-      find(hetzner_client, server_name)
+      server.not_nil!
 
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create server: #{ex.message}"
@@ -66,7 +66,7 @@ class Hetzner::Server
   end
 
   private def self.find(hetzner_client, server_name)
-    servers = ServersList.from_json(hetzner_client.not_nil!.get("/servers")).servers
+    servers = ServersList.from_json(hetzner_client.get("/servers")).servers
 
     servers.find do |server|
       server.name == server_name
