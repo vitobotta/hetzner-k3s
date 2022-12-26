@@ -35,6 +35,8 @@ class Configuration::Main
   property kube_proxy_args : Array(String)?
   property existing_network : String?
   property image : String?
+  property additioanl_packages : Array(String)?
+  property post_create_commands : Array(String)?
 
   @[YAML::Field(key: "hetzner_client", ignore: true)]
   getter hetzner_client : Hetzner::Client?
@@ -103,6 +105,14 @@ class Configuration::Main
 
   def image
     @image || "ubuntu-20.04"
+  end
+
+  def additional_packages
+    @additional_packages || [] of String
+  end
+
+  def post_create_commands
+    @post_create_commands || [] of String
   end
 
   private def validate_hetzner_token
