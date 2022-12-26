@@ -41,7 +41,7 @@ class Clusters::CreateCluster
   end
 
   private def create_masters
-    channel = Channel(String).new
+    channel = Channel(Hetzner::Server).new
 
     masters_pool = configuration.masters_pool
 
@@ -55,7 +55,7 @@ class Clusters::CreateCluster
       master_name = "#{configuration.cluster_name}-#{instance_type}-master#{i + 1}"
 
       spawn do
-        servers << Hetzner::Server.create(
+        server = Hetzner::Server.create(
           hetzner_client: configuration.hetzner_client,
           server_name: master_name,
           instance_type: masters_pool.instance_type,
@@ -69,16 +69,14 @@ class Clusters::CreateCluster
           additional_post_create_commands: configuration.post_create_commands
         )
 
-        channel.send(master_name)
+        channel.send(server)
       end
     end
 
     masters_pool.instance_count.times do
-      channel.receive
+      servers << channel.receive
     end
 
-    Fiber.yield
-
-    p servers.each { |server| server.ip_address }
+    servers.each { |server| p server.ip_address }
   end
 end

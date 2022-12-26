@@ -74,7 +74,7 @@ class Configuration::Main
   end
 
   def validate(command)
-    puts "Validating configuration..."
+    puts "Validating configuration...".colorize(:light_blue)
 
     validate_hetzner_token
 
@@ -94,7 +94,7 @@ class Configuration::Main
 
     print_errors
 
-    puts "...configuration seems valid.\n"
+    puts "...configuration seems valid.\n".colorize(:light_blue)
   end
 
   def hetzner_client
@@ -290,10 +290,10 @@ class Configuration::Main
   private def print_errors
     return if errors.empty?
 
-    puts "\nSome information in the configuration file requires your attention:"
+    puts "\nSome information in the configuration file requires your attention:".colorize(:red)
 
     errors.each do |error|
-      STDERR.puts "  - #{error}"
+      STDERR.puts "  - #{error}".colorize(:red)
     end
 
     exit 1

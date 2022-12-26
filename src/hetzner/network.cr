@@ -12,21 +12,21 @@ class Hetzner::Network
 
     begin
       if network = find(hetzner_client, network_name)
-        puts "Network already exists, skipping.\n"
+        puts "Network already exists, skipping.\n".colorize(:green)
       else
-        puts "Creating network..."
+        puts "Creating network...".colorize(:green)
 
         config = network_config(network_name, location)
         hetzner_client.post("/networks", config)
         network = find(hetzner_client, network_name)
 
-        puts "...network created.\n"
+        puts "...network created.\n".colorize(:green)
       end
 
       network.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create network: #{ex.message}"
+      STDERR.puts "Failed to create network: #{ex.message}".colorize(:red)
       STDERR.puts ex.response
 
       exit 1

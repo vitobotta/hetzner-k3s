@@ -13,9 +13,9 @@ class Hetzner::SSHKey
 
     begin
       if ssh_key = find(hetzner_client, ssh_key_name, public_ssh_key_path)
-        puts "SSH key already exists, skipping.\n"
+        puts "SSH key already exists, skipping.\n".colorize(:cyan)
       else
-        puts "Creating SSH key..."
+        puts "Creating SSH key...".colorize(:cyan)
 
         ssh_key_config = {
           "name" => ssh_key_name,
@@ -24,7 +24,7 @@ class Hetzner::SSHKey
 
         hetzner_client.post("/ssh_keys", ssh_key_config)
 
-        puts "...SSH key created.\n"
+        puts "...SSH key created.\n".colorize(:cyan)
 
         ssh_key = find(hetzner_client, ssh_key_name, public_ssh_key_path)
       end
@@ -32,7 +32,7 @@ class Hetzner::SSHKey
       ssh_key.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create SSH key: #{ex.message}"
+      STDERR.puts "Failed to create SSH key: #{ex.message}".colorize(:red)
       STDERR.puts ex.response
 
       exit 1

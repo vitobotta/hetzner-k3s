@@ -14,24 +14,24 @@ class Hetzner::Firewall
 
     begin
       if firewall = find(hetzner_client, firewall_name)
-        puts "Updating firewall...\n"
+        puts "Updating firewall...".colorize(:magenta)
 
         hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", config)
 
-        puts "...firewall updated.\n"
+        puts "...firewall updated.\n".colorize(:magenta)
       else
-        puts "Creating firewall..."
+        puts "Creating firewall...".colorize(:magenta)
 
         hetzner_client.post("/firewalls", config)
         firewall = find(hetzner_client, firewall_name)
 
-        puts "...firewall created.\n"
+        puts "...firewall created.\n".colorize(:magenta)
       end
 
       firewall.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create firewall: #{ex.message}"
+      STDERR.puts "Failed to create firewall: #{ex.message}".colorize(:red)
       STDERR.puts ex.response
 
       exit 1

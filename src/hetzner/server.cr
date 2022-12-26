@@ -31,9 +31,9 @@ class Hetzner::Server
 
     begin
       if server = find(hetzner_client, server_name)
-        puts "Server #{server_name} already exists, skipping. \n"
+        puts "Server #{server_name} already exists, skipping. \n".colorize(:light_gray)
       else
-        puts "Creating server #{server_name}..."
+        puts "Creating server #{server_name}...".colorize(:light_gray)
 
         config = server_config(
           server_name,
@@ -50,7 +50,7 @@ class Hetzner::Server
 
         hetzner_client.post("/servers", config)
 
-        puts "...server #{server_name} created.\n"
+        puts "...server #{server_name} created.\n".colorize(:light_gray)
 
         server = find(hetzner_client, server_name)
       end
@@ -58,7 +58,7 @@ class Hetzner::Server
       server.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create server: #{ex.message}"
+      STDERR.puts "Failed to create server: #{ex.message}".colorize(:red)
       STDERR.puts ex.response
 
       exit 1
