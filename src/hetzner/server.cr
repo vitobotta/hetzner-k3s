@@ -1,11 +1,17 @@
 require "./client"
 require "./servers_list"
+require "./public_net"
 
 class Hetzner::Server
   include JSON::Serializable
 
   property id : Int32?
   property name : String?
+  getter public_net : PublicNet?
+
+  def ip_address
+    public_net.not_nil!.ipv4.not_nil!.ip.not_nil!
+  end
 
   def self.create(
       hetzner_client,
@@ -44,7 +50,7 @@ class Hetzner::Server
           additional_post_create_commands
         )
 
-        server = hetzner_client.not_nil!.post("/servers", config)
+        hetzner_client.not_nil!.post("/servers", config)
       end
 
       puts "...done.\n"

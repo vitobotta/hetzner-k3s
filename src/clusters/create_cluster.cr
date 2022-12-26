@@ -42,6 +42,7 @@ class Clusters::CreateCluster
       ).not_nil!
 
       p servers.first
+      p servers.first.ip_address
     end
   end
 
