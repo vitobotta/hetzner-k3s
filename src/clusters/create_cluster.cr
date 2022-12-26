@@ -7,7 +7,7 @@ require "../hetzner/network"
 class Clusters::CreateCluster
   private getter configuration : Configuration::Main
   private getter placement_group : Hetzner::PlacementGroup | Nil
-  private getter placement_groups : Hash(String, Hetzner::PlacementGroup | String) = Hash(String, Hetzner::PlacementGroup | String).new
+  private getter placement_groups : Hash(String, Hetzner::PlacementGroup | Nil) = Hash(String, Hetzner::PlacementGroup | Nil).new
   private property ssh_key : Hetzner::SSHKey | String?
   private property firewall : Hetzner::Firewall | String?
   private property network : Hetzner::Network | String?
@@ -20,7 +20,7 @@ class Clusters::CreateCluster
   end
 
   private def create_masters
-    p firewall
+    p ssh_key
   end
 
   private def placement_group(node_pool)

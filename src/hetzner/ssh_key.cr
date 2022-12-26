@@ -28,7 +28,8 @@ class Hetzner::SSHKey
 
       puts "...done.\n"
 
-      ssh_key
+      find(hetzner_client, ssh_key_name, public_ssh_key_path)
+
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create SSH key: #{ex.message}"
       STDERR.puts ex.response

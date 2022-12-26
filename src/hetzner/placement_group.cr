@@ -23,11 +23,11 @@ class Hetzner::PlacementGroup
         "type" => "spread"
       }
 
-      placement_group = hetzner_client.not_nil!.post("/placement_groups", placement_group_config)
-
+      hetzner_client.not_nil!.post("/placement_groups", placement_group_config)
       puts "...done.\n"
 
-      placement_group
+      find(hetzner_client, placement_group_name)
+
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create placement group #{placement_group_name}: #{ex.message}"
       STDERR.puts ex.response

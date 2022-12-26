@@ -23,11 +23,10 @@ class Hetzner::Firewall
         hetzner_client.not_nil!.post("/firewalls", config)
       end
 
-      firewall = find(hetzner_client, firewall_name)
-
       puts "...done.\n"
 
-      firewall
+      find(hetzner_client, firewall_name)
+
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create firewall: #{ex.message}"
       STDERR.puts ex.response
