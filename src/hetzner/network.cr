@@ -4,8 +4,8 @@ require "./networks_list"
 class Hetzner::Network
   include JSON::Serializable
 
-  property id : Int32?
-  property name : String?
+  property id : Int32
+  property name : String
 
   def self.create(hetzner_client, network_name, location)
     puts
@@ -17,13 +17,14 @@ class Hetzner::Network
         puts "Creating network..."
 
         config = network_config(network_name, location)
-        hetzner_client.not_nil!.post("/networks", config)
+        hetzner_client.post("/networks", config)
         network = find(hetzner_client, network_name)
 
-        puts "...done.\n"
+        puts "...network created.\n"
       end
 
-      network
+      network.not_nil!
+
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create network: #{ex.message}"
       STDERR.puts ex.response
@@ -33,7 +34,7 @@ class Hetzner::Network
   end
 
   private def self.find(hetzner_client, network_name)
-    networks = NetworksList.from_json(hetzner_client.not_nil!.get("/networks")).networks
+    networks = NetworksList.from_json(hetzner_client.get("/networks")).networks
 
     networks.find do |network|
       network.name == network_name

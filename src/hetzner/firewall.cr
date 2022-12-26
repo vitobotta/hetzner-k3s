@@ -4,8 +4,8 @@ require "./firewalls_list"
 class Hetzner::Firewall
   include JSON::Serializable
 
-  property id : Int32?
-  property name : String?
+  property id : Int32
+  property name : String
 
   def self.create(hetzner_client, firewall_name, ssh_allowed_networks, api_allowed_networks, high_availability)
     puts
@@ -16,16 +16,19 @@ class Hetzner::Firewall
       if firewall = find(hetzner_client, firewall_name)
         puts "Updating firewall...\n"
 
-        hetzner_client.not_nil!.post("/firewalls/#{firewall.id}/actions/set_rules", config)
+        hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", config)
+
+        puts "...firewall updated.\n"
       else
         puts "Creating firewall..."
 
-        hetzner_client.not_nil!.post("/firewalls", config)
+        hetzner_client.post("/firewalls", config)
+        firewall = find(hetzner_client, firewall_name)
+
+        puts "...firewall created.\n"
       end
 
-      puts "...done.\n"
-
-      find(hetzner_client, firewall_name)
+      firewall.not_nil!
 
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to create firewall: #{ex.message}"
@@ -36,7 +39,7 @@ class Hetzner::Firewall
   end
 
   private def self.find(hetzner_client, firewall_name)
-    firewalls = FirewallsList.from_json(hetzner_client.not_nil!.get("/firewalls")).firewalls
+    firewalls = FirewallsList.from_json(hetzner_client.get("/firewalls")).firewalls
 
     firewalls.find do |firewall|
       firewall.name == firewall_name
