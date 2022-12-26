@@ -20,7 +20,7 @@ class Clusters::CreateCluster
   end
 
   private def create_masters
-    p ssh_key
+    p configuration.image
   end
 
   private def placement_group(node_pool)
