@@ -2,6 +2,7 @@ require "../configuration/main"
 require "../hetzner/placement_group"
 require "../hetzner/ssh_key"
 require "../hetzner/firewall"
+require "../hetzner/network"
 
 class Clusters::CreateCluster
   private getter configuration : Configuration::Main
@@ -9,6 +10,7 @@ class Clusters::CreateCluster
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup | String) = Hash(String, Hetzner::PlacementGroup | String).new
   private property ssh_key : Hetzner::SSHKey | String?
   private property firewall : Hetzner::Firewall | String?
+  private property network : Hetzner::Network | String?
 
   def initialize(@configuration)
   end
@@ -18,9 +20,7 @@ class Clusters::CreateCluster
   end
 
   private def create_masters
-    # p placement_group("masters")
-    # p ssh_key
-    p firewall
+    p  network
   end
 
   private def placement_group(node_pool)
@@ -44,7 +44,15 @@ class Clusters::CreateCluster
       firewall_name = configuration.cluster_name,
       ssh_allowed_networks = configuration.ssh_allowed_networks,
       api_allowed_networks = configuration.api_allowed_networks,
-      high_availability = configuration.masters_pool.not_nil!.instance_count.not_nil!  > 1
+      high_availability = configuration.masters_pool.not_nil!.instance_count.not_nil! > 1
+    )
+  end
+
+  private def network
+    @network ||= Hetzner::Network.create(
+      hetzner_client = configuration.hetzner_client,
+      network_name = configuration.cluster_name,
+      location = configuration.masters_pool.not_nil!.location.not_nil!
     )
   end
 end
