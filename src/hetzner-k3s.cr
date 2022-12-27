@@ -4,6 +4,7 @@ require "colorize"
 require "./configuration/main"
 require "./k3s"
 require "./cluster/create"
+require "./cluster/delete"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
@@ -36,9 +37,10 @@ module Hetzner::K3s
                   required: true
 
       def run
-        puts "deleting"
-        # configuration = Hetzner::K3s::Configuration.from_yaml(configuration_file_path)
-        # puts configuration
+        configuration = Configuration::Main.load(flags.configuration_file_path)
+        configuration.validate(:create)
+
+        Cluster::Delete.new(configuration).run
       end
     end
 

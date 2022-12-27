@@ -26,6 +26,8 @@ class Hetzner::Server::Delete
         puts "Server #{server_name} does not exist, skipping.\n".colorize(:light_gray)
       end
 
+      server_name
+
     rescue ex : Crest::RequestFailed
       STDERR.puts "Failed to delete server: #{ex.message}".colorize(:red)
       STDERR.puts ex.response
