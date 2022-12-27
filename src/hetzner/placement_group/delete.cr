@@ -12,13 +12,13 @@ class Hetzner::PlacementGroup::Delete
 
   def run
     if placement_group = placement_group_finder.run
-      puts "Deleting placement group...".colorize(:green)
+      puts "Deleting placement group...".colorize(:blue)
 
       hetzner_client.delete("/placement_groups", placement_group.id)
 
-      puts "...placement group deleted.\n".colorize(:green)
+      puts "...placement group deleted.\n".colorize(:blue)
     else
-      puts "placement group does not exist, skipping.\n".colorize(:green)
+      puts "placement group does not exist, skipping.\n".colorize(:blue)
     end
 
     placement_group_name
