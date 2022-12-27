@@ -1,3 +1,4 @@
+require "json"
 require "./public_net"
 
 class Hetzner::Server
