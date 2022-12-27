@@ -15,6 +15,7 @@ class Hetzner::Server
 
   def self.create(
       hetzner_client,
+      cluster_name,
       server_name,
       instance_type,
       image,
@@ -36,6 +37,7 @@ class Hetzner::Server
         puts "Creating server #{server_name}...".colorize(:light_gray)
 
         config = server_config(
+          cluster_name,
           server_name,
           instance_type,
           image,
@@ -74,6 +76,7 @@ class Hetzner::Server
   end
 
   private def self.server_config(
+    cluster_name,
     server_name,
     instance_type,
     image,
@@ -101,7 +104,7 @@ class Hetzner::Server
       ],
       user_data: user_data(additional_packages, additional_post_create_commands),
       labels: {
-        cluster: server_name,
+        cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
       },
       placement_group: placement_group.id
