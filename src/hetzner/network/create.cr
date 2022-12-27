@@ -1,26 +1,27 @@
 require "../client"
-require "../network"
-require "../networks_list"
+require "./find"
 
 class Hetzner::Network::Create
   getter hetzner_client : Hetzner::Client
   getter network_name : String
   getter location : String
+  getter network_finder : Hetzner::Network::Find
 
   def initialize(@hetzner_client, @network_name, @location)
+    @network_finder = Hetzner::Network::Find.new(@hetzner_client, @network_name)
   end
 
   def run
     puts
 
     begin
-      if network = find_network
+      if network = network_finder.run
         puts "Network already exists, skipping.\n".colorize(:green)
       else
         puts "Creating network...".colorize(:green)
 
         hetzner_client.post("/networks", network_config)
-        network = find_network
+        network = network_finder.run
 
         puts "...network created.\n".colorize(:green)
       end
@@ -32,14 +33,6 @@ class Hetzner::Network::Create
       STDERR.puts ex.response
 
       exit 1
-    end
-  end
-
-  private def find_network
-    networks = NetworksList.from_json(hetzner_client.get("/networks")).networks
-
-    networks.find do |network|
-      network.name == network_name
     end
   end
 
