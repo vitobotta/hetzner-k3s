@@ -3,6 +3,9 @@ require "../placement_group"
 require "../placement_groups_list"
 
 class Hetzner::PlacementGroup::Create
+  getter hetzner_client : Hetzner::Client
+  getter placement_group_name : String
+
   def initialize(@hetzner_client, @placement_group_name)
   end
 

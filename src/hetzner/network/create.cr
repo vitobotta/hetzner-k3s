@@ -3,6 +3,10 @@ require "../networks"
 require "../networks_list"
 
 class Hetzner::Network::Create
+  getter hetzner_client : Hetzner::Client
+  getter network_name : String
+  getter location : String
+
   def initialize(@hetzner_client, @network_name, @location)
   end
 
