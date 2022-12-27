@@ -57,6 +57,7 @@ class Clusters::CreateCluster
       spawn do
         server = Hetzner::Server.create(
           hetzner_client: configuration.hetzner_client,
+          cluster_name: configuration.cluster_name,
           server_name: master_name,
           instance_type: masters_pool.instance_type,
           image: configuration.image,
