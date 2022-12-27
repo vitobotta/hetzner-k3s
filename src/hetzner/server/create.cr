@@ -1,58 +1,51 @@
-require "./public_net"
+require "../client"
+require "../server"
+require "../servers_list"
 
-class Hetzner::Server
-  include JSON::Serializable
+class Hetzner::Server::Create
+  getter hetzner_client : Hetzner::Client
+  getter cluster_name : String
+  getter server_name : String
+  getter instance_type : String
+  getter image : String
+  getter location : String
+  getter ssh_key : Hetzner::SSHKey
+  getter firewall : Hetzner::Firewall
+  getter placement_group : Hetzner::PlacementGroup
+  getter network : Hetzner::Network
+  getter additional_packages : Array(String)
+  getter additional_post_create_commands : Array(String)
 
-  property id : Int32
-  property name : String
-  getter public_net : PublicNet?
-
-  def ip_address
-    public_net.try(&.ipv4).try(&.ip)
+  def initialize(
+      @hetzner_client,
+      @cluster_name,
+      @server_name,
+      @instance_type,
+      @image,
+      @location,
+      @ssh_key,
+      @firewall,
+      @placement_group,
+      @network,
+      @additional_packages = [] of String,
+      @additional_post_create_commands = [] of String
+    )
   end
 
-  def self.create(
-      hetzner_client,
-      cluster_name,
-      server_name,
-      instance_type,
-      image,
-      location,
-      ssh_key,
-      firewall,
-      placement_group,
-      network,
-      additional_packages = [] of String,
-      additional_post_create_commands = [] of String
-    )
-
+  def run
     puts
 
     begin
-      if server = find(hetzner_client, server_name)
+      if server = find_server
         puts "Server #{server_name} already exists, skipping. \n".colorize(:light_gray)
       else
         puts "Creating server #{server_name}...".colorize(:light_gray)
 
-        config = server_config(
-          cluster_name,
-          server_name,
-          instance_type,
-          image,
-          location,
-          ssh_key,
-          firewall,
-          placement_group,
-          network,
-          additional_packages,
-          additional_post_create_commands
-        )
-
-        hetzner_client.post("/servers", config)
+        hetzner_client.post("/servers", server_config)
 
         puts "...server #{server_name} created.\n".colorize(:light_gray)
 
-        server = find(hetzner_client, server_name)
+        server = find_server
       end
 
       server.not_nil!
@@ -65,7 +58,7 @@ class Hetzner::Server
     end
   end
 
-  private def self.find(hetzner_client, server_name)
+  private def find_server
     servers = ServersList.from_json(hetzner_client.get("/servers")).servers
 
     servers.find do |server|
@@ -73,19 +66,7 @@ class Hetzner::Server
     end
   end
 
-  private def self.server_config(
-    cluster_name,
-    server_name,
-    instance_type,
-    image,
-    location,
-    ssh_key,
-    firewall,
-    placement_group,
-    network,
-    additional_packages,
-    additional_post_create_commands
-  )
+  private def server_config
     {
       name: server_name,
       location: location,
@@ -100,7 +81,7 @@ class Hetzner::Server
       ssh_keys: [
         ssh_key.id
       ],
-      user_data: user_data(additional_packages, additional_post_create_commands),
+      user_data: user_data,
       labels: {
         cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
@@ -109,7 +90,7 @@ class Hetzner::Server
     }
   end
 
-  private def self.user_data(additional_packages = [] of String, additional_post_create_commands = [] of String)
+  private def user_data
     packages = %w[fail2ban wireguard]
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"

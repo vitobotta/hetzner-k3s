@@ -3,7 +3,7 @@ require "../hetzner/placement_group"
 require "../hetzner/ssh_key"
 require "../hetzner/firewall"
 require "../hetzner/network"
-require "../hetzner/server"
+require "../hetzner/server/create"
 
 class Clusters::CreateCluster
   private getter configuration : Configuration::Main
@@ -55,7 +55,7 @@ class Clusters::CreateCluster
       master_name = "#{configuration.cluster_name}-#{instance_type}-master#{i + 1}"
 
       spawn do
-        server = Hetzner::Server.create(
+        server = Hetzner::Server::Create.new(
           hetzner_client: configuration.hetzner_client,
           cluster_name: configuration.cluster_name,
           server_name: master_name,
@@ -68,7 +68,7 @@ class Clusters::CreateCluster
           network: network,
           additional_packages: configuration.additional_packages,
           additional_post_create_commands: configuration.post_create_commands
-        )
+        ).run
 
         channel.send(server)
       end
