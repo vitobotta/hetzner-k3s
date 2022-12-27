@@ -1,8 +1,8 @@
 require "../configuration/main"
-require "../hetzner/placement_group"
-require "../hetzner/ssh_key"
+require "../hetzner/placement_group/create"
+require "../hetzner/ssh_key/create"
 require "../hetzner/firewall/create"
-require "../hetzner/network"
+require "../hetzner/network/create"
 require "../hetzner/server/create"
 
 class Cluster::Create

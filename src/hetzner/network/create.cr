@@ -1,5 +1,5 @@
 require "../client"
-require "../networks"
+require "../network"
 require "../networks_list"
 
 class Hetzner::Network::Create
