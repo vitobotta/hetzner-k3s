@@ -1,3 +1,5 @@
+require "json"
+
 class Hetzner::Firewall
   include JSON::Serializable
 
