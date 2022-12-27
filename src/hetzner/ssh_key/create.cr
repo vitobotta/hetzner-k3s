@@ -2,7 +2,7 @@ require "../client"
 require "../ssh_key"
 require "../ssh_keys_list"
 
-class Hetzner::SSHKey
+class Hetzner::SSHKey::Create
   getter hetzner_client : Hetzner::Client
   getter ssh_key_name : String
   getter public_ssh_key_path : String
