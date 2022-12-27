@@ -14,11 +14,11 @@ class Cluster::Create
   private property servers : Array(Hetzner::Server) = [] of Hetzner::Server
 
   def initialize(@configuration)
-    @network = Hetzner::Network.create(
+    @network = Hetzner::Network::Create.new(
       hetzner_client: configuration.hetzner_client,
       network_name: configuration.cluster_name,
       location: configuration.masters_pool.location
-    )
+    ).run
 
     @firewall = Hetzner::Firewall::Create.new(
       hetzner_client: configuration.hetzner_client,
@@ -28,11 +28,11 @@ class Cluster::Create
       high_availability: configuration.masters_pool.instance_count > 1
     ).run
 
-    @ssh_key = Hetzner::SSHKey.create(
+    @ssh_key = Hetzner::SSHKey::Create.new(
       hetzner_client: configuration.hetzner_client,
       ssh_key_name: configuration.cluster_name,
       public_ssh_key_path: configuration.public_ssh_key_path
-    )
+    ).run
   end
 
   def run
@@ -44,10 +44,10 @@ class Cluster::Create
 
     masters_pool = configuration.masters_pool
 
-    placement_group = Hetzner::PlacementGroup.create(
+    placement_group = Hetzner::PlacementGroup::Create.new(
       hetzner_client = configuration.hetzner_client,
       placement_group_name = "#{configuration.cluster_name}-masters"
-    )
+    ).run
 
     masters_pool.instance_count.times do |i|
       instance_type = masters_pool.instance_type

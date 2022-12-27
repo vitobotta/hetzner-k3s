@@ -1,4 +1,8 @@
 require "../client"
+require "../ssh_key"
+require "../firewall"
+require "../network"
+require "../placement_group"
 require "../server"
 require "../servers_list"
 
