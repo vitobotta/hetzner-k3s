@@ -1,18 +1,17 @@
 require "../configuration/main"
 require "../hetzner/placement_group"
 require "../hetzner/ssh_key"
-require "../hetzner/firewall"
+require "../hetzner/firewall/create"
 require "../hetzner/network"
 require "../hetzner/server/create"
 
-class Clusters::CreateCluster
+class Cluster::Create
   private getter configuration : Configuration::Main
   private getter network : Hetzner::Network
   private getter firewall : Hetzner::Firewall
   private getter ssh_key : Hetzner::SSHKey
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
   private property servers : Array(Hetzner::Server) = [] of Hetzner::Server
-
 
   def initialize(@configuration)
     @network = Hetzner::Network.create(
@@ -21,13 +20,13 @@ class Clusters::CreateCluster
       location: configuration.masters_pool.location
     )
 
-    @firewall = Hetzner::Firewall.create(
+    @firewall = Hetzner::Firewall::Create.new(
       hetzner_client: configuration.hetzner_client,
       firewall_name: configuration.cluster_name,
       ssh_allowed_networks: configuration.ssh_allowed_networks,
       api_allowed_networks: configuration.api_allowed_networks,
       high_availability: configuration.masters_pool.instance_count > 1
-    )
+    ).run
 
     @ssh_key = Hetzner::SSHKey.create(
       hetzner_client: configuration.hetzner_client,
