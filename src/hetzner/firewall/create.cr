@@ -1,6 +1,5 @@
 require "../client"
-require "../firewall"
-require "../firewalls_list"
+require "./find"
 
 class Hetzner::Firewall::Create
   getter hetzner_client : Hetzner::Client
@@ -8,6 +7,7 @@ class Hetzner::Firewall::Create
   getter ssh_allowed_networks : Array(String)
   getter api_allowed_networks : Array(String)
   getter high_availability : Bool
+  getter firewall_finder : Hetzner::Firewall::Find
 
   def initialize(
       @hetzner_client,
@@ -16,13 +16,14 @@ class Hetzner::Firewall::Create
       @api_allowed_networks,
       @high_availability
     )
+    @firewall_finder = Hetzner::Firewall::Find.new(hetzner_client, firewall_name)
   end
 
   def run
     puts
 
     begin
-      if firewall = find_firewall
+      if firewall = firewall_finder.run
         puts "Updating firewall...".colorize(:magenta)
 
         hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", firewall_config)
@@ -32,7 +33,7 @@ class Hetzner::Firewall::Create
         puts "Creating firewall...".colorize(:magenta)
 
         hetzner_client.post("/firewalls", firewall_config)
-        firewall = find_firewall
+        firewall = firewall_finder.run
 
         puts "...firewall created.\n".colorize(:magenta)
       end
@@ -44,14 +45,6 @@ class Hetzner::Firewall::Create
       STDERR.puts ex.response
 
       exit 1
-    end
-  end
-
-  private def find_firewall
-    firewalls = FirewallsList.from_json(hetzner_client.get("/firewalls")).firewalls
-
-    firewalls.find do |firewall|
-      firewall.name == firewall_name
     end
   end
 

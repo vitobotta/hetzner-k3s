@@ -1,19 +1,20 @@
 require "../client"
-require "../placement_group"
-require "../placement_groups_list"
+require "./find"
 
 class Hetzner::PlacementGroup::Create
   getter hetzner_client : Hetzner::Client
   getter placement_group_name : String
+  getter placement_group_finder : Hetzner::PlacementGroup::Find
 
   def initialize(@hetzner_client, @placement_group_name)
+    @placement_group_finder = Hetzner::PlacementGroup::Find.new(@hetzner_client, @placement_group_name)
   end
 
   def run
     puts
 
     begin
-      if placement_group = find_placement_group
+      if placement_group = placement_group_finder.run
         puts "Placement group #{placement_group_name} already exists, skipping.\n".colorize(:blue)
       else
         puts "Creating placement group #{placement_group_name}...".colorize(:blue)
@@ -26,7 +27,7 @@ class Hetzner::PlacementGroup::Create
         hetzner_client.post("/placement_groups", placement_group_config)
         puts "...placement group created.\n".colorize(:blue)
 
-        placement_group = find_placement_group
+        placement_group = placement_group_finder.run
       end
 
       placement_group.not_nil!
@@ -36,14 +37,6 @@ class Hetzner::PlacementGroup::Create
       STDERR.puts ex.response
 
       exit 1
-    end
-  end
-
-  private def find_placement_group
-    placement_groups = PlacementGroupsList.from_json(hetzner_client.get("/placement_groups")).placement_groups
-
-    placement_groups.find do |placement_group|
-      placement_group.name == placement_group_name
     end
   end
 end

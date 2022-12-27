@@ -3,8 +3,7 @@ require "../ssh_key"
 require "../firewall"
 require "../network"
 require "../placement_group"
-require "../server"
-require "../servers_list"
+require "./find"
 
 class Hetzner::Server::Create
   getter hetzner_client : Hetzner::Client
@@ -19,6 +18,7 @@ class Hetzner::Server::Create
   getter network : Hetzner::Network
   getter additional_packages : Array(String)
   getter additional_post_create_commands : Array(String)
+  getter server_finder : Hetzner::Server::Find
 
   def initialize(
       @hetzner_client,
@@ -34,13 +34,15 @@ class Hetzner::Server::Create
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
     )
+
+    @server_finder = Hetzner::Server::Find.new(@hetzner_client, @server_name)
   end
 
   def run
     puts
 
     begin
-      if server = find_server
+      if server = server_finder.run
         puts "Server #{server_name} already exists, skipping. \n".colorize(:light_gray)
       else
         puts "Creating server #{server_name}...".colorize(:light_gray)
@@ -49,7 +51,7 @@ class Hetzner::Server::Create
 
         puts "...server #{server_name} created.\n".colorize(:light_gray)
 
-        server = find_server
+        server = server_finder.run
       end
 
       server.not_nil!
@@ -59,14 +61,6 @@ class Hetzner::Server::Create
       STDERR.puts ex.response
 
       exit 1
-    end
-  end
-
-  private def find_server
-    servers = ServersList.from_json(hetzner_client.get("/servers")).servers
-
-    servers.find do |server|
-      server.name == server_name
     end
   end
 
