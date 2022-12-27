@@ -3,7 +3,7 @@ require "colorize"
 
 require "./configuration/main"
 require "./k3s"
-require "./clusters/create_cluster"
+require "./cluster/create"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
@@ -22,7 +22,7 @@ module Hetzner::K3s
         configuration = Configuration::Main.load(flags.configuration_file_path)
         configuration.validate(:create)
 
-        Clusters::CreateCluster.new(configuration).run
+        Cluster::Create.new(configuration).run
       end
     end
 
