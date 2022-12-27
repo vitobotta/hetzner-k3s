@@ -12,14 +12,16 @@ class Hetzner::Network::Delete
 
   def run
     if network = network_finder.run
-      puts "Deleting network #{network_name}...".colorize(:green)
+      puts "Deleting network...".colorize(:green)
 
       hetzner_client.delete("/networks", network.id)
 
-      puts "...network #{network_name} deleted.\n".colorize(:green)
+      puts "...network deleted.\n".colorize(:green)
     else
-      puts "network #{network_name} does not exist, skipping.\n".colorize(:green)
+      puts "network does not exist, skipping.\n".colorize(:green)
     end
+
+    network_name
 
   rescue ex : Crest::RequestFailed
     STDERR.puts "Failed to delete network: #{ex.message}".colorize(:red)

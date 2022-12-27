@@ -73,10 +73,9 @@ class Hetzner::Client
     response.body
   end
 
-  def delete(path, params = {} of KeyType => ValueType)
+  def delete(path, id)
     response = Crest.delete(
-      "#{api_url}#{path}",
-      params.to_json,
+      "#{api_url}#{path}/#{id}",
       json: true,
       headers: headers
     )
