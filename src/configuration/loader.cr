@@ -80,7 +80,7 @@ class Configuration::Loader
   end
 
   def validate(command)
-    puts "Validating configuration..."
+    print "Validating configuration..."
 
     Settings::ClusterName.new(errors, settings.cluster_name).validate
 
@@ -101,7 +101,7 @@ class Configuration::Loader
     end
 
     if errors.empty?
-      puts "...configuration seems valid.\n"
+      puts "...configuration seems valid."
     else
       print_errors
       exit 1

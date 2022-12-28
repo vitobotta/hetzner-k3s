@@ -39,29 +39,25 @@ class Hetzner::Server::Create
   end
 
   def run
-    puts
+    if server = server_finder.run
+      puts "Server #{server_name} already exists, skipping."
+    else
+      puts "Creating server #{server_name}..."
 
-    begin
-      if server = server_finder.run
-        puts "Server #{server_name} already exists, skipping. \n"
-      else
-        puts "Creating server #{server_name}..."
+      hetzner_client.post("/servers", server_config)
 
-        hetzner_client.post("/servers", server_config)
+      puts "...server #{server_name} created."
 
-        puts "...server #{server_name} created.\n"
-
-        server = server_finder.run
-      end
-
-      server.not_nil!
-
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create server: #{ex.message}"
-      STDERR.puts ex.response
-
-      exit 1
+      server = server_finder.run
     end
+
+    server.not_nil!
+
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to create server: #{ex.message}"
+    STDERR.puts ex.response
+
+    exit 1
   end
 
   private def server_config

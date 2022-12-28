@@ -12,13 +12,13 @@ class Hetzner::Firewall::Delete
 
   def run
     if firewall = firewall_finder.run
-      puts "Deleting firewall..."
+      print "Deleting firewall..."
 
       hetzner_client.delete("/firewalls", firewall.id)
 
-      puts "...firewall deleted.\n"
+      puts "done."
     else
-      puts "firewall does not exist, skipping.\n"
+      puts "firewall does not exist, skipping."
     end
 
     firewall_name

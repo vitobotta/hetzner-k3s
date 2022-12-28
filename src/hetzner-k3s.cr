@@ -68,7 +68,7 @@ module Hetzner::K3s
       define_help description: "releases - List the available k3s releases"
 
       def run
-        puts "Available k3s releases:\n"
+        puts "Available k3s releases:"
 
         ::K3s.available_releases.each do |release|
           puts release

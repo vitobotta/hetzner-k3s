@@ -12,28 +12,24 @@ class Hetzner::Network::Create
   end
 
   def run
-    puts
+    if network = network_finder.run
+      puts "Network already exists, skipping."
+    else
+      print "Creating network..."
 
-    begin
-      if network = network_finder.run
-        puts "Network already exists, skipping.\n"
-      else
-        puts "Creating network..."
+      hetzner_client.post("/networks", network_config)
+      network = network_finder.run
 
-        hetzner_client.post("/networks", network_config)
-        network = network_finder.run
-
-        puts "...network created.\n"
-      end
-
-      network.not_nil!
-
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create network: #{ex.message}"
-      STDERR.puts ex.response
-
-      exit 1
+      puts "done."
     end
+
+    network.not_nil!
+
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to create network: #{ex.message}"
+    STDERR.puts ex.response
+
+    exit 1
   end
 
   private def network_config

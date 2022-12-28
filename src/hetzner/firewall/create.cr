@@ -20,32 +20,28 @@ class Hetzner::Firewall::Create
   end
 
   def run
-    puts
+    if firewall = firewall_finder.run
+      print "Updating firewall..."
 
-    begin
-      if firewall = firewall_finder.run
-        puts "Updating firewall..."
+      hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", firewall_config)
 
-        hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", firewall_config)
+      puts "done."
+    else
+      print "Creating firewall..."
 
-        puts "...firewall updated.\n"
-      else
-        puts "Creating firewall..."
+      hetzner_client.post("/firewalls", firewall_config)
+      firewall = firewall_finder.run
 
-        hetzner_client.post("/firewalls", firewall_config)
-        firewall = firewall_finder.run
-
-        puts "...firewall created.\n"
-      end
-
-      firewall.not_nil!
-
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create firewall: #{ex.message}"
-      STDERR.puts ex.response
-
-      exit 1
+      puts "done."
     end
+
+    firewall.not_nil!
+
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to create firewall: #{ex.message}"
+    STDERR.puts ex.response
+
+    exit 1
   end
 
   private def firewall_config
