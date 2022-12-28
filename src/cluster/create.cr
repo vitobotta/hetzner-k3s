@@ -24,6 +24,7 @@ class Cluster::Create
   private getter ssh_key : Hetzner::SSHKey
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
   private property servers : Array(Hetzner::Server) = [] of Hetzner::Server
+  private property server_creators : Array(Hetzner::Server::Create) = [] of Hetzner::Server::Create
 
   def initialize(@configuration)
     @network = Hetzner::Network::Create.new(
@@ -48,14 +49,14 @@ class Cluster::Create
   end
 
   def run
-    create_masters
+    initialize_masters
+
+    create_servers
 
     create_load_balancer if settings.masters_pool.instance_count > 1
   end
 
-  private def create_masters
-    channel = Channel(Hetzner::Server).new
-
+  private def initialize_masters
     masters_pool = settings.masters_pool
 
     placement_group = Hetzner::PlacementGroup::Create.new(
@@ -67,31 +68,21 @@ class Cluster::Create
       instance_type = masters_pool.instance_type
       master_name = "#{settings.cluster_name}-#{instance_type}-master#{i + 1}"
 
-      spawn do
-        server = Hetzner::Server::Create.new(
-          hetzner_client: hetzner_client,
-          cluster_name: settings.cluster_name,
-          server_name: master_name,
-          instance_type: masters_pool.instance_type,
-          image: settings.image,
-          location: masters_pool.location,
-          placement_group: placement_group,
-          ssh_key: ssh_key,
-          firewall: firewall,
-          network: network,
-          additional_packages: settings.additional_packages,
-          additional_post_create_commands: settings.post_create_commands
-        ).run
-
-        channel.send(server)
-      end
+      server_creators << Hetzner::Server::Create.new(
+        hetzner_client: hetzner_client,
+        cluster_name: settings.cluster_name,
+        server_name: master_name,
+        instance_type: masters_pool.instance_type,
+        image: settings.image,
+        location: masters_pool.location,
+        placement_group: placement_group,
+        ssh_key: ssh_key,
+        firewall: firewall,
+        network: network,
+        additional_packages: settings.additional_packages,
+        additional_post_create_commands: settings.post_create_commands
+      )
     end
-
-    masters_pool.instance_count.times do
-      servers << channel.receive
-    end
-
-    servers.each { |server| p server.ip_address }
   end
 
   private def create_load_balancer
@@ -101,5 +92,22 @@ class Cluster::Create
       location: configuration.masters_location,
       network_id: network.id
     ).run
+  end
+
+  private def create_servers
+    channel = Channel(Hetzner::Server).new
+
+    server_creators.each do |server_creator|
+      spawn do
+        server = server_creator.run
+        channel.send(server)
+      end
+    end
+
+    server_creators.size.times do
+      servers << channel.receive
+    end
+
+    servers.each { |server| p server.ip_address }
   end
 end
