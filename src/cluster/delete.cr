@@ -24,6 +24,8 @@ class Cluster::Delete
   end
 
   def run
+    puts "\n=== Deleting infrastructure resources ===\n"
+
     Hetzner::LoadBalancer::Delete.new(
       hetzner_client: hetzner_client,
       load_balancer_name: settings.cluster_name

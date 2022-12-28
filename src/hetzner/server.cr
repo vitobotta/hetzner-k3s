@@ -22,4 +22,8 @@ class Hetzner::Server
 
     net[0].ip
   end
+
+  def master?
+    /-master\d+/ =~ name
+  end
 end

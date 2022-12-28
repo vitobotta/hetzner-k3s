@@ -112,8 +112,4 @@ module Utils
     MESSAGE
     exit 1
   end
-
-  def verify_host_key
-    @verify_host_key ||= configuration.fetch('verify_host_key', false)
-  end
 end
