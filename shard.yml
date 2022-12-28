@@ -23,6 +23,9 @@ dependencies:
     github: sija/ipaddress.cr
   retriable:
     github: Sija/retriable.cr
+  tasker:
+    github: spider-gazelle/tasker
+
 
 development_dependencies:
   ameba:

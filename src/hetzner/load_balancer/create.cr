@@ -21,6 +21,11 @@ class Hetzner::LoadBalancer::Create
       hetzner_client.post("/load_balancers", load_balancer_config)
       load_balancer = load_balancer_finder.run
 
+      while load_balancer.try(&.public_ip_address).nil?
+        sleep 1
+        load_balancer = load_balancer_finder.run
+      end
+
       puts "done."
     end
 
