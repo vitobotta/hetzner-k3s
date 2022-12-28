@@ -4,27 +4,10 @@ require_relative '../utils'
 
 module Kubernetes
   class Client
-    include Utils
 
-    def initialize(configuration:)
-      @configuration = configuration
-    end
 
     def deploy(masters:, workers:, master_definitions:, worker_definitions:)
-      @masters = masters
-      @workers = workers
-      @master_definitions = master_definitions
-      @worker_definitions = worker_definitions
 
-      @kube_api_server_args = configuration.fetch('kube_api_server_args', [])
-      @kube_scheduler_args = configuration.fetch('kube_scheduler_args', [])
-      @kube_controller_manager_args = configuration.fetch('kube_controller_manager_args', [])
-      @kube_cloud_controller_manager_args = configuration.fetch('kube_cloud_controller_manager_args', [])
-      @kubelet_args = configuration.fetch('kubelet_args', [])
-      @kube_proxy_args = configuration.fetch('kube_proxy_args', [])
-      @private_ssh_key_path = File.expand_path(configuration['private_ssh_key_path'])
-      @public_ssh_key_path = File.expand_path(configuration['public_ssh_key_path'])
-      @cluster_name = configuration['cluster_name']
 
       set_up_k3s
 
@@ -102,11 +85,6 @@ module Kubernetes
       File.write(config_file, updated_configuration.to_yaml)
     end
 
-    private
-
-    attr_reader :configuration, :masters, :workers, :kube_api_server_args, :kube_scheduler_args,
-                :kube_controller_manager_args, :kube_cloud_controller_manager_args, :kubelet_args, :kube_proxy_args,
-                :private_ssh_key_path, :public_ssh_key_path, :master_definitions, :worker_definitions, :cluster_name
 
     def set_up_k3s
       set_up_first_master
@@ -176,9 +154,6 @@ module Kubernetes
       mark_nodes mark_type: :taints
     end
 
-    def first_master
-      masters.first
-    end
 
     def kube_api_server_args_list
       return '' if kube_api_server_args.empty?
@@ -305,13 +280,6 @@ module Kubernetes
       end
     end
 
-    def hetzner_client
-      configuration.hetzner_client
-    end
-
-    def first_master_public_ip
-      @first_master_public_ip ||= first_master.dig('public_net', 'ipv4', 'ip')
-    end
 
     def save_kubeconfig
       kubeconfig = ssh(first_master, 'cat /etc/rancher/k3s/k3s.yaml')
@@ -325,15 +293,6 @@ module Kubernetes
 
     def kubeconfig_path
       @kubeconfig_path ||= File.expand_path(configuration['kubeconfig_path'])
-    end
-
-    def schedule_workloads_on_masters?
-      schedule_workloads_on_masters = configuration['schedule_workloads_on_masters']
-      schedule_workloads_on_masters ? !!schedule_workloads_on_masters : false
-    end
-
-    def k3s_version
-      @k3s_version ||= configuration['k3s_version']
     end
 
     def k3s_token
