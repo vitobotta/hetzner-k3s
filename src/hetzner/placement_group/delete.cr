@@ -12,19 +12,19 @@ class Hetzner::PlacementGroup::Delete
 
   def run
     if placement_group = placement_group_finder.run
-      puts "Deleting placement group #{placement_group_name}...".colorize(:blue)
+      puts "Deleting placement group #{placement_group_name}..."
 
       hetzner_client.delete("/placement_groups", placement_group.id)
 
-      puts "...placement group #{placement_group_name} deleted.\n".colorize(:blue)
+      puts "...placement group #{placement_group_name} deleted.\n"
     else
-      puts "Placement group #{placement_group_name} does not exist, skipping.\n".colorize(:blue)
+      puts "Placement group #{placement_group_name} does not exist, skipping.\n"
     end
 
     placement_group_name
 
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete placement group: #{ex.message}".colorize(:red)
+    STDERR.puts "Failed to delete placement group: #{ex.message}"
     STDERR.puts ex.response
 
     exit 1

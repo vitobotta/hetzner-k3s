@@ -1,5 +1,4 @@
 require "admiral"
-require "colorize"
 
 require "./configuration/loader"
 require "./k3s"

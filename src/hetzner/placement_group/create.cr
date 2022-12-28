@@ -15,9 +15,9 @@ class Hetzner::PlacementGroup::Create
 
     begin
       if placement_group = placement_group_finder.run
-        puts "Placement group #{placement_group_name} already exists, skipping.\n".colorize(:blue)
+        puts "Placement group #{placement_group_name} already exists, skipping.\n"
       else
-        puts "Creating placement group #{placement_group_name}...".colorize(:blue)
+        puts "Creating placement group #{placement_group_name}..."
 
         placement_group_config = {
           "name" => placement_group_name,
@@ -25,7 +25,7 @@ class Hetzner::PlacementGroup::Create
         }
 
         hetzner_client.post("/placement_groups", placement_group_config)
-        puts "...placement group created.\n".colorize(:blue)
+        puts "...placement group created.\n"
 
         placement_group = placement_group_finder.run
       end
@@ -33,7 +33,7 @@ class Hetzner::PlacementGroup::Create
       placement_group.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create placement group #{placement_group_name}: #{ex.message}".colorize(:red)
+      STDERR.puts "Failed to create placement group #{placement_group_name}: #{ex.message}"
       STDERR.puts ex.response
 
       exit 1

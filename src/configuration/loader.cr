@@ -1,6 +1,5 @@
 require "yaml"
 require "crest"
-require "colorize"
 
 require "./main"
 
@@ -50,7 +49,7 @@ class Configuration::Loader
     server_types = hetzner_client.server_types
 
     if server_types.empty?
-      puts "Cannot fetch server types with Hetzner API, please try again later".colorize(:red)
+      puts "Cannot fetch server types with Hetzner API, please try again later"
       exit 1
     end
 
@@ -61,7 +60,7 @@ class Configuration::Loader
     locations = hetzner_client.locations
 
     if locations.empty?
-      puts "Cannot fetch locations with Hetzner API, please try again later".colorize(:red)
+      puts "Cannot fetch locations with Hetzner API, please try again later"
       exit 1
     end
 
@@ -81,7 +80,7 @@ class Configuration::Loader
   end
 
   def validate(command)
-    puts "Validating configuration...".colorize(:light_blue)
+    puts "Validating configuration..."
 
     Settings::ClusterName.new(errors, settings.cluster_name).validate
 
@@ -102,7 +101,7 @@ class Configuration::Loader
     end
 
     if errors.empty?
-      puts "...configuration seems valid.\n".colorize(:light_blue)
+      puts "...configuration seems valid.\n"
     else
       print_errors
       exit 1
@@ -161,10 +160,10 @@ class Configuration::Loader
   private def print_errors
     return if errors.empty?
 
-    puts "\nSome information in the configuration file requires your attention:".colorize(:red)
+    puts "\nSome information in the configuration file requires your attention:"
 
     errors.each do |error|
-      STDERR.puts "  - #{error}".colorize(:red)
+      STDERR.puts "  - #{error}"
     end
 
     exit 1

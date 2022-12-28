@@ -17,20 +17,20 @@ class Hetzner::LoadBalancer::Create
 
     begin
       if load_balancer = load_balancer_finder.run
-        puts "Load balancer for API server already exists, skipping.\n".colorize(:green)
+        puts "Load balancer for API server already exists, skipping.\n"
       else
-        puts "Creating load balancer for API server...".colorize(:green)
+        puts "Creating load balancer for API server..."
 
         hetzner_client.post("/load_balancers", load_balancer_config)
         load_balancer = load_balancer_finder.run
 
-        puts "...load balancer created.\n".colorize(:green)
+        puts "...load balancer created.\n"
       end
 
       load_balancer.not_nil!
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create load balancer: #{ex.message}".colorize(:red)
+      STDERR.puts "Failed to create load balancer: #{ex.message}"
       STDERR.puts ex.response
 
       exit 1
