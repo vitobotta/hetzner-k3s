@@ -12,19 +12,19 @@ class Hetzner::Firewall::Delete
 
   def run
     if firewall = firewall_finder.run
-      puts "Deleting firewall...".colorize(:magenta)
+      puts "Deleting firewall..."
 
       hetzner_client.delete("/firewalls", firewall.id)
 
-      puts "...firewall deleted.\n".colorize(:magenta)
+      puts "...firewall deleted.\n"
     else
-      puts "firewall does not exist, skipping.\n".colorize(:magenta)
+      puts "firewall does not exist, skipping.\n"
     end
 
     firewall_name
 
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete firewall: #{ex.message}".colorize(:red)
+    STDERR.puts "Failed to delete firewall: #{ex.message}"
     STDERR.puts ex.response
 
     exit 1

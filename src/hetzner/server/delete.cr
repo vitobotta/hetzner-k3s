@@ -17,19 +17,19 @@ class Hetzner::Server::Delete
 
     begin
       if server = server_finder.run
-        puts "Deleting server #{server_name}...".colorize(:light_gray)
+        puts "Deleting server #{server_name}..."
 
         hetzner_client.delete("/servers", server.id)
 
-        puts "...server #{server_name} deleted.\n".colorize(:light_gray)
+        puts "...server #{server_name} deleted.\n"
       else
-        puts "Server #{server_name} does not exist, skipping.\n".colorize(:light_gray)
+        puts "Server #{server_name} does not exist, skipping.\n"
       end
 
       server_name
 
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to delete server: #{ex.message}".colorize(:red)
+      STDERR.puts "Failed to delete server: #{ex.message}"
       STDERR.puts ex.response
 
       exit 1
