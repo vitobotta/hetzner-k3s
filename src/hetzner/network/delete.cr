@@ -12,13 +12,13 @@ class Hetzner::Network::Delete
 
   def run
     if network = network_finder.run
-      puts "Deleting network..."
+      print "Deleting network..."
 
       hetzner_client.delete("/networks", network.id)
 
-      puts "...network deleted.\n"
+      puts "done."
     else
-      puts "Network does not exist, skipping.\n"
+      puts "Network does not exist, skipping."
     end
 
     network_name

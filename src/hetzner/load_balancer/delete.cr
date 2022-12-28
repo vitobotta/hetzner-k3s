@@ -12,14 +12,14 @@ class Hetzner::LoadBalancer::Delete
 
   def run
     if load_balancer = load_balancer_finder.run
-      puts "Deleting load balancer for API server..."
+      print "Deleting load balancer for API server..."
 
       hetzner_client.post("/load_balancers/#{load_balancer.id}/actions/remove_target", remove_targets_config)
       hetzner_client.delete("/load_balancers", load_balancer.id)
 
-      puts "...load balancer deleted.\n"
+      puts "done."
     else
-      puts "Load balancer for API server does not exist, skipping.\n"
+      puts "Load balancer for API server does not exist, skipping."
     end
 
     load_balancer_name

@@ -12,33 +12,29 @@ class Hetzner::SSHKey::Create
   end
 
   def run
-    puts
+    if ssh_key = ssh_key_finder.run
+      puts "SSH key already exists, skipping."
+    else
+      print "Creating SSH key..."
 
-    begin
-      if ssh_key = ssh_key_finder.run
-        puts "SSH key already exists, skipping.\n"
-      else
-        puts "Creating SSH key..."
+      ssh_key_config = {
+        "name" => ssh_key_name,
+        "public_key" => File.read(public_ssh_key_path).chomp
+      }
 
-        ssh_key_config = {
-          "name" => ssh_key_name,
-          "public_key" => File.read(public_ssh_key_path).chomp
-        }
+      hetzner_client.post("/ssh_keys", ssh_key_config)
 
-        hetzner_client.post("/ssh_keys", ssh_key_config)
+      puts "done."
 
-        puts "...SSH key created.\n"
-
-        ssh_key = ssh_key_finder.run
-      end
-
-      ssh_key.not_nil!
-
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create SSH key: #{ex.message}"
-      STDERR.puts ex.response
-
-      exit 1
+      ssh_key = ssh_key_finder.run
     end
+
+    ssh_key.not_nil!
+
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to create SSH key: #{ex.message}"
+    STDERR.puts ex.response
+
+    exit 1
   end
 end

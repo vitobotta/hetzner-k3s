@@ -13,26 +13,22 @@ class Hetzner::Server::Delete
   end
 
   def run
-    puts
+    if server = server_finder.run
+      puts "Deleting server #{server_name}..."
 
-    begin
-      if server = server_finder.run
-        puts "Deleting server #{server_name}..."
+      hetzner_client.delete("/servers", server.id)
 
-        hetzner_client.delete("/servers", server.id)
-
-        puts "...server #{server_name} deleted.\n"
-      else
-        puts "Server #{server_name} does not exist, skipping.\n"
-      end
-
-      server_name
-
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to delete server: #{ex.message}"
-      STDERR.puts ex.response
-
-      exit 1
+      puts "...server #{server_name} deleted."
+    else
+      puts "Server #{server_name} does not exist, skipping."
     end
+
+    server_name
+
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to delete server: #{ex.message}"
+    STDERR.puts ex.response
+
+    exit 1
   end
 end
