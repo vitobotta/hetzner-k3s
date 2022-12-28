@@ -6,6 +6,7 @@ require "../hetzner/ssh_key/create"
 require "../hetzner/firewall/create"
 require "../hetzner/network/create"
 require "../hetzner/server/create"
+require "../hetzner/load_balancer/create"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -48,6 +49,8 @@ class Cluster::Create
 
   def run
     create_masters
+
+    create_load_balancer if settings.masters_pool.instance_count > 1
   end
 
   private def create_masters
@@ -89,5 +92,14 @@ class Cluster::Create
     end
 
     servers.each { |server| p server.ip_address }
+  end
+
+  private def create_load_balancer
+    Hetzner::LoadBalancer::Create.new(
+      hetzner_client: hetzner_client,
+      load_balancer_name: settings.cluster_name,
+      location: configuration.masters_location,
+      network_id: network.id
+    ).run
   end
 end

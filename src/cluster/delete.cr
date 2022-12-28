@@ -4,6 +4,7 @@ require "../hetzner/ssh_key/delete"
 require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
 require "../hetzner/server/delete"
+require "../hetzner/load_balancer/delete"
 
 class Cluster::Delete
   private getter configuration : Configuration::Loader
@@ -21,6 +22,11 @@ class Cluster::Delete
   end
 
   def run
+    Hetzner::LoadBalancer::Delete.new(
+      hetzner_client: hetzner_client,
+      load_balancer_name: settings.cluster_name
+    ).run
+
     delete_masters
 
     Hetzner::PlacementGroup::Delete.new(
