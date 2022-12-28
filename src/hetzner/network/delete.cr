@@ -18,7 +18,7 @@ class Hetzner::Network::Delete
 
       puts "...network deleted.\n".colorize(:green)
     else
-      puts "network does not exist, skipping.\n".colorize(:green)
+      puts "Network does not exist, skipping.\n".colorize(:green)
     end
 
     network_name
