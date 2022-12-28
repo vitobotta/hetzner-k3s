@@ -18,6 +18,8 @@ class Cluster::Delete
     configuration.public_ssh_key_path
   end
 
+  private property server_deletors : Array(Hetzner::Server::Delete) = [] of Hetzner::Server::Delete
+
   def initialize(@configuration)
   end
 
@@ -27,12 +29,19 @@ class Cluster::Delete
       load_balancer_name: settings.cluster_name
     ).run
 
-    delete_masters
+    delete_servers
 
     Hetzner::PlacementGroup::Delete.new(
       hetzner_client: hetzner_client,
       placement_group_name: "#{settings.cluster_name}-masters"
     ).run
+
+    settings.worker_node_pools.each do |node_pool|
+      Hetzner::PlacementGroup::Delete.new(
+        hetzner_client: hetzner_client,
+        placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
+      ).run
+    end
 
     Hetzner::Network::Delete.new(
       hetzner_client: hetzner_client,
@@ -51,26 +60,40 @@ class Cluster::Delete
     ).run
   end
 
-  private def delete_masters
+  private def initialize_masters
+    settings.masters_pool.instance_count.times do |i|
+      server_deletors << Hetzner::Server::Delete.new(
+        hetzner_client: hetzner_client,
+        server_name: "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+      )
+    end
+  end
+
+  private def initialize_worker_nodes
+    settings.worker_node_pools.each do |node_pool|
+      node_pool.instance_count.times do |i|
+        server_deletors << Hetzner::Server::Delete.new(
+          hetzner_client: hetzner_client,
+          server_name: "#{settings.cluster_name}-#{node_pool.name}-#{node_pool.instance_type}-worker#{i + 1}"
+        )
+      end
+    end
+  end
+
+  private def delete_servers
+    initialize_masters
+    initialize_worker_nodes
+
     channel = Channel(String).new
 
-    masters_pool = settings.masters_pool
-
-    masters_pool.instance_count.times do |i|
-      instance_type = masters_pool.instance_type
-      master_name = "#{settings.cluster_name}-#{instance_type}-master#{i + 1}"
-
+    server_deletors.each do |server_deletor|
       spawn do
-        server_name = Hetzner::Server::Delete.new(
-          hetzner_client: hetzner_client,
-          server_name: master_name
-        ).run
-
-        channel.send(server_name)
+        server_deletor.run
+        channel.send(server_deletor.server_name)
       end
     end
 
-    masters_pool.instance_count.times do
+    server_deletors.size.times do
       channel.receive
     end
   end
