@@ -112,10 +112,10 @@ class Hetzner::Server::Create
     post_create_commands = "  - #{post_create_commands.join("\n  - ")}"
 
     <<-YAML
-      #cloud-config
-      packages: [#{packages}]
-      runcmd:
-      #{post_create_commands}
+    #cloud-config
+    packages: [#{packages}]
+    runcmd:
+    #{post_create_commands}
     YAML
   end
 end
