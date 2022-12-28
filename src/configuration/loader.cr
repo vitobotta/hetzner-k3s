@@ -72,7 +72,7 @@ class Configuration::Loader
   private getter configuration_file_path : String
 
   def initialize(@configuration_file_path)
-    @settings = Configuration::Main.from_yaml(File.read(configuration_file_path)).not_nil!
+    @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
     Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
 
