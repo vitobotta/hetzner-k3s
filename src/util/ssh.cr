@@ -2,6 +2,7 @@ require "ssh2"
 require "io"
 require "../util"
 require "retriable"
+require "tasker"
 
 class Util::SSH
   getter private_ssh_key_path : String
@@ -10,22 +11,10 @@ class Util::SSH
   def initialize(@private_ssh_key_path, @public_ssh_key_path)
   end
 
-  def run(server, command, print_output = false)
-    host_ip_address = server.public_ip_address.not_nil!
-
-    result = IO::Memory.new
-
-    SSH2::Session.open(host_ip_address) do |session|
-      session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
-
-      session.open_session do |channel|
-        channel.command(command)
-        IO.copy(channel, STDOUT) if print_output
-        IO.copy(channel, result)
-      end
+  def run(server, command, print_output = true)
+    Retriable.retry(max_attempts: 300, backoff: false, base_interval: 1.second, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
+      result = run_command(server, command, print_output)
     end
-
-    result.to_s.chomp
   end
 
   def wait_for_server(server)
@@ -36,13 +25,39 @@ class Util::SSH
 
       result = nil
 
-      Retriable.retry(max_attempts: 30, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
-        result = run(server, "cat /etc/ready")
+      Retriable.retry(on: Tasker::Timeout, backoff: false) do
+        Tasker.timeout(5.seconds) do
+          result = run(server, "cat /etc/ready", false)
+        end
       end
 
       break if result == "true"
     end
 
     puts "...server #{server.name} is now up."
+  end
+
+  private def run_command(server, command, print_output = true)
+    host_ip_address = server.public_ip_address.not_nil!
+
+    result = IO::Memory.new
+    all_output = if print_output
+      IO::MultiWriter.new(STDOUT, result)
+    else
+      IO::MultiWriter.new(result)
+    end
+
+    SSH2::Session.open(host_ip_address) do |session|
+      session.timeout = 5000
+      session.knownhosts.delete_if { |h| h.name == server.public_ip_address }
+      session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
+
+      session.open_session do |channel|
+        channel.command(command)
+        IO.copy(channel, all_output)
+      end
+    end
+
+    result.to_s.chomp
   end
 end
