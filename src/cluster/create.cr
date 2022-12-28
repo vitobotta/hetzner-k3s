@@ -7,6 +7,7 @@ require "../hetzner/firewall/create"
 require "../hetzner/network/create"
 require "../hetzner/server/create"
 require "../hetzner/load_balancer/create"
+require "../util/ssh"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -18,6 +19,9 @@ class Cluster::Create
   end
   private getter public_ssh_key_path : String do
     configuration.public_ssh_key_path
+  end
+  private getter private_ssh_key_path : String do
+    configuration.private_ssh_key_path
   end
   private getter network : Hetzner::Network
   private getter firewall : Hetzner::Firewall
@@ -132,10 +136,6 @@ class Cluster::Create
 
     server_creators.size.times do
       servers << channel.receive
-    end
-
-    servers.each do |server|
-      p [server.public_ip_address, server.private_ip_address]
     end
   end
 
