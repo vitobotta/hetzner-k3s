@@ -45,10 +45,15 @@ class Hetzner::Server::Create
       puts "Creating server #{server_name}..."
 
       hetzner_client.post("/servers", server_config)
+      server = server_finder.run
+
+      while server.try(&.private_ip_address).nil?
+        sleep 1
+        server = server_finder.run
+      end
 
       puts "...server #{server_name} created."
 
-      server = server_finder.run
     end
 
     server.not_nil!

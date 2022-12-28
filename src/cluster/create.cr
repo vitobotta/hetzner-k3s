@@ -133,6 +133,10 @@ class Cluster::Create
     server_creators.size.times do
       servers << channel.receive
     end
+
+    servers.each do |server|
+      p [server.public_ip_address, server.private_ip_address]
+    end
   end
 
   private def find_network
