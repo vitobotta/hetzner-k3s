@@ -15,6 +15,7 @@ require "./settings/k3s_version"
 require "./settings/public_ssh_key_path"
 require "./settings/private_ssh_key_path"
 require "./settings/networks"
+require "./settings/existing_network_name"
 require "./settings/node_pool"
 require "./settings/node_pool/pool_name"
 require "./settings/node_pool/instance_type"
@@ -90,6 +91,7 @@ class Configuration::Loader
       Settings::K3sVersion.new(errors, settings.k3s_version).validate
       Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
       Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
+      Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
       Settings::Networks.new(errors, settings.ssh_allowed_networks).validate("SSH")
       Settings::Networks.new(errors, settings.api_allowed_networks).validate("API")
       validate_masters_pool
@@ -167,13 +169,4 @@ class Configuration::Loader
 
     exit 1
   end
-
-  # private def validate_existing_network
-  #   unless existing_network.nil?
-  #     # existing_network = Hetzner::Network.new(hetzner_client: hetzner_client, cluster_name: configuration['cluster_name'], existing_network: configuration['existing_network']).get
-
-  #   return if existing_network
-
-  #   @errors << "You have specified that you want to use the existing network named '#{configuration['existing_network']} but this network doesn't exist"
-  # end
 end

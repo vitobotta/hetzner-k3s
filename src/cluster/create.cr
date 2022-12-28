@@ -27,11 +27,7 @@ class Cluster::Create
   private property server_creators : Array(Hetzner::Server::Create) = [] of Hetzner::Server::Create
 
   def initialize(@configuration)
-    @network = Hetzner::Network::Create.new(
-      hetzner_client: hetzner_client,
-      network_name: settings.cluster_name,
-      location: settings.masters_pool.location
-    ).run
+    @network = find_network.not_nil!
 
     @firewall = Hetzner::Firewall::Create.new(
       hetzner_client: hetzner_client,
@@ -139,5 +135,19 @@ class Cluster::Create
     end
 
     servers.each { |server| p server.ip_address }
+  end
+
+  private def find_network
+    existing_network_name = settings.existing_network
+
+    if existing_network_name
+      Hetzner::Network::Find.new(hetzner_client, existing_network_name).run
+    else
+      Hetzner::Network::Create.new(
+        hetzner_client: hetzner_client,
+        network_name: settings.cluster_name,
+        location: settings.masters_pool.location
+      ).run
+    end
   end
 end
