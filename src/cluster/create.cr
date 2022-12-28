@@ -8,6 +8,8 @@ require "../hetzner/network/create"
 require "../hetzner/server/create"
 require "../hetzner/load_balancer/create"
 require "../util/ssh"
+require "../kubernetes/installer"
+require "../util/ssh"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -23,14 +25,30 @@ class Cluster::Create
   private getter private_ssh_key_path : String do
     configuration.private_ssh_key_path
   end
+  private getter masters : Array(Hetzner::Server) do
+    servers.select { |server| server.master? }.sort_by(&.name)
+  end
+  private getter workers : Array(Hetzner::Server) do
+    servers.select { |server| !server.master? }.sort_by(&.name)
+  end
+  private getter kubernetes_installer : Kubernetes::Installer do
+    Kubernetes::Installer.new(configuration, masters, workers, load_balancer, ssh)
+  end
+  private getter ssh : Util::SSH do
+    Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
+  end
+
   private getter network : Hetzner::Network
   private getter firewall : Hetzner::Firewall
   private getter ssh_key : Hetzner::SSHKey
+  private getter load_balancer : Hetzner::LoadBalancer?
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
   private property servers : Array(Hetzner::Server) = [] of Hetzner::Server
   private property server_creators : Array(Hetzner::Server::Create) = [] of Hetzner::Server::Create
 
   def initialize(@configuration)
+    puts "\n=== Creating infrastructure resources ===\n"
+
     @network = find_network.not_nil!
 
     @firewall = Hetzner::Firewall::Create.new(
@@ -50,8 +68,9 @@ class Cluster::Create
 
   def run
     create_servers
-
     create_load_balancer if settings.masters_pool.instance_count > 1
+
+    kubernetes_installer.run
   end
 
   private def initialize_masters
@@ -113,7 +132,7 @@ class Cluster::Create
   end
 
   private def create_load_balancer
-    Hetzner::LoadBalancer::Create.new(
+    @load_balancer = Hetzner::LoadBalancer::Create.new(
       hetzner_client: hetzner_client,
       load_balancer_name: settings.cluster_name,
       location: configuration.masters_location,
@@ -136,6 +155,17 @@ class Cluster::Create
 
     server_creators.size.times do
       servers << channel.receive
+    end
+
+    servers.each do |server|
+      spawn do
+        ssh.wait_for_server server
+        channel.send(server)
+      end
+    end
+
+    servers.size.times do
+      channel.receive
     end
   end
 
