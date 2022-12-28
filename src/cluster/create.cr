@@ -49,8 +49,6 @@ class Cluster::Create
   end
 
   def run
-    initialize_masters
-
     create_servers
 
     create_load_balancer if settings.masters_pool.instance_count > 1
@@ -72,7 +70,7 @@ class Cluster::Create
         hetzner_client: hetzner_client,
         cluster_name: settings.cluster_name,
         server_name: master_name,
-        instance_type: masters_pool.instance_type,
+        instance_type: instance_type,
         image: settings.image,
         location: masters_pool.location,
         placement_group: placement_group,
@@ -82,6 +80,35 @@ class Cluster::Create
         additional_packages: settings.additional_packages,
         additional_post_create_commands: settings.post_create_commands
       )
+    end
+  end
+
+  private def initialize_worker_nodes
+    settings.worker_node_pools.each do |node_pool|
+      placement_group = Hetzner::PlacementGroup::Create.new(
+        hetzner_client: hetzner_client,
+        placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
+      ).run
+
+      node_pool.instance_count.times do |i|
+        instance_type = node_pool.instance_type
+        node_name = "#{settings.cluster_name}-#{node_pool.name}-#{instance_type}-worker#{i + 1}"
+
+        server_creators << Hetzner::Server::Create.new(
+          hetzner_client: hetzner_client,
+          cluster_name: settings.cluster_name,
+          server_name: node_name,
+          instance_type: instance_type,
+          image: settings.image,
+          location: node_pool.location,
+          placement_group: placement_group,
+          ssh_key: ssh_key,
+          firewall: firewall,
+          network: network,
+          additional_packages: settings.additional_packages,
+          additional_post_create_commands: settings.post_create_commands
+        )
+      end
     end
   end
 
@@ -95,6 +122,9 @@ class Cluster::Create
   end
 
   private def create_servers
+    initialize_masters
+    initialize_worker_nodes
+
     channel = Channel(Hetzner::Server).new
 
     server_creators.each do |server_creator|
