@@ -1,7 +1,7 @@
 require "admiral"
 require "colorize"
 
-require "./configuration/main"
+require "./configuration/loader"
 require "./k3s"
 require "./cluster/create"
 require "./cluster/delete"
@@ -20,10 +20,10 @@ module Hetzner::K3s
                   required: true
 
       def run
-        configuration = Configuration::Main.load(flags.configuration_file_path)
+        configuration = Configuration::Loader.new(flags.configuration_file_path)
         configuration.validate(:create)
 
-        Cluster::Create.new(configuration).run
+        Cluster::Create.new(configuration: configuration).run
       end
     end
 
@@ -37,10 +37,10 @@ module Hetzner::K3s
                   required: true
 
       def run
-        configuration = Configuration::Main.load(flags.configuration_file_path)
-        configuration.validate(:create)
+        configuration = Configuration::Loader.new(flags.configuration_file_path)
+        configuration.validate(:delete)
 
-        Cluster::Delete.new(configuration).run
+        Cluster::Delete.new(configuration: configuration).run
       end
     end
 
