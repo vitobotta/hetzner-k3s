@@ -1,21 +1,9 @@
 # frozen_string_literal: true
 
 module Hetzner
-  class Configuration
-    GITHUB_DELIM_LINKS = ','
-    GITHUB_LINK_REGEX = /<([^>]+)>; rel="([^"]+)"/.freeze
 
-    attr_reader :hetzner_client
-
-    def initialize(options:)
-      @options = options
-      @errors = []
-
-      validate_configuration_file
-    end
 
     def validate(action:)
-      validate_token
 
       if valid_token?
         validate_cluster_name
@@ -31,103 +19,11 @@ module Hetzner
         end
       end
 
-      errors.flatten!
-
-      return if errors.empty?
-
-      puts 'Some information in the configuration file requires your attention:'
-
-      errors.each do |error|
-        puts " - #{error}"
-      end
-
-      exit 1
     end
 
-    def self.available_releases
-      @available_releases ||= begin
-        releases = []
-
-        response, page_releases = fetch_releases('https://api.github.com/repos/k3s-io/k3s/tags?per_page=100')
-        releases = page_releases
-        link_header = response.headers['link']
-
-        until link_header.nil?
-          next_page_url = extract_next_github_page_url(link_header)
-
-          break if next_page_url.nil?
-
-          response, page_releases = fetch_releases(next_page_url)
-
-          releases += page_releases
-
-          link_header = response.headers['link']
-        end
-
-        releases.sort
-      end
-    rescue StandardError
-      if defined? errors
-        errors << 'Cannot fetch the releases with Github API, please try again later. This may be due to API rate limits.'
-      else
-        puts 'Cannot fetch the releases with Github API, please try again later. This may be due to API rate limits.'
-      end
-    end
-
-    def hetzner_token
-      return @token unless @token.nil?
-
-      @token = ENV.fetch('HCLOUD_TOKEN', configuration['hetzner_token'])
-    end
-
-    def [](key)
-      configuration[key]
-    end
-
-    def fetch(key, default)
-      configuration.fetch(key, default)
-    end
-
-    def raw
-      configuration
-    end
-
-    def self.fetch_releases(url)
-      response = HTTParty.get(url)
-      [response, JSON.parse(response.body).map { |hash| hash['name'] }]
-    end
-
-    def self.extract_next_github_page_url(link_header)
-      link_header.split(GITHUB_DELIM_LINKS).each do |link|
-        GITHUB_LINK_REGEX.match(link.strip) do |match|
-          url_part = match[1]
-          meta_part = match[2]
-          next if !url_part || !meta_part
-          return url_part if meta_part == 'next'
-        end
-      end
-
-      nil
-    end
-
-    def self.assign_url_part(meta_part, url_part)
-      case meta_part
-      when 'next'
-        url_part
-      end
-    end
-
-    private
-
-    attr_reader :configuration, :errors, :options
 
     def validate_create
-      validate_public_ssh_key
-      validate_private_ssh_key
-      validate_ssh_allowed_networks
-      validate_api_allowed_networks
       validate_masters_location
-      # validate_k3s_version
       validate_masters
       validate_worker_node_pools
       validate_verify_host_key
@@ -148,136 +44,6 @@ module Hetzner
       # validate_new_k3s_version
     end
 
-    def validate_public_ssh_key
-      path = File.expand_path(configuration['public_ssh_key_path'])
-      errors << 'Invalid Public SSH key path' and return unless File.exist? path
-
-      key = File.read(path)
-      errors << 'Public SSH key is invalid' unless ::SSHKey.valid_ssh_public_key?(key)
-    rescue StandardError
-      errors << 'Invalid Public SSH key path'
-    end
-
-    def validate_private_ssh_key
-      private_ssh_key_path = configuration['private_ssh_key_path']
-
-      return unless private_ssh_key_path
-
-      path = File.expand_path(private_ssh_key_path)
-      errors << 'Invalid Private SSH key path' and return unless File.exist?(path)
-    rescue StandardError
-      errors << 'Invalid Private SSH key path'
-    end
-
-    def validate_networks(configuration_option, access_type)
-      networks ||= configuration[configuration_option]
-
-      if networks.nil? || networks.empty?
-        errors << "At least one network/IP range must be specified for #{access_type} access"
-        return
-      end
-
-      invalid_networks = networks.reject do |network|
-        IPAddr.new(network)
-      rescue StandardError
-        false
-      end
-
-      unless invalid_networks.empty?
-        invalid_networks.each do |network|
-          errors << "The #{access_type} network #{network} is an invalid range"
-        end
-      end
-
-      invalid_ranges = networks.reject do |network|
-        network.include? '/'
-      end
-
-      unless invalid_ranges.empty?
-        invalid_ranges.each do |_network|
-          errors << "Please use the CIDR notation for the #{access_type} networks to avoid ambiguity"
-        end
-      end
-
-      return unless invalid_networks.empty?
-
-      current_ip = URI.open('http://whatismyip.akamai.com').read
-
-      current_ip_network = networks.detect do |network|
-        IPAddr.new(network).include?(current_ip)
-      rescue StandardError
-        false
-      end
-
-      return if current_ip_network
-
-      case access_type
-      when 'SSH'
-        errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to SSH into the nodes "
-      when 'API'
-        errors << "Your current IP #{current_ip} is not included into any of the #{access_type} networks you've specified, so we won't be able to connect to the Kubernetes API"
-      end
-    end
-
-    def validate_ssh_allowed_networks
-      validate_networks('ssh_allowed_networks', 'SSH')
-    end
-
-    def validate_api_allowed_networks
-      validate_networks('api_allowed_networks', 'API')
-    end
-
-    def validate_masters_location
-      return if valid_location?(configuration['location'])
-
-      errors << 'Invalid location for master nodes - valid locations: nbg1 (Nuremberg, Germany), fsn1 (Falkenstein, Germany), hel1 (Helsinki, Finland) or ash (Ashburn, Virginia, USA)'
-    end
-
-    def validate_k3s_version
-      k3s_version = configuration['k3s_version']
-      errors << 'Invalid k3s version' unless Hetzner::Configuration.available_releases.include? k3s_version
-    end
-
-    def validate_masters
-      masters_pool = nil
-
-      begin
-        masters_pool = configuration['masters']
-      rescue StandardError
-        errors << 'Invalid masters configuration'
-        return
-      end
-
-      if masters_pool.nil?
-        errors << 'Invalid masters configuration'
-        return
-      end
-
-      validate_instance_group masters_pool, workers: false
-    end
-
-    def validate_worker_node_pools
-      worker_node_pools = configuration['worker_node_pools'] || []
-
-      unless worker_node_pools.size.positive? || schedule_workloads_on_masters?
-        errors << 'Invalid node pools configuration'
-        return
-      end
-
-      return if worker_node_pools.size.zero? && schedule_workloads_on_masters?
-
-      if !worker_node_pools.is_a? Array
-        errors << 'Invalid node pools configuration'
-      elsif worker_node_pools.size.zero?
-        errors << 'At least one node pool is required in order to schedule workloads' unless schedule_workloads_on_masters?
-      elsif worker_node_pools.map { |worker_node_pool| worker_node_pool['name'] }.uniq.size != worker_node_pools.size
-        errors << 'Each node pool must have an unique name'
-      elsif server_types
-        worker_node_pools.each do |worker_node_pool|
-          validate_instance_group worker_node_pool
-        end
-      end
-    end
 
     def validate_verify_host_key
       return unless [true, false].include?(configuration.fetch('public_ssh_key_path', false))
@@ -393,19 +159,6 @@ module Hetzner
       errors << 'The new k3s version is invalid' unless Hetzner::Configuration.available_releases.include? new_k3s_version
     end
 
-    def valid_token?
-      return @valid unless @valid.nil?
-
-      begin
-        token = hetzner_token
-        @hetzner_client = Hetzner::Client.new(token: token)
-        response = hetzner_client.get('/locations')
-        error_code = response.dig('error', 'code')
-        @valid = error_code != 'unauthorized'
-      rescue StandardError
-        @valid = false
-      end
-    end
 
     def validate_instance_group(instance_group, workers: true)
       instance_group_errors = []

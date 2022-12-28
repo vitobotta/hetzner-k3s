@@ -13,7 +13,9 @@ class Configuration::Settings::Networks
         errors << "#{network_type} allowed networks are required"
       else
         networks.each do |network|
-          @errors = errors + Network.new(network, network_type).validate
+          Network.new(network, network_type).validate.each do |error|
+            errors << error
+          end
         end
       end
     else
