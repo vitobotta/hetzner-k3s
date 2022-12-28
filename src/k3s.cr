@@ -39,7 +39,7 @@ module K3s
     links = link_header.split(GITHUB_DELIM_LINKS, remove_empty: true)
 
     links.each do |link|
-      captures = GITHUB_LINK_REGEX.match(link.not_nil!.strip).try &.named_captures
+      captures = GITHUB_LINK_REGEX.match(link.strip).try &.named_captures
       if captures && captures.has_key?("link") && captures.has_key?("rel") && captures["rel"] == "next"
         return captures["link"]
       end
