@@ -76,7 +76,7 @@ class Cluster::Delete
       node_pool.instance_count.times do |i|
         server_deletors << Hetzner::Server::Delete.new(
           hetzner_client: hetzner_client,
-          server_name: "#{settings.cluster_name}-#{node_pool.name}-#{node_pool.instance_type}-worker#{i + 1}"
+          server_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
         )
       end
     end
