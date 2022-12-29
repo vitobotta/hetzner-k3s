@@ -51,7 +51,9 @@ class Kubernetes::Installer
 
     puts "\n=== Deploying Hetzner drivers ===\n"
 
+    create_hetzner_cloud_secret
     deploy_cloud_controller_manager
+    deploy_csi_driver
   end
 
   private def set_up_first_master
@@ -238,10 +240,10 @@ class Kubernetes::Installer
     File.chmod kubeconfig_path, 0o600
   end
 
-  private def deploy_cloud_controller_manager
-    puts check_kubectl
+  private def create_hetzner_cloud_secret
+    check_kubectl
 
-    puts "Deploying Hetzner Cloud Controller Manager..."
+    puts "\nCreating secret for Hetzner Cloud token..."
 
     command = <<-BASH
     kubectl apply -f - <<-EOF
@@ -258,11 +260,31 @@ class Kubernetes::Installer
 
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
+    puts "...secret created."
+  end
+
+  private def deploy_cloud_controller_manager
+    check_kubectl
+
+    puts "Deplotying Hetzner Cloud Controller Manager..."
+
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
     puts "...Cloud Controller Manager deployed"
+  end
+
+  private def deploy_csi_driver
+    check_kubectl
+
+    puts "\nDeploying Hetzner CSI Driver..."
+
+    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
+
+    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+
+    puts "...CSI Driver deployed"
   end
 
   private def check_kubectl

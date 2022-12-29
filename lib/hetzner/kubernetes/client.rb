@@ -147,32 +147,7 @@ module Kubernetes
       puts '...k3s System Upgrade Controller deployed'
     end
 
-    def deploy_csi_driver
-      check_kubectl
 
-      puts
-      puts 'Deploying Hetzner CSI Driver...'
-
-      cmd = <<~BASH
-        kubectl apply -f - <<-EOF
-          apiVersion: "v1"
-          kind: "Secret"
-          metadata:
-            namespace: 'kube-system'
-            name: 'hcloud-csi'
-          stringData:
-            token: "#{configuration.hetzner_token}"
-        EOF
-      BASH
-
-      run cmd, kubeconfig_path: kubeconfig_path
-
-      cmd = 'kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml'
-
-      run cmd, kubeconfig_path: kubeconfig_path
-
-      puts '...CSI Driver deployed'
-    end
 
 
 
