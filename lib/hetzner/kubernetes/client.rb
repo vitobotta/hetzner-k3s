@@ -258,13 +258,7 @@ module Kubernetes
       BASH
     end
 
-    def find_flannel_interface(server)
-      if ssh(server, 'lscpu | grep Vendor') =~ /Intel/
-        'ens10'
-      else
-        'enp7s0'
-      end
-    end
+
 
 
     def save_kubeconfig

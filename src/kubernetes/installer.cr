@@ -34,18 +34,26 @@ class Kubernetes::Installer
   private def set_up_first_master
     puts "Deploying k3s to first master #{first_master.name}..."
 
-    ssh.run(first_master, "uptime")
+    puts master_install_script(first_master)
 
     puts "Waiting for the control plane to be ready..."
-p api_server_ip_address
+
     # sleep 10
 
     puts "...k3s has been deployed to first master."
   end
 
   private def master_install_script(master)
-    # server_flag = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip}:6443 "
+    server_flag = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
+    flannel_interface = find_flannel_interface(master)
+    puts flannel_interface
   end
 
-
+  private def find_flannel_interface(server)
+    if /Intel/ =~ ssh.run(server, "lscpu | grep Vendor", print_output: false)
+      "ens10"
+    else
+      "enp7s0"
+    end
+  end
 end
