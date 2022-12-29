@@ -132,33 +132,7 @@ module Kubernetes
       end
     end
 
-    def deploy_cloud_controller_manager
-      check_kubectl
 
-      puts
-      puts 'Deploying Hetzner Cloud Controller Manager...'
-
-      cmd = <<~BASH
-        kubectl apply -f - <<-EOF
-          apiVersion: "v1"
-          kind: "Secret"
-          metadata:
-            namespace: 'kube-system'
-            name: 'hcloud'
-          stringData:
-            network: "#{configuration['existing_network'] || cluster_name}"
-            token: "#{configuration.hetzner_token}"
-        EOF
-      BASH
-
-      run cmd, kubeconfig_path: kubeconfig_path
-
-      cmd = 'kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml'
-
-      run cmd, kubeconfig_path: kubeconfig_path
-
-      puts '...Cloud Controller Manager deployed'
-    end
 
     def deploy_system_upgrade_controller
       check_kubectl
@@ -200,12 +174,7 @@ module Kubernetes
       puts '...CSI Driver deployed'
     end
 
-    def check_kubectl
-      return if which('kubectl')
 
-      puts 'Please ensure kubectl is installed and in your PATH.'
-      exit 1
-    end
 
   end
 end

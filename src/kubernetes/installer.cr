@@ -1,4 +1,6 @@
+require "../util"
 require "../util/ssh"
+require "../util/shell"
 require "../hetzner/server"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
@@ -41,11 +43,15 @@ class Kubernetes::Installer
   end
 
   def run
-    puts "\n=== Setting up Kubernetes ===\n"
+    # puts "\n=== Setting up Kubernetes ===\n"
 
-    set_up_first_master
-    set_up_other_masters
-    set_up_workers
+    # set_up_first_master
+    # set_up_other_masters
+    # set_up_workers
+
+    puts "\n=== Deploying Hetzner drivers ===\n"
+
+    deploy_cloud_controller_manager
   end
 
   private def set_up_first_master
@@ -230,5 +236,39 @@ class Kubernetes::Installer
     File.write(settings.kubeconfig_path, kubeconfig)
 
     File.chmod kubeconfig_path, 0o600
+  end
+
+  private def deploy_cloud_controller_manager
+    puts check_kubectl
+
+    puts "Deploying Hetzner Cloud Controller Manager..."
+
+    command = <<-BASH
+    kubectl apply -f - <<-EOF
+      apiVersion: "v1"
+      kind: "Secret"
+      metadata:
+        namespace: 'kube-system'
+        name: 'hcloud'
+      stringData:
+        network: "#{settings.existing_network || settings.cluster_name}"
+        token: "#{settings.hetzner_token}"
+    EOF
+    BASH
+
+    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+
+    command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
+
+    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+
+    puts "...Cloud Controller Manager deployed"
+  end
+
+  private def check_kubectl
+    return if Util.which("kubectl")
+
+    puts "Please ensure kubectl is installed and in your PATH."
+    exit 1
   end
 end
