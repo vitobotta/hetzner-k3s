@@ -86,66 +86,14 @@ module Kubernetes
     end
 
 
-    def post_setup_deployments
-      deploy_cloud_controller_manager
-      deploy_csi_driver
-      deploy_system_upgrade_controller
-    end
-
-    def update_nodes
-      mark_nodes mark_type: :labels
-      mark_nodes mark_type: :taints
-    end
-
-
-    def mark_nodes(mark_type:)
-      check_kubectl
-
-      action = mark_type == :labels ? 'label' : 'taint'
-
-      if master_definitions.first[mark_type]
-        master_labels = master_definitions.first[mark_type].map { |k, v| "#{k}=#{v}" }.join(' ')
-        master_node_names = []
-
-        master_definitions.each do |master|
-          master_node_names << "#{configuration['cluster_name']}-#{master[:instance_type]}-#{master[:instance_id]}"
-        end
-
-        master_node_names = master_node_names.join(' ')
-
-        cmd = "kubectl #{action} --overwrite nodes #{master_node_names} #{master_labels}"
-
-        run cmd, kubeconfig_path: kubeconfig_path
-      end
-
-      return unless worker_definitions.any?
-
-      worker_definitions.each do |worker|
-        next unless worker[mark_type]
-
-        worker_labels = worker[mark_type].map { |k, v| "#{k}=#{v}" }.join(' ')
-        worker_node_name = "#{configuration['cluster_name']}-#{worker[:instance_type]}-#{worker[:instance_id]}"
-
-        cmd = "kubectl #{action} --overwrite nodes #{worker_node_name} #{worker_labels}"
-
-        run cmd, kubeconfig_path: kubeconfig_path
-      end
-    end
 
 
 
-    def deploy_system_upgrade_controller
-      check_kubectl
 
-      puts
-      puts 'Deploying k3s System Upgrade Controller...'
 
-      cmd = 'kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.9.1/system-upgrade-controller.yaml'
 
-      run cmd, kubeconfig_path: kubeconfig_path
 
-      puts '...k3s System Upgrade Controller deployed'
-    end
+
 
 
 

@@ -59,16 +59,17 @@ class Kubernetes::Installer
     create_hetzner_cloud_secret
     deploy_cloud_controller_manager
     deploy_csi_driver
+    deploy_system_upgrade_controller
   end
 
   private def set_up_first_master
     puts "Deploying k3s to first master #{first_master.name}..."
 
-    ssh.run(first_master, master_install_script(first_master))
+    output = ssh.run(first_master, master_install_script(first_master))
 
     puts "Waiting for the control plane to be ready..."
 
-    sleep 10
+    sleep 10 unless /No change detected/ =~ output
 
     save_kubeconfig
 
@@ -284,6 +285,16 @@ class Kubernetes::Installer
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
     puts "...CSI Driver deployed"
+  end
+
+  private def deploy_system_upgrade_controller
+    puts "\nDeploying k3s System Upgrade Controller..."
+
+    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.9.1/system-upgrade-controller.yaml"
+
+    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+
+    puts "...k3s System Upgrade Controller deployed."
   end
 
   private def add_labels_and_taints_to_masters
