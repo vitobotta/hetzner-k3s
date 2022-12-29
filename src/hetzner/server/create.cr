@@ -34,7 +34,7 @@ class Hetzner::Server::Create
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
     )
-
+    puts user_data
     @server_finder = Hetzner::Server::Find.new(@hetzner_client, @server_name)
   end
 
@@ -94,10 +94,7 @@ class Hetzner::Server::Create
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"
 
-    post_create_commands = [
-      "crontab -l > /etc/cron_bkp",
-      "echo '@reboot echo true > /etc/ready' >> /etc/cron_bkp",
-      "crontab /etc/cron_bkp",
+    mandatory_post_create_commands = [
       "sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config",
       "sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config",
       "systemctl restart sshd",
@@ -108,9 +105,17 @@ class Hetzner::Server::Create
       "echo 'nameserver 1.0.0.1' >> /etc/resolv.conf"
     ]
 
-    post_create_commands += additional_post_create_commands
-    post_create_commands << "shutdown -r now" if post_create_commands.select { |command| /shutdown|reboot/ =~ command && /@reboot/ !~ command }.empty?
-    post_create_commands = "  - #{post_create_commands.join("\n  - ")}"
+    finald_post_create_commands = [
+      "crontab -l > /etc/cron_bkp",
+      "echo '@reboot echo true > /etc/ready' >> /etc/cron_bkp",
+      "crontab /etc/cron_bkp"
+    ]
+
+    post_create_commands = additional_post_create_commands
+    post_create_commands += mandatory_post_create_commands
+    post_create_commands += finald_post_create_commands
+    post_create_commands << "shutdown -r now"
+    post_create_commands = "- #{post_create_commands.join("\n- ")}"
 
     <<-YAML
     #cloud-config
