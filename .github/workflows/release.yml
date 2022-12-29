@@ -41,7 +41,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           brew install crystal libssh2
-          shards install
+          shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
@@ -55,7 +55,7 @@ jobs:
         shell: alpine.sh --root {0}
         run: |
           apk add crystal shards libssh2
-          shards install
+          shards install --without-development
           crystal build src/hetzner-k3s.cr --release --static
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
@@ -96,7 +96,7 @@ jobs:
         if: matrix.os == 'ARM64'
         run: |
           brew install crystal libssh2
-          shards install
+          shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
