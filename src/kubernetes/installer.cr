@@ -43,13 +43,18 @@ class Kubernetes::Installer
   end
 
   def run
-    # puts "\n=== Setting up Kubernetes ===\n"
+    puts "\n=== Setting up Kubernetes ===\n"
 
-    # set_up_first_master
-    # set_up_other_masters
-    # set_up_workers
+    set_up_first_master
+    set_up_other_masters
+    set_up_workers
 
     puts "\n=== Deploying Hetzner drivers ===\n"
+
+    check_kubectl
+
+    add_labels_and_taints_to_masters
+    add_labels_and_taints_to_workers
 
     create_hetzner_cloud_secret
     deploy_cloud_controller_manager
@@ -241,8 +246,6 @@ class Kubernetes::Installer
   end
 
   private def create_hetzner_cloud_secret
-    check_kubectl
-
     puts "\nCreating secret for Hetzner Cloud token..."
 
     command = <<-BASH
@@ -264,9 +267,7 @@ class Kubernetes::Installer
   end
 
   private def deploy_cloud_controller_manager
-    check_kubectl
-
-    puts "Deplotying Hetzner Cloud Controller Manager..."
+    puts "\nDeplotying Hetzner Cloud Controller Manager..."
 
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
@@ -276,8 +277,6 @@ class Kubernetes::Installer
   end
 
   private def deploy_csi_driver
-    check_kubectl
-
     puts "\nDeploying Hetzner CSI Driver..."
 
     command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
@@ -285,6 +284,43 @@ class Kubernetes::Installer
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
     puts "...CSI Driver deployed"
+  end
+
+  private def add_labels_and_taints_to_masters
+    add_labels_or_taints(:label, masters, settings.masters_pool.labels, :master)
+    add_labels_or_taints(:taint, masters, settings.masters_pool.taints, :master)
+  end
+
+  private def add_labels_and_taints_to_workers
+    settings.worker_node_pools.each do |node_pool|
+      instance_type = node_pool.instance_type
+      node_name_prefix = /#{settings.cluster_name}-#{node_pool.name}-#{instance_type}-worker/
+
+      nodes = workers.select do |worker|
+        node_name_prefix =~ worker.name
+      end
+
+      add_labels_or_taints(:label, nodes, node_pool.labels, :worker)
+      add_labels_or_taints(:taint, nodes, node_pool.taints, :worker)
+    end
+  end
+
+  private def add_labels_or_taints(mark_type, servers, marks, server_type)
+    return unless marks.any?
+
+    node_names = servers.map(&.name).join(" ")
+
+    puts "\nAdding #{mark_type}s to #{server_type}s..."
+
+    all_marks = marks.map do |mark|
+      "#{mark.key}=#{mark.value}"
+    end.join(" ")
+
+    command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
+
+    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+
+    puts "...done."
   end
 
   private def check_kubectl
