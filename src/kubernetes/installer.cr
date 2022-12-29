@@ -305,7 +305,7 @@ class Kubernetes::Installer
   private def add_labels_and_taints_to_workers
     settings.worker_node_pools.each do |node_pool|
       instance_type = node_pool.instance_type
-      node_name_prefix = /#{settings.cluster_name}-#{node_pool.name}-#{instance_type}-worker/
+      node_name_prefix = /#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker/
 
       nodes = workers.select do |worker|
         node_name_prefix =~ worker.name
