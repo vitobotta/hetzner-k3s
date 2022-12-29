@@ -1,0 +1,5 @@
+{
+    "watch": ["src", "/Users/vito/Code/k3s-clusters/test"],
+    "exec": "crystal run src/hetzner-k3s.cr --error-trace -- create --config /Users/vito/Code/k3s-clusters/test/test.yaml" ,
+    "ext": "cr, yaml"
+}

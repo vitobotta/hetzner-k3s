@@ -13,3 +13,11 @@
 /cluster_config.yaml
 dist/hetzner-k3s.jar
 dist/hetzner-k3s
+
+/docs/
+/lib/
+/bin/
+/.shards/
+*.dwarf
+hetzner-k3s
+k3s-releases.yaml
