@@ -86,63 +86,6 @@ module Kubernetes
     end
 
 
-    def set_up_k3s
-      set_up_first_master
-      set_up_additional_masters
-      set_up_workers
-    end
-
-    def set_up_first_master
-      puts
-      puts "Deploying k3s to first master (#{first_master['name']})..."
-
-      ssh first_master, master_install_script(first_master), print_output: true
-
-      puts
-      puts 'Waiting for the control plane to be ready...'
-
-      sleep 10
-
-      puts
-      puts '...k3s has been deployed to first master.'
-
-      save_kubeconfig
-    end
-
-    def set_up_additional_masters
-      return unless masters.size > 1
-
-      threads = masters[1..].map do |master|
-        Thread.new do
-          puts
-          puts "Deploying k3s to master #{master['name']}..."
-
-          ssh master, master_install_script(master), print_output: true
-
-          puts
-          puts "...k3s has been deployed to master #{master['name']}."
-        end
-      end
-
-      threads.each(&:join) unless threads.empty?
-    end
-
-    def set_up_workers
-      threads = workers.map do |worker|
-        Thread.new do
-          puts
-          puts "Deploying k3s to worker (#{worker['name']})..."
-
-          ssh worker, worker_install_script(worker), print_output: true
-
-          puts
-          puts "...k3s has been deployed to worker (#{worker['name']})."
-        end
-      end
-
-      threads.each(&:join) unless threads.empty?
-    end
-
     def post_setup_deployments
       deploy_cloud_controller_manager
       deploy_csi_driver
