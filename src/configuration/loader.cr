@@ -11,6 +11,7 @@ require "./settings/configuration_file_path"
 require "./settings/cluster_name"
 require "./settings/kubeconfig_path"
 require "./settings/k3s_version"
+require "./settings/new_k3s_version"
 require "./settings/public_ssh_key_path"
 require "./settings/private_ssh_key_path"
 require "./settings/networks"
@@ -67,11 +68,13 @@ class Configuration::Loader
     locations
   end
 
+  getter new_k3s_version : String?
+  getter configuration_file_path : String
+
   private property server_types_loaded : Bool = false
   private property locations_loaded : Bool = false
-  private getter configuration_file_path : String
 
-  def initialize(@configuration_file_path)
+  def initialize(@configuration_file_path, @new_k3s_version)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
     Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
@@ -98,6 +101,7 @@ class Configuration::Loader
     when :delete
     when :upgrade
       Settings::KubeconfigPath.new(errors, settings.kubeconfig_path, file_must_exist: true).validate
+      Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
     end
 
     if errors.empty?

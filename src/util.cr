@@ -9,4 +9,11 @@
     end
     nil
   end
- end
+
+  def self.check_kubectl
+    return if which("kubectl")
+
+    puts "Please ensure kubectl is installed and in your PATH."
+    exit 1
+  end
+end

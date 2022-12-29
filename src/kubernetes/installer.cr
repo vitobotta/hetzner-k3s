@@ -51,7 +51,7 @@ class Kubernetes::Installer
 
     puts "\n=== Deploying Hetzner drivers ===\n"
 
-    check_kubectl
+    Util.check_kubectl
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
@@ -290,7 +290,7 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/download/v0.9.1/system-upgrade-controller.yaml"
+    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
 
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
@@ -332,12 +332,5 @@ class Kubernetes::Installer
     status, result = Util::Shell.run(command, settings.kubeconfig_path)
 
     puts "...done."
-  end
-
-  private def check_kubectl
-    return if Util.which("kubectl")
-
-    puts "Please ensure kubectl is installed and in your PATH."
-    exit 1
   end
 end

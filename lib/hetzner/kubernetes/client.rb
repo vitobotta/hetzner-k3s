@@ -85,19 +85,5 @@ module Kubernetes
       File.write(config_file, updated_configuration.to_yaml)
     end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   end
 end
