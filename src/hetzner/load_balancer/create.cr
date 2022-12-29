@@ -3,13 +3,16 @@ require "./find"
 
 class Hetzner::LoadBalancer::Create
   getter hetzner_client : Hetzner::Client
-  getter load_balancer_name : String
+  getter cluster_name : String
   getter location : String
   getter network_id : Int64
   getter load_balancer_finder : Hetzner::LoadBalancer::Find
+  getter load_balancer_name : String do
+    "#{cluster_name}-api"
+  end
 
-  def initialize(@hetzner_client, @load_balancer_name, @location, @network_id)
-    @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, @load_balancer_name)
+  def initialize(@hetzner_client, @cluster_name, @location, @network_id)
+    @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, load_balancer_name)
   end
 
   def run
@@ -59,7 +62,7 @@ class Hetzner::LoadBalancer::Create
       targets: [
         {
           label_selector: {
-            selector: "cluster=#{load_balancer_name},role=master"
+            selector: "cluster=#{cluster_name},role=master"
           },
           type: "label_selector",
           use_private_ip: true
