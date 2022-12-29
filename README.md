@@ -20,7 +20,7 @@ Hetzner Cloud is an awesome cloud provider which offers a truly great service wi
 
 k3s is my favorite Kubernetes distribution now because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy because it's a single binary.
 
-Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes about **a couple of minutes** only. This includes
+Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **a few minutes** only. This includes
 
 - creating the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
@@ -50,6 +50,8 @@ All that is needed to use this tool is
 
 ___
 ## Getting Started - Installation
+
+**WIP**: this will be updated soon as I have rewritten the tool in Crystal. So these instructions are still referring to the previous version written in Ruby.
 
 Before using the tool, be sure to have kubectl installed as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
 
@@ -132,12 +134,12 @@ ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
   - 0.0.0.0/0
-verify_host_key: false
-location: nbg1
+
 schedule_workloads_on_masters: false
-masters:
+masters_pool:
   instance_type: cpx21
   instance_count: 3
+  location: nbg1
   # labels:
   #   purpose: master
   #   size: cpx21
@@ -147,6 +149,7 @@ worker_node_pools:
 - name: small
   instance_type: cpx21
   instance_count: 4
+  location: hel1
   # labels:
   #   purpose: worker
   #   size: cpx21
@@ -155,6 +158,7 @@ worker_node_pools:
 - name: big
   instance_type: cpx31
   instance_count: 2
+  location: fsn1
 additional_packages:
 - somepackage
 post_create_commands:
@@ -163,6 +167,7 @@ post_create_commands:
 - apt autoremove -y
 - shutdown -r now
 enable_encryption: true
+# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 # kube_api_server_args:
 # - arg1
 # - ...
@@ -181,7 +186,6 @@ enable_encryption: true
 # kube_proxy_args:
 # - arg1
 # - ...
-# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 ```
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
