@@ -203,20 +203,6 @@ module Kubernetes
       end.join
     end
 
-    def api_server_ip
-      return @api_server_ip if @api_server_ip
-
-      @api_server_ip = if masters.size > 1
-                         load_balancer_name = "#{cluster_name}-api"
-                         load_balancer = hetzner_client.get('/load_balancers')['load_balancers'].detect do |lb|
-                           lb['name'] == load_balancer_name
-                         end
-                         load_balancer['public_net']['ipv4']['ip']
-                       else
-                         first_master_public_ip
-                       end
-    end
-
     def master_install_script(master)
       server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
       flannel_interface = find_flannel_interface(master)
