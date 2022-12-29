@@ -111,7 +111,7 @@ class Cluster::Create
 
       node_pool.instance_count.times do |i|
         instance_type = node_pool.instance_type
-        node_name = "#{settings.cluster_name}-#{node_pool.name}-#{instance_type}-worker#{i + 1}"
+        node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
 
         server_creators << Hetzner::Server::Create.new(
           hetzner_client: hetzner_client,
