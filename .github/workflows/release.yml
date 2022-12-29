@@ -54,6 +54,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: alpine.sh {0}
         run: |
+          apk update
           apk add crystal shards libssh2
           shards install
           crystal build src/hetzner-k3s.cr --release --static
