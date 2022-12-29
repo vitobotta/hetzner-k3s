@@ -46,9 +46,13 @@ jobs:
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
 
-      - name: Run Linux build
+      - name: Setup latest Alpine Linux
         if: matrix.os == 'ubuntu-latest'
         uses: jirutka/setup-alpine@v1
+
+      - name: Run Linux Build
+        if: matrix.os == 'ubuntu-latest'
+        shell: alpine.sh {0}
         run: |
           apk add crystal shards libssh2
           shards install
