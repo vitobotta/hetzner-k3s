@@ -50,7 +50,13 @@ class Kubernetes::Installer
     server_flag = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
     flannel_interface = find_flannel_interface(master)
     flannel_wireguard = find_flannel_wireguard
-    puts flannel_wireguard
+    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
+    puts kube_api_server_args_list
+    puts kube_scheduler_args_list
+    puts kube_controller_manager_args_list
+    puts kube_cloud_controller_manager_args_list
+    puts kubelet_args_list
+    puts kube_proxy_args_list
   end
 
   private def find_flannel_interface(server)
@@ -75,5 +81,41 @@ class Kubernetes::Installer
     else
       " "
     end
+  end
+
+  private def kube_api_server_args_list
+    settings.kube_api_server_args.map do |arg|
+      " --kube-apiserver-arg=\"#{arg}\" "
+    end.join
+  end
+
+  private def kube_scheduler_args_list
+    settings.kube_scheduler_args.map do |arg|
+      " --kube-scheduler-arg=\"#{arg}\" "
+    end.join
+  end
+
+  private def kube_controller_manager_args_list
+    settings.kube_controller_manager_args.map do |arg|
+      " --kube-controller-manager-arg=\"#{arg}\" "
+    end.join
+  end
+
+  private def kube_cloud_controller_manager_args_list
+    settings.kube_cloud_controller_manager_args.map do |arg|
+      " --kube-cloud-controller-manager-arg=\"#{arg}\" "
+    end.join
+  end
+
+  private def kubelet_args_list
+    settings.kubelet_args.map do |arg|
+      " --kubelet-arg=\"#{arg}\" "
+    end.join
+  end
+
+  private def kube_proxy_args_list
+    settings.kube_proxy_args.map do |arg|
+      " --kube-proxy-arg=\"#{arg}\" "
+    end.join
   end
 end

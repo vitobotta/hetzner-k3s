@@ -155,53 +155,14 @@ module Kubernetes
     end
 
 
-    def kube_api_server_args_list
-      return '' if kube_api_server_args.empty?
 
-      kube_api_server_args.map do |arg|
-        " --kube-apiserver-arg=\"#{arg}\" "
-      end.join
-    end
 
-    def kube_scheduler_args_list
-      return '' if kube_scheduler_args.empty?
 
-      kube_scheduler_args.map do |arg|
-        " --kube-scheduler-arg=\"#{arg}\" "
-      end.join
-    end
 
-    def kube_controller_manager_args_list
-      return '' if kube_controller_manager_args.empty?
 
-      kube_controller_manager_args.map do |arg|
-        " --kube-controller-manager-arg=\"#{arg}\" "
-      end.join
-    end
 
-    def kube_cloud_controller_manager_args_list
-      return '' if kube_cloud_controller_manager_args.empty?
 
-      kube_cloud_controller_manager_args.map do |arg|
-        " --kube-cloud-controller-manager-arg=\"#{arg}\" "
-      end.join
-    end
 
-    def kubelet_args_list
-      return '' if kubelet_args.empty?
-
-      kubelet_args.map do |arg|
-        " --kubelet-arg=\"#{arg}\" "
-      end.join
-    end
-
-    def kube_proxy_args_list
-      return '' if kube_proxy_args.empty?
-
-      kube_api_server_args.map do |arg|
-        " --kube-proxy-arg=\"#{arg}\" "
-      end.join
-    end
 
     def master_install_script(master)
       server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
