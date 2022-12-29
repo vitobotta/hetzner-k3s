@@ -1,0 +1,33 @@
+name: hetzner-k3s
+version: 0.1.0
+
+authors:
+  - Vito Botta <vito@botta.me>
+
+targets:
+  hetzner-k3s:
+    main: src/hetzner-k3s.cr
+
+crystal: 1.5.0
+
+license: MIT
+
+dependencies:
+  admiral:
+    github: jwaldrip/admiral.cr
+  crest:
+    github: mamantoha/crest
+  ssh2:
+    github: spider-gazelle/ssh2.cr
+  ipaddress:
+    github: sija/ipaddress.cr
+  retriable:
+    github: Sija/retriable.cr
+  tasker:
+    github: spider-gazelle/tasker
+
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: ~> 1.3.0

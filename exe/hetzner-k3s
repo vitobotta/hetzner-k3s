@@ -1,7 +1,0 @@
-#!/usr/bin/env ruby
-
-require 'rubygems'
-require 'bundler/setup'
-
-require_relative '../lib/hetzner/k3s/cli'
-Hetzner::K3s::CLI.start
