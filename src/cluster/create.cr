@@ -134,7 +134,7 @@ class Cluster::Create
   private def create_load_balancer
     @load_balancer = Hetzner::LoadBalancer::Create.new(
       hetzner_client: hetzner_client,
-      load_balancer_name: settings.cluster_name,
+      cluster_name: settings.cluster_name,
       location: configuration.masters_location,
       network_id: network.id
     ).run
