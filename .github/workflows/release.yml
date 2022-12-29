@@ -40,20 +40,24 @@ jobs:
       - name: Run Mac Build x64
         if: matrix.os == 'macos-latest'
         run: |
-          brew install squashfs openssl@1.1
-          wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
-          chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=$(openssl version -d | awk -F'"' '$0=$2')
-          chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
+          brew install crystal libssh2
+          shards install
+          crystal build src/hetzner-k3s.cr --release
+          chmod +x hetzner-k3s
+          cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
+
+      - name: Setup latest Alpine Linux
+        if: matrix.os == 'ubuntu-latest'
+        uses: jirutka/setup-alpine@v1
 
       - name: Run Linux Build
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt install squashfs-tools
-          wget https://github.com/pmq20/ruby-packer/releases/download/linux-x64/rubyc
-          chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=/usr/lib/ssl
-          chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
+          apk add crystal shards libssh2
+          shards install
+          crystal build src/hetzner-k3s.cr --release --static
+          chmod +x hetzner-k3s
+          cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
 
       # - name: Run Windows Build
       #   if: matrix.os == 'windows-latest'
@@ -90,10 +94,11 @@ jobs:
       - name: Run Mac Build ARM
         if: matrix.os == 'ARM64'
         run: |
-          wget https://github.com/pmq20/ruby-packer/releases/download/darwin-x64/rubyc
-          chmod +x rubyc
-          ./rubyc -r ./ -o ./hetzner-k3s-${{ matrix.release_suffix }} exe/hetzner-k3s --openssl-dir=$(openssl version -d | awk -F'"' '$0=$2')
-          chmod +x ./hetzner-k3s-${{ matrix.release_suffix }}
+          brew install crystal libssh2
+          shards install
+          crystal build src/hetzner-k3s.cr --release
+          chmod +x hetzner-k3s
+          cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
 
       - name: Release
         uses: softprops/action-gh-release@v1
