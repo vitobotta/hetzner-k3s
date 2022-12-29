@@ -34,7 +34,7 @@ class Hetzner::Server::Create
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
     )
-    puts user_data
+
     @server_finder = Hetzner::Server::Find.new(@hetzner_client, @server_name)
   end
 
