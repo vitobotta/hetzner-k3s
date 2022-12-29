@@ -3,11 +3,14 @@ require "./find"
 
 class Hetzner::LoadBalancer::Delete
   getter hetzner_client : Hetzner::Client
-  getter load_balancer_name : String
+  getter cluster_name : String
+  getter load_balancer_name : String do
+    "#{cluster_name}-api"
+  end
   getter load_balancer_finder : Hetzner::LoadBalancer::Find
 
-  def initialize(@hetzner_client, @load_balancer_name)
-    @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, @load_balancer_name)
+  def initialize(@hetzner_client, @cluster_name)
+    @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, load_balancer_name)
   end
 
   def run
@@ -34,7 +37,7 @@ class Hetzner::LoadBalancer::Delete
   private def remove_targets_config
     {
       label_selector: {
-        selector: "cluster=#{load_balancer_name},role=master"
+        selector: "cluster=#{cluster_name},role=master"
       },
       type: "label_selector"
     }

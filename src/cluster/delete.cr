@@ -28,7 +28,7 @@ class Cluster::Delete
 
     Hetzner::LoadBalancer::Delete.new(
       hetzner_client: hetzner_client,
-      load_balancer_name: settings.cluster_name
+      cluster_name: settings.cluster_name
     ).run
 
     delete_servers
