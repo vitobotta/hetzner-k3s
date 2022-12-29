@@ -164,47 +164,7 @@ module Kubernetes
 
 
 
-    def master_install_script(master)
-      server = master == first_master ? ' --cluster-init ' : " --server https://#{api_server_ip}:6443 "
-      flannel_interface = find_flannel_interface(master)
-      enable_encryption = configuration.fetch('enable_encryption', false)
-      flannel_wireguard = if enable_encryption
-                            if Gem::Version.new(k3s_version.scan(/\Av(.*)\+.*\Z/).flatten.first) >= Gem::Version.new('1.23.6')
-                              ' --flannel-backend=wireguard-native '
-                            else
-                              ' --flannel-backend=wireguard '
-                            end
-                          else
-                            ' '
-                          end
 
-      extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
-      taint = schedule_workloads_on_masters? ? ' ' : ' --node-taint CriticalAddonsOnly=true:NoExecute '
-
-      <<~SCRIPT
-        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
-          --disable-cloud-controller \
-          --disable servicelb \
-          --disable traefik \
-          --disable local-storage \
-          --disable metrics-server \
-          --write-kubeconfig-mode=644 \
-          --node-name="$(hostname -f)" \
-          --cluster-cidr=10.244.0.0/16 \
-          --etcd-expose-metrics=true \
-          #{flannel_wireguard} \
-          --kube-controller-manager-arg="bind-address=0.0.0.0" \
-          --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
-          --kube-scheduler-arg="bind-address=0.0.0.0" \
-          #{taint} #{extra_args} \
-          --kubelet-arg="cloud-provider=external" \
-          --advertise-address=$(hostname -I | awk '{print $2}') \
-          --node-ip=$(hostname -I | awk '{print $2}') \
-          --node-external-ip=$(hostname -I | awk '{print $1}') \
-          --flannel-iface=#{flannel_interface} \
-          #{server} #{tls_sans}" sh -
-      SCRIPT
-    end
 
     def worker_install_script(worker)
       flannel_interface = find_flannel_interface(worker)
@@ -222,42 +182,11 @@ module Kubernetes
 
 
 
-    def save_kubeconfig
-      kubeconfig = ssh(first_master, 'cat /etc/rancher/k3s/k3s.yaml')
-                   .gsub('127.0.0.1', api_server_ip)
-                   .gsub('default', configuration['cluster_name'])
 
-      File.write(kubeconfig_path, kubeconfig)
 
-      FileUtils.chmod 'go-r', kubeconfig_path
-    end
 
-    def kubeconfig_path
-      @kubeconfig_path ||= File.expand_path(configuration['kubeconfig_path'])
-    end
 
-    def k3s_token
-      @k3s_token ||= begin
-        token = ssh(first_master, '{ TOKEN=$(< /var/lib/rancher/k3s/server/node-token); } 2> /dev/null; echo $TOKEN')
 
-        if token.empty?
-          SecureRandom.hex
-        else
-          token.split(':').last
-        end
-      end
-    end
-
-    def tls_sans
-      sans = " --tls-san=#{api_server_ip} "
-
-      masters.each do |master|
-        master_private_ip = master['private_net'][0]['ip']
-        sans += " --tls-san=#{master_private_ip} "
-      end
-
-      sans
-    end
 
     def mark_nodes(mark_type:)
       check_kubectl
@@ -368,8 +297,5 @@ module Kubernetes
       exit 1
     end
 
-    def first_master_private_ip
-      @first_master_private_ip ||= first_master['private_net'][0]['ip']
-    end
   end
 end
