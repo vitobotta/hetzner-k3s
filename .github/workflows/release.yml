@@ -40,7 +40,7 @@ jobs:
       - name: Run Mac Build x64
         if: matrix.os == 'macos-latest'
         run: |
-          brew install crystal libssh2-static libyaml-static zlib-static libssl-static libcrypto-static
+          brew install crystal libssh2
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
@@ -54,7 +54,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: alpine.sh --root {0}
         run: |
-          apk add crystal shards libssh2
+          apk add crystal shards libssh2-static libyaml-static zlib-static libssl-static libcrypto-static
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release --static
           chmod +x hetzner-k3s
