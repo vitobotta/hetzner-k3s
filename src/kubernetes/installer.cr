@@ -44,6 +44,7 @@ class Kubernetes::Installer
     puts "\n=== Setting up Kubernetes ===\n"
 
     set_up_first_master
+    set_up_other_masters
   end
 
   private def set_up_first_master
@@ -57,7 +58,28 @@ class Kubernetes::Installer
 
     save_kubeconfig
 
-    puts "...k3s has been deployed to first master and the control plane is up."
+    puts "...k3s has been deployed to first master #{first_master.name} and the control plane is up."
+  end
+
+  private def set_up_other_masters
+    channel = Channel(Hetzner::Server).new
+    other_masters = masters[1..-1]
+
+    other_masters.each do |master|
+      spawn do
+        puts "Deploying k3s to master #{master.name}..."
+
+        ssh.run(master, master_install_script(master))
+
+        puts "...k3s has been deployed to master #{master.name}."
+
+        channel.send(master)
+      end
+    end
+
+    other_masters.size.times do
+      channel.receive
+    end
   end
 
   private def master_install_script(master)
