@@ -54,6 +54,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         # shell: alpine.sh --root {0}
         run: |
+          curl -fsSL https://crystal-lang.org/install.sh | sudo bash
           sudo apt install libssh2-1
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
