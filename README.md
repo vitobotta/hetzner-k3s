@@ -163,11 +163,11 @@ If you don't want to specify the Hetzner token in the config file (for example i
 **Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
-If you set `masters.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
+If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
 
 You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon).
+At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon).
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
@@ -191,23 +191,15 @@ curl \
 Notes:
 
 - if you use a custom image, the creation of the servers may take longer than when using the default image
-- the option `verify_host_key` is by default set to `false` to disable host key verification. This is because sometimes when creating new servers, Hetzner may assign IP addresses that were previously used by other servers you owned in the past. Therefore the host key verification would fail. If you set this option to `true` and this happens, the tool won't be able to continue creating the cluster until you resolve the issue with one of the suggestions it will give you
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls.
 
 Finally, to create the cluster run:
 
 ```bash
-hetzner-k3s createconfig cluster_config.yaml
+hetzner-k3s create --config cluster_config.yaml
 ```
 
 This will take a few minutes depending on the number of masters and worker nodes.
-
-If you are creating an HA cluster and see the following in the output you can safely ignore it - it happens when additional masters are joining the first one:
-
-```
-Job for k3s.service failed because the control process exited with error code.
-See "systemctl status k3s.service" and "journalctl -xe" for details.
-```
 
 
 ### Idempotency
@@ -273,10 +265,6 @@ kubectl -n system-upgrade rollout status deployment system-upgrade-controller
 ```
 
 I recommend running the above commands also when upgrading a cluster that has already been upgraded at least once previously, since the upgrade leaves some stuff behind that needs to be cleaned up.
-
-2. Re-run the `upgrade` command with an additiona parameter `--force true`.
-
-I have noticed that sometimes I need to re-run the upgrade command a couple of times to complete an upgrade successfully. Must be some bug in the system upgrade controller but I haven't investigated further.
 
 You can also check the logs of the system upgrade controller's pod:
 
