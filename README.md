@@ -3,7 +3,6 @@
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vitobotta/hetzner-k3s)
 ![GitHub Release Date](https://img.shields.io/github/release-date/vitobotta/hetzner-k3s)
 ![GitHub last commit](https://img.shields.io/github/last-commit/vitobotta/hetzner-k3s)
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vitobotta/hetzner-k3s/Create%20Release)
 ![GitHub issues](https://img.shields.io/github/issues-raw/vitobotta/hetzner-k3s)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr-raw/vitobotta/hetzner-k3s)
 ![GitHub](https://img.shields.io/github/license/vitobotta/hetzner-k3s)
