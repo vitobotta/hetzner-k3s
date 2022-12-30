@@ -66,7 +66,7 @@ brew install vitobotta/tap/hetzner_k3s
 #### Binary installation (Intel)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.4/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.45/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -74,47 +74,18 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 #### Binary installation (Apple Silicon/M1)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.4/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.45/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
 
-NOTE: currently the ARM version still requires [Rosetta](https://support.apple.com/en-us/HT211861) to function because it's not really an ARM-compiled version yet. It's a different build specifically for ARM Macs because of some differences in openssl between ARM and Intel Macs. A proper ARM version will be available in the future.
-
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.4/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.45/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
-
-### macOS, Linux, Windows
-
-#### As Ruby gem executable
-
-Once you have the Ruby runtime up and running (2.7.1 required), you just need to install the gem:
-
-```bash
-gem install hetzner-k3s
-```
-
-This will install the `hetzner-k3s` executable in your PATH.
-
-#### With Docker
-
-Alternatively, if you don't want to set up a Ruby runtime but have Docker installed, you can use a container. Run the following from inside the directory where you have the config file for the cluster (described in the next section):
-
-```bash
-docker run --rm -it \
-  -v ${PWD}:/cluster \
-  -v ${HOME}/.ssh:/tmp/.ssh \
-  vitobotta/hetzner-k3s:v0.6.4 \
-  create-cluster \
-  --config-file /cluster/test.yaml
-```
-
-Replace `test.yaml` with the name of your config file.
 
 ___
 
@@ -190,8 +161,6 @@ enable_encryption: true
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
-If you are using Docker, then set `kubeconfig_path` to `/cluster/kubeconfig` so that the kubeconfig is created in the same directory where your config file is. Also set the config file path to `/cluster/<filename>`.
-
 If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
 
 **Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
@@ -201,8 +170,7 @@ If you set `masters.instance_count` to 1 then the tool will create a non highly 
 
 You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and one in the USA (`ash`, Ashburn, Virginia). Please note that the Ashburn, Virginia location has just
-been announced and it's limited to AMD instances for now.
+At the moment Hetzner Cloud has four locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon).
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
@@ -232,7 +200,7 @@ Notes:
 Finally, to create the cluster run:
 
 ```bash
-hetzner-k3s create-cluster --config-file cluster_config.yaml
+hetzner-k3s createconfig cluster_config.yaml
 ```
 
 This will take a few minutes depending on the number of masters and worker nodes.
@@ -247,7 +215,7 @@ See "systemctl status k3s.service" and "journalctl -xe" for details.
 
 ### Idempotency
 
-The `create-cluster` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
+The `create` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
 
 ### Adding nodes
 
@@ -282,7 +250,7 @@ ___
 If it's the first time you upgrade the cluster, all you need to do to upgrade it to a newer version of k3s is run the following command:
 
 ```bash
-hetzner-k3s upgrade-cluster --config-file cluster_config.yaml --new-k3s-version v1.21.3+k3s1
+hetzner-k3s upgrade --config cluster_config.yaml --new-k3s-version v1.21.3+k3s1
 ```
 
 So you just need to specify the new k3s version as an additional parameter and the configuration file will be updated with the new version automatically during the upgrade. To see the list of available k3s releases run the command `hetzner-k3s releases`.
@@ -309,7 +277,7 @@ kubectl -n system-upgrade rollout status deployment system-upgrade-controller
 
 I recommend running the above commands also when upgrading a cluster that has already been upgraded at least once previously, since the upgrade leaves some stuff behind that needs to be cleaned up.
 
-2. Re-run the `upgrade-cluster` command with an additiona parameter `--force true`.
+2. Re-run the `upgrade` command with an additiona parameter `--force true`.
 
 I have noticed that sometimes I need to re-run the upgrade command a couple of times to complete an upgrade successfully. Must be some bug in the system upgrade controller but I haven't investigated further.
 
@@ -341,7 +309,7 @@ ___
 To delete a cluster, running
 
 ```bash
-hetzner-k3s delete-cluster --config-file cluster_config.yaml
+hetzner-k3s delete --config cluster_config.yaml
 ```
 
 This will delete all the resources in the Hetzner Cloud project for the cluster being deleted.
