@@ -55,7 +55,7 @@ jobs:
         # shell: alpine.sh --root {0}
         run: |
           curl -fsSL https://crystal-lang.org/install.sh | sudo bash
-          sudo apt install libssh2-1
+          sudo apt install libssh2-1-dev
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
