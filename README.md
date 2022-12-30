@@ -51,8 +51,6 @@ All that is needed to use this tool is
 ___
 ## Getting Started - Installation
 
-**WIP**: this will be updated soon as I have rewritten the tool in Crystal. So these instructions are still referring to the previous version written in Ruby.
-
 Before using the tool, be sure to have kubectl installed as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
 
 ### macOS
