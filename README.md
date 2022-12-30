@@ -46,7 +46,6 @@ All that is needed to use this tool is
 
 - an Hetzner Cloud account
 - an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
-- a recent Ruby runtime installed if you install the tool as Ruby gem (see [this page](https://www.ruby-lang.org/en/documentation/installation/) for instructions if you are not familiar with Ruby). I recommend you use the standalone binaries either downloaded directly or installed with Homebrew though, since it's easier and you don't have to set up Ruby.
 
 ___
 ## Getting Started - Installation
