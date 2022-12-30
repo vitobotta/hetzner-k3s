@@ -85,7 +85,7 @@ jobs:
           files: hetzner-k3s-${{ matrix.release_suffix }}
 
 
-  build_release_arm:
+  # build_release_arm:
     # name: Build Release
     # needs: create_release
     # strategy:
