@@ -78,6 +78,14 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 
 ### Linux
 
+You may need to install a couple of dependencies depending on your system. E.g. on Ubuntu:
+
+```bash
+sudo apt-get install libssh2-1-dev libevent-dev
+```
+
+Then:
+
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.45/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
