@@ -74,7 +74,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.create_release.outputs.tag-name }}
+          # tag_name: ${{ needs.create_release.outputs.tag-name }}
           files: hetzner-k3s-${{ matrix.release_suffix }}
 
 
@@ -104,7 +104,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ needs.create_release.outputs.tag-name }}
+          # tag_name: ${{ needs.create_release.outputs.tag-name }}
           files: hetzner-k3s-${{ matrix.release_suffix }}
 
 
