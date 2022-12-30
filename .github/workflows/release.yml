@@ -54,7 +54,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: alpine.sh --root {0}
         run: |
-          apk add crystal shards libssh2-static yaml-dev zlib-static openssl-dev libcrypto3 autoconf libtool make yaml yaml-static
+          apk add crystal shards libssh2-static yaml-dev zlib-static libssl-dev libcrypto3 autoconf libtool make yaml yaml-static
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release --static
           chmod +x hetzner-k3s
