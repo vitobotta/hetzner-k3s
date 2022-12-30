@@ -43,7 +43,8 @@ jobs:
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
-          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" ${{ env.FILES }}
+          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
+          gh release upload ${{ env.VERSION }} ${{ env.FILES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
@@ -60,7 +61,8 @@ jobs:
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
-          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" ${{ env.FILES }}
+          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
+          gh release upload ${{ env.VERSION }} ${{ env.FILES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
@@ -95,7 +97,8 @@ jobs:
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
-          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" ${{ env.FILES }}
+          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
+          gh release upload ${{ env.VERSION }} ${{ env.FILES }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
