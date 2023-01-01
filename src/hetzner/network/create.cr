@@ -33,13 +33,22 @@ class Hetzner::Network::Create
   end
 
   private def network_config
+    network_zone = case location
+    when "ash"
+      "us-east"
+    when "hil"
+      "us-west"
+    else
+      "eu-central"
+    end
+
     {
       name: network_name,
       ip_range: "10.0.0.0/16",
       subnets: [
         {
           ip_range: "10.0.0.0/16",
-          network_zone: (location == "ash" ? "us-east" : "eu-central"),
+          network_zone: network_zone,
           type: "cloud"
         }
       ]
