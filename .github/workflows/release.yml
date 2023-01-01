@@ -45,11 +45,6 @@ jobs:
           docker exec alpine apk add libssh2 libssh2-dev libssh2-static
           docker exec alpine shards install --without-development
           docker exec alpine crystal build src/hetzner-k3s.cr --release --static
-          # curl -fsSL https://crystal-lang.org/install.sh | sudo bash
-          # sudo apt install libssh2-1-dev
-          # shards install --without-development
-          # crystal build src/hetzner-k3s.cr --release
-          # chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
           gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
           gh release upload ${{ env.VERSION }} ${{ env.FILES }}
