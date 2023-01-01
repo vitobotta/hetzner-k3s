@@ -6,22 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  # create_release:
-  #   name: Create Release
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Create Release
-  #       id: create_release
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         name: ${{ github.ref_name }}
-  #         draft: false
-  #         prerelease: true
-  #         generate_release_notes: false
-
   build_release_x64:
     name: Build Release
-    # needs: create_release
     strategy:
       matrix:
         os: [macos-latest]
@@ -55,10 +41,11 @@ jobs:
       - name: Run Linux Build
         if: matrix.os == 'ubuntu-latest'
         run: |
-          curl -fsSL https://crystal-lang.org/install.sh | sudo bash
-          sudo apt install libssh2-1-dev
-          shards install --without-development
-          crystal build src/hetzner-k3s.cr --release
+          docker run --rm -it -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine crystal build src/hetzner-k3s.cr --release --static
+          # curl -fsSL https://crystal-lang.org/install.sh | sudo bash
+          # sudo apt install libssh2-1-dev
+          # shards install --without-development
+          # crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
           gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
@@ -69,15 +56,10 @@ jobs:
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: hetzner-k3s-${{ matrix.release_suffix }}
 
 
   build_release_arm:
     name: Build Release
-    # needs: create_release
     strategy:
       matrix:
         os: [ARM64]
@@ -105,10 +87,7 @@ jobs:
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: hetzner-k3s-${{ matrix.release_suffix }}
+
 
 
 
