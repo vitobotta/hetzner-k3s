@@ -78,7 +78,13 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 
 ### Linux
 
-Then:
+#### With Homebrew
+
+```bash
+brew install vitobotta/tap/hetzner_k3s
+```
+
+#### Binary installation
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.6/hetzner-k3s-linux-x86_64
