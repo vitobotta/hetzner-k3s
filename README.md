@@ -63,7 +63,7 @@ brew install vitobotta/tap/hetzner_k3s
 #### Binary installation (Intel)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.6/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.7/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -71,7 +71,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 #### Binary installation (Apple Silicon/M1)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.6/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.7/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -79,7 +79,7 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.6/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.7/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -167,7 +167,7 @@ If you set `masters_pool.instance_count` to 1 then the tool will create a non hi
 
 You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon).
+At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
