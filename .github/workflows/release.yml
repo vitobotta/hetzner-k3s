@@ -55,7 +55,6 @@ jobs:
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
 
-
   build_release_arm:
     name: Build Release
     strategy:
