@@ -6,8 +6,9 @@ class Hetzner::Network::Create
   getter network_name : String
   getter location : String
   getter network_finder : Hetzner::Network::Find
+  getter locations : Array(Hetzner::Location)
 
-  def initialize(@hetzner_client, @network_name, @location)
+  def initialize(@hetzner_client, @network_name, @location, @locations)
     @network_finder = Hetzner::Network::Find.new(@hetzner_client, @network_name)
   end
 
@@ -33,14 +34,7 @@ class Hetzner::Network::Create
   end
 
   private def network_config
-    network_zone = case location
-    when "ash"
-      "us-east"
-    when "hil"
-      "us-west"
-    else
-      "eu-central"
-    end
+    network_zone = locations.find { |l| l.name == location }.not_nil!.network_zone
 
     {
       name: network_name,

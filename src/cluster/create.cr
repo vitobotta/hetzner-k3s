@@ -178,7 +178,8 @@ class Cluster::Create
       Hetzner::Network::Create.new(
         hetzner_client: hetzner_client,
         network_name: settings.cluster_name,
-        location: settings.masters_pool.location
+        location: settings.masters_pool.location,
+        locations: configuration.locations
       ).run
     end
   end

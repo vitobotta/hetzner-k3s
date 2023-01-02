@@ -5,4 +5,5 @@ class Hetzner::Location
 
   property id : Int32
   property name : String
+  property network_zone : String
 end
