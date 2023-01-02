@@ -4,7 +4,7 @@ require "file"
 module K3s
   GITHUB_DELIM_LINKS = ","
   GITHUB_LINK_REGEX = /<(?<link>[^>]+)>; rel="(?<rel>[^"]+)"/
-  RELEASES_FILENAME = "./k3s-releases.yaml"
+  RELEASES_FILENAME = "/tmp/k3s-releases.yaml"
 
   def self.available_releases
     if File.exists?(RELEASES_FILENAME)
