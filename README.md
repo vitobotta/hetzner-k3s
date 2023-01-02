@@ -60,13 +60,15 @@ Before using the tool, be sure to have kubectl installed as it's required to ins
 brew install vitobotta/tap/hetzner_k3s
 ```
 
-#### Binary installation (Intel)
+#### Binary installation
 
-You need to install these dependencies as well:
+You need to install these dependencies first:
 - libssh2
 - libevent
 - bdw-gc
 - libyaml
+
+##### Intel
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.9/hetzner-k3s-mac-amd64
@@ -74,7 +76,7 @@ chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
 
-#### Binary installation (Apple Silicon/M1)
+##### Apple Silicon/M1
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.6.9/hetzner-k3s-mac-arm64
