@@ -25,7 +25,8 @@ dependencies:
     github: Sija/retriable.cr
   tasker:
     github: spider-gazelle/tasker
-
+  crinja:
+    github: straight-shoota/crinja
 
 development_dependencies:
   ameba:

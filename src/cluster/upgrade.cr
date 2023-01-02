@@ -1,9 +1,13 @@
+require "crinja"
 require "../util"
 require "../util/shell"
 require "../configuration/main"
 require "../configuration/loader"
 
 class Cluster::Upgrade
+  UPGRADE_PLAN_MANIFEST_FOR_MASTERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_masters.yaml") }}
+  UPGRADE_PLAN_MANIFEST_FOR_WORKERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_workers.yaml") }}
+
   private getter configuration : Configuration::Loader
   private getter settings : Configuration::Main do
     configuration.settings
@@ -22,30 +26,13 @@ class Cluster::Upgrade
     worker_upgrade_concurrency = 1 if worker_upgrade_concurrency.zero?
     new_k3s_version = configuration.new_k3s_version
 
+    masters_upgrade_manifest = Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_MASTERS, {
+      new_k3s_version: new_k3s_version,
+    })
+
     command = <<-BASH
     kubectl apply -f - <<-EOF
-      apiVersion: upgrade.cattle.io/v1
-      kind: Plan
-      metadata:
-        name: k3s-server
-        namespace: system-upgrade
-        labels:
-          k3s-upgrade: server
-      spec:
-        concurrency: 1
-        version: #{new_k3s_version}
-        nodeSelector:
-          matchExpressions:
-            - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
-        serviceAccountName: system-upgrade
-        tolerations:
-        - key: "CriticalAddonsOnly"
-          operator: "Equal"
-          value: "true"
-          effect: "NoExecute"
-        cordon: true
-        upgrade:
-          image: rancher/k3s-upgrade
+    #{masters_upgrade_manifest}
     EOF
     BASH
 
@@ -57,37 +44,25 @@ class Cluster::Upgrade
       exit 1
     end
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-      apiVersion: upgrade.cattle.io/v1
-      kind: Plan
-      metadata:
-        name: k3s-agent
-        namespace: system-upgrade
-        labels:
-          k3s-upgrade: agent
-      spec:
-        concurrency: #{worker_upgrade_concurrency}
-        version: #{new_k3s_version}
-        nodeSelector:
-          matchExpressions:
-            - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
-        serviceAccountName: system-upgrade
-        prepare:
-          image: rancher/k3s-upgrade
-          args: ["prepare", "k3s-server"]
-        cordon: true
-        upgrade:
-          image: rancher/k3s-upgrade
-    EOF
-    BASH
+    if workers_count > 0
+      workers_upgrade_manifest = Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_WORKERS, {
+        new_k3s_version: new_k3s_version,
+        worker_upgrade_concurrency: worker_upgrade_concurrency,
+      })
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+      command = <<-BASH
+      kubectl apply -f - <<-EOF
+      #{workers_upgrade_manifest}
+      EOF
+      BASH
 
-    unless status.zero?
-      puts "Failed to create upgrade plan for workers:"
-      puts result
-      exit 1
+      status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+
+      unless status.zero?
+        puts "Failed to create upgrade plan for workers:"
+        puts result
+        exit 1
+      end
     end
 
     puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
