@@ -264,6 +264,12 @@ class Kubernetes::Installer
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
+    unless status.zero?
+      puts "Failed to create Hetzner Cloud secret:"
+      puts result
+      exit 1
+    end
+
     puts "...secret created."
   end
 
@@ -273,6 +279,12 @@ class Kubernetes::Installer
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+
+    unless status.zero?
+      puts "Failed to deploy Cloud Controller Manager:"
+      puts result
+      exit 1
+    end
 
     puts "...Cloud Controller Manager deployed"
   end
@@ -284,6 +296,12 @@ class Kubernetes::Installer
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
+    unless status.zero?
+      puts "Failed to deploy CSI Driver:"
+      puts result
+      exit 1
+    end
+
     puts "...CSI Driver deployed"
   end
 
@@ -293,6 +311,12 @@ class Kubernetes::Installer
     command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+
+    unless status.zero?
+      puts "Failed to deploy k3s System Upgrade Controller:"
+      puts result
+      exit 1
+    end
 
     puts "...k3s System Upgrade Controller deployed."
   end

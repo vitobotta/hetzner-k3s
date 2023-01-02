@@ -51,6 +51,12 @@ class Cluster::Upgrade
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
+    unless status.zero?
+      puts "Failed to create upgrade plan for controlplane:"
+      puts result
+      exit 1
+    end
+
     command = <<-BASH
     kubectl apply -f - <<-EOF
       apiVersion: upgrade.cattle.io/v1
@@ -77,6 +83,12 @@ class Cluster::Upgrade
     BASH
 
     status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+
+    unless status.zero?
+      puts "Failed to create upgrade plan for workers:"
+      puts result
+      exit 1
+    end
 
     puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
     puts "The API server may be briefly unavailable during the upgrade of the controlplane."
