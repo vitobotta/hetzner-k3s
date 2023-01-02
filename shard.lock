@@ -22,7 +22,7 @@ shards:
 
   future:
     git: https://github.com/crystal-community/future.cr.git
-    version: 1.0.1
+    version: 1.0.0
 
   http-client-digest_auth:
     git: https://github.com/mamantoha/http-client-digest_auth.git
