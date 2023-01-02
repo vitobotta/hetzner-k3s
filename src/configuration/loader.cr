@@ -98,8 +98,8 @@ class Configuration::Loader
       Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
       Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
       Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
-      Settings::Networks.new(errors, settings.ssh_allowed_networks).validate("SSH")
-      Settings::Networks.new(errors, settings.api_allowed_networks).validate("API")
+      Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
+      Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
       validate_masters_pool
       validate_worker_node_pools
     when :delete
