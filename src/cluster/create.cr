@@ -31,8 +31,11 @@ class Cluster::Create
   private getter workers : Array(Hetzner::Server) do
     servers.select { |server| !server.master? }.sort_by(&.name)
   end
+  private getter autoscaling_worker_node_pools : Array(Configuration::NodePool) do
+    settings.worker_node_pools.select(&.autoscaling_enabled)
+  end
   private getter kubernetes_installer : Kubernetes::Installer do
-    Kubernetes::Installer.new(configuration, masters, workers, load_balancer, ssh)
+    Kubernetes::Installer.new(configuration, masters, workers, load_balancer, ssh, autoscaling_worker_node_pools)
   end
   private getter ssh : Util::SSH do
     Util::SSH.new(private_ssh_key_path, public_ssh_key_path)

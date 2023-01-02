@@ -1,4 +1,5 @@
 require "crinja"
+require "base64"
 require "../util"
 require "../util/ssh"
 require "../util/shell"
@@ -11,6 +12,7 @@ class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
   HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../templates/hetzner_cloud_secret_manifest.yaml") }}
+  CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main do
@@ -18,6 +20,7 @@ class Kubernetes::Installer
   end
   getter masters : Array(Hetzner::Server)
   getter workers : Array(Hetzner::Server)
+  getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : Util::SSH
 
@@ -44,7 +47,7 @@ class Kubernetes::Installer
     sans
   end
 
-  def initialize(@configuration, @masters, @workers, @load_balancer, @ssh)
+  def initialize(@configuration, @masters, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)
   end
 
   def run
@@ -65,6 +68,7 @@ class Kubernetes::Installer
     deploy_cloud_controller_manager
     deploy_csi_driver
     deploy_system_upgrade_controller
+    deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
   end
 
   private def set_up_first_master
@@ -109,7 +113,7 @@ class Kubernetes::Installer
       spawn do
         puts "Deploying k3s to worker #{worker.name}..."
 
-        ssh.run(worker, worker_install_script(worker))
+        ssh.run(worker, worker_install_script)
 
         puts "...k3s has been deployed to worker #{worker.name}."
 
@@ -124,7 +128,6 @@ class Kubernetes::Installer
 
   private def master_install_script(master)
     server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
-    flannel_interface = find_flannel_interface(master)
     flannel_wireguard = find_flannel_wireguard
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
@@ -135,27 +138,17 @@ class Kubernetes::Installer
       flannel_wireguard: flannel_wireguard,
       taint: taint,
       extra_args: extra_args,
-      flannel_interface: flannel_interface,
       server: server,
       tls_sans: tls_sans
     })
   end
 
-  private def worker_install_script(worker)
+  private def worker_install_script
     Crinja.render(WORKER_INSTALL_SCRIPT, {
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      first_master_private_ip_address: first_master.private_ip_address,
-      flannel_interface: find_flannel_interface(worker)
+      first_master_private_ip_address: first_master.private_ip_address
     })
-  end
-
-  private def find_flannel_interface(server)
-    if /Intel/ =~ ssh.run(server, "lscpu | grep Vendor", print_output: false)
-      "ens10"
-    else
-      "enp7s0"
-    end
   end
 
   private def find_flannel_wireguard
@@ -305,6 +298,44 @@ class Kubernetes::Installer
     end
 
     puts "...k3s System Upgrade Controller deployed."
+  end
+
+  private def deploy_cluster_autoscaler
+    puts "\nDeploying Cluster Autoscaler..."
+
+    node_pool_args = autoscaling_worker_node_pools.map do |pool|
+      autoscaling = pool.autoscaling.not_nil!
+      "- --nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
+    end.join("\n            ")
+
+    k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
+
+    cloud_init = Hetzner::Server::Create.cloud_init(settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+
+    cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
+      node_pool_args: node_pool_args,
+      cloud_init: Base64.strict_encode(cloud_init),
+      image: settings.image,
+      firewall_name: settings.cluster_name,
+      ssh_key_name: settings.cluster_name,
+      network_name: (settings.existing_network || settings.cluster_name)
+    })
+
+    cluster_autoscaler_manifest_path = "/tmp/cluster_autoscaler_manifest_path.yaml"
+
+    File.write(cluster_autoscaler_manifest_path, cluster_autoscaler_manifest)
+
+    command = "kubectl apply -f #{cluster_autoscaler_manifest_path}"
+
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+
+    unless status.zero?
+      puts "Failed to deploy Cluster Autoscaler:"
+      puts result
+      exit 1
+    end
+
+    puts "...Cluster Autoscaler deployed."
   end
 
   private def add_labels_and_taints_to_masters
