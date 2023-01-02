@@ -57,7 +57,7 @@ Before using the tool, be sure to have kubectl installed as it's required to ins
 #### With Homebrew
 
 ```bash
-brew install libssh2
+brew install libssh2 libevent bdw-gc 
 brew install vitobotta/tap/hetzner_k3s
 ```
 
