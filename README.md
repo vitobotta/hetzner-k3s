@@ -209,6 +209,7 @@ Notes:
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
 - worker nodes created by the autoscaler must be deleted manually from the Hetzner Console
+- SSH keys with passphrases are not currently supported, since the passphrase would be required too many times during cluster creation
 
 Finally, to create the cluster run:
 
