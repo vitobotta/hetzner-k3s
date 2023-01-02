@@ -103,7 +103,9 @@ class Cluster::Create
   end
 
   private def initialize_worker_nodes
-    settings.worker_node_pools.each do |node_pool|
+    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+
+    no_autoscaling_worker_node_pools.each do |node_pool|
       placement_group = Hetzner::PlacementGroup::Create.new(
         hetzner_client: hetzner_client,
         placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
