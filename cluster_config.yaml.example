@@ -34,6 +34,10 @@ worker_node_pools:
 - name: big
   instance_type: cpx31
   instance_count: 2
+  autoscaling:
+    enabled: true
+    min_instances: 0
+    max_instances: 3
 additional_packages:
 - somepackage
 post_create_commands:
