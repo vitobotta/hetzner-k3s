@@ -1,37 +1,6 @@
 require "ipaddress"
 require "crest"
 
-module IPAddress
-  class IPv4
-    def includes?(other : IPv6)
-      false
-    end
-
-    def includes?(*others : IPv6)
-      false
-    end
-
-    def includes?(others : Array(IPv6))
-      false
-    end
-  end
-
-  class IPv6
-    def includes?(other : IPv4)
-      false
-    end
-
-    def includes?(*others : IPv4)
-      false
-    end
-
-    def includes?(others : Array(IPv4))
-      false
-    end
-  end
-end
-
-
 class Network
   getter cidr : String
   getter errors : Array(String)
