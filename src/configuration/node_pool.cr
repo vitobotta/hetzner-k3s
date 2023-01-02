@@ -2,6 +2,7 @@ require "yaml"
 
 require "./node_label"
 require "./node_taint"
+require "./autoscaling"
 
 class Configuration::NodePool
   include YAML::Serializable
@@ -12,4 +13,9 @@ class Configuration::NodePool
   property instance_count : Int32 = 1
   property labels : Array(::Configuration::NodeLabel) = [] of ::Configuration::NodeLabel
   property taints : Array(::Configuration::NodeTaint) = [] of ::Configuration::NodeTaint
+  property autoscaling : ::Configuration::Autoscaling?
+
+  getter autoscaling_enabled : Bool do
+    autoscaling.try(&.enabled) || false
+  end
 end

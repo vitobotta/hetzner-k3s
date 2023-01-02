@@ -80,7 +80,7 @@ class Hetzner::Server::Create
       ssh_keys: [
         ssh_key.id
       ],
-      user_data: user_data,
+      user_data: Hetzner::Server::Create.cloud_init(additional_packages, additional_post_create_commands),
       labels: {
         cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
@@ -89,7 +89,7 @@ class Hetzner::Server::Create
     }
   end
 
-  private def user_data
+  def self.cloud_init(additional_packages = [] of String, additional_post_create_commands = [] of String, before_reboot_commands = [] of String)
     packages = %w[fail2ban wireguard]
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"
@@ -105,7 +105,7 @@ class Hetzner::Server::Create
       "echo 'nameserver 1.0.0.1' >> /etc/resolv.conf"
     ]
 
-    finald_post_create_commands = [
+    final_post_create_commands = [
       "crontab -l > /etc/cron_bkp",
       "echo '@reboot echo true > /etc/ready' >> /etc/cron_bkp",
       "crontab /etc/cron_bkp"
@@ -113,7 +113,8 @@ class Hetzner::Server::Create
 
     post_create_commands = additional_post_create_commands
     post_create_commands += mandatory_post_create_commands
-    post_create_commands += finald_post_create_commands
+    post_create_commands += final_post_create_commands
+    post_create_commands += before_reboot_commands
     post_create_commands << "shutdown -r now"
     post_create_commands = "- #{post_create_commands.join("\n- ")}"
 
