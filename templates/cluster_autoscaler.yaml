@@ -141,6 +141,9 @@ spec:
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
+        - effect: NoExecute
+          key: CriticalAddonsOnly
+          value: "true"
       # Node affinity is used to force cluster-autoscaler to stick
       # to the master node. This allows the cluster to reliably downscale
       # to zero worker nodes when needed.
