@@ -110,20 +110,22 @@ masters_pool:
   instance_count: 3
   location: nbg1
   # labels:
-  #   purpose: master
-  #   size: cpx21
+  #   - key: purpose
+  #     value: blah
   # taints:
-  #   something: value1:NoSchedule
+  #   - key: something
+  #     value: value1:NoSchedule
 worker_node_pools:
 - name: small
   instance_type: cpx21
   instance_count: 4
   location: hel1
   # labels:
-  #   purpose: worker
-  #   size: cpx21
+  #   - key: purpose
+  #     value: blah
   # taints:
-  #   something: GpuWorkloadsOnly:NoSchedule
+  #   - key: something
+  #     value: value1:NoSchedule
 - name: big
   instance_type: cpx31
   instance_count: 2
