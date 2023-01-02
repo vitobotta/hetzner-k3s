@@ -72,7 +72,9 @@ class Cluster::Delete
   end
 
   private def initialize_worker_nodes
-    settings.worker_node_pools.each do |node_pool|
+    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+
+    no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
         server_deletors << Hetzner::Server::Delete.new(
           hetzner_client: hetzner_client,
