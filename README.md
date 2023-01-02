@@ -206,7 +206,9 @@ curl \
 Notes:
 
 - if you use a custom image, the creation of the servers may take longer than when using the default image
-- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls.
+- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
+- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
+- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console
 
 Finally, to create the cluster run:
 
