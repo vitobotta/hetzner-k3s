@@ -80,7 +80,7 @@ class Hetzner::Server::Create
       ssh_keys: [
         ssh_key.id
       ],
-      user_data: user_data,
+      user_data: Hetzner::Server::Create.user_data(additional_packages, additional_post_create_commands),
       labels: {
         cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
@@ -89,7 +89,7 @@ class Hetzner::Server::Create
     }
   end
 
-  private def user_data
+  def self.user_data(additional_packages = [] of String, additional_post_create_commands = [] of String, reboot = true)
     packages = %w[fail2ban wireguard]
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"
@@ -114,7 +114,7 @@ class Hetzner::Server::Create
     post_create_commands = additional_post_create_commands
     post_create_commands += mandatory_post_create_commands
     post_create_commands += finald_post_create_commands
-    post_create_commands << "shutdown -r now"
+    post_create_commands << "shutdown -r now" if reboot
     post_create_commands = "- #{post_create_commands.join("\n- ")}"
 
     <<-YAML
