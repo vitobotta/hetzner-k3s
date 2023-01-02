@@ -41,9 +41,10 @@ class Configuration::Settings::NodePool
     PoolName.new(errors, given_pool_type, pool_name).validate
     InstanceType.new(errors, given_pool, server_types).validate
     Location.new(errors, given_pool, given_pool_type, masters_location, locations).validate
-    InstanceCount.new(errors, given_pool, given_pool_type).validate
+    InstanceCount.new(errors, given_pool, given_pool_type).validate unless given_pool.autoscaling_enabled
     NodeLabels.new(errors, given_pool_type, given_pool.try(&.labels)).validate
     NodeTaints.new(errors, given_pool_type, given_pool.try(&.taints)).validate
+    Autoscaling.new(errors, given_pool).validate if given_pool_type == :workers
   end
 
   private def workers?

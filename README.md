@@ -27,6 +27,7 @@ Using this tool, creating a highly available k3s cluster with 3 masters for the 
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
 - installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to make upgrades to a newer version of k3s easy and quick
+- installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to allow for autoscaling node pools
 
 See roadmap [here](https://github.com/users/vitobotta/projects/3) for the features planned or in progress.
 
@@ -71,7 +72,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.7.0/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.0/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -79,7 +80,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon/M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.7.0/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.0/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -87,7 +88,7 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v0.7.0/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.0/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -137,6 +138,10 @@ worker_node_pools:
   instance_type: cpx31
   instance_count: 2
   location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 0
+    max_instances: 3
 additional_packages:
 - somepackage
 post_create_commands:
