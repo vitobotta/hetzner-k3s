@@ -42,6 +42,10 @@ class Configuration::Loader
     Path[settings.private_ssh_key_path].expand(home: true).to_s
   end
 
+  getter kubeconfig_path do
+    Path[settings.kubeconfig_path].expand(home: true).to_s
+  end
+
   getter masters_location : String | Nil do
     settings.masters_pool.try &.location
   end
@@ -89,7 +93,7 @@ class Configuration::Loader
 
     case command
     when :create
-      Settings::KubeconfigPath.new(errors, settings.kubeconfig_path, file_must_exist: false).validate
+      Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
       Settings::K3sVersion.new(errors, settings.k3s_version).validate
       Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
       Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
@@ -100,7 +104,7 @@ class Configuration::Loader
       validate_worker_node_pools
     when :delete
     when :upgrade
-      Settings::KubeconfigPath.new(errors, settings.kubeconfig_path, file_must_exist: true).validate
+      Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
       Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
     end
 

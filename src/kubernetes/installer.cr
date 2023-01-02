@@ -233,7 +233,7 @@ class Kubernetes::Installer
   end
 
   private def save_kubeconfig
-    kubeconfig_path = settings.kubeconfig_path
+    kubeconfig_path = configuration.kubeconfig_path
 
     puts "Saving the kubeconfig file to #{kubeconfig_path}..."
 
@@ -241,7 +241,7 @@ class Kubernetes::Installer
       gsub("127.0.0.1", api_server_ip_address).
       gsub("default", settings.cluster_name)
 
-    File.write(settings.kubeconfig_path, kubeconfig)
+    File.write(kubeconfig_path, kubeconfig)
 
     File.chmod kubeconfig_path, 0o600
   end
@@ -262,7 +262,7 @@ class Kubernetes::Installer
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "...secret created."
   end
@@ -272,7 +272,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "...Cloud Controller Manager deployed"
   end
@@ -282,7 +282,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "...CSI Driver deployed"
   end
@@ -292,7 +292,7 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "...k3s System Upgrade Controller deployed."
   end
@@ -329,7 +329,7 @@ class Kubernetes::Installer
 
     command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "...done."
   end

@@ -49,7 +49,7 @@ class Cluster::Upgrade
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     command = <<-BASH
     kubectl apply -f - <<-EOF
@@ -76,7 +76,7 @@ class Cluster::Upgrade
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, settings.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
 
     puts "Upgrade will now start. Run `watch kubectl get nodes` to see the nodes being upgraded. This should take a few minutes for a small cluster."
     puts "The API server may be briefly unavailable during the upgrade of the controlplane."
