@@ -1,3 +1,4 @@
+require "crinja"
 require "../util"
 require "../util/ssh"
 require "../util/shell"
@@ -7,6 +8,10 @@ require "../configuration/loader"
 require "file_utils"
 
 class Kubernetes::Installer
+  MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
+  WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
+  HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../templates/hetzner_cloud_secret_manifest.yaml") }}
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main do
     configuration.settings
@@ -124,42 +129,25 @@ class Kubernetes::Installer
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
-    <<-SCRIPT
-    curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="#{settings.k3s_version}" K3S_TOKEN="#{k3s_token}" INSTALL_K3S_EXEC="server \
-      --disable-cloud-controller \
-      --disable servicelb \
-      --disable traefik \
-      --disable local-storage \
-      --disable metrics-server \
-      --write-kubeconfig-mode=644 \
-      --node-name="$(hostname -f)" \
-      --cluster-cidr=10.244.0.0/16 \
-      --etcd-expose-metrics=true \
-      #{flannel_wireguard} \
-      --kube-controller-manager-arg="bind-address=0.0.0.0" \
-      --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
-      --kube-scheduler-arg="bind-address=0.0.0.0" \
-      #{taint} #{extra_args} \
-      --kubelet-arg="cloud-provider=external" \
-      --advertise-address=$(hostname -I | awk '{print $2}') \
-      --node-ip=$(hostname -I | awk '{print $2}') \
-      --node-external-ip=$(hostname -I | awk '{print $1}') \
-      --flannel-iface=#{flannel_interface} \
-      #{server} #{tls_sans}" sh -
-    SCRIPT
+    Crinja.render(MASTER_INSTALL_SCRIPT, {
+      k3s_version: settings.k3s_version,
+      k3s_token: k3s_token,
+      flannel_wireguard: flannel_wireguard,
+      taint: taint,
+      extra_args: extra_args,
+      flannel_interface: flannel_interface,
+      server: server,
+      tls_sans: tls_sans
+    })
   end
 
   private def worker_install_script(worker)
-    flannel_interface = find_flannel_interface(worker)
-
-    <<-BASH
-    curl -sfL https://get.k3s.io | K3S_TOKEN="#{k3s_token}" INSTALL_K3S_VERSION="#{settings.k3s_version}" K3S_URL=https://#{first_master.private_ip_address}:6443 INSTALL_K3S_EXEC="agent \
-      --node-name="$(hostname -f)" \
-      --kubelet-arg="cloud-provider=external" \
-      --node-ip=$(hostname -I | awk '{print $2}') \
-      --node-external-ip=$(hostname -I | awk '{print $1}') \
-      --flannel-iface=#{flannel_interface}" sh -
-    BASH
+    Crinja.render(WORKER_INSTALL_SCRIPT, {
+      k3s_token: k3s_token,
+      k3s_version: settings.k3s_version,
+      first_master_private_ip_address: first_master.private_ip_address,
+      flannel_interface: find_flannel_interface(worker)
+    })
   end
 
   private def find_flannel_interface(server)
@@ -249,16 +237,14 @@ class Kubernetes::Installer
   private def create_hetzner_cloud_secret
     puts "\nCreating secret for Hetzner Cloud token..."
 
+    secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
+      network: (settings.existing_network || settings.cluster_name),
+      token: settings.hetzner_token
+    })
+
     command = <<-BASH
     kubectl apply -f - <<-EOF
-      apiVersion: "v1"
-      kind: "Secret"
-      metadata:
-        namespace: 'kube-system'
-        name: 'hcloud'
-      stringData:
-        network: "#{settings.existing_network || settings.cluster_name}"
-        token: "#{settings.hetzner_token}"
+    #{secret_manifest}
     EOF
     BASH
 
