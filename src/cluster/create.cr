@@ -164,7 +164,7 @@ class Cluster::Create
 
     servers.each do |server|
       spawn do
-        ssh.wait_for_server server
+        ssh.wait_for_server server, settings.use_ssh_agent
         channel.send(server)
       end
     end

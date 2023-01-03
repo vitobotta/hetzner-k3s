@@ -5,6 +5,7 @@ kubeconfig_path: "./kubeconfig"
 k3s_version: v1.25.5+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
+use_ssh_agent: false
 ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:

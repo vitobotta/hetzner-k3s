@@ -11,6 +11,7 @@ class Configuration::Main
   getter k3s_version : String
   getter public_ssh_key_path : String
   getter private_ssh_key_path : String
+  getter use_ssh_agent : Bool = false
   getter ssh_allowed_networks : Array(String) = [] of String
   getter api_allowed_networks : Array(String) = [] of String
   getter verify_host_key : Bool = false

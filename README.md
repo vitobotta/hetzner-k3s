@@ -107,6 +107,7 @@ kubeconfig_path: "./kubeconfig"
 k3s_version: v1.25.5+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
+use_ssh_agent: false
 ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
@@ -209,7 +210,12 @@ Notes:
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
 - worker nodes created by the autoscaler must be deleted manually from the Hetzner Console
-- SSH keys with passphrases are not currently supported, since the passphrase would be required too many times during cluster creation
+- SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add --apple-use-keychain ~/.ssh/<private key>
+```
 
 Finally, to create the cluster run:
 
