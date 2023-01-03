@@ -253,7 +253,7 @@ class Kubernetes::Installer
   end
 
   private def deploy_cloud_controller_manager
-    puts "\nDeplotying Hetzner Cloud Controller Manager..."
+    puts "\nDeploying Hetzner Cloud Controller Manager..."
 
     command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
 
