@@ -11,13 +11,13 @@ class Util::SSH
   def initialize(@private_ssh_key_path, @public_ssh_key_path)
   end
 
-  def run(server, command, print_output = true)
+  def run(server, command, use_ssh_agent, print_output = true)
     Retriable.retry(max_attempts: 300, backoff: false, base_interval: 1.second, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
-      result = run_command(server, command, print_output)
+      result = run_command(server, command, use_ssh_agent, print_output)
     end
   end
 
-  def wait_for_server(server)
+  def wait_for_server(server, use_ssh_agent)
     puts "Waiting for server #{server.name} to be ready..."
 
     loop do
@@ -27,7 +27,7 @@ class Util::SSH
 
       Retriable.retry(on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.seconds) do
-          result = run(server, "cat /etc/ready", false)
+          result = run(server, "cat /etc/ready", use_ssh_agent, false)
         end
       end
 
@@ -37,7 +37,7 @@ class Util::SSH
     puts "...server #{server.name} is now up."
   end
 
-  private def run_command(server, command, print_output = true)
+  private def run_command(server, command, use_ssh_agent, print_output = true)
     host_ip_address = server.public_ip_address.not_nil!
 
     result = IO::Memory.new
@@ -50,7 +50,12 @@ class Util::SSH
     SSH2::Session.open(host_ip_address) do |session|
       session.timeout = 5000
       session.knownhosts.delete_if { |h| h.name == server.public_ip_address }
-      session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
+
+      if use_ssh_agent
+        session.login_with_agent("root")
+      else
+        session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
+      end
 
       session.open_session do |channel|
         channel.command(command)

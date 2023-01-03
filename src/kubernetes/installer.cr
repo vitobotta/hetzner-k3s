@@ -74,7 +74,7 @@ class Kubernetes::Installer
   private def set_up_first_master
     puts "Deploying k3s to first master #{first_master.name}..."
 
-    output = ssh.run(first_master, master_install_script(first_master))
+    output = ssh.run(first_master, master_install_script(first_master), settings.use_ssh_agent)
 
     puts "Waiting for the control plane to be ready..."
 
@@ -93,7 +93,7 @@ class Kubernetes::Installer
       spawn do
         puts "Deploying k3s to master #{master.name}..."
 
-        ssh.run(master, master_install_script(master))
+        ssh.run(master, master_install_script(master), settings.use_ssh_agent)
 
         puts "...k3s has been deployed to master #{master.name}."
 
@@ -113,7 +113,7 @@ class Kubernetes::Installer
       spawn do
         puts "Deploying k3s to worker #{worker.name}..."
 
-        ssh.run(worker, worker_install_script)
+        ssh.run(worker, worker_install_script, settings.use_ssh_agent)
 
         puts "...k3s has been deployed to worker #{worker.name}."
 
@@ -204,7 +204,7 @@ class Kubernetes::Installer
   end
 
   private def k3s_token
-    token = ssh.run(first_master, "{ TOKEN=$(< /var/lib/rancher/k3s/server/node-token); } 2> /dev/null; echo $TOKEN", print_output: false)
+    token = ssh.run(first_master, "{ TOKEN=$(< /var/lib/rancher/k3s/server/node-token); } 2> /dev/null; echo $TOKEN", settings.use_ssh_agent, print_output: false)
 
     if token.empty?
       Random::Secure.hex
@@ -218,7 +218,7 @@ class Kubernetes::Installer
 
     puts "Saving the kubeconfig file to #{kubeconfig_path}..."
 
-    kubeconfig = ssh.run(first_master, "cat /etc/rancher/k3s/k3s.yaml", print_output: false).
+    kubeconfig = ssh.run(first_master, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
       gsub("127.0.0.1", api_server_ip_address).
       gsub("default", settings.cluster_name)
 
