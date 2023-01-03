@@ -10,7 +10,7 @@ ssh_allowed_networks:
 api_allowed_networks:
   - 0.0.0.0/0
 schedule_workloads_on_masters: false
-masters:
+masters_pool:
   instance_type: cpx21
   instance_count: 3
   location: fsn1
