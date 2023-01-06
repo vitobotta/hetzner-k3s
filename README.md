@@ -244,7 +244,7 @@ To make a node pool smaller:
 - delete the nodes from Kubernetes (`kubectl delete node <name>`)
 - delete the instances from the cloud console (make sure you delete the correct ones :p)
 
-In a future relese I will add some automation for the cleanup.
+In a future release I will add some automation for the cleanup.
 
 ### Replacing a problematic node
 
