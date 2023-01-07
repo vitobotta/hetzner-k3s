@@ -28,5 +28,5 @@ class Configuration::Main
   getter kubelet_args : Array(String) = [] of String
   getter kube_proxy_args : Array(String) = [] of String
   getter existing_network : String?
-  getter image : String = "ubuntu-20.04"
+  getter image : String = "ubuntu-22.04"
 end

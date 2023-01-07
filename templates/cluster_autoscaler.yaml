@@ -155,7 +155,7 @@ spec:
                   - key: node-role.kubernetes.io/master
                     operator: Exists
       containers:
-        - image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.25.0
+        - image: k8s.gcr.io/autoscaling/cluster-autoscaler:v1.26.1
           name: cluster-autoscaler
           resources:
             limits:
@@ -186,7 +186,7 @@ spec:
             value: "{{ network_name }}"
           volumeMounts:
             - name: ssl-certs
-              mountPath: /etc/ssl/certs/ca-certificates.crt
+              mountPath: {{ certificate_path }}
               readOnly: true
           imagePullPolicy: "Always"
       imagePullSecrets:
@@ -194,4 +194,4 @@ spec:
       volumes:
         - name: ssl-certs
           hostPath:
-            path: "/etc/ssl/certs/ca-certificates.crt"
+            path: "{{ certificate_path }}"

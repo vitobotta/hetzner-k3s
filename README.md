@@ -112,8 +112,8 @@ ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
   - 0.0.0.0/0
-
 schedule_workloads_on_masters: false
+# image: rocky-9 # default is ubuntu-22.04
 masters_pool:
   instance_type: cpx21
   instance_count: 3

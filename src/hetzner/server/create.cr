@@ -98,14 +98,6 @@ class Hetzner::Server::Create
       "sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config",
       "sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config",
       "systemctl restart sshd",
-      "systemctl stop systemd-resolved",
-      "systemctl disable systemd-resolved",
-      "rm /etc/resolv.conf",
-      "echo 'nameserver 1.1.1.1' > /etc/resolv.conf",
-      "echo 'nameserver 1.0.0.1' >> /etc/resolv.conf"
-    ]
-
-    final_post_create_commands = [
       "crontab -l > /etc/cron_bkp",
       "echo '@reboot echo true > /etc/ready' >> /etc/cron_bkp",
       "crontab /etc/cron_bkp"
@@ -113,7 +105,6 @@ class Hetzner::Server::Create
 
     post_create_commands = additional_post_create_commands
     post_create_commands += mandatory_post_create_commands
-    post_create_commands += final_post_create_commands
     post_create_commands += before_reboot_commands
     post_create_commands << "shutdown -r now"
     post_create_commands = "- #{post_create_commands.join("\n- ")}"

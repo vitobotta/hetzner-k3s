@@ -312,13 +312,22 @@ class Kubernetes::Installer
 
     cloud_init = Hetzner::Server::Create.cloud_init(settings.additional_packages, settings.post_create_commands, [k3s_join_script])
 
+    output = ssh.run(first_master, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false)
+
+    certificate_path = if output == "1"
+      "/etc/ssl/certs/ca-certificates.crt"
+    else
+      "/etc/ssl/certs/ca-bundle.crt"
+    end
+
     cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
       node_pool_args: node_pool_args,
       cloud_init: Base64.strict_encode(cloud_init),
       image: settings.image,
       firewall_name: settings.cluster_name,
       ssh_key_name: settings.cluster_name,
-      network_name: (settings.existing_network || settings.cluster_name)
+      network_name: (settings.existing_network || settings.cluster_name),
+      certificate_path: certificate_path
     })
 
     cluster_autoscaler_manifest_path = "/tmp/cluster_autoscaler_manifest_path.yaml"
