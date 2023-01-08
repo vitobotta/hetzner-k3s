@@ -165,6 +165,24 @@ class Cluster::Create
     servers.each do |server|
       spawn do
         ssh.wait_for_server server, settings.use_ssh_agent
+
+        script = <<-EOF
+          hostnamectl set-hostname #{server.name}
+
+          # when using a snapshot instead of one of the official images, the private network interface is not configured
+          # since the interface is likely going to be named eth1, we try to configure it
+          eth1=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}' | grep eth1 | xargs)
+
+          if [ "$eth1" = "eth1" ]; then
+            ip link set eth1 up
+            ip route add 10.0.0.1 dev eth1 scope link
+            ip route add 10.0.0.0/16 via 10.0.0.1 dev eth1
+            dhclient eth1 -v
+          fi
+        EOF
+
+        ssh.run(server, script, settings.use_ssh_agent, print_output: false)
+
         channel.send(server)
       end
     end

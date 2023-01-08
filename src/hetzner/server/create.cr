@@ -89,7 +89,7 @@ class Hetzner::Server::Create
     }
   end
 
-  def self.cloud_init(additional_packages = [] of String, additional_post_create_commands = [] of String, before_reboot_commands = [] of String)
+  def self.cloud_init(additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
     packages = %w[fail2ban wireguard]
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"
@@ -97,16 +97,12 @@ class Hetzner::Server::Create
     mandatory_post_create_commands = [
       "sed -i 's/[#]*PermitRootLogin yes/PermitRootLogin prohibit-password/g' /etc/ssh/sshd_config",
       "sed -i 's/[#]*PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config",
-      "systemctl restart sshd",
-      "crontab -l > /etc/cron_bkp",
-      "echo '@reboot echo true > /etc/ready' >> /etc/cron_bkp",
-      "crontab /etc/cron_bkp"
+      "systemctl restart sshd"
     ]
 
     post_create_commands = additional_post_create_commands
     post_create_commands += mandatory_post_create_commands
-    post_create_commands += before_reboot_commands
-    post_create_commands << "shutdown -r now"
+    post_create_commands += final_commands
     post_create_commands = "- #{post_create_commands.join("\n- ")}"
 
     <<-YAML

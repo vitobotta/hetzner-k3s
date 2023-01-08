@@ -27,11 +27,11 @@ class Util::SSH
 
       Retriable.retry(on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.seconds) do
-          result = run(server, "cat /etc/ready", use_ssh_agent, false)
+          result = run(server, "echo ready", use_ssh_agent, false)
         end
       end
 
-      break if result == "true"
+      break if result == "ready"
     end
 
     puts "...server #{server.name} is now up."
