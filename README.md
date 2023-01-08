@@ -208,11 +208,11 @@ Pro tip: if you wish to use [openSUSE MicroOS](https://microos.opensuse.org/) yo
 
 Notes:
 
-- if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using the default image
+- if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
-- autoscaling is only supported when using Ubuntu or one of the other default images
-- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console
+- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
+- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster
 - SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
 
 ```bash
