@@ -1,7 +1,7 @@
 PRIVATE_IP=""
 
 while [ -z "$PRIVATE_IP" ]; do
-  PRIVATE_IP=$(ip -oneline -4 addr show scope global | tr -s ' ' | tr '/' ' ' | cut -f 2,4 -d ' ' | grep $(if lscpu | grep Vendor | grep -q Intel; then echo ens10 ; else echo enp7s0 ; fi) | awk '{print $2}')
+  PRIVATE_IP=$(ip route get 10.0.0.1 | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
   sleep 1
 done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
@@ -10,7 +10,7 @@ done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K
 --disable local-storage \
 --disable metrics-server \
 --write-kubeconfig-mode=644 \
---node-name="$(hostname -f)" \
+--node-name="$(hostname -f || echo \"{{ cluster_name }}-`dmidecode | grep -i uuid | awk '{print $2}' | cut -c1-8`\")" \
 --cluster-cidr=10.244.0.0/16 \
 --etcd-expose-metrics=true \
 {{ flannel_wireguard }} \
@@ -22,5 +22,5 @@ done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$(hostname -I | awk '{print $1}') \
---flannel-iface="$(if lscpu | grep Vendor | grep -q Intel; then echo ens10 ; else echo enp7s0 ; fi)" \
-{{ server }} {{ tls_sans }}" sh -
+--flannel-iface="$(ip route get 10.0.0.1 | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')" \
+{{ server }} {{ tls_sans }}" sh - && sleep 10 && systemctl start  k3s

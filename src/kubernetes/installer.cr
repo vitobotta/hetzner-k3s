@@ -133,6 +133,7 @@ class Kubernetes::Installer
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
+      cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
       flannel_wireguard: flannel_wireguard,
@@ -145,6 +146,7 @@ class Kubernetes::Installer
 
   private def worker_install_script
     Crinja.render(WORKER_INSTALL_SCRIPT, {
+      cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       first_master_private_ip_address: first_master.private_ip_address
