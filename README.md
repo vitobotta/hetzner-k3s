@@ -193,7 +193,7 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
-By default, the image in use is Ubuntu 20.04, but you can specify an image to use with the `image` config option. This makes it also possible
+By default, the image in use is Ubuntu 22.04, but you can specify an image to use with the `image` config option. This makes it also possible
 to use a snapshot that you have already created from and existing server (for example to preinstall some tools). If you want to use a custom
 snapshot you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. To find
 the ID of your custom image/snapshot, run:
@@ -204,11 +204,14 @@ curl \
 	'https://api.hetzner.cloud/v1/images'
 ```
 
+Pro tip: if you wish to use [openSUSE MicroOS](https://microos.opensuse.org/) you can easily create a snapshot using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot.
+
 Notes:
 
-- if you use a custom image, the creation of the servers may take longer than when using the default image
+- if you use a snapshot instead of one of the default iamges, the creation of the servers may take longer than when using the default image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
+- autoscaling is only supported when using Ubuntu or one of the other default images
 - worker nodes created by the autoscaler must be deleted manually from the Hetzner Console
 - SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
 
