@@ -19,6 +19,7 @@ class Hetzner::Server::Create
   getter additional_packages : Array(String)
   getter additional_post_create_commands : Array(String)
   getter server_finder : Hetzner::Server::Find
+  getter snapshot_os : String
 
   def initialize(
       @hetzner_client,
@@ -26,6 +27,7 @@ class Hetzner::Server::Create
       @server_name,
       @instance_type,
       @image,
+      @snapshot_os,
       @location,
       @ssh_key,
       @firewall,
@@ -80,7 +82,7 @@ class Hetzner::Server::Create
       ssh_keys: [
         ssh_key.id
       ],
-      user_data: Hetzner::Server::Create.cloud_init(additional_packages, additional_post_create_commands),
+      user_data: Hetzner::Server::Create.cloud_init(snapshot_os, additional_packages, additional_post_create_commands),
       labels: {
         cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
@@ -89,9 +91,7 @@ class Hetzner::Server::Create
     }
   end
 
-  def self.cloud_init(additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
-    snapshot_os = "microos"
-
+  def self.cloud_init(snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
     packages = %w[fail2ban]
 
     wireguard = case snapshot_os

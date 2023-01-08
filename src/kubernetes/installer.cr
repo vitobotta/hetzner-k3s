@@ -312,7 +312,7 @@ class Kubernetes::Installer
 
     k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
 
-    cloud_init = Hetzner::Server::Create.cloud_init(settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    cloud_init = Hetzner::Server::Create.cloud_init(settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
 
     output = ssh.run(first_master, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false)
 
