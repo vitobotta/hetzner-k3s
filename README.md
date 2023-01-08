@@ -194,7 +194,7 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
-By default, the image in use is ubuntu-22.04 (Ubuntu 22.04), but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
+By default, the image in use is ubuntu-22.04, but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
 
 - ubuntu-18.04, ubuntu-20.04, ubuntu-22.04
 - debian-10, debian-11
@@ -202,7 +202,7 @@ By default, the image in use is ubuntu-22.04 (Ubuntu 22.04), but you can specify
 - rocky-8, rocky-9
 - fedora-36, fedora-37
 
-It's also possible to use a snapshot that you have already created from and existing server (for example to preinstall some tools). If you want to use a custom
+It's also possible to use a snapshot that you have already created from an existing server. If you want to use a custom
 snapshot you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. To find
 the ID of your custom image/snapshot, run:
 
@@ -212,7 +212,7 @@ curl \
 	'https://api.hetzner.cloud/v1/images'
 ```
 
-Currently only custom snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) are supported, with support for Fedora CoreOS coming soon. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
+I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
 Notes:
 
