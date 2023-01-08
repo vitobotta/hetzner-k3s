@@ -212,7 +212,7 @@ curl \
 	'https://api.hetzner.cloud/v1/images'
 ```
 
-Currently only custom snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) are supported, with support for Fedora CoreOS coming soon. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot.
+Currently only custom snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) are supported, with support for Fedora CoreOS coming soon. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
 Notes:
 
