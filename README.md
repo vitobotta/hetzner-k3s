@@ -72,7 +72,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.3/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.4/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -80,7 +80,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon/M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.3/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.4/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -88,7 +88,7 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.3/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.4/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
