@@ -29,8 +29,6 @@ Using this tool, creating a highly available k3s cluster with 3 masters for the 
 - installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to make upgrades to a newer version of k3s easy and quick
 - installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to allow for autoscaling node pools
 
-See roadmap [here](https://github.com/users/vitobotta/projects/3) for the features planned or in progress.
-
 Also see this [wiki page](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster) for a tutorial on how to set up a cluster with the most common setup to get you started.
 
 ___
@@ -47,9 +45,10 @@ All that is needed to use this tool is
 
 - an Hetzner Cloud account
 - an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
+- kubectl installed
 
 ___
-## Getting Started - Installation
+## Getting started
 
 Before using the tool, be sure to have kubectl installed as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
 
@@ -77,7 +76,7 @@ chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
 
-##### Apple Silicon/M1
+##### Apple Silicon / M1
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.5/hetzner-k3s-mac-arm64
@@ -194,7 +193,9 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
-By default, the image in use is ubuntu-22.04, but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
+### Using alternative images
+
+By default, the image in use is `ubuntu-22.04`, but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
 
 - ubuntu-18.04, ubuntu-20.04, ubuntu-22.04
 - debian-10, debian-11
@@ -214,7 +215,7 @@ curl \
 
 I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
-Notes:
+### Limitations:
 
 - if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
@@ -227,6 +228,8 @@ Notes:
 eval "$(ssh-agent -s)"
 ssh-add --apple-use-keychain ~/.ssh/<private key>
 ```
+
+### Installation
 
 Finally, to create the cluster run:
 
@@ -387,7 +390,7 @@ ___
 This tool is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
 ___
-## Code of Conduct
+## Code of conduct
 
 Everyone interacting in the hetzner-k3s project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
 
