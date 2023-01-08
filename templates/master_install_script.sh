@@ -23,4 +23,5 @@ done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$(hostname -I | awk '{print $1}') \
 --flannel-iface="$(ip route get 10.0.0.1 | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')" \
-{{ server }} {{ tls_sans }}" sh - && sleep 10 && systemctl start  k3s
+{{ server }} {{ tls_sans }}" sh - && systemctl start k3s
+
