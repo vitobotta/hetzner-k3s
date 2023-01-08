@@ -174,10 +174,14 @@ class Cluster::Create
           eth1=$(ip link | awk -F: '$0 !~ "lo|vir|wl|^[^0-9]"{print $2;getline}' | grep eth1 | xargs)
 
           if [ "$eth1" = "eth1" ]; then
-            ip link set eth1 up
-            ip route add 10.0.0.1 dev eth1 scope link
-            ip route add 10.0.0.0/16 via 10.0.0.1 dev eth1
-            dhclient eth1 -v
+            can_ping=$(ping 10.0.0.1 -c 1 && echo success || echo failed)
+
+            if [ "$can_ping" = "failed" ]; then
+              ip link set eth1 up || true
+              ip route add 10.0.0.1 dev eth1 scope link || true
+              ip route add 10.0.0.0/16 via 10.0.0.1 dev eth1 || true
+              dhclient eth1 -v || true
+            fi
           fi
         EOF
 
