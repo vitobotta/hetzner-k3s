@@ -116,7 +116,7 @@ schedule_workloads_on_masters: false
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
 masters_pool:
   instance_type: cpx21
-  instance_count: 3
+  instance_count: 3 # must be odd number! see split brain issue
   location: nbg1
   # labels:
   #   - key: purpose
