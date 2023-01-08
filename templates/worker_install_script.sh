@@ -8,4 +8,5 @@ done && curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_V
 --kubelet-arg="cloud-provider=external" \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$(hostname -I | awk '{print $1}') \
---flannel-iface=$(ip route get 10.0.0.1 | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')" sh - && sleep 10 && systemctl start k3s-agent
+--flannel-iface=$(ip route get 10.0.0.1 | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')" sh - && systemctl start k3s-agent
+

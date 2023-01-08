@@ -176,7 +176,7 @@ class Cluster::Create
           if [ "$eth1" = "eth1" ]; then
             can_ping=$(ping 10.0.0.1 -c 1 && echo success || echo failed)
 
-            if [ "$can_ping" = "failed" ]; then
+            if [[ "$can_ping" == *failed* ]]; then
               ip link set eth1 up || true
               ip route add 10.0.0.1 dev eth1 scope link || true
               ip route add 10.0.0.0/16 via 10.0.0.1 dev eth1 || true
