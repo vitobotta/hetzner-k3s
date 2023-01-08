@@ -1,9 +1,7 @@
-PRIVATE_IP=""
+cat <<-EOF > /etc/master_install_script.sh
+PRIVATE_IP=$(ip route get 10.0.0.1 | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
 
-while [ -z "$PRIVATE_IP" ]; do
-  PRIVATE_IP=$(ip route get 10.0.0.1 | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
-  sleep 1
-done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
 --disable servicelb \
 --disable traefik \
@@ -19,9 +17,39 @@ done && curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K
 --kube-scheduler-arg="bind-address=0.0.0.0" \
 {{ taint }} {{ extra_args }} \
 --kubelet-arg="cloud-provider=external" \
---advertise-address=$PRIVATE_IP \
---node-ip=$PRIVATE_IP \
+--advertise-address=\$PRIVATE_IP \
+--node-ip=\$PRIVATE_IP \
 --node-external-ip=$(hostname -I | awk '{print $1}') \
 --flannel-iface="$(ip route get 10.0.0.1 | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')" \
-{{ server }} {{ tls_sans }}" sh - && systemctl start k3s
+{{ server }} {{ tls_sans }}" sh - >> /etc/master_install_script.log 2>&1
+
+echo true > /etc/ready
+EOF
+
+chmod +x /etc/master_install_script.sh
+
+cat <<EOF > /etc/systemd/system/initialize-k3s.service
+[Unit]
+Description=Set up k3s
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /etc/master_install_script.sh
+EOF
+
+cat <<EOF > /etc/systemd/system/initialize-k3s.timer
+[Unit]
+Description=Set up k3s
+
+[Timer]
+OnBootSec=1s
+Unit=initialize-k3s.service
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable initialize-k3s.timer
+
 

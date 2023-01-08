@@ -29,4 +29,5 @@ class Configuration::Main
   getter kube_proxy_args : Array(String) = [] of String
   getter existing_network : String?
   getter image : String = "ubuntu-22.04"
+  getter snapshot_os : String = ""
 end

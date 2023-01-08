@@ -17,8 +17,8 @@ class Util::SSH
     end
   end
 
-  def wait_for_server(server, use_ssh_agent)
-    puts "Waiting for server #{server.name} to be ready..."
+  def wait_for_server(server, use_ssh_agent, test_command, expected_result)
+    puts "Waiting for server #{server.name}..."
 
     loop do
       sleep 1
@@ -27,11 +27,11 @@ class Util::SSH
 
       Retriable.retry(on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.seconds) do
-          result = run(server, "echo ready", use_ssh_agent, false)
+          result = run(server, test_command, use_ssh_agent, false)
         end
       end
 
-      break if result == "ready"
+      break if result == expected_result
     end
 
     puts "...server #{server.name} is now up."
