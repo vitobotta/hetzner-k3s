@@ -75,8 +75,6 @@ class Kubernetes::Installer
     puts "Deploying k3s to first master #{first_master.name}..."
 
     output = ssh.run(first_master, master_install_script(first_master), settings.use_ssh_agent)
-    ssh.run(first_master, "[ ! -f /etc/ready ] && reboot", settings.use_ssh_agent)
-    ssh.wait_for_server first_master, settings.use_ssh_agent, "cat /etc/ready", "true"
 
     puts "Waiting for the control plane to be ready..."
 
@@ -96,8 +94,6 @@ class Kubernetes::Installer
         puts "Deploying k3s to master #{master.name}..."
 
         ssh.run(master, master_install_script(master), settings.use_ssh_agent)
-        ssh.run(master, "[ ! -f /etc/ready ] && reboot", settings.use_ssh_agent)
-        ssh.wait_for_server master, settings.use_ssh_agent, "cat /etc/ready", "true"
 
         puts "...k3s has been deployed to master #{master.name}."
 
@@ -118,8 +114,6 @@ class Kubernetes::Installer
         puts "Deploying k3s to worker #{worker.name}..."
 
         ssh.run(worker, worker_install_script, settings.use_ssh_agent)
-        ssh.run(worker, "[ ! -f /etc/ready ] && reboot", settings.use_ssh_agent)
-        ssh.wait_for_server worker, settings.use_ssh_agent, "cat /etc/ready", "true"
 
         puts "...k3s has been deployed to worker #{worker.name}."
 

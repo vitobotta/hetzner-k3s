@@ -106,20 +106,6 @@ class Hetzner::Server::Create
     packages += additional_packages
     packages = "'#{packages.join("', '")}'"
 
-    # "echo '[Unit]' > /etc/systemd/system/mark-ready.service",
-    # "echo 'Description=Mark node as ready job' >> /etc/systemd/system/mark-ready.service",
-    # "echo '[Service]' >> /etc/systemd/system/mark-ready.service",
-    # "echo 'Type=oneshot' >> /etc/systemd/system/mark-ready.service",
-    # "echo 'ExecStart=/bin/bash -c \"echo true > /etc/ready\"' >> /etc/systemd/system/mark-ready.service",
-    # "echo '[Unit]' > /etc/systemd/system/mark-ready.timer",
-    # "echo 'Description=Mark node as ready' >> /etc/systemd/system/mark-ready.timer",
-    # "echo '[Timer]' >> /etc/systemd/system/mark-ready.timer",
-    # "echo 'OnBootSec=1s' >> /etc/systemd/system/mark-ready.timer",
-    # "echo 'OnUnitActiveSec=1s' >> /etc/systemd/system/mark-ready.timer",
-    # "echo '[Install]' >> /etc/systemd/system/mark-ready.timer",
-    # "echo 'WantedBy=timers.target' >> /etc/systemd/system/mark-ready.timer",
-    # "systemctl daemon-reload",
-    # "systemctl enable mark-ready.timer"
     mandatory_post_create_commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
     ]
@@ -140,7 +126,6 @@ class Hetzner::Server::Create
     post_create_commands = mandatory_post_create_commands
     post_create_commands += additional_post_create_commands
     post_create_commands += final_commands
-    post_create_commands << "shutdown -r now" unless final_commands.empty?
     post_create_commands = "- #{post_create_commands.join("\n- ")}"
 
     growpart = case snapshot_os
