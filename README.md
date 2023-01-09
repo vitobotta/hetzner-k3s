@@ -150,7 +150,7 @@ post_create_commands:
 - apt upgrade -y
 - apt autoremove -y
 - shutdown -r now
-# enable_encryption: true
+# enable_encryption: true # enable this if you want extra security, but it's not really needed since Hetzner networks are completely isolated
 # existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 # kube_api_server_args:
 # - arg1
