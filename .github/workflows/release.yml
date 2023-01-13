@@ -7,7 +7,7 @@ on:
 
 jobs:
   build_release_x64:
-    name: Build Release
+    name: Build Release x64
     strategy:
       matrix:
         os: [macos-latest]
@@ -56,7 +56,7 @@ jobs:
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
 
   build_release_arm:
-    name: Build Release
+    name: Build Release ARM
     strategy:
       matrix:
         os: [ARM64]
@@ -84,7 +84,10 @@ jobs:
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
-
-
-
-
+          
+  set_latest_tag:
+    name: Set Latest Tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Latest tag
+        uses: EndBug/latest-tag@v1.5.1

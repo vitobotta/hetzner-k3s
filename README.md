@@ -71,7 +71,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.5/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/latest/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -79,7 +79,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon / M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.5/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/latest/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -87,7 +87,7 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.5/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/latest/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -116,7 +116,7 @@ schedule_workloads_on_masters: false
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
 masters_pool:
   instance_type: cpx21
-  instance_count: 3
+  instance_count: 3 # must be odd number! see split brain issue
   location: nbg1
   # labels:
   #   - key: purpose
@@ -150,7 +150,7 @@ post_create_commands:
 - apt upgrade -y
 - apt autoremove -y
 - shutdown -r now
-# enable_encryption: true
+# enable_encryption: true # enable this if you want extra security, but it's not really needed since Hetzner networks are completely isolated
 # existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 # kube_api_server_args:
 # - arg1
@@ -220,7 +220,6 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 - if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
-- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
 - worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster
 - SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
 
