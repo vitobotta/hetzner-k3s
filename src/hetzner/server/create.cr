@@ -163,6 +163,7 @@ class Hetzner::Server::Create
         MaxAuthTries 2
         AllowTcpForwarding no
         AllowAgentForwarding no
+        PubkeyAcceptedKeyTypes=+ssh-rsa
       path: /etc/ssh/sshd_config.d/ssh.conf
 
     #{growpart}

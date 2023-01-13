@@ -19,6 +19,7 @@ dependencies:
     github: mamantoha/crest
   ssh2:
     github: spider-gazelle/ssh2.cr
+    branch: upgrade-default-hash-alg
   ipaddress:
     github: sija/ipaddress.cr
   retriable:
