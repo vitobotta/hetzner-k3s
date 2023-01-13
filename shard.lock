@@ -10,7 +10,7 @@ shards:
 
   crest:
     git: https://github.com/mamantoha/crest.git
-    version: 1.3.6
+    version: 1.3.7
 
   crinja:
     git: https://github.com/straight-shoota/crinja.git
@@ -42,7 +42,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.5.3
+    version: 1.5.3+git.commit.2274d4cf0aceeb2f324b0e674e99e3eba5f6d683
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
