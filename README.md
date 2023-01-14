@@ -143,13 +143,6 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
-additional_packages:
-- somepackage
-post_create_commands:
-- apt update
-- apt upgrade -y
-- apt autoremove -y
-- shutdown -r now
 # additional_packages:
 # - somepackage
 # post_create_commands:
