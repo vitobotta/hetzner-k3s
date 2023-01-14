@@ -48,6 +48,12 @@ post_create_commands:
 - apt upgrade -y
 - apt autoremove -y
 - shutdown -r now
+# additional_packages:
+# - somepackage
+# post_create_commands:
+# - apt update
+# - apt upgrade -y
+# - apt autoremove -y
 # enable_encryption: true
 # existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
 # kube_api_server_args:
