@@ -216,6 +216,7 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 
 ### Limitations:
 
+- if possible, use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ecdsa keys insted of the old rsa type
 - if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
