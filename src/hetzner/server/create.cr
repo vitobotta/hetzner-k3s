@@ -108,6 +108,7 @@ class Hetzner::Server::Create
 
     mandatory_post_create_commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
+      "update-crypto-policies --set DEFAULT:SHA1 || true"
     ]
 
     if snapshot_os == "microos"
