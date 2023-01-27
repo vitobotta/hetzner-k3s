@@ -32,7 +32,7 @@ class Configuration::Loader
   getter settings : Configuration::Main
 
   getter hetzner_client : Hetzner::Client do
-    Hetzner::Client.new(settings.hetzner_token)
+    Hetzner::Client.new(settings.resolved_hetzner_token)
   end
 
   getter public_ssh_key_path do
@@ -80,9 +80,10 @@ class Configuration::Loader
   private property locations_loaded : Bool = false
 
   def initialize(@configuration_file_path, @new_k3s_version)
-    @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
+    expanded_path = Path[configuration_file_path].expand(home: true).to_s
+    @settings = Configuration::Main.from_yaml(File.read(expanded_path))
 
-    Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
+    Settings::ConfigurationFilePath.new(errors, expanded_path).validate
 
     print_errors unless errors.empty?
   end

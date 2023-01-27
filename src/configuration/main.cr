@@ -30,4 +30,19 @@ class Configuration::Main
   getter existing_network : String?
   getter image : String = "ubuntu-22.04"
   getter snapshot_os : String = "default"
+
+  def resolved_hetzner_token : String
+    if hetzner_token.starts_with?("file://")
+      path = hetzner_token.lchop("file://")
+      path = Path[path].expand(home: true).to_s
+      if !File.exists?(path)
+        puts "Expected the #{path} token file to exist"
+        exit 1
+      end
+      puts "Resolved Hetzner token from #{path}"
+      return File.read(path).strip
+    end
+    return hetzner_token
+  end
+
 end

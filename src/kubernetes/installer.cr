@@ -234,7 +234,7 @@ class Kubernetes::Installer
 
     secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
       network: (settings.existing_network || settings.cluster_name),
-      token: settings.hetzner_token
+      token: settings.resolved_hetzner_token
     })
 
     command = <<-BASH
