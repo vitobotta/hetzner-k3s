@@ -78,8 +78,9 @@ class Configuration::Loader
 
   private property server_types_loaded : Bool = false
   private property locations_loaded : Bool = false
+  private property allow_token_from_file : Bool = false
 
-  def initialize(@configuration_file_path, @new_k3s_version)
+  def initialize(@configuration_file_path, @allow_token_from_file, @new_k3s_version)
     expanded_path = Path[configuration_file_path].expand(home: true).to_s
     @settings = Configuration::Main.from_yaml(File.read(expanded_path))
 
@@ -95,6 +96,7 @@ class Configuration::Loader
 
     case command
     when :create
+      validate_allows_token_from_file
       Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
       Settings::K3sVersion.new(errors, settings.k3s_version).validate
       Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
@@ -106,6 +108,7 @@ class Configuration::Loader
       validate_worker_node_pools
     when :delete
     when :upgrade
+      validate_allows_token_from_file
       Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
       Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
     end
@@ -115,6 +118,15 @@ class Configuration::Loader
     else
       print_errors
       exit 1
+    end
+  end
+
+  private def validate_allows_token_from_file
+    if settings.hetzner_token.starts_with?("file://")
+      if !allow_token_from_file
+        errors << "Hetzner token is set to a path but paths are not allowed, use --allow-token-from-file flag"
+        return
+      end
     end
   end
 

@@ -19,8 +19,13 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
+      define_flag allow_token_from_file : Bool,
+                  description: "If set, allows using hetzner_token with file paths",
+                  long: "--allow-token-from-file",
+                  required: false
+
       def run
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.allow_token_from_file, nil)
         configuration.validate(:create)
 
         Cluster::Create.new(configuration: configuration).run
@@ -36,8 +41,13 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
+      define_flag allow_token_from_file : Bool,
+                  description: "If set, allows using hetzner_token with file paths",
+                  long: "--allow-token-from-file",
+                  required: false
+
       def run
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.allow_token_from_file, nil)
         configuration.validate(:delete)
 
         Cluster::Delete.new(configuration: configuration).run
@@ -53,13 +63,18 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
+      define_flag allow_token_from_file : Bool,
+                  description: "If set, allows using hetzner_token with file paths",
+                  long: "--allow-token-from-file",
+                  required: false
+
       define_flag new_k3s_version : String,
                   description: "The new version of k3s to upgrade to",
                   long: "--new-k3s-version",
                   required: true
 
       def run
-        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.allow_token_from_file, flags.new_k3s_version)
         configuration.validate(:upgrade)
 
         Cluster::Upgrade.new(configuration: configuration).run
