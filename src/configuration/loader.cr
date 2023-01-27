@@ -124,7 +124,7 @@ class Configuration::Loader
   private def validate_allows_token_from_file
     if settings.hetzner_token.starts_with?("file://")
       if !allow_token_from_file
-        errors << "Hetzner token is set to a path but paths are not allowed, use --allow-token-from-file flag"
+        errors << "Hetzner token is set to a path but paths are not allowed; use --allow-token-from-file flag"
         return
       end
     end
