@@ -27,7 +27,7 @@ module K3s
         link_header = response.headers["Link"].to_s
       end
 
-      releases = releases.to_a.map(&.to_s).sort!
+      releases = releases.to_a.map(&.to_s).reverse
 
       File.open(RELEASES_FILENAME, "w") { |f| YAML.dump(releases, f) }
 
