@@ -32,6 +32,12 @@ class Configuration::Loader
   getter settings : Configuration::Main
 
   getter hetzner_client : Hetzner::Client do
+    if settings.hetzner_token.blank?
+      errors << "Hetzner API token is missing, please set it in the configuration file or in the environment variable HCLOUD_TOKEN"
+      print_errors
+      exit 1
+    end
+
     Hetzner::Client.new(settings.hetzner_token)
   end
 
@@ -55,7 +61,8 @@ class Configuration::Loader
     server_types = hetzner_client.server_types
 
     if server_types.empty?
-      puts "Cannot fetch server types with Hetzner API, please try again later"
+      errors << "Cannot fetch server types with Hetzner API, please try again later"
+      print_errors
       exit 1
     end
 
@@ -66,7 +73,8 @@ class Configuration::Loader
     locations = hetzner_client.locations
 
     if locations.empty?
-      puts "Cannot fetch locations with Hetzner API, please try again later"
+      errors << "Cannot fetch locations with Hetzner API, please try again later"
+      print_errors
       exit 1
     end
 

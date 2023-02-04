@@ -36,7 +36,7 @@ class Cluster::Upgrade
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless status.zero?
       puts "Failed to create upgrade plan for controlplane:"
@@ -56,7 +56,7 @@ class Cluster::Upgrade
       EOF
       BASH
 
-      status, result = Util::Shell.run(command, configuration.kubeconfig_path)
+      status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
       unless status.zero?
         puts "Failed to create upgrade plan for workers:"

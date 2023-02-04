@@ -1,5 +1,5 @@
 class Util::Shell
-  def self.run(command, kubeconfig_path)
+  def self.run(command, kubeconfig_path, hetzner_token)
     cmd_file_path = "/tmp/cli.cmd"
 
     write_file cmd_file_path, <<-CONTENT
@@ -17,7 +17,7 @@ class Util::Shell
 
     env = {
       "KUBECONFIG" => kubeconfig_path,
-      "HCLOUD_TOKEN" => ENV.fetch("HCLOUD_TOKEN", ""),
+      "HCLOUD_TOKEN" => hetzner_token
     }
 
     status = Process.run("bash",
