@@ -229,8 +229,6 @@ eval "$(ssh-agent -s)"
 ssh-add --apple-use-keychain ~/.ssh/<private key>
 ```
 
-### Installation
-
 Finally, to create the cluster run:
 
 ```bash
