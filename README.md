@@ -380,7 +380,7 @@ Please create a PR if you want to propose any changes, or open an issue if you a
 
 Contributors:
 
-- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster)
+- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
 ___
 ## License
