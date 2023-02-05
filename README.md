@@ -92,6 +92,10 @@ chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
 
+### Windows
+
+At this time I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+
 ___
 
 ## Creating a cluster
