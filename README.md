@@ -196,6 +196,8 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
+If you see timeouts during cluster creation, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+
 ### Using alternative images
 
 By default, the image in use is `ubuntu-22.04`, but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
