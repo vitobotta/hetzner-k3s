@@ -129,7 +129,7 @@ masters_pool:
   #   - key: something
   #     value: value1:NoSchedule
 worker_node_pools:
-- name: small
+- name: small-static
   instance_type: cpx21
   instance_count: 4
   location: hel1
@@ -139,7 +139,7 @@ worker_node_pools:
   # taints:
   #   - key: something
   #     value: value1:NoSchedule
-- name: big
+- name: big-autoscaled
   instance_type: cpx31
   instance_count: 2
   location: fsn1
@@ -177,9 +177,9 @@ worker_node_pools:
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
-If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
+If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
 
-**Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
+**Important**: The tool assignes the label `cluster` to each server it creates for static node pools (this doesn't apply to autoscaled node pools), with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
 If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
