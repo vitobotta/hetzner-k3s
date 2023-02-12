@@ -5,7 +5,7 @@ require "./node_pool"
 class Configuration::Main
   include YAML::Serializable
 
-  getter hetzner_token : String
+  getter hetzner_token : String = ENV.fetch("HCLOUD_TOKEN", "")
   getter cluster_name : String
   getter kubeconfig_path : String
   getter k3s_version : String

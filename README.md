@@ -71,7 +71,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.7/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.8/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-x64
 sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ```
@@ -79,7 +79,7 @@ sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon / M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.7/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.8/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm
 sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ```
@@ -87,10 +87,14 @@ sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.7/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.0.8/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
+
+### Windows
+
+At this time I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
 ___
 
@@ -125,7 +129,7 @@ masters_pool:
   #   - key: something
   #     value: value1:NoSchedule
 worker_node_pools:
-- name: small
+- name: small-static
   instance_type: cpx21
   instance_count: 4
   location: hel1
@@ -135,7 +139,7 @@ worker_node_pools:
   # taints:
   #   - key: something
   #     value: value1:NoSchedule
-- name: big
+- name: big-autoscaled
   instance_type: cpx31
   instance_count: 2
   location: fsn1
@@ -173,9 +177,9 @@ worker_node_pools:
 
 It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
-If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
+If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
 
-**Important**: The tool assignes the label `cluster` to each server it creates, with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
+**Important**: The tool assignes the label `cluster` to each server it creates for static node pools (this doesn't apply to autoscaled node pools), with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
 the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
 
 If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
@@ -191,6 +195,8 @@ curl \
 	-H "Authorization: Bearer $API_TOKEN" \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
+
+If you see timeouts during cluster creation, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
 
 ### Using alternative images
 
@@ -228,8 +234,6 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 eval "$(ssh-agent -s)"
 ssh-add --apple-use-keychain ~/.ssh/<private key>
 ```
-
-### Installation
 
 Finally, to create the cluster run:
 
@@ -382,7 +386,7 @@ Please create a PR if you want to propose any changes, or open an issue if you a
 
 Contributors:
 
-- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/wiki/Tutorial:---Setting-up-a-cluster)
+- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
 ___
 ## License
