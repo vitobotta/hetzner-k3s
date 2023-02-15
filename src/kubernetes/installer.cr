@@ -140,7 +140,8 @@ class Kubernetes::Installer
       taint: taint,
       extra_args: extra_args,
       server: server,
-      tls_sans: tls_sans
+      tls_sans: tls_sans,
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end
 
@@ -149,7 +150,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      first_master_private_ip_address: first_master.private_ip_address
+      first_master_private_ip_address: first_master.private_ip_address,
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end
 
