@@ -59,7 +59,8 @@ class Cluster::Create
       firewall_name: settings.cluster_name,
       ssh_allowed_networks: settings.ssh_allowed_networks,
       api_allowed_networks: settings.api_allowed_networks,
-      high_availability: settings.masters_pool.instance_count > 1
+      high_availability: settings.masters_pool.instance_count > 1,
+      private_network_subnet: settings.private_network_subnet
     ).run
 
     @ssh_key = Hetzner::SSHKey::Create.new(
@@ -186,7 +187,8 @@ class Cluster::Create
         hetzner_client: hetzner_client,
         network_name: settings.cluster_name,
         location: settings.masters_pool.location,
-        locations: configuration.locations
+        locations: configuration.locations,
+        private_network_subnet: settings.private_network_subnet
       ).run
     end
   end
