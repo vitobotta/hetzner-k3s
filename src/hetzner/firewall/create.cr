@@ -4,6 +4,7 @@ require "./find"
 class Hetzner::Firewall::Create
   getter hetzner_client : Hetzner::Client
   getter firewall_name : String
+  getter private_network_subnet : String
   getter ssh_allowed_networks : Array(String)
   getter api_allowed_networks : Array(String)
   getter high_availability : Bool
@@ -14,7 +15,8 @@ class Hetzner::Firewall::Create
       @firewall_name,
       @ssh_allowed_networks,
       @api_allowed_networks,
-      @high_availability
+      @high_availability,
+      @private_network_subnet
     )
     @firewall_finder = Hetzner::Firewall::Find.new(hetzner_client, firewall_name)
   end
@@ -70,7 +72,7 @@ class Hetzner::Firewall::Create
         protocol: "tcp",
         port: "any",
         source_ips: [
-          "10.0.0.0/16"
+          private_network_subnet
         ],
         destination_ips: [] of String
       },
@@ -80,7 +82,7 @@ class Hetzner::Firewall::Create
         protocol: "udp",
         port: "any",
         source_ips: [
-          "10.0.0.0/16"
+          private_network_subnet
         ],
         destination_ips: [] of String
       }

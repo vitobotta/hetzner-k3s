@@ -115,6 +115,7 @@ ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
   - 0.0.0.0/0
+private_network_subnet: 10.0.0.0/16
 schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
