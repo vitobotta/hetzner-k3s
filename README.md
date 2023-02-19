@@ -72,16 +72,16 @@ You need to install these dependencies first:
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.0/hetzner-k3s-mac-amd64
-chmod +x hetzner-k3s-mac-x64
-sudo mv hetzner-k3s-mac-x64 /usr/local/bin/hetzner-k3s
+chmod +x hetzner-k3s-mac-amd64
+sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ```
 
 ##### Apple Silicon / M1
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.0/hetzner-k3s-mac-arm64
-chmod +x hetzner-k3s-mac-arm
-sudo mv hetzner-k3s-mac-arm /usr/local/bin/hetzner-k3s
+chmod +x hetzner-k3s-mac-arm64
+sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ```
 
 ### Linux
