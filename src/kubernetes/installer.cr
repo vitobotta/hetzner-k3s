@@ -133,7 +133,10 @@ class Kubernetes::Installer
       extra_args: extra_args,
       server: server,
       tls_sans: tls_sans,
-      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1",
+      cluster_cidr: settings.cluster_cidr,
+      service_cidr: settings.service_cidr,
+      cluster_dns: settings.cluster_dns,
     })
   end
 
@@ -237,7 +240,22 @@ class Kubernetes::Installer
   private def deploy_cloud_controller_manager
     puts "\nDeploying Hetzner Cloud Controller Manager..."
 
-    command = "kubectl apply -f #{settings.cloud_controller_manager_manifest_url}"
+    response = HTTP::Client.get(settings.cloud_controller_manager_manifest_url)
+
+    unless response.success?
+      puts "Failed to download CCM manifest from #{settings.cloud_controller_manager_manifest_url}"
+      puts "Server responded with status #{response.status_code}"
+      exit 1
+    end
+
+    ccm_manifest = response.body.to_s
+    ccm_manifest = ccm_manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
+
+    ccm_manifest_path = "/tmp/ccm_manifest.yaml"
+
+    File.write(ccm_manifest_path, ccm_manifest)
+
+    command = "kubectl apply -f #{ccm_manifest_path}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
