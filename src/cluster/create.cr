@@ -12,6 +12,8 @@ require "../kubernetes/installer"
 require "../util/ssh"
 
 class Cluster::Create
+  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
+
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
     configuration.hetzner_client
@@ -105,19 +107,26 @@ class Cluster::Create
     no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
 
     no_autoscaling_worker_node_pools.each do |node_pool|
-      placement_group = create_placement_group_for_node_pool(node_pool)
+      placement_groups = create_placement_groups_for_node_pool(node_pool)
 
       node_pool.instance_count.times do |i|
+        placement_group = placement_groups[i % placement_groups.size]
         server_creators << create_worker_server(i, node_pool, placement_group)
       end
     end
   end
 
-  private def create_placement_group_for_node_pool(node_pool)
-    Hetzner::PlacementGroup::Create.new(
-      hetzner_client: hetzner_client,
-      placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
-    ).run
+  private def create_placement_groups_for_node_pool(node_pool)
+    placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil
+
+    (1..placement_groups_count).map do |index|
+      placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
+
+      Hetzner::PlacementGroup::Create.new(
+        hetzner_client: hetzner_client,
+        placement_group_name: placement_group_name
+      ).run
+    end
   end
 
   private def create_worker_server(index : Int32, node_pool, placement_group)
