@@ -9,12 +9,10 @@ class Configuration::Settings::NodePool::NodeTaints
   end
 
   def validate
-    given_taints = taints
+    return unless taints
 
-    return unless given_taints
-
-    given_taints.each do |mark|
-      unless (mark.key && mark.value)
+    taints.try &.each do |taint|
+      if taint.key.nil? || taint.value.nil?
         errors << "#{pool_type} has invalid taints"
         break
       end

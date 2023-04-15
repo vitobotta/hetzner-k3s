@@ -10,10 +10,16 @@ class Hetzner::Firewall::Find
   end
 
   def run
-    firewalls = FirewallsList.from_json(hetzner_client.get("/firewalls")).firewalls
+    firewalls = fetch_firewalls
 
-    firewalls.find do |firewall|
-      firewall.name == firewall_name
-    end
+    firewalls.find { |firewall| firewall.name == firewall_name }
+  end
+
+  private def fetch_firewalls
+    FirewallsList.from_json(hetzner_client.get("/firewalls")).firewalls
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to fetch firewalls: #{ex.message}"
+    STDERR.puts ex.response
+    [] of Firewall
   end
 end
