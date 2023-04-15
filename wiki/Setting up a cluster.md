@@ -219,6 +219,8 @@ spec:
   tls: # <<<---- Add this block
   - hosts:
     - yourDomain.com
+    secretName: yourDomain.com-tls # <<<--- Add reference to secret
+
   ....
 ```
 
