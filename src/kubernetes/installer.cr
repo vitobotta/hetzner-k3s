@@ -252,7 +252,7 @@ class Kubernetes::Installer
   private def deploy_csi_driver
     puts "\nDeploying Hetzner CSI Driver..."
 
-    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
+    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
