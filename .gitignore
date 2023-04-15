@@ -21,3 +21,4 @@ dist/hetzner-k3s
 *.dwarf
 hetzner-k3s
 k3s-releases.yaml
+actions-runner

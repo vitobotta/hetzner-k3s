@@ -10,10 +10,16 @@ class Hetzner::Network::Find
   end
 
   def run
-    networks = NetworksList.from_json(hetzner_client.get("/networks")).networks
+    networks = fetch_networks
 
-    networks.find do |network|
-      network.name == network_name
-    end
+    networks.find { |network| network.name == network_name }
+  end
+
+  private def fetch_networks
+    NetworksList.from_json(hetzner_client.get("/networks")).networks
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to fetch networks: #{ex.message}"
+    STDERR.puts ex.response
+    exit 1
   end
 end

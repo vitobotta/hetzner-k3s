@@ -10,10 +10,16 @@ class Hetzner::LoadBalancer::Find
   end
 
   def run
-    load_balancers = LoadBalancersList.from_json(hetzner_client.get("/load_balancers")).load_balancers
+    load_balancers = fetch_load_balancers
 
-    load_balancers.find do |load_balancer|
-      load_balancer.name == load_balancer_name
-    end
+    load_balancers.find { |load_balancer| load_balancer.name == load_balancer_name }
+  end
+
+  private def fetch_load_balancers
+    LoadBalancersList.from_json(hetzner_client.get("/load_balancers")).load_balancers
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to fetch load balancers: #{ex.message}"
+    STDERR.puts ex.response
+    exit 1
   end
 end

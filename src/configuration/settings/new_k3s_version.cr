@@ -4,12 +4,8 @@ class Configuration::Settings::NewK3sVersion
   getter errors : Array(String)
   getter current_k3s_version : String
   getter new_k3s_version : String?
-  getter releases : Array(String) | Array(YAML::Any) do
-    ::K3s.available_releases
-  end
-  getter new_version : String do
-    new_k3s_version.not_nil!
-  end
+  getter releases : Array(String) | Array(YAML::Any) { ::K3s.available_releases }
+  getter new_version : String { new_k3s_version.not_nil! }
 
   def initialize(@errors, @current_k3s_version, @new_k3s_version)
   end
@@ -26,8 +22,8 @@ class Configuration::Settings::NewK3sVersion
   end
 
   private def validate_new_version_must_be_more_recent
-    current_version_index : Int32 = releases.index(current_k3s_version) || -1
-    new_version_index : Int32 = releases.index(new_version) || -1
+    current_version_index = releases.index(current_k3s_version) || -1
+    new_version_index = releases.index(new_version) || -1
 
     return if new_version_index > current_version_index
 

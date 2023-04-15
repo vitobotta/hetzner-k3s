@@ -9,12 +9,10 @@ class Configuration::Settings::NodePool::NodeLabels
   end
 
   def validate
-    given_labels = labels
+    return unless labels
 
-    return unless given_labels
-
-    given_labels.each do |label|
-      unless (label.key && label.value)
+    labels.try &.each do |label|
+      if label.key.nil? || label.value.nil?
         errors << "#{pool_type} has invalid labels"
         break
       end

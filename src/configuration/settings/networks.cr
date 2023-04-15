@@ -10,8 +10,8 @@ class Configuration::Settings::Networks
   end
 
   def validate
-    if networks
-      if networks.empty?
+    if @networks
+      if @networks.empty?
         errors << "#{network_type} allowed networks are required"
       else
         validate_networks
@@ -23,12 +23,16 @@ class Configuration::Settings::Networks
   end
 
   private def validate_networks
-    networks.each do |cidr|
-      begin
-        IPAddress.new(cidr).network?
-      rescue ArgumentError
-        errors << "#{network_type} allowed network #{cidr} is not a valid network in CIDR notation"
-      end
+    @networks.each do |cidr|
+      validate_cidr_network(cidr)
+    end
+  end
+
+  private def validate_cidr_network(cidr : String)
+    begin
+      IPAddress.new(cidr).network?
+    rescue ArgumentError
+      errors << "#{network_type} allowed network #{cidr} is not a valid network in CIDR notation"
     end
   end
 
@@ -44,24 +48,29 @@ class Configuration::Settings::Networks
 
     included = false
 
-    networks.each do |cidr|
-      begin
-        network = IPAddress.new(cidr).network
-
-        if network.includes? current_ip
-          included = true
-        end
-      rescue ex: ArgumentError
-        if ex.message =~ /Invalid netmask/
-          errors << "#{network_type} allowed network #{cidr} has an invalid netmark"
-        else
-          errors << "#{network_type} allowed network #{cidr} is not a valid network in CIDR notation"
-        end
-      end
+    @networks.each do |cidr|
+      included = check_current_ip_in_network(cidr, current_ip, included)
     end
 
     unless included
       errors << "Your current IP #{current_ip} must belong to at least one of the #{network_type} allowed networks"
     end
+  end
+
+  private def check_current_ip_in_network(cidr : String, current_ip : IPAddress, included : Bool) : Bool
+    begin
+      network = IPAddress.new(cidr).network
+
+      if network.includes? current_ip
+        included = true
+      end
+    rescue ex: ArgumentError
+      if ex.message =~ /Invalid netmask/
+        errors << "#{network_type} allowed network #{cidr} has an invalid netmark"
+      else
+        errors << "#{network_type} allowed network #{cidr} is not a valid network in CIDR notation"
+      end
+    end
+    included
   end
 end

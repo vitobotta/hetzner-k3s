@@ -7,8 +7,12 @@ class Configuration::Settings::NodePool::PoolName
   end
 
   def validate
-    return if pool_type == :masters || pool_name =~ /\A([A-Za-z0-9\-_]+)\Z/
+    return if pool_type == :masters || valid_pool_name?(pool_name)
 
     errors << "#{pool_type} has an invalid name"
+  end
+
+  private def valid_pool_name?(name : String) : Bool
+    (name =~ /\A([A-Za-z0-9\-_]+)\Z/) != nil
   end
 end

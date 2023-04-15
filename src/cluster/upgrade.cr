@@ -8,9 +8,12 @@ class Cluster::Upgrade
   UPGRADE_PLAN_MANIFEST_FOR_MASTERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_masters.yaml") }}
   UPGRADE_PLAN_MANIFEST_FOR_WORKERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_workers.yaml") }}
 
-  private getter configuration : Configuration::Loader
-  private getter settings : Configuration::Main do
+  getter configuration : Configuration::Loader
+  getter settings : Configuration::Main do
     configuration.settings
+  end
+  getter new_k3s_version : String? do
+    configuration.new_k3s_version
   end
 
   def initialize(@configuration)
@@ -22,25 +25,23 @@ class Cluster::Upgrade
     Util.check_kubectl
 
     workers_count = settings.worker_node_pools.sum { |pool| pool.instance_count }
-    worker_upgrade_concurrency = workers_count - 1
-    worker_upgrade_concurrency = 1 if worker_upgrade_concurrency.zero?
-    new_k3s_version = configuration.new_k3s_version
+    worker_upgrade_concurrency = [workers_count - 1, 1].max
 
     masters_upgrade_manifest = Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_MASTERS, {
       new_k3s_version: new_k3s_version,
     })
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{masters_upgrade_manifest}
-    EOF
-    BASH
+    command = String.build do |str|
+      str << "kubectl apply -f - <<-EOF\n"
+      str << masters_upgrade_manifest.strip
+      str << "\nEOF"
+    end
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to create upgrade plan for controlplane:"
-      puts result
+      puts result.output
       exit 1
     end
 
@@ -50,17 +51,17 @@ class Cluster::Upgrade
         worker_upgrade_concurrency: worker_upgrade_concurrency,
       })
 
-      command = <<-BASH
-      kubectl apply -f - <<-EOF
-      #{workers_upgrade_manifest}
-      EOF
-      BASH
+      command = String.build do |str|
+        str << "kubectl apply -f - <<-EOF\n"
+        str << workers_upgrade_manifest.strip
+        str << "\nEOF"
+      end
 
-      status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+      result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-      unless status.zero?
+      unless result.success?
         puts "Failed to create upgrade plan for workers:"
-        puts result
+        puts result.output
         exit 1
       end
     end

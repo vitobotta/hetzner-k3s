@@ -59,26 +59,12 @@ class Configuration::Loader
 
   getter server_types : Array(Hetzner::ServerType) do
     server_types = hetzner_client.server_types
-
-    if server_types.empty?
-      errors << "Cannot fetch server types with Hetzner API, please try again later"
-      print_errors
-      exit 1
-    end
-
-    server_types
+    handle_api_errors(server_types, "Cannot fetch server types with Hetzner API, please try again later")
   end
 
   getter locations : Array(Hetzner::Location) do
     locations = hetzner_client.locations
-
-    if locations.empty?
-      errors << "Cannot fetch locations with Hetzner API, please try again later"
-      print_errors
-      exit 1
-    end
-
-    locations
+    handle_api_errors(locations, "Cannot fetch locations with Hetzner API, please try again later")
   end
 
   getter new_k3s_version : String?
@@ -100,23 +86,39 @@ class Configuration::Loader
 
     Settings::ClusterName.new(errors, settings.cluster_name).validate
 
+    validate_command_specific_settings(command)
+
+    print_validation_result
+  end
+
+  private def validate_command_specific_settings(command)
     case command
     when :create
-      Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
-      Settings::K3sVersion.new(errors, settings.k3s_version).validate
-      Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
-      Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
-      Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
-      Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
-      Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
-      validate_masters_pool
-      validate_worker_node_pools
+      validate_create_settings
     when :delete
     when :upgrade
-      Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
-      Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+      validate_upgrade_settings
     end
+  end
 
+  private def validate_create_settings
+    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
+    Settings::K3sVersion.new(errors, settings.k3s_version).validate
+    Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
+    Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
+    Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
+    Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
+    Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
+    validate_masters_pool
+    validate_worker_node_pools
+  end
+
+  private def validate_upgrade_settings
+    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
+    Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+  end
+
+  private def print_validation_result
     if errors.empty?
       puts "...configuration seems valid."
     else
@@ -137,40 +139,39 @@ class Configuration::Loader
   end
 
   private def validate_worker_node_pools
-    if settings.worker_node_pools
-      node_pools = settings.worker_node_pools
+    if settings.worker_node_pools.nil?
+      errors << "`worker_node_pools` is required if workloads cannot be scheduled on masters" unless settings.schedule_workloads_on_masters
+      return
+    end
 
-      unless node_pools.size.positive? || settings.schedule_workloads_on_masters
-        errors << "Invalid node pools configuration"
-        return
-      end
+    node_pools = settings.worker_node_pools
+    validate_node_pools_configuration(node_pools)
+  end
 
-      return if node_pools.size.zero? && settings.schedule_workloads_on_masters
+  private def validate_node_pools_configuration(node_pools)
+    if node_pools.empty?
+      errors << "At least one worker node pool is required in order to schedule workloads" unless settings.schedule_workloads_on_masters
+    else
+      validate_unique_node_pool_names(node_pools)
+      validate_each_node_pool(node_pools)
+    end
+  end
 
-      if node_pools.size.zero?
-        errors << "At least one node pool is required in order to schedule workloads"
-      else
-        worker_node_pool_names = node_pools.map do |node_pool|
-          node_pool.name
-        end
+  private def validate_unique_node_pool_names(node_pools)
+    worker_node_pool_names = node_pools.map(&.name)
+    errors << "Each worker node pool must have a unique name" if worker_node_pool_names.uniq.size != node_pools.size
+  end
 
-        if worker_node_pool_names.uniq.size != node_pools.size
-          errors << "Each node pool must have an unique name"
-        end
-
-        node_pools.map do |worker_node_pool|
-          Settings::NodePool.new(
-            errors: errors,
-            pool: worker_node_pool,
-            pool_type: :workers,
-            masters_location: masters_location,
-            server_types: server_types,
-            locations: locations
-          ).validate
-        end
-      end
-    elsif !settings.schedule_workloads_on_masters
-      errors << "settings.worker_node_pools is required if workloads cannot ve scheduled on masters"
+  private def validate_each_node_pool(node_pools)
+    node_pools.each do |worker_node_pool|
+      Settings::NodePool.new(
+        errors: errors,
+        pool: worker_node_pool,
+        pool_type: :workers,
+        masters_location: masters_location,
+        server_types: server_types,
+        locations: locations
+      ).validate
     end
   end
 
@@ -184,5 +185,15 @@ class Configuration::Loader
     end
 
     exit 1
+  end
+
+  private def handle_api_errors(data, error_message)
+    if data.empty?
+      errors << error_message
+      print_errors
+      exit 1
+    end
+
+    data
   end
 end

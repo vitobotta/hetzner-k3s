@@ -9,15 +9,21 @@ class Configuration::Settings::NodePool::InstanceCount
   end
 
   def validate
-    instance_count = pool.try(&.instance_count)
+    instance_count = pool.instance_count
 
-    return unless instance_count
+    min_count, max_count = 1, 10
 
-    if instance_count < 1
-      errors << "#{pool_type} must have at least one node"
-    elsif instance_count > 10
-      errors << "#{pool_type} cannot have more than 10 nodes due to a limitation with the Hetzner placement pools. You can add more node pools if you need more nodes."
-    elsif pool_type == :masters && instance_count.even?
+    if (min_count..max_count).includes?(instance_count)
+      validate_master_count if pool_type == :masters
+    else
+      errors << "#{pool_type} must have between #{min_count} and #{max_count} nodes due to a limitation with the Hetzner placement pools. You can add more node pools if you need more nodes."
+    end
+  end
+
+  private def validate_master_count
+    if pool.instance_count == 1 || pool.instance_count.odd?
+      return
+    else
       errors << "Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster"
     end
   end

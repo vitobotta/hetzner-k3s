@@ -12,22 +12,24 @@ class Configuration::Settings::NodePool::Location
   end
 
   def validate
-    location = pool.try(&.location)
+    location = pool.location
 
-    if location
-      if locations.map(&.name).includes?(location)
-        if pool_type == :workers && masters_location
-          in_network_zone = masters_location == "ash" ? location == "ash" : location != "ash"
-
-          unless in_network_zone
-            errors << "#{pool_type} pool must be in the same network zone as the masters. If the masters are located in Ashburn, all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn."
-          end
-        end
-      else
-        errors << "#{pool_type} pool has an invalid location"
-      end
+    if valid_location?(location)
+      validate_network_zone(location) if pool_type == :workers && masters_location
     else
       errors << "#{pool_type} pool has an invalid location"
+    end
+  end
+
+  private def valid_location?(location)
+    locations.any? { |loc| loc.name == location }
+  end
+
+  private def validate_network_zone(location)
+    in_network_zone = masters_location == "ash" ? location == "ash" : location != "ash"
+
+    unless in_network_zone
+      errors << "#{pool_type} pool must be in the same network zone as the masters. If the masters are located in Ashburn, all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn."
     end
   end
 end
