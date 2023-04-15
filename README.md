@@ -197,7 +197,6 @@ curl \
 	'https://api.hetzner.cloud/v1/server_types'
 ```
 
-If you see timeouts during cluster creation, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
 
 ### Using alternative images
 
@@ -287,7 +286,7 @@ hetzner-k3s upgrade --config cluster_config.yaml --new-k3s-version v1.21.3+k3s1
 
 So you just need to specify the new k3s version as an additional parameter and the configuration file will be updated with the new version automatically during the upgrade. To see the list of available k3s releases run the command `hetzner-k3s releases`.
 
-Note that the API server will briefly be unavailable during the upgrade of the controlplane.
+Note: (single master clusters only) the API server will briefly be unavailable during the upgrade of the controlplane.
 
 To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
 
@@ -341,11 +340,6 @@ hetzner-k3s delete --config cluster_config.yaml
 ```
 
 This will delete all the resources in the Hetzner Cloud project for the cluster being deleted.
-
-## Troubleshooting
-
-See [this page](https://github.com/vitobotta/hetzner-k3s/wiki/Troubleshooting) for solutions to common issues.
-
 ___
 ## Additional info
 
@@ -381,6 +375,12 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 I recommend that you create a separate Hetzner project for each cluster, because otherwise multiple clusters will attempt to create overlapping routes. I will make the pod cidr configurable in the future to avoid this, but I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
 
 ___
+
+## Troubleshooting
+
+If the tool hangs forever after creating servers and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+
+---
 ## Contributing and support
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
