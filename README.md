@@ -1,5 +1,3 @@
-# Create production grade Kubernetes clusters in Hetzner Cloud in just a few minutes
-
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/vitobotta/hetzner-k3s)
 ![GitHub Release Date](https://img.shields.io/github/release-date/vitobotta/hetzner-k3s)
 ![GitHub last commit](https://img.shields.io/github/last-commit/vitobotta/hetzner-k3s)
@@ -11,6 +9,12 @@
 
 ![GitHub forks](https://img.shields.io/github/forks/vitobotta/hetzner-k3s?style=social)
 ![GitHub Repo stars](https://img.shields.io/github/stars/vitobotta/hetzner-k3s?style=social)
+
+---
+
+# The easiest way to create production grade Kubernetes clusters in Hetzner Cloud
+
+
 
 ## What is this?
 
