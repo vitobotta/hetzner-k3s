@@ -10,8 +10,12 @@ class Configuration::Settings::NodePool::InstanceType
   end
 
   def validate
-    return if pool && pool.instance_type && server_types.map(&.name).includes?(pool.instance_type)
+    return if valid_instance_type?
 
     errors << "#{pool.name || "masters"} node pool has an invalid instance type"
+  end
+
+  private def valid_instance_type?
+    server_types.any? { |server_type| server_type.name == pool.instance_type }
   end
 end
