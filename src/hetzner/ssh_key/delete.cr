@@ -13,26 +13,28 @@ class Hetzner::SSHKey::Delete
   end
 
   def run
-    if ssh_key = ssh_key_finder.run
-      if ssh_key.name == ssh_key_name # same name as the cluster
-        print "Deleting SSH key..."
+    ssh_key = ssh_key_finder.run
 
-        hetzner_client.delete("/ssh_keys", ssh_key.id)
+    return handle_no_ssh_key if ssh_key.nil?
+    return handle_existing_ssh_key(ssh_key) if ssh_key.name == ssh_key_name
 
-        puts "done."
-      else
-        puts "The SSH key existed before creating the cluster, so I won't delete it."
-      end
-    else
-      puts "SSH key does not exist, skipping."
-    end
-
+    puts "The SSH key existed before creating the cluster, so I won't delete it."
     ssh_key_name
-
   rescue ex : Crest::RequestFailed
     STDERR.puts "Failed to delete ssh key: #{ex.message}"
     STDERR.puts ex.response
-
     exit 1
+  end
+
+  private def handle_no_ssh_key
+    puts "SSH key does not exist, skipping."
+    ssh_key_name
+  end
+
+  private def handle_existing_ssh_key(ssh_key)
+    print "Deleting SSH key..."
+    hetzner_client.delete("/ssh_keys", ssh_key.id)
+    puts "done."
+    ssh_key_name
   end
 end
