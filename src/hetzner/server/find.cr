@@ -10,9 +10,10 @@ class Hetzner::Server::Find
   end
 
   def run
-    servers = fetch_servers
-
-    servers.find { |server| server.name == server_name }
+    servers = ServersList.from_json(hetzner_client.get("/servers",{:name => server_name})).servers
+    servers.find do |server|
+      server.name == server_name
+    end
   end
 
   private def fetch_servers
