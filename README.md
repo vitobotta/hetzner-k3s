@@ -75,7 +75,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.1/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-amd64
 sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -83,7 +83,7 @@ sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon / M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.1/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm64
 sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ```
@@ -91,7 +91,7 @@ sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.1/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -204,7 +204,7 @@ curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_
 
 ### Using alternative OS images
 
-By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID. 
+By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID.
 
 To see the list of available images, run the following:
 
@@ -220,7 +220,7 @@ curl \
 
 The above applies to masters pool and node pools managed by `hetzner-k3s` directly; due to a limitation with the cluster autoscaler it is currently not possible to specify a different image for each autoscaled node pool, but only one. So if you want to use a different image for autoscaled pools set the `autoscaling_image` config option or leave it unset if you want to use the default `image` setting instead.
 
-It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. 
+It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server.
 
 I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
