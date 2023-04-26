@@ -85,13 +85,14 @@ class Cluster::Create
   private def create_master_server(index : Int32, placement_group)
     instance_type = settings.masters_pool.instance_type
     master_name = "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
+    image = settings.masters_pool.image || settings.image
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
       server_name: master_name,
       instance_type: instance_type,
-      image: settings.image,
+      image: image,
       snapshot_os: settings.snapshot_os,
       location: settings.masters_pool.location,
       placement_group: placement_group,
@@ -132,13 +133,14 @@ class Cluster::Create
   private def create_worker_server(index : Int32, node_pool, placement_group)
     instance_type = node_pool.instance_type
     node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
+    image = node_pool.image || settings.image
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
       server_name: node_name,
       instance_type: instance_type,
-      image: settings.image,
+      image: image,
       snapshot_os: settings.snapshot_os,
       location: node_pool.location,
       placement_group: placement_group,

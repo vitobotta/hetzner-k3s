@@ -13,7 +13,7 @@ class Hetzner::Server::Create
   getter cluster_name : String
   getter server_name : String
   getter instance_type : String
-  getter image : String
+  getter image : String | Int64
   getter location : String
   getter ssh_key : Hetzner::SSHKey
   getter firewall : Hetzner::Firewall
