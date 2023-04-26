@@ -31,7 +31,7 @@ class Hetzner::Client
   def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String
     response = Crest.get(
       "#{api_url}#{path}",
-      params,
+      params: params,
       json: true,
       headers: headers
     )
