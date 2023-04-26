@@ -14,10 +14,6 @@ class Hetzner::Server::Find
     servers.find do |server|
       server.name == server_name
     end
-  end
-
-  private def fetch_servers
-    ServersList.from_json(hetzner_client.get("/servers")).servers
   rescue ex : Crest::RequestFailed
     STDERR.puts "Failed to fetch servers: #{ex.message}"
     STDERR.puts ex.response
