@@ -122,6 +122,7 @@ api_allowed_networks:
 private_network_subnet: 10.0.0.0/16
 schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
+# autoscaling_image: 103908130 # optional, defaults to the `image` settings
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
 masters_pool:
   instance_type: cpx21
@@ -138,6 +139,7 @@ worker_node_pools:
   instance_type: cpx21
   instance_count: 4
   location: hel1
+  # image: debian-11
   # labels:
   #   - key: purpose
   #     value: blah
@@ -196,31 +198,29 @@ At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nurember
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
 ```bash
-curl \
-	-H "Authorization: Bearer $API_TOKEN" \
-	'https://api.hetzner.cloud/v1/server_types'
+curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_types'
 ```
 
 
-### Using alternative images
+### Using alternative OS images
 
-By default, the image in use is `ubuntu-22.04`, but you can specify an image to use with the `image` config option. You can choose from the following images currently available:
+By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID. 
 
-- ubuntu-18.04, ubuntu-20.04, ubuntu-22.04
-- debian-10, debian-11
-- centos-7, centos-stream-8, centos-stream-9
-- rocky-8, rocky-9
-- fedora-36, fedora-37
+To see the list of available images, run the following:
 
-It's also possible to use a snapshot that you have already created from an existing server. If you want to use a custom
-snapshot you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. To find
-the ID of your custom image/snapshot, run:
+
 
 ```bash
+export API_TOKEN=...
+
 curl \
-	-H "Authorization: Bearer $API_TOKEN" \
-	'https://api.hetzner.cloud/v1/images'
+-H "Authorization: Bearer $API_TOKEN" \
+'https://api.hetzner.cloud/v1/images?per_page=100' | jq '.images | map(select(.architecture == "arm")) | map({ id: .id, name: .name })'
 ```
+
+The above applies to masters pool and node pools managed by `hetzner-k3s` directly; due to a limitation with the cluster autoscaler it is currently not possible to specify a different image for each autoscaled node pool, but only one. So if you want to use a different image for autoscaled pools set the `autoscaling_image` config option or leave it unset if you want to use the default `image` setting instead.
+
+It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server. 
 
 I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 

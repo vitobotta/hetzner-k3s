@@ -298,7 +298,7 @@ class Kubernetes::Installer
     cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
       node_pool_args: node_pool_args,
       cloud_init: Base64.strict_encode(cloud_init),
-      image: settings.image,
+      image: settings.autoscaling_image || settings.image,
       firewall_name: settings.cluster_name,
       ssh_key_name: settings.cluster_name,
       network_name: (settings.existing_network || settings.cluster_name),
