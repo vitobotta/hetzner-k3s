@@ -215,7 +215,7 @@ export API_TOKEN=...
 
 curl \
 -H "Authorization: Bearer $API_TOKEN" \
-'https://api.hetzner.cloud/v1/images?per_page=100' | jq '.images | map(select(.architecture == "arm")) | map({ id: .id, name: .name })'
+'https://api.hetzner.cloud/v1/images?per_page=100'
 ```
 
 The above applies to masters pool and node pools managed by `hetzner-k3s` directly; due to a limitation with the cluster autoscaler it is currently not possible to specify a different image for each autoscaled node pool, but only one. So if you want to use a different image for autoscaled pools set the `autoscaling_image` config option or leave it unset if you want to use the default `image` setting instead.
