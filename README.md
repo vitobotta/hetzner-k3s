@@ -20,13 +20,13 @@
 
 This is a CLI tool to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
 
-Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market. With Hetzner's Cloud Controller Manager and CSI driver you can provision load balancers and persistent volumes very easily.
+Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market and locations in both Europe and USA.
 
-k3s is my favorite Kubernetes distribution now because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy because it's a single binary.
+k3s is my favorite Kubernetes distribution because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy and upgrade because it's a single binary.
 
-Using this tool, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **a few minutes** only. This includes
+Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **2-3 minutes** only. This includes
 
-- creating the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
+- creating all the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
@@ -35,6 +35,8 @@ Using this tool, creating a highly available k3s cluster with 3 masters for the 
 
 Also see this [wiki page](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md) for a tutorial on how to set up a cluster with the most common setup to get you started.
 
+
+
 ___
 ## Who am I?
 
@@ -42,19 +44,25 @@ I'm a Senior Backend Engineer and DevOps based in Finland and working for event 
 
 I also write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
 
+
+
 ___
 ## Prerequisites
 
 All that is needed to use this tool is
 
 - an Hetzner Cloud account
+
 - an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
+
 - kubectl installed
+
+  
 
 ___
 ## Getting started
 
-Before using the tool, be sure to have kubectl installed as it's required to install some software in the cluster to provision load balancers/persistent volumes and perform k3s upgrades.
+Before using the tool, be sure to have kubectl installed as it's required to install some components in the cluster and perform k3s upgrades.
 
 ### macOS
 
@@ -71,6 +79,8 @@ You need to install these dependencies first:
 - libevent
 - bdw-gc
 - libyaml
+- pcre
+- gmp
 
 ##### Intel
 
@@ -98,20 +108,22 @@ sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 
 ### Windows
 
-At this time I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+
 
 ___
 
 ## Creating a cluster
 
-The tool requires a simple configuration file in order to create/upgrade/delete clusters, in the YAML format like in the example below:
+The tool requires a simple configuration file in order to create/upgrade/delete clusters, in the YAML format like in the example below (commented lines are for optional settings):
 
 ```yaml
 ---
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
-k3s_version: v1.25.5+k3s1
+k3s_version: v1.26.4+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
 use_ssh_agent: false
@@ -122,18 +134,12 @@ api_allowed_networks:
 private_network_subnet: 10.0.0.0/16
 schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
-# autoscaling_image: 103908130 # optional, defaults to the `image` settings
+# autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
 masters_pool:
   instance_type: cpx21
   instance_count: 3
   location: nbg1
-  # labels:
-  #   - key: purpose
-  #     value: blah
-  # taints:
-  #   - key: something
-  #     value: value1:NoSchedule
 worker_node_pools:
 - name: small-static
   instance_type: cpx21
@@ -182,18 +188,15 @@ worker_node_pools:
 # - ...
 ```
 
-It should hopefully be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
+Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
 If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
 
-**Important**: The tool assignes the label `cluster` to each server it creates for static node pools (this doesn't apply to autoscaled node pools), with the cluster name you specify in the config file, as the value. So please ensure you don't create unrelated servers in the same project having
-the label `cluster=<cluster name>`, because otherwise they will be deleted if you delete the cluster. I recommend you create a separate Hetzner project for each cluster, see note at the end of this README for more details.
-
 If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
 
-You can specify any number of worker node pools for example to have mixed nodes with different specs for different workloads.
+You can specify any number of worker node pools, static or autoscaled, and have mixed nodes with different specs for different workloads.
 
-At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment.
+At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
 
@@ -202,44 +205,8 @@ curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_
 ```
 
 
-### Using alternative OS images
 
-By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID.
-
-To see the list of available images, run the following:
-
-
-
-```bash
-export API_TOKEN=...
-
-curl \
--H "Authorization: Bearer $API_TOKEN" \
-'https://api.hetzner.cloud/v1/images?per_page=100'
-```
-
-The above applies to masters pool and node pools managed by `hetzner-k3s` directly; due to a limitation with the cluster autoscaler it is currently not possible to specify a different image for each autoscaled node pool, but only one. So if you want to use a different image for autoscaled pools set the `autoscaling_image` config option or leave it unset if you want to use the default `image` setting instead.
-
-It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server.
-
-I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
-
-### Limitations:
-
-- if possible, use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ecdsa keys insted of the old rsa type
-- if you use a snapshot instead of one of the default images, the creation of the servers may take longer than when using a regular image
-- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
-- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
-- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
-- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster
-- SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
-
-```bash
-eval "$(ssh-agent -s)"
-ssh-add --apple-use-keychain ~/.ssh/<private key>
-```
-
-Finally, to create the cluster run:
+To create the cluster run:
 
 ```bash
 hetzner-k3s create --config cluster_config.yaml
@@ -248,9 +215,47 @@ hetzner-k3s create --config cluster_config.yaml
 This will take a few minutes depending on the number of masters and worker nodes.
 
 
+
+### Using alternative OS images
+
+By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different static node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID. With regard to autoscaling, due to a limitation in the Cluster Autoscaler for Hetzner it is not possible yet to specify a different image for each autoscaled pool, so for now you can specify the image for all autoscaled pools by setting the `autoscaling_image` setting if you want to use an image different from the one specified in `image`.
+
+To see the list of available images, run the following:
+
+```bash
+export API_TOKEN=...
+
+curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/images?per_page=100'
+```
+
+Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server.
+
+I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
+
+
+
+### Limitations:
+
+- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys insted of the old RSA type
+- if you use a snapshot instead of one of the default images, the creation of the servers will take longer than when using a regular image
+- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
+- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
+- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
+- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster (this will be addressed in a future update)
+- SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add --apple-use-keychain ~/.ssh/<private key>
+```
+
+
+
 ### Idempotency
 
 The `create` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
+
+
 
 ### Adding nodes
 
@@ -258,26 +263,33 @@ To add one or more nodes to a node pool, just change the instance count in the c
 
 **Important**: if you are increasing the size of a node pool created prior to v0.5.7, please see [this thread](https://github.com/vitobotta/hetzner-k3s/issues/80).
 
+
+
 ### Scaling down a node pool
 
 To make a node pool smaller:
 
 - decrease the instance count for the node pool in the configuration file so that those extra nodes are not recreated in the future
 - delete the nodes from Kubernetes (`kubectl delete node <name>`)
-- delete the instances from the cloud console (make sure you delete the correct ones :p)
+- delete the instances from the cloud console if the Cloud Controller Manager doesn't delete it automatically (make sure you delete the correct ones 🤭)
 
 In a future release I will add some automation for the cleanup.
+
+
 
 ### Replacing a problematic node
 
 - delete the node from Kubernetes (`kubectl delete node <name>`)
 - delete the correct instance from the cloud console
-- re-run the create script. This will re-create the missing node and have it join to the cluster
+- re-run the `create` command. This will re-create the missing node and have it join to the cluster
+
 
 
 ### Converting a non-HA cluster to HA
 
-It's easy to convert a non-HA with a single master cluster to HA with multiple masters. Just change the masters instance count and re-run the create command. This will create a load balancer for the API server and update the kubeconfig so that all the API requests go through the load balancer.
+It's easy to convert a non-HA with a single master cluster to HA with multiple masters. Just change the masters instance count and re-run the `create` command. This will create a load balancer for the API server and update the kubeconfig so that all the API requests go through the load balancer.
+
+
 
 ___
 ## Upgrading to a new version of k3s
@@ -285,7 +297,7 @@ ___
 If it's the first time you upgrade the cluster, all you need to do to upgrade it to a newer version of k3s is run the following command:
 
 ```bash
-hetzner-k3s upgrade --config cluster_config.yaml --new-k3s-version v1.21.3+k3s1
+hetzner-k3s upgrade --config cluster_config.yaml --new-k3s-version v1.27.1-rc2+k3s1
 ```
 
 So you just need to specify the new k3s version as an additional parameter and the configuration file will be updated with the new version automatically during the upgrade. To see the list of available k3s releases run the command `hetzner-k3s releases`.
@@ -293,6 +305,8 @@ So you just need to specify the new k3s version as an additional parameter and t
 Note: (single master clusters only) the API server will briefly be unavailable during the upgrade of the controlplane.
 
 To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
+
+
 
 ### What to do if the upgrade doesn't go smoothly
 
@@ -310,8 +324,6 @@ kubectl -n system-upgrade rollout restart deployment system-upgrade-controller
 kubectl -n system-upgrade rollout status deployment system-upgrade-controller
 ```
 
-I recommend running the above commands also when upgrading a cluster that has already been upgraded at least once previously, since the upgrade leaves some stuff behind that needs to be cleaned up.
-
 You can also check the logs of the system upgrade controller's pod:
 
 ```bash
@@ -324,6 +336,8 @@ A final note about upgrades is that if for some reason the upgrade gets stuck af
 ```bash
 kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-server=upgraded
 ```
+
+
 ___
 ## Upgrading the OS on nodes
 
@@ -334,6 +348,27 @@ ___
 - uncordon
 - proceed with the next node
 
+
+
+If you want to automate this process I recommend you install the [Kubernetes Reboot Daemon ](https://kured.dev/) ("Kured"). For this to work properly, make sure the OS you choose for the nodes has unattended upgrades enabled at least for security updates. For example if the image is Ubuntu, you can add this to the configuration file before running the `create` command:
+
+
+
+```yaml
+additional_packages:
+- unattended-upgrades 
+- update-notifier-common
+post_create_commands:
+- sudo systemctl enable unattended-upgrades
+- sudo systemctl start unattended-upgrades
+```
+
+
+
+Check the Kured documentation for configuration options like maintenance window etc.
+
+
+
 ___
 ## Deleting a cluster
 
@@ -343,7 +378,10 @@ To delete a cluster, running
 hetzner-k3s delete --config cluster_config.yaml
 ```
 
-This will delete all the resources in the Hetzner Cloud project for the cluster being deleted.
+This will delete all the resources in the Hetzner Cloud project created by `hetzner-k3s` directly. At the moment instances created by the cluster autoscaler must be deleted manually. This will be addressed in a future update.
+
+
+
 ___
 ## Additional info
 
@@ -366,7 +404,7 @@ There are some annotations that you can add to your services to configure the lo
 
 I set `load-balancer.hetzner.cloud/hostname` to a valid hostname that I configure (after creating the load balancer) with the IP of the load balancer; I use this together with the annotation `load-balancer.hetzner.cloud/uses-proxyprotocol: 'true'` to enable the proxy protocol. Reason: I enable the proxy protocol on the load balancers so that my ingress controller and applications can "see" the real IP address of the client. However when this is enabled, there is a problem where [cert-manager](https://cert-manager.io/docs/) fails http01 challenges; you can find an explanation of why [here](https://github.com/compumike/hairpin-proxy) but the easy fix provided by some providers - including Hetzner - is to configure the load balancer so that it uses a hostname instead of an IP. Again, read the explanation for the reason but if you care about seeing the actual IP of the client then I recommend you use these two annotations.
 
-The annotation `load-balancer.hetzner.cloud/use-private-ip: "true"` ensures that the communication between the load balancer and the nodes happens through the private network, so we don't have to open any ports on the nodes (other than the port 6443 for the Kubernetes API server).
+The annotation `load-balancer.hetzner.cloud/use-private-ip: "true"` ensures that the communication between the load balancer and the nodes happens through the private network, so we don't have to open any ports in the filrewall for the nodes (other than the port 6443 for the Kubernetes API server).
 
 The other annotations should be self explanatory. You can find a list of the available annotations [here](https://pkg.go.dev/github.com/hetznercloud/hcloud-cloud-controller-manager/internal/annotation).
 
@@ -378,11 +416,15 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 I recommend that you create a separate Hetzner project for each cluster, because otherwise multiple clusters will attempt to create overlapping routes. I will make the pod cidr configurable in the future to avoid this, but I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
 
+
+
 ___
 
 ## Troubleshooting
 
 If the tool hangs forever after creating servers and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+
+
 
 ---
 ## Contributing and support
@@ -393,15 +435,21 @@ Contributors:
 
 - [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
+  
+
 ___
 ## License
 
 This tool is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
 
+
+
 ___
 ## Code of conduct
 
 Everyone interacting in the hetzner-k3s project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
+
+
 
 
 ## Stargazers over time
