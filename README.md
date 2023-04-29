@@ -60,7 +60,7 @@ All that is needed to use this tool is
   
 
 ___
-## Getting started
+## Installation
 
 Before using the tool, be sure to have kubectl installed as it's required to install some components in the cluster and perform k3s upgrades.
 
