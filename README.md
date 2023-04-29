@@ -440,7 +440,7 @@ Contributors:
 ___
 ## License
 
-This tool is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+This tool is available as open source under the terms of the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
 
 
 
