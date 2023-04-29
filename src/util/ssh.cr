@@ -18,7 +18,7 @@ class Util::SSH
   end
 
   def wait_for_server(server, use_ssh_agent, test_command, expected_result)
-    puts "Waiting for server #{server.name}..."
+    puts "Waiting for successful ssh connectivity with server #{server.name}..."
 
     loop do
       sleep 1
