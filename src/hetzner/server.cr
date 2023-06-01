@@ -23,6 +23,14 @@ class Hetzner::Server
     net[0].ip
   end
 
+  def host_ip_address
+    if public_ip_address.nil?
+      return private_ip_address
+    else
+      return public_ip_address
+    end
+  end
+
   def master?
     /-master\d+/ =~ name
   end
