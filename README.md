@@ -133,6 +133,8 @@ api_allowed_networks:
   - 0.0.0.0/0
 private_network_subnet: 10.0.0.0/16
 schedule_workloads_on_masters: false
+# enable_public_net_ipv4: false # default is true
+# enable_public_net_ipv6: false # default is true
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
@@ -214,7 +216,9 @@ hetzner-k3s create --config cluster_config.yaml
 
 This will take a few minutes depending on the number of masters and worker nodes.
 
-
+### disable public IPs (IPv4 or IPv6 or both) on nodes
+With `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false` you can disable public interface at hetzner node creation. This settings are global and effects all master and worker. If you disable public IPs be sure that your hetzer-k3s executor has excess to the hetzner private network the nodes will be deployed in (executor is already in the privNet or has VPN excess).
+Additional setup network of the nodes via cloud init, so you have internet excess and DNS. If not the cluster install process will stuck after creation all nodes via hetzner cloud.
 
 ### Using alternative OS images
 
