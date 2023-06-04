@@ -198,6 +198,8 @@ If you set `masters_pool.instance_count` to 1 then the tool will create a non hi
 
 You can specify any number of worker node pools, static or autoscaled, and have mixed nodes with different specs for different workloads.
 
+Hetzner cloud init setting (`additional_packages` & `post_create_commands`) can be used global and in pool. If it's set in pool the global settings will be ignored for this pool. So pool settings will overrule global settings. 
+
 At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
