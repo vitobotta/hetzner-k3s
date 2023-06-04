@@ -86,8 +86,8 @@ class Cluster::Create
     instance_type = settings.masters_pool.instance_type
     master_name = "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
     image = settings.masters_pool.image || settings.image
-    enable_public_net_ipv4 = settings.enable_public_net_ipv4
-    enable_public_net_ipv6 = settings.enable_public_net_ipv6
+    additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
+    additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
@@ -101,10 +101,10 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
-      enable_public_net_ipv4: enable_public_net_ipv4,
-      enable_public_net_ipv6: enable_public_net_ipv6,
-      additional_packages: settings.additional_packages,
-      additional_post_create_commands: settings.post_create_commands
+      enable_public_net_ipv4: settings.enable_public_net_ipv4,
+      enable_public_net_ipv6: settings.enable_public_net_ipv6,
+      additional_packages: additional_packages,
+      additional_post_create_commands: additional_post_create_commands
     )
   end
 
@@ -138,8 +138,8 @@ class Cluster::Create
     instance_type = node_pool.instance_type
     node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
     image = node_pool.image || settings.image
-    enable_public_net_ipv4 = settings.enable_public_net_ipv4
-    enable_public_net_ipv6 = settings.enable_public_net_ipv6
+    additional_packages = node_pool.additional_packages || settings.additional_packages
+    additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
@@ -153,10 +153,10 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
-      enable_public_net_ipv4: enable_public_net_ipv4,
-      enable_public_net_ipv6: enable_public_net_ipv6,
-      additional_packages: settings.additional_packages,
-      additional_post_create_commands: settings.post_create_commands
+      enable_public_net_ipv4: settings.enable_public_net_ipv4,
+      enable_public_net_ipv6: settings.enable_public_net_ipv6,
+      additional_packages: additional_packages,
+      additional_post_create_commands: additional_post_create_commands
     )
   end
 
