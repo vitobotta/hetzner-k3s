@@ -28,8 +28,10 @@ class Configuration::Main
   getter kubelet_args : Array(String) = [] of String
   getter kube_proxy_args : Array(String) = [] of String
   getter existing_network : String?
+  getter cloud_controller_manager_manifest_url : String?
   getter image : String = "ubuntu-22.04"
   getter autoscaling_image : String = "ubuntu-22.04"
   getter snapshot_os : String = "default"
-  getter private_network_subnet : String = "10.0.0.0/16"
+  getter private_network : String = "10.0.0.0/16"
+  getter private_network_subnet : String = "10.0.0.0/24"
 end

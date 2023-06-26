@@ -7,9 +7,10 @@ class Hetzner::Network::Create
   getter location : String
   getter network_finder : Hetzner::Network::Find
   getter locations : Array(Hetzner::Location)
+  getter private_network : String
   getter private_network_subnet : String
 
-  def initialize(@hetzner_client, @network_name, @location, @locations, @private_network_subnet)
+  def initialize(@hetzner_client, @network_name, @location, @locations, @private_network, @private_network_subnet)
     @network_finder = Hetzner::Network::Find.new(@hetzner_client, @network_name)
   end
 
@@ -41,7 +42,7 @@ class Hetzner::Network::Create
 
     {
       name: network_name,
-      ip_range: private_network_subnet,
+      ip_range: private_network,
       subnets: [
         {
           ip_range: private_network_subnet,
