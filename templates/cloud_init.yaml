@@ -5,6 +5,7 @@ write_files:
 {{ eth1_str }}
 
 - content: |
+    Port {{ ssh_port }}
     PasswordAuthentication no
     X11Forwarding no
     MaxAuthTries 2
