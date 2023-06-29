@@ -8,7 +8,7 @@ require "./cluster/upgrade"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "1.1.2"
+    VERSION = "1.1.3"
 
     class Create < Admiral::Command
       define_help description: "create - Create a cluster"
