@@ -57,7 +57,7 @@ All that is needed to use this tool is
 
 - kubectl installed
 
-  
+
 
 ___
 ## Installation
@@ -136,6 +136,9 @@ schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
+cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.16.0/ccm-networks.yaml"
+csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
 masters_pool:
   instance_type: cpx21
   instance_count: 3
@@ -356,7 +359,7 @@ If you want to automate this process I recommend you install the [Kubernetes Reb
 
 ```yaml
 additional_packages:
-- unattended-upgrades 
+- unattended-upgrades
 - update-notifier-common
 post_create_commands:
 - sudo systemctl enable unattended-upgrades
@@ -435,7 +438,7 @@ Contributors:
 
 - [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
-  
+
 
 ___
 ## License
