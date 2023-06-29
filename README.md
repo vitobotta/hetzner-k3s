@@ -132,6 +132,7 @@ ssh_allowed_networks:
 api_allowed_networks:
   - 0.0.0.0/0
 private_network_subnet: 10.0.0.0/16
+disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
