@@ -236,7 +236,7 @@ class Kubernetes::Installer
   private def deploy_cloud_controller_manager
     puts "\nDeploying Hetzner Cloud Controller Manager..."
 
-    command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.15.0/ccm-networks.yaml"
+    command = "kubectl apply -f #{settings.cloud_controller_manager_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
@@ -252,7 +252,7 @@ class Kubernetes::Installer
   private def deploy_csi_driver
     puts "\nDeploying Hetzner CSI Driver..."
 
-    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
@@ -268,7 +268,7 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
+    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
