@@ -99,6 +99,7 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
+      ssh_port: settings.ssh_port,
       additional_packages: settings.additional_packages,
       additional_post_create_commands: settings.post_create_commands
     )
@@ -147,6 +148,7 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
+      ssh_port: settings.ssh_port,
       additional_packages: settings.additional_packages,
       additional_post_create_commands: settings.post_create_commands
     )
@@ -187,7 +189,7 @@ class Cluster::Create
   private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server))
     servers.each do |server|
       spawn do
-        ssh.wait_for_server server, settings.use_ssh_agent, "echo ready", "ready"
+        ssh.wait_for_server server, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
         channel.send(server)
       end
     end
@@ -229,7 +231,8 @@ class Cluster::Create
       ssh_allowed_networks: settings.ssh_allowed_networks,
       api_allowed_networks: settings.api_allowed_networks,
       high_availability: settings.masters_pool.instance_count > 1,
-      private_network_subnet: settings.private_network_subnet
+      private_network_subnet: settings.private_network_subnet,
+      ssh_port: settings.ssh_port
     ).run
   end
 

@@ -23,6 +23,7 @@ class Hetzner::Server::Create
   getter additional_post_create_commands : Array(String)
   getter server_finder : Hetzner::Server::Find
   getter snapshot_os : String
+  getter ssh_port : Int32
 
   def initialize(
       @hetzner_client,
@@ -36,6 +37,7 @@ class Hetzner::Server::Create
       @firewall,
       @placement_group,
       @network,
+      @ssh_port,
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
     )
@@ -75,6 +77,8 @@ class Hetzner::Server::Create
   end
 
   private def server_config
+    user_data = Hetzner::Server::Create.cloud_init(ssh_port, snapshot_os, additional_packages, additional_post_create_commands)
+
     {
       name: server_name,
       location: location,
@@ -89,7 +93,7 @@ class Hetzner::Server::Create
       ssh_keys: [
         ssh_key.id
       ],
-      user_data: Hetzner::Server::Create.cloud_init(snapshot_os, additional_packages, additional_post_create_commands),
+      user_data: user_data,
       labels: {
         cluster: cluster_name,
         role: (server_name =~ /master/ ? "master" : "worker")
@@ -98,12 +102,13 @@ class Hetzner::Server::Create
     }
   end
 
-  def self.cloud_init(snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
+  def self.cloud_init(ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
       post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands),
       eth1_str: eth1(snapshot_os),
-      growpart_str: growpart(snapshot_os)
+      growpart_str: growpart(snapshot_os),
+      ssh_port: ssh_port
     })
   end
 
