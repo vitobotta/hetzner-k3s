@@ -119,7 +119,7 @@ class Kubernetes::Installer
 
   private def master_install_script(master)
     server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
-    flannel_wireguard = find_flannel_wireguard
+    flannel_backend = find_flannel_backend
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
@@ -127,7 +127,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      flannel_wireguard: flannel_wireguard,
+      disable_flannel: settings.disable_flannel.to_s,
+      flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
       server: server,
@@ -146,7 +147,7 @@ class Kubernetes::Installer
     })
   end
 
-  private def find_flannel_wireguard
+  private def find_flannel_backend
     return " " unless configuration.settings.enable_encryption
 
     available_releases = K3s.available_releases
