@@ -1,0 +1,22 @@
+#cloud-config
+preserve_hostname: true
+
+write_files:
+{{ eth1_str }}
+
+- content: |
+    Port {{ ssh_port }}
+    PasswordAuthentication no
+    X11Forwarding no
+    MaxAuthTries 2
+    AllowTcpForwarding no
+    AllowAgentForwarding no
+    PubkeyAcceptedKeyTypes=+ssh-rsa
+  path: /etc/ssh/sshd_config.d/ssh.conf
+
+{{ growpart_str }}
+
+packages: [{{ packages_str }}]
+
+runcmd:
+{{ post_create_commands_str }}

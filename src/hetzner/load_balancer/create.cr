@@ -16,29 +16,34 @@ class Hetzner::LoadBalancer::Create
   end
 
   def run
-    if load_balancer = load_balancer_finder.run
+    load_balancer = load_balancer_finder.run
+
+    if load_balancer
       puts "Load balancer for API server already exists, skipping."
     else
       print "Creating load balancer for API server..."
-
-      hetzner_client.post("/load_balancers", load_balancer_config)
-      load_balancer = load_balancer_finder.run
-
-      while load_balancer.try(&.public_ip_address).nil?
-        sleep 1
-        load_balancer = load_balancer_finder.run
-      end
-
+      create_load_balancer
+      load_balancer = wait_for_load_balancer_public_ip
       puts "done."
     end
 
     load_balancer.not_nil!
-
   rescue ex : Crest::RequestFailed
     STDERR.puts "Failed to create load balancer: #{ex.message}"
     STDERR.puts ex.response
-
     exit 1
+  end
+
+  private def create_load_balancer
+    hetzner_client.post("/load_balancers", load_balancer_config)
+  end
+
+  private def wait_for_load_balancer_public_ip
+    loop do
+      load_balancer = load_balancer_finder.run
+      break load_balancer if load_balancer.try(&.public_ip_address)
+      sleep 1
+    end
   end
 
   private def load_balancer_config

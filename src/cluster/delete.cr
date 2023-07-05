@@ -26,13 +26,44 @@ class Cluster::Delete
   def run
     puts "\n=== Deleting infrastructure resources ===\n"
 
+    delete_resources
+  end
+
+  private def delete_resources
+    delete_load_balancer
+    delete_servers
+    delete_placement_groups
+    delete_network
+    delete_firewall
+    delete_ssh_key
+  end
+
+  private def delete_load_balancer
     Hetzner::LoadBalancer::Delete.new(
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name
     ).run
+  end
 
-    delete_servers
+  private def delete_servers
+    initialize_masters
+    initialize_worker_nodes
 
+    channel = Channel(String).new
+
+    server_deletors.each do |server_deletor|
+      spawn do
+        server_deletor.run
+        channel.send(server_deletor.server_name)
+      end
+    end
+
+    server_deletors.size.times do
+      channel.receive
+    end
+  end
+
+  private def delete_placement_groups
     Hetzner::PlacementGroup::Delete.new(
       hetzner_client: hetzner_client,
       placement_group_name: "#{settings.cluster_name}-masters"
@@ -44,17 +75,23 @@ class Cluster::Delete
         placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
       ).run
     end
+  end
 
+  private def delete_network
     Hetzner::Network::Delete.new(
       hetzner_client: hetzner_client,
       network_name: settings.cluster_name
     ).run
+  end
 
+  private def delete_firewall
     Hetzner::Firewall::Delete.new(
       hetzner_client: hetzner_client,
       firewall_name: settings.cluster_name
     ).run
+  end
 
+  private def delete_ssh_key
     Hetzner::SSHKey::Delete.new(
       hetzner_client: hetzner_client,
       ssh_key_name: settings.cluster_name,
@@ -81,24 +118,6 @@ class Cluster::Delete
           server_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
         )
       end
-    end
-  end
-
-  private def delete_servers
-    initialize_masters
-    initialize_worker_nodes
-
-    channel = Channel(String).new
-
-    server_deletors.each do |server_deletor|
-      spawn do
-        server_deletor.run
-        channel.send(server_deletor.server_name)
-      end
-    end
-
-    server_deletors.size.times do
-      channel.receive
     end
   end
 end

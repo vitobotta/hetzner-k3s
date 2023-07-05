@@ -11,20 +11,15 @@ class Hetzner::PlacementGroup::Create
   end
 
   def run
-    if placement_group = placement_group_finder.run
+    placement_group = placement_group_finder.run
+
+    if placement_group
       puts "Placement group #{placement_group_name} already exists, skipping."
     else
       print "Creating placement group #{placement_group_name}..."
-
-      placement_group_config = {
-        "name" => placement_group_name,
-        "type" => "spread"
-      }
-
-      hetzner_client.post("/placement_groups", placement_group_config)
-      puts "done."
-
+      create_placement_group
       placement_group = placement_group_finder.run
+      puts "done."
     end
 
     placement_group.not_nil!
@@ -34,5 +29,16 @@ class Hetzner::PlacementGroup::Create
     STDERR.puts ex.response
 
     exit 1
+  end
+
+  private def create_placement_group
+    hetzner_client.post("/placement_groups", placement_group_config)
+  end
+
+  private def placement_group_config
+    {
+      "name" => placement_group_name,
+      "type" => "spread"
+    }
   end
 end

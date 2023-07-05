@@ -10,10 +10,13 @@ class Hetzner::Server::Find
   end
 
   def run
-    servers = ServersList.from_json(hetzner_client.get("/servers")).servers
-
+    servers = ServersList.from_json(hetzner_client.get("/servers",{:name => server_name})).servers
     servers.find do |server|
       server.name == server_name
     end
+  rescue ex : Crest::RequestFailed
+    STDERR.puts "Failed to fetch servers: #{ex.message}"
+    STDERR.puts ex.response
+    exit 1
   end
 end

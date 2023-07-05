@@ -42,7 +42,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           docker run -d --name alpine -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine tail -f /dev/null
-          docker exec alpine apk add libssh2 libssh2-dev libssh2-static
+          docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
           docker exec alpine shards install --without-development
           docker exec alpine crystal build src/hetzner-k3s.cr --release --static
           cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}

@@ -15,37 +15,16 @@ class Kubernetes::Installer
   CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
   getter configuration : Configuration::Loader
-  getter settings : Configuration::Main do
-    configuration.settings
-  end
+  getter settings : Configuration::Main { configuration.settings }
   getter masters : Array(Hetzner::Server)
   getter workers : Array(Hetzner::Server)
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : Util::SSH
 
-  getter first_master : Hetzner::Server do
-    masters[0]
-  end
-
-  getter api_server_ip_address : String do
-    if masters.size > 1
-      load_balancer.not_nil!.public_ip_address.not_nil!
-    else
-      first_master.public_ip_address.not_nil!
-    end
-  end
-
-  getter tls_sans : String do
-    sans = " --tls-san=#{api_server_ip_address} "
-
-    masters.each do |master|
-      master_private_ip = master.private_ip_address
-      sans += " --tls-san=#{master_private_ip} "
-    end
-
-    sans
-  end
+  getter first_master : Hetzner::Server { masters[0] }
+  getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.public_ip_address.not_nil! }
+  getter tls_sans : String { generate_tls_sans }
 
   def initialize(@configuration, @masters, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)
   end
@@ -74,7 +53,7 @@ class Kubernetes::Installer
   private def set_up_first_master
     puts "Deploying k3s to first master #{first_master.name}..."
 
-    output = ssh.run(first_master, master_install_script(first_master), settings.use_ssh_agent)
+    output = ssh.run(first_master, settings.ssh_port, master_install_script(first_master), settings.use_ssh_agent)
 
     puts "Waiting for the control plane to be ready..."
 
@@ -89,46 +68,58 @@ class Kubernetes::Installer
     channel = Channel(Hetzner::Server).new
     other_masters = masters[1..-1]
 
+    deploy_masters_in_parallel(channel, other_masters)
+    wait_for_masters_deployment(channel, other_masters.size)
+  end
+
+  private def deploy_masters_in_parallel(channel : Channel(Hetzner::Server), other_masters : Array(Hetzner::Server))
     other_masters.each do |master|
       spawn do
-        puts "Deploying k3s to master #{master.name}..."
-
-        ssh.run(master, master_install_script(master), settings.use_ssh_agent)
-
-        puts "...k3s has been deployed to master #{master.name}."
-
+        deploy_k3s_to_master(master)
         channel.send(master)
       end
     end
+  end
 
-    other_masters.size.times do
-      channel.receive
-    end
+  private def deploy_k3s_to_master(master : Hetzner::Server)
+    puts "Deploying k3s to master #{master.name}..."
+    ssh.run(master, settings.ssh_port, master_install_script(master), settings.use_ssh_agent)
+    puts "...k3s has been deployed to master #{master.name}."
+  end
+
+  private def wait_for_masters_deployment(channel : Channel(Hetzner::Server), num_masters : Int32)
+    num_masters.times { channel.receive }
   end
 
   private def set_up_workers
     channel = Channel(Hetzner::Server).new
 
+    deploy_workers_in_parallel(channel, workers)
+    wait_for_workers_deployment(channel, workers.size)
+  end
+
+  private def deploy_workers_in_parallel(channel : Channel(Hetzner::Server), workers : Array(Hetzner::Server))
     workers.each do |worker|
       spawn do
-        puts "Deploying k3s to worker #{worker.name}..."
-
-        ssh.run(worker, worker_install_script, settings.use_ssh_agent)
-
-        puts "...k3s has been deployed to worker #{worker.name}."
-
+        deploy_k3s_to_worker(worker)
         channel.send(worker)
       end
     end
+  end
 
-    workers.size.times do
-      channel.receive
-    end
+  private def deploy_k3s_to_worker(worker : Hetzner::Server)
+    puts "Deploying k3s to worker #{worker.name}..."
+    ssh.run(worker, settings.ssh_port, worker_install_script, settings.use_ssh_agent)
+    puts "...k3s has been deployed to worker #{worker.name}."
+  end
+
+  private def wait_for_workers_deployment(channel : Channel(Hetzner::Server), num_workers : Int32)
+    num_workers.times { channel.receive }
   end
 
   private def master_install_script(master)
     server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
-    flannel_wireguard = find_flannel_wireguard
+    flannel_backend = find_flannel_backend
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
@@ -136,7 +127,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      flannel_wireguard: flannel_wireguard,
+      disable_flannel: settings.disable_flannel.to_s,
+      flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
       server: server,
@@ -155,66 +147,52 @@ class Kubernetes::Installer
     })
   end
 
-  private def find_flannel_wireguard
-    if configuration.settings.enable_encryption
-      available_releases = K3s.available_releases
-      selected_k3s_index : Int32 = available_releases.index(settings.k3s_version).not_nil!
-      k3s_1_23_6_index : Int32 = available_releases.index("v1.23.6+k3s1").not_nil!
+  private def find_flannel_backend
+    return " " unless configuration.settings.enable_encryption
 
-      if selected_k3s_index >= k3s_1_23_6_index
-        " --flannel-backend=wireguard-native "
-      else
-        " --flannel-backend=wireguard "
-      end
-    else
-      " "
-    end
+    available_releases = K3s.available_releases
+    selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
+    k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
+
+    selected_k3s_index >= k3s_1_23_6_index ? " --flannel-backend=wireguard-native " : " --flannel-backend=wireguard "
+  end
+
+  private def args_list(settings_group, setting)
+    setting.map { |arg| " --#{settings_group}-arg=\"#{arg}\" " }.join
   end
 
   private def kube_api_server_args_list
-    settings.kube_api_server_args.map do |arg|
-      " --kube-apiserver-arg=\"#{arg}\" "
-    end.join
+    args_list("kube-apiserver", settings.kube_api_server_args)
   end
 
   private def kube_scheduler_args_list
-    settings.kube_scheduler_args.map do |arg|
-      " --kube-scheduler-arg=\"#{arg}\" "
-    end.join
+    args_list("kube-scheduler", settings.kube_scheduler_args)
   end
 
   private def kube_controller_manager_args_list
-    settings.kube_controller_manager_args.map do |arg|
-      " --kube-controller-manager-arg=\"#{arg}\" "
-    end.join
+    args_list("kube-controller-manager", settings.kube_controller_manager_args)
   end
 
   private def kube_cloud_controller_manager_args_list
-    settings.kube_cloud_controller_manager_args.map do |arg|
-      " --kube-cloud-controller-manager-arg=\"#{arg}\" "
-    end.join
+    args_list("kube-cloud-controller-manager", settings.kube_cloud_controller_manager_args)
   end
 
   private def kubelet_args_list
-    settings.kubelet_args.map do |arg|
-      " --kubelet-arg=\"#{arg}\" "
-    end.join
+    args_list("kubelet", settings.kubelet_args)
   end
 
   private def kube_proxy_args_list
-    settings.kube_proxy_args.map do |arg|
-      " --kube-proxy-arg=\"#{arg}\" "
-    end.join
+    args_list("kube-proxy", settings.kube_proxy_args)
   end
 
   private def k3s_token
-    token = ssh.run(first_master, "{ TOKEN=$(< /var/lib/rancher/k3s/server/node-token); } 2> /dev/null; echo $TOKEN", settings.use_ssh_agent, print_output: false)
-
-    if token.empty?
-      Random::Secure.hex
-    else
-      token.split(':').last
+    token = begin
+      ssh.run(first_master, settings.ssh_port, "cat /var/lib/rancher/k3s/server/node-token", settings.use_ssh_agent, print_output: false)
+    rescue
+      ""
     end
+
+    token.empty? ? Random::Secure.hex : token.split(':').last
   end
 
   private def save_kubeconfig
@@ -222,7 +200,7 @@ class Kubernetes::Installer
 
     puts "Saving the kubeconfig file to #{kubeconfig_path}..."
 
-    kubeconfig = ssh.run(first_master, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
+    kubeconfig = ssh.run(first_master, settings.ssh_port, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
       gsub("127.0.0.1", api_server_ip_address).
       gsub("default", settings.cluster_name)
 
@@ -245,9 +223,9 @@ class Kubernetes::Installer
     EOF
     BASH
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to create Hetzner Cloud secret:"
       puts result
       exit 1
@@ -259,11 +237,11 @@ class Kubernetes::Installer
   private def deploy_cloud_controller_manager
     puts "\nDeploying Hetzner Cloud Controller Manager..."
 
-    command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/latest/download/ccm-networks.yaml"
+    command = "kubectl apply -f #{settings.cloud_controller_manager_manifest_url}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to deploy Cloud Controller Manager:"
       puts result
       exit 1
@@ -275,11 +253,11 @@ class Kubernetes::Installer
   private def deploy_csi_driver
     puts "\nDeploying Hetzner CSI Driver..."
 
-    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml"
+    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to deploy CSI Driver:"
       puts result
       exit 1
@@ -291,11 +269,11 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
+    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to deploy k3s System Upgrade Controller:"
       puts result
       exit 1
@@ -314,20 +292,14 @@ class Kubernetes::Installer
 
     k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
 
-    cloud_init = Hetzner::Server::Create.cloud_init(settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    cloud_init = Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
 
-    output = ssh.run(first_master, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false)
-
-    certificate_path = if output == "1"
-      "/etc/ssl/certs/ca-certificates.crt"
-    else
-      "/etc/ssl/certs/ca-bundle.crt"
-    end
+    certificate_path = ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
 
     cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
       node_pool_args: node_pool_args,
       cloud_init: Base64.strict_encode(cloud_init),
-      image: settings.image,
+      image: settings.autoscaling_image || settings.image,
       firewall_name: settings.cluster_name,
       ssh_key_name: settings.cluster_name,
       network_name: (settings.existing_network || settings.cluster_name),
@@ -340,9 +312,9 @@ class Kubernetes::Installer
 
     command = "kubectl apply -f #{cluster_autoscaler_manifest_path}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
-    unless status.zero?
+    unless result.success?
       puts "Failed to deploy Cluster Autoscaler:"
       puts result
       exit 1
@@ -361,9 +333,7 @@ class Kubernetes::Installer
       instance_type = node_pool.instance_type
       node_name_prefix = /#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker/
 
-      nodes = workers.select do |worker|
-        node_name_prefix =~ worker.name
-      end
+      nodes = workers.select { |worker| node_name_prefix =~ worker.name }
 
       add_labels_or_taints(:label, nodes, node_pool.labels, :worker)
       add_labels_or_taints(:taint, nodes, node_pool.taints, :worker)
@@ -383,8 +353,17 @@ class Kubernetes::Installer
 
     command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
 
-    status, result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     puts "...done."
+  end
+
+  private def generate_tls_sans
+    sans = ["--tls-san=#{api_server_ip_address}"]
+    masters.each do |master|
+      master_private_ip = master.private_ip_address
+      sans << "--tls-san=#{master_private_ip}"
+    end
+    sans.join(" ")
   end
 end

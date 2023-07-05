@@ -2,28 +2,28 @@
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
-k3s_version: v1.25.5+k3s1
+k3s_version: v1.26.4+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
 use_ssh_agent: false
+# ssh_port: 22
 ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
   - 0.0.0.0/0
 schedule_workloads_on_masters: false
 private_network_subnet: 10.0.0.0/16
+disable_flannel: false # set to true if you want to install a different CNI
 # image: rocky-9 # optional: default is ubuntu-22.04
+# autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
+cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.16.0/ccm-networks.yaml"
+csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
 masters_pool:
   instance_type: cpx21
   instance_count: 3
   location: fsn1
-  # labels:
-  #   - key: purpose
-  #     value: blah
-  # taints:
-  #   - key: something
-  #     value: value1:NoSchedule
 worker_node_pools:
 - name: small
   instance_type: cpx21

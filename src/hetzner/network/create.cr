@@ -14,7 +14,9 @@ class Hetzner::Network::Create
   end
 
   def run
-    if network = network_finder.run
+    network = network_finder.run
+
+    if network
       puts "Network already exists, skipping."
     else
       print "Creating network..."

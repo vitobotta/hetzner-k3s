@@ -9,6 +9,7 @@ class Hetzner::Firewall::Create
   getter api_allowed_networks : Array(String)
   getter high_availability : Bool
   getter firewall_finder : Hetzner::Firewall::Find
+  getter ssh_port : Int32
 
   def initialize(
       @hetzner_client,
@@ -16,43 +17,43 @@ class Hetzner::Firewall::Create
       @ssh_allowed_networks,
       @api_allowed_networks,
       @high_availability,
-      @private_network_subnet
+      @private_network_subnet,
+      @ssh_port
     )
     @firewall_finder = Hetzner::Firewall::Find.new(hetzner_client, firewall_name)
   end
 
   def run
-    if firewall = firewall_finder.run
+    firewall = firewall_finder.run
+
+    if firewall
       print "Updating firewall..."
-
-      hetzner_client.post("/firewalls/#{firewall.id}/actions/set_rules", firewall_config)
-
-      puts "done."
+      action_path = "/firewalls/#{firewall.id}/actions/set_rules"
     else
       print "Creating firewall..."
-
-      hetzner_client.post("/firewalls", firewall_config)
-      firewall = firewall_finder.run
-
-      puts "done."
+      action_path = "/firewalls"
     end
 
+    begin
+      hetzner_client.post(action_path, firewall_config)
+      puts "done."
+    rescue ex : Crest::RequestFailed
+      STDERR.puts "Failed to create or update firewall: #{ex.message}"
+      STDERR.puts ex.response
+      exit 1
+    end
+
+    firewall = firewall_finder.run
     firewall.not_nil!
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to create firewall: #{ex.message}"
-    STDERR.puts ex.response
-
-    exit 1
   end
 
   private def firewall_config
     rules = [
       {
-        description: "Allow port 22 (SSH)",
+        description: "Allow SSH port",
         direction: "in",
         protocol: "tcp",
-        port: "22",
+        port: ssh_port.to_s,
         source_ips: ssh_allowed_networks,
         destination_ips: [] of String
       },

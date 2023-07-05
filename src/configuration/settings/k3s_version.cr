@@ -6,7 +6,7 @@ class Configuration::Settings::K3sVersion
   end
 
   def validate
-    return if ::K3s.available_releases.includes?(k3s_version)
+    return if K3s.available_releases.includes?(@k3s_version)
 
     errors << "K3s version is not valid, run `hetzner-k3s releases` to see available versions"
   end

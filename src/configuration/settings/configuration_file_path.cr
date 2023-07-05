@@ -6,10 +6,10 @@ class Configuration::Settings::ConfigurationFilePath
   end
 
   def validate
-    configuration_file_path = Path[path].expand(home: true).to_s
+    configuration_file_path = Path[@path].expand(home: true).to_s
 
-    if File.exists? configuration_file_path
-      if File.directory? configuration_file_path
+    if File.exists?(configuration_file_path)
+      if File.directory?(configuration_file_path)
         errors << "Configuration path points to a directory, not a file"
       end
     else
