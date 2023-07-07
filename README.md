@@ -57,7 +57,7 @@ All that is needed to use this tool is
 
 - kubectl installed
 
-  
+
 
 ___
 ## Installation
@@ -85,7 +85,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-amd64
 sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -93,7 +93,7 @@ sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon / M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm64
 sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ```
@@ -101,7 +101,7 @@ sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.2/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -127,17 +127,22 @@ k3s_version: v1.26.4+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
 private_ssh_key_path: "~/.ssh/id_rsa"
 use_ssh_agent: false
+# ssh_port: 22
 ssh_allowed_networks:
   - 0.0.0.0/0
 api_allowed_networks:
   - 0.0.0.0/0
 private_network_subnet: 10.0.0.0/16
+disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
 # enable_public_net_ipv4: false # default is true
 # enable_public_net_ipv6: false # default is true
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
+cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.16.0/ccm-networks.yaml"
+csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
 masters_pool:
   instance_type: cpx21
   instance_count: 3
@@ -362,7 +367,7 @@ If you want to automate this process I recommend you install the [Kubernetes Reb
 
 ```yaml
 additional_packages:
-- unattended-upgrades 
+- unattended-upgrades
 - update-notifier-common
 post_create_commands:
 - sudo systemctl enable unattended-upgrades
@@ -441,7 +446,7 @@ Contributors:
 
 - [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
-  
+
 
 ___
 ## License

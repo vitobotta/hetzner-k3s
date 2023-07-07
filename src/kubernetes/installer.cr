@@ -53,7 +53,7 @@ class Kubernetes::Installer
   private def set_up_first_master
     puts "Deploying k3s to first master #{first_master.name}..."
 
-    output = ssh.run(first_master, master_install_script(first_master), settings.use_ssh_agent)
+    output = ssh.run(first_master, settings.ssh_port, master_install_script(first_master), settings.use_ssh_agent)
 
     puts "Waiting for the control plane to be ready..."
 
@@ -83,7 +83,7 @@ class Kubernetes::Installer
 
   private def deploy_k3s_to_master(master : Hetzner::Server)
     puts "Deploying k3s to master #{master.name}..."
-    ssh.run(master, master_install_script(master), settings.use_ssh_agent)
+    ssh.run(master, settings.ssh_port, master_install_script(master), settings.use_ssh_agent)
     puts "...k3s has been deployed to master #{master.name}."
   end
 
@@ -109,7 +109,7 @@ class Kubernetes::Installer
 
   private def deploy_k3s_to_worker(worker : Hetzner::Server)
     puts "Deploying k3s to worker #{worker.name}..."
-    ssh.run(worker, worker_install_script, settings.use_ssh_agent)
+    ssh.run(worker, settings.ssh_port, worker_install_script, settings.use_ssh_agent)
     puts "...k3s has been deployed to worker #{worker.name}."
   end
 
@@ -119,7 +119,7 @@ class Kubernetes::Installer
 
   private def master_install_script(master)
     server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
-    flannel_wireguard = find_flannel_wireguard
+    flannel_backend = find_flannel_backend
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
@@ -127,7 +127,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      flannel_wireguard: flannel_wireguard,
+      disable_flannel: settings.disable_flannel.to_s,
+      flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
       server: server,
@@ -146,7 +147,7 @@ class Kubernetes::Installer
     })
   end
 
-  private def find_flannel_wireguard
+  private def find_flannel_backend
     return " " unless configuration.settings.enable_encryption
 
     available_releases = K3s.available_releases
@@ -186,7 +187,7 @@ class Kubernetes::Installer
 
   private def k3s_token
     token = begin
-      ssh.run(first_master, "cat /var/lib/rancher/k3s/server/node-token", settings.use_ssh_agent, print_output: false)
+      ssh.run(first_master, settings.ssh_port, "cat /var/lib/rancher/k3s/server/node-token", settings.use_ssh_agent, print_output: false)
     rescue
       ""
     end
@@ -199,7 +200,7 @@ class Kubernetes::Installer
 
     puts "Saving the kubeconfig file to #{kubeconfig_path}..."
 
-    kubeconfig = ssh.run(first_master, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
+    kubeconfig = ssh.run(first_master, settings.ssh_port, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
       gsub("127.0.0.1", api_server_ip_address).
       gsub("default", settings.cluster_name)
 
@@ -236,7 +237,7 @@ class Kubernetes::Installer
   private def deploy_cloud_controller_manager
     puts "\nDeploying Hetzner Cloud Controller Manager..."
 
-    command = "kubectl apply -f https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.15.0/ccm-networks.yaml"
+    command = "kubectl apply -f #{settings.cloud_controller_manager_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
@@ -252,7 +253,7 @@ class Kubernetes::Installer
   private def deploy_csi_driver
     puts "\nDeploying Hetzner CSI Driver..."
 
-    command = "kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
@@ -268,7 +269,7 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl apply -f https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
+    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
@@ -291,9 +292,9 @@ class Kubernetes::Installer
 
     k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
 
-    cloud_init = Hetzner::Server::Create.cloud_init(settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    cloud_init = Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
 
-    certificate_path = ssh.run(first_master, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
+    certificate_path = ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
 
     cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
       node_pool_args: node_pool_args,
