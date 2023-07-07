@@ -101,10 +101,9 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
-      enable_public_net_ipv4: settings.enable_public_net_ipv4,
-      enable_public_net_ipv6: settings.enable_public_net_ipv6,
-      additional_packages: additional_packages,
-      additional_post_create_commands: additional_post_create_commands
+      ssh_port: settings.ssh_port,
+      additional_packages: settings.additional_packages,
+      additional_post_create_commands: settings.post_create_commands
     )
   end
 
@@ -138,8 +137,6 @@ class Cluster::Create
     instance_type = node_pool.instance_type
     node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
     image = node_pool.image || settings.image
-    additional_packages = node_pool.additional_packages || settings.additional_packages
-    additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
@@ -153,6 +150,7 @@ class Cluster::Create
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
+      ssh_port: settings.ssh_port,
       enable_public_net_ipv4: settings.enable_public_net_ipv4,
       enable_public_net_ipv6: settings.enable_public_net_ipv6,
       additional_packages: additional_packages,
@@ -195,7 +193,7 @@ class Cluster::Create
   private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server))
     servers.each do |server|
       spawn do
-        ssh.wait_for_server server, settings.use_ssh_agent, "echo ready", "ready"
+        ssh.wait_for_server server, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
         channel.send(server)
       end
     end
@@ -237,7 +235,8 @@ class Cluster::Create
       ssh_allowed_networks: settings.ssh_allowed_networks,
       api_allowed_networks: settings.api_allowed_networks,
       high_availability: settings.masters_pool.instance_count > 1,
-      private_network_subnet: settings.private_network_subnet
+      private_network_subnet: settings.private_network_subnet,
+      ssh_port: settings.ssh_port
     ).run
   end
 
