@@ -1,4 +1,4 @@
-name: Create Release
+name: Build ARM & X86 Release
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build_release_x64:
-    name: Build Release
+    name: Build ARM & X86 Release
     strategy:
       matrix:
         os: [macos-latest]
@@ -56,7 +56,7 @@ jobs:
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
 
   build_release_arm:
-    name: Build Release
+    name: Build ARM & X86 Release
     strategy:
       matrix:
         os: [ARM64]
