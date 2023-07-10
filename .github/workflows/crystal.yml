@@ -21,14 +21,14 @@ jobs:
   build_release_arm:
     name: Build ARM & X86 Release
   
-    runs-on: ubuntu-lastest
+    runs-on: ubuntu-latest
 
     # Run steps on a matrix of 4 arch/distro combinations
     strategy:
       matrix:
         include:
           - arch: aarch64
-            distro: ubuntu-lastest
+            distro: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
