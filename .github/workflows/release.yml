@@ -1,21 +1,9 @@
 name: Create Release
 
 on:
- workflow_dispatch:
-    inputs:
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'info'
-        type: choice
-        options:
-        - info
-        - warning
-        - debug
-      tags:
-        description: 'Test scenario tags'
-        required: false
-        type: boolean
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build_release_x64:
