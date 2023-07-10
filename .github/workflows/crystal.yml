@@ -1,10 +1,22 @@
 name: Build ARM & X86 Release
 
 on:
-  push:
-    tags:
-      - 'v*'
-
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+      tags:
+        description: 'Test scenario tags'
+        required: false
+        type: boolean
+        
 jobs:
   build_release_arm:
     name: Build ARM & X86 Release
