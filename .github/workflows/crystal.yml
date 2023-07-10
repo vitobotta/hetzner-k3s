@@ -20,13 +20,15 @@ on:
 jobs:
   build_release_arm:
     name: Build ARM & X86 Release
+  
+    runs-on: ubuntu-lastest
+
+    # Run steps on a matrix of 4 arch/distro combinations
     strategy:
       matrix:
-        os: [Linux]
         include:
-          - os: linux
-            release_suffix: linux-arm64
-    runs-on: ${{ matrix.os }}
+          - arch: aarch64
+            distro: ubuntu-lastest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
