@@ -41,7 +41,7 @@ jobs:
           run: |
             uname -a
             apt update
-            apt install crystal libssh2-1 libssh2-1-dev
+            apt install vim
             
             #docker run -d --name alpine -v $(pwd):/workspace -w /workspace 84codes/crystal:master-alpine tail -f /dev/null
             #docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
