@@ -18,33 +18,30 @@ on:
         type: boolean
         
 jobs:
-  build_release_arm:
-    name: Build ARM & X86 Release
-  
-    runs-on: ubuntu-latest
-
-    # Run steps on a matrix of 4 arch/distro combinations
-    strategy:
-      matrix:
-        include:
-          - arch: aarch64
-            distro: ubuntu-latest
+  aarch64_job:
+    # The host should always be Linux
+    runs-on: ubuntu_latest
+    name: Build on ubuntu_latest aarch64
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Run linux Build ARM
-        run: |
-          docker run -d --name alpine -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine tail -f /dev/null
-          docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
-          docker exec alpine shards install --without-development
-          docker exec alpine crystal build src/hetzner-k3s.cr --release --static
-          cp hetzner-k3s hetzner-k3s-${{ matrix.release_suffix }}
-          gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
-          gh release upload ${{ env.VERSION }} ${{ env.FILES }}
-        env:
+      - uses: actions/checkout@v3
+      - uses: uraimo/run-on-arch-action@v2
+        name: Build arm64 binary
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: ubuntu_latest
+          
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
+
+          run: |
+            docker run -d --name alpine -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine tail -f /dev/null
+            docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
+            docker exec alpine shards install --without-development
+            docker exec alpine crystal build src/hetzner-k3s.cr --release --static
+            cp hetzner-k3s hetzner-k3s-linux-arm64
+            gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
+            gh release upload ${{ env.VERSION }} ${{ env.FILES }}
