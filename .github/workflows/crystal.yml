@@ -31,14 +31,16 @@ jobs:
           arch: aarch64
           distro: ubuntu20.04
           
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ github.ref_name }}
-          MESSAGE: "WIP"
-          NAME: ${{ github.ref_name }}
-          FILES: hetzner-k3s-linux-arm64
+          env: |
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            VERSION: ${{ github.ref_name }}
+            MESSAGE: "WIP"
+            NAME: ${{ github.ref_name }}
+            FILES: hetzner-k3s-linux-arm64
 
           run: |
-            docker run -d --name alpine -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine tail -f /dev/null
+            uname -a
+            docker run -d --name alpine -v $(pwd):/workspace -w /workspace 84codes/crystal:master-alpine tail -f /dev/null
             docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
             docker exec alpine shards install --without-development
             docker exec alpine crystal build src/hetzner-k3s.cr --release --static
