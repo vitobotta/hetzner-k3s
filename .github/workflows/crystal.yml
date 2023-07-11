@@ -29,7 +29,7 @@ jobs:
         id: runcmd
         with:
           arch: aarch64
-          distro: ubuntu22.04
+          distro: alpine_latest
           
           env: |
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,11 +40,7 @@ jobs:
 
           run: |
             uname -a
-            apt update
-            apt install snapd -y
-            systemctl start snapd.service
-            snap install crystal --classic
-            snap install shards --classic
+            apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
             
             #docker run -d --name alpine -v $(pwd):/workspace -w /workspace 84codes/crystal:master-alpine tail -f /dev/null
             #docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
