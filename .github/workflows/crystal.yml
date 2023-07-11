@@ -43,5 +43,6 @@ jobs:
             docker exec alpine shards install --without-development
             docker exec alpine crystal build src/hetzner-k3s.cr --release --static
             cp hetzner-k3s hetzner-k3s-linux-arm64
+            file hetzner-k3s
             gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
             gh release upload ${{ env.VERSION }} ${{ env.FILES }}
