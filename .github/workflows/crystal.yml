@@ -6,7 +6,7 @@ on:
       logLevel:
         description: 'Log level'
         required: true
-        default: 'warning'
+        default: 'info'
         type: choice
         options:
         - info
@@ -20,7 +20,7 @@ on:
 jobs:
   aarch64_job:
     # The host should always be Linux
-    runs-on: ubuntu22.04
+    runs-on: ubuntu-latest
     name: Build on ubuntu_latest aarch64
     steps:
       - uses: actions/checkout@v3
