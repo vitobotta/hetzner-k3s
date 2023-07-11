@@ -20,7 +20,7 @@ on:
 jobs:
   aarch64_job:
     # The host should always be Linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     name: Build on ubuntu_latest aarch64
     steps:
       - uses: actions/checkout@v3
@@ -29,13 +29,13 @@ jobs:
         id: runcmd
         with:
           arch: aarch64
-          distro: ubuntu_latest
+          distro: ubuntu18.04
           
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
-          FILES: hetzner-k3s-${{ matrix.release_suffix }}
+          FILES: hetzner-k3s-linux-arm64
 
           run: |
             docker run -d --name alpine -v $(pwd):/workspace -w /workspace crystallang/crystal:latest-alpine tail -f /dev/null
