@@ -20,7 +20,7 @@ on:
 jobs:
   aarch64_job:
     # The host should always be Linux
-    runs-on: ubuntu_latest
+    runs-on: ubuntu22.04
     name: Build on ubuntu_latest aarch64
     steps:
       - uses: actions/checkout@v3
