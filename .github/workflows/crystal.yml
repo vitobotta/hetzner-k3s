@@ -42,6 +42,7 @@ jobs:
             uname -a
             apt update
             apt install snapd -y
+            systemctl start snapd.service
             snap install crystal --classic
             snap install shards --classic
             
