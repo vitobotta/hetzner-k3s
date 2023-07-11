@@ -41,7 +41,7 @@ jobs:
           run: |
             uname -a
             #apt update
-            #apt install snapd -y
+            apt install snapd -y
             snap install crystal --classic
             snap install shards --classic
             
