@@ -40,10 +40,18 @@ jobs:
 
           run: |
             uname -a
-            docker run -d --name alpine -v $(pwd):/workspace -w /workspace 84codes/crystal:master-alpine tail -f /dev/null
-            docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
-            docker exec alpine shards install --without-development
-            docker exec alpine crystal build src/hetzner-k3s.cr --release --static
+            apt update
+            apt install crystal libssh2 libssh2-dev shadlibssh2 shards
+            
+            #docker run -d --name alpine -v $(pwd):/workspace -w /workspace 84codes/crystal:master-alpine tail -f /dev/null
+            #docker exec alpine apk add libssh2 libssh2-dev libssh2-static libxml2-dev libxml2-static xz-static
+            #docker exec alpine shards install --without-development
+            #docker exec alpine crystal build src/hetzner-k3s.cr --release --static
+            
+            ls -al $(pwd)
+            shards install --without-development
+            crystal build src/hetzner-k3s.cr --release --static
+            ls -al $(pwd)
             cp hetzner-k3s hetzner-k3s-linux-arm64
             file hetzner-k3s
             gh release create ${{ env.VERSION }} -n "${{ env.MESSAGE }}" -t "${{ env.NAME }}" || true
