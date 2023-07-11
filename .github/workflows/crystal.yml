@@ -50,7 +50,8 @@ jobs:
             
             ls -al $(pwd)
             shards install --without-development
-            crystal build src/hetzner-k3s.cr --release --static
+            shards build --without-development
+            #crystal build src/hetzner-k3s.cr --release --static
             ls -al $(pwd)
             cp hetzner-k3s hetzner-k3s-linux-arm64
             file hetzner-k3s
