@@ -20,7 +20,7 @@ on:
 jobs:
   aarch64_job:
     # The host should always be Linux
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     name: Build on ubuntu_latest aarch64
     steps:
       - uses: actions/checkout@v3
@@ -29,7 +29,7 @@ jobs:
         id: runcmd
         with:
           arch: aarch64
-          distro: ubuntu18.04
+          distro: ubuntu20.04
           
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.ref_name }}
