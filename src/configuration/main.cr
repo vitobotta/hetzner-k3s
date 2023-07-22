@@ -14,6 +14,7 @@ class Configuration::Main
   getter use_ssh_agent : Bool = false
   getter ssh_allowed_networks : Array(String) = [] of String
   getter api_allowed_networks : Array(String) = [] of String
+  getter api_server_dns : String?
   getter verify_host_key : Bool = false
   getter schedule_workloads_on_masters : Bool = false
   getter enable_encryption : Bool = false
