@@ -201,7 +201,7 @@ class Kubernetes::Installer
     puts "Saving the kubeconfig file to #{kubeconfig_path}..."
 
     kubeconfig = ssh.run(first_master, settings.ssh_port, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
-      gsub("127.0.0.1",  settings.api_server_dns ? settings.api_server_dns : api_server_ip_address).
+      gsub("127.0.0.1",  settings.api_server_hostname ? settings.api_server_hostname : api_server_ip_address).
       gsub("default", settings.cluster_name)
 
     File.write(kubeconfig_path, kubeconfig)
@@ -360,7 +360,7 @@ class Kubernetes::Installer
 
   private def generate_tls_sans
     sans = ["--tls-san=#{api_server_ip_address}"]
-    sans << "--tls-san=#{settings.api_server_dns}" if settings.api_server_dns
+    sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
 
     masters.each do |master|
       master_private_ip = master.private_ip_address
