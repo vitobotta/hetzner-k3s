@@ -84,6 +84,8 @@ controller:
       load-balancer.hetzner.cloud/location: nbg1
 
       # Name of load balancer. This name you will see in your Hetzner's cloud console (site) at the "Your project -> Load Balancers" page
+      # NOTE: This is NOT the load balancer that the tool creates automatically for clusters with multiple masters (HA configuration). You need
+      # to specify a different name here so it will create a separate load balancer for ingress Nginx.
       load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME
 
       # Ensures that the communication between the load balancer and the cluster nodes happens through the private network
