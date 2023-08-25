@@ -311,6 +311,7 @@ Note: (single master clusters only) the API server will briefly be unavailable d
 
 To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
 
+NOTE: if you haven't used the tool in a while before upgrading, you may need to delete the file `cluster_config.yaml.example` in your temp folder to refresh the list of available k3s versions.
 
 
 ### What to do if the upgrade doesn't go smoothly
