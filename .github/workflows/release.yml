@@ -84,7 +84,40 @@ jobs:
           MESSAGE: "WIP"
           NAME: ${{ github.ref_name }}
           FILES: hetzner-k3s-${{ matrix.release_suffix }}
-
-
-
-
+          
+  build_release_linux_arm:
+    runs-on: ubuntu-22.04
+    name: Build arm64 on alpine aarch64
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ github.ref_name }}
+      MESSAGE: "WIP"
+      FILES: hetzner-k3s-linux-arm64
+      
+    steps:
+      - uses: actions/checkout@v3
+      - uses: uraimo/run-on-arch-action@v2
+        name: Build arm64 binary
+        id: runcmd
+        with:
+          arch: aarch64
+          distro: alpine_latest
+          
+          run: |
+            apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
+              libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
+              make git autoconf automake libtool patch
+            apk add --update --no-cache libssh2-static libssh2-dev crystal shards github-cli
+            shards install --without-development
+            shards build --without-development --release --static
+            cp ./bin/hetzner-k3s ${{ env.FILES }}
+            git config --global --add safe.directory /home/runner/work/hetzner-k3s/hetzner-k3s
+            
+      - name: Publish new version
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ env.GITHUB_TOKEN }}
+          file: ${{ env.FILES }}
+          tag: ${{ env.VERSION }}
+          overwrite: false
+          body: ${{ env.MESSAGE }}

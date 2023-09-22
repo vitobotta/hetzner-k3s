@@ -22,3 +22,4 @@ dist/hetzner-k3s
 hetzner-k3s
 k3s-releases.yaml
 actions-runner
+/.idea/
