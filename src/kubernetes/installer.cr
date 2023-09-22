@@ -360,6 +360,8 @@ class Kubernetes::Installer
 
   private def generate_tls_sans
     sans = ["--tls-san=#{api_server_ip_address}"]
+    sans << "--tls-san=#{load_balancer.not_nil!.private_ip_address}" if masters.size > 1
+
     masters.each do |master|
       master_private_ip = master.private_ip_address
       sans << "--tls-san=#{master_private_ip}"
