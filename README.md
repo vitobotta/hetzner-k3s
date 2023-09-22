@@ -42,7 +42,7 @@ ___
 
 I'm a Senior Backend Engineer and DevOps based in Finland and working for event management platform [Brella](https://www.brella.io/).
 
-I also write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
+I am also building [DynaSite.ai](https://dynasite.ai/) - an AI powered, no code website builder for small businesses - together with [@paweb](https://github.com/paweb) and write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
 
 
 
