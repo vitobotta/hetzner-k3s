@@ -72,8 +72,6 @@ jobs:
 
           run: |
             shards install --without-development
-            #shards build --without-development --release --static
-            #cp ./bin/hetzner-k3s ${{ env.FILENAME }}
             crystal build src/hetzner-k3s.cr --release --static
             cp hetzner-k3s ${{ env.FILENAME }}
 
