@@ -23,7 +23,7 @@ class Kubernetes::Installer
   getter ssh : Util::SSH
 
   getter first_master : Hetzner::Server { masters[0] }
-  getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.public_ip_address.not_nil! }
+  getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil! }
   getter tls_sans : String { generate_tls_sans }
 
   def initialize(@configuration, @masters, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)

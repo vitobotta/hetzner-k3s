@@ -35,10 +35,13 @@ class Util::SSH
     end
 
     puts "...server #{server.name} is now up."
+    puts "...public ip #{server.public_ip_address}"
+    puts "...private ip #{server.private_ip_address}"
+    puts "...host ip #{server.host_ip_address} used for deployment"
   end
 
   private def run_command(server, port, command, use_ssh_agent, print_output = true)
-    host_ip_address = server.public_ip_address.not_nil!
+    host_ip_address = server.host_ip_address.not_nil!
 
     result = IO::Memory.new
     all_output = if print_output
@@ -49,7 +52,7 @@ class Util::SSH
 
     SSH2::Session.open(host_ip_address, port) do |session|
       session.timeout = 5000
-      session.knownhosts.delete_if { |h| h.name == server.public_ip_address }
+      session.knownhosts.delete_if { |h| h.name == server.host_ip_address }
 
       if use_ssh_agent
         session.login_with_agent("root")

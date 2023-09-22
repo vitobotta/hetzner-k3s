@@ -15,6 +15,8 @@ class Configuration::NodePool
   property labels : Array(::Configuration::NodeLabel) = [] of ::Configuration::NodeLabel
   property taints : Array(::Configuration::NodeTaint) = [] of ::Configuration::NodeTaint
   property autoscaling : ::Configuration::Autoscaling?
+  property post_create_commands : Array(String) | Nil
+  property additional_packages : Array(String) | Nil
 
   getter autoscaling_enabled : Bool do
     autoscaling.try(&.enabled) || false
