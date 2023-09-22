@@ -85,7 +85,7 @@ You need to install these dependencies first:
 ##### Intel
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-mac-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.4/hetzner-k3s-mac-amd64
 chmod +x hetzner-k3s-mac-amd64
 sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -93,7 +93,7 @@ sudo mv hetzner-k3s-mac-amd64 /usr/local/bin/hetzner-k3s
 ##### Apple Silicon / M1
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-mac-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.4/hetzner-k3s-mac-arm64
 chmod +x hetzner-k3s-mac-arm64
 sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ```
@@ -101,7 +101,7 @@ sudo mv hetzner-k3s-mac-arm64 /usr/local/bin/hetzner-k3s
 ### Linux
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.3/hetzner-k3s-linux-x86_64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.4/hetzner-k3s-linux-x86_64
 chmod +x hetzner-k3s-linux-x86_64
 sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 ```
@@ -140,8 +140,8 @@ schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
-cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.16.0/ccm-networks.yaml"
-csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.3.2/deploy/kubernetes/hcloud-csi.yml"
+cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.18.0/ccm-networks.yaml"
+csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.4.0/deploy/kubernetes/hcloud-csi.yml"
 system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
 masters_pool:
   instance_type: cpx21
@@ -193,7 +193,7 @@ worker_node_pools:
 # kube_proxy_args:
 # - arg1
 # - ...
-# api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer. 
+# api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
 ```
 
 Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
