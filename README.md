@@ -193,6 +193,7 @@ worker_node_pools:
 # kube_proxy_args:
 # - arg1
 # - ...
+# api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer. 
 ```
 
 Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
