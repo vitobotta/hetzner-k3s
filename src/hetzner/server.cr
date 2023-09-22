@@ -25,9 +25,9 @@ class Hetzner::Server
 
   def host_ip_address
     if public_ip_address.nil?
-      return private_ip_address
+      private_ip_address
     else
-      return public_ip_address
+      public_ip_address
     end
   end
 
