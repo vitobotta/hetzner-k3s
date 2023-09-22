@@ -203,7 +203,7 @@ If you set `masters_pool.instance_count` to 1 then the tool will create a non hi
 
 You can specify any number of worker node pools, static or autoscaled, and have mixed nodes with different specs for different workloads.
 
-Hetzner cloud init setting (`additional_packages` & `post_create_commands`) can be used global and in pool. If it's set in pool the global settings will be ignored for this pool. So pool settings will overrule global settings. 
+Hetzner cloud init settings (`additional_packages` & `post_create_commands`) can be defined in the configuration file at root level as well as for each pool if different settings are needed for different pools. If these settings are configured for a pool, these override the settings at root level.
 
 At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
@@ -223,9 +223,10 @@ hetzner-k3s create --config cluster_config.yaml
 
 This will take a few minutes depending on the number of masters and worker nodes.
 
-### disable public IPs (IPv4 or IPv6 or both) on nodes
-With `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false` you can disable public interface at hetzner node creation. This settings are global and effects all master and worker. If you disable public IPs be sure that your hetzer-k3s executor has access to the hetzner private network the nodes will be deployed in (executor is already in the privNet or has VPN access).
-Additional setup network of the nodes via cloud init, so you have internet access and DNS. If not the cluster install process will stuck after creation all nodes via hetzner cloud.
+### Disabling public IPs (IPv4 or IPv6 or both) on nodes
+
+With `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false` you can disable the public interface for all nodes for improved security. These settings are global and effects all master and worker nodes. If you disable public IPs be sure to run hetzer-k3s from a machine that has access to the same private network as the nodes either directly or via some VPN.
+Additional networking setup is required via cloud init, so it's important that the machine from which you run hetzner-k3s have internet access and DNS configured correctly, otherwise the cluster creation process will get stuck after creating the nodes. See [this discussion](https://github.com/vitobotta/hetzner-k3s/discussions/252) for additional information and instructions.
 
 ### Using alternative OS images
 
@@ -394,7 +395,7 @@ To delete a cluster, running
 hetzner-k3s delete --config cluster_config.yaml
 ```
 
-This will delete all the resources in the Hetzner Cloud project created by `hetzner-k3s` directly. 
+This will delete all the resources in the Hetzner Cloud project created by `hetzner-k3s` directly.
 
 **NOTE:** at the moment instances created by the cluster autoscaler, as well as load balancers and persistent volumes created by deploying your applications must be deleted manually. This may be addressed in a future release.
 
