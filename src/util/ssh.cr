@@ -35,9 +35,6 @@ class Util::SSH
     end
 
     puts "...server #{server.name} is now up."
-    puts "...public ip #{server.public_ip_address}"
-    puts "...private ip #{server.private_ip_address}"
-    puts "...host ip #{server.host_ip_address} used for deployment"
   end
 
   private def run_command(server, port, command, use_ssh_agent, print_output = true)
