@@ -23,7 +23,7 @@ class Kubernetes::Installer
   getter ssh : Util::SSH
 
   getter first_master : Hetzner::Server { masters[0] }
-  getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.public_ip_address.not_nil! }
+  getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil! }
   getter tls_sans : String { generate_tls_sans }
 
   def initialize(@configuration, @masters, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)
@@ -361,6 +361,7 @@ class Kubernetes::Installer
   private def generate_tls_sans
     sans = ["--tls-san=#{api_server_ip_address}"]
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
+    sans << "--tls-san=#{load_balancer.not_nil!.private_ip_address}" if masters.size > 1
 
     masters.each do |master|
       master_private_ip = master.private_ip_address

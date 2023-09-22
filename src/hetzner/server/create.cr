@@ -19,6 +19,8 @@ class Hetzner::Server::Create
   getter firewall : Hetzner::Firewall
   getter placement_group : Hetzner::PlacementGroup
   getter network : Hetzner::Network
+  getter enable_public_net_ipv4 : Bool
+  getter enable_public_net_ipv6 : Bool
   getter additional_packages : Array(String)
   getter additional_post_create_commands : Array(String)
   getter server_finder : Hetzner::Server::Find
@@ -37,6 +39,8 @@ class Hetzner::Server::Create
       @firewall,
       @placement_group,
       @network,
+      @enable_public_net_ipv4,
+      @enable_public_net_ipv6,
       @ssh_port,
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
@@ -89,6 +93,10 @@ class Hetzner::Server::Create
       networks: [
         network.id
       ],
+      public_net: {
+        enable_ipv4: enable_public_net_ipv4,
+        enable_ipv6: enable_public_net_ipv6,
+      },
       server_type: instance_type,
       ssh_keys: [
         ssh_key.id

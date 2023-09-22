@@ -135,6 +135,8 @@ api_allowed_networks:
 private_network_subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same project
 disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
+# enable_public_net_ipv4: false # default is true
+# enable_public_net_ipv6: false # default is true
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
@@ -202,6 +204,8 @@ If you set `masters_pool.instance_count` to 1 then the tool will create a non hi
 
 You can specify any number of worker node pools, static or autoscaled, and have mixed nodes with different specs for different workloads.
 
+Hetzner cloud init setting (`additional_packages` & `post_create_commands`) can be used global and in pool. If it's set in pool the global settings will be ignored for this pool. So pool settings will overrule global settings. 
+
 At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
 For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
@@ -220,7 +224,9 @@ hetzner-k3s create --config cluster_config.yaml
 
 This will take a few minutes depending on the number of masters and worker nodes.
 
-
+### disable public IPs (IPv4 or IPv6 or both) on nodes
+With `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false` you can disable public interface at hetzner node creation. This settings are global and effects all master and worker. If you disable public IPs be sure that your hetzer-k3s executor has access to the hetzner private network the nodes will be deployed in (executor is already in the privNet or has VPN access).
+Additional setup network of the nodes via cloud init, so you have internet access and DNS. If not the cluster install process will stuck after creation all nodes via hetzner cloud.
 
 ### Using alternative OS images
 
