@@ -167,6 +167,7 @@ spec:
           command:
             - ./cluster-autoscaler
             - --cloud-provider=hetzner
+            - --enforce-node-group-min-size
             {{ node_pool_args }}
           env:
           - name: HCLOUD_TOKEN
