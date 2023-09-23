@@ -112,8 +112,8 @@ sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v1.1.4/hetzner-k3s-linux-arm64
-chmod +x hetzner-k3s-linux-x86_64
-sudo mv hetzner-k3s-linux-x86_64 /usr/local/bin/hetzner-k3s
+chmod +x hetzner-k3s-linux-arm64
+sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
 ```
 
 ### Windows
