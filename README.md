@@ -37,6 +37,10 @@ Also see this [wiki page](https://github.com/vitobotta/hetzner-k3s/blob/main/wik
 
 
 
+If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
+
+
+
 ___
 ## Who am I?
 
@@ -475,6 +479,8 @@ Contributors:
 - [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
 
 
+
+If you can't contribute code but would like to support the project, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
 
 ___
 ## License
