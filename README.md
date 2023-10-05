@@ -474,7 +474,7 @@ If the tool hangs forever after creating servers and you see timeouts, this may 
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
 
-If you can't contribute code but would like to support the project, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
+If you would like to financially support the project, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
 
 ___
 ## License
