@@ -474,12 +474,6 @@ If the tool hangs forever after creating servers and you see timeouts, this may 
 
 Please create a PR if you want to propose any changes, or open an issue if you are having trouble with the tool - I will do my best to help if I can.
 
-Contributors:
-
-- [TitanFighter](https://github.com/TitanFighter) for [this awesome tutorial](https://github.com/vitobotta/hetzner-k3s/blob/main/wiki/Setting%20up%20a%20cluster.md)
-
-
-
 If you can't contribute code but would like to support the project, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
 
 ___
