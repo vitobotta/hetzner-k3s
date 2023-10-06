@@ -17,8 +17,8 @@ class Util::SSH
     end
   end
 
-  def wait_for_server(server, port, use_ssh_agent, test_command, expected_result)
-    puts "Waiting for successful ssh connectivity with server #{server.name}..."
+  def wait_for_server(message, server, port, use_ssh_agent, test_command, expected_result, success_for_equality = true)
+    puts message
 
     loop do
       sleep 1
@@ -31,7 +31,7 @@ class Util::SSH
         end
       end
 
-      break if result == expected_result
+      break if (success_for_equality && result == expected_result) || (!success_for_equality && result != expected_result)
     end
 
     puts "...server #{server.name} is now up."

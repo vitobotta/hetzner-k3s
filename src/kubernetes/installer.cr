@@ -44,10 +44,10 @@ class Kubernetes::Installer
     add_labels_and_taints_to_workers
 
     create_hetzner_cloud_secret
-    deploy_cloud_controller_manager
-    deploy_csi_driver
+    # deploy_cloud_controller_manager
+    # deploy_csi_driver
     deploy_system_upgrade_controller
-    deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
+    # deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
   end
 
   private def set_up_first_master
@@ -55,7 +55,7 @@ class Kubernetes::Installer
 
     output = ssh.run(first_master, settings.ssh_port, master_install_script(first_master), settings.use_ssh_agent)
 
-    puts "Waiting for the control plane to be ready..."
+    ssh.wait_for_server "Waiting for the control plane to be ready...", first_master, settings.ssh_port, settings.use_ssh_agent, "pgrep -f 'k3s server'", "", false
 
     sleep 10 unless /No change detected/ =~ output
 
@@ -131,7 +131,6 @@ class Kubernetes::Installer
       flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
-      server: server,
       tls_sans: tls_sans,
       private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
@@ -142,7 +141,7 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      first_master_private_ip_address: first_master.private_ip_address,
+      first_master_private_ip_address: api_server_ip_address,
       private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end

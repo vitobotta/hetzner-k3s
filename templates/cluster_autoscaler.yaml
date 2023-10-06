@@ -183,8 +183,8 @@ spec:
             value: "{{ firewall_name }}"
           - name: HCLOUD_SSH_KEY
             value: "{{ ssh_key_name }}"
-          - name: HCLOUD_NETWORK
-            value: "{{ network_name }}"
+          # - name: HCLOUD_NETWORK
+          #   value: "{{ network_name }}"
           volumeMounts:
             - name: ssl-certs
               mountPath: {{ certificate_path }}
