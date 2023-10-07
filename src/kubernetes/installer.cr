@@ -132,6 +132,7 @@ class Kubernetes::Installer
       taint: taint,
       extra_args: extra_args,
       tls_sans: tls_sans,
+      server: server,
       private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
     })
   end
