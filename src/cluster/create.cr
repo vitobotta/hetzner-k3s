@@ -197,7 +197,7 @@ class Cluster::Create
   private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server))
     servers.each do |server|
       spawn do
-        ssh.wait_for_server "Waiting for successful ssh connectivity with server #{server.name}...", server, settings.ssh_port, settings.use_ssh_agent, "ip -f inet addr show tailscale0", "Device \"tailscale0\" does not exist.", false
+        ssh.wait_for_server "Waiting for successful ssh connectivity with server #{server.name}...", server, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
         channel.send(server)
       end
     end
