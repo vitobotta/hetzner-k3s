@@ -13,11 +13,10 @@ class Configuration::Settings::NodePool::InstanceCount
   end
 
   private def validate_master_count
-    return
-    # if pool.instance_count > 0 && (pool.instance_count == 1 || pool.instance_count.odd?)
-    #   return
-    # else
-    #   errors << "Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster"
-    # end
+    if pool.instance_count > 0 && (pool.instance_count == 1 || pool.instance_count.odd?)
+      return
+    else
+      errors << "Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster"
+    end
   end
 end

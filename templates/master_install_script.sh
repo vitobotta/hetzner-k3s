@@ -6,7 +6,7 @@ if [[ $(< /etc/initialized) != "true" ]]; then
 fi
 
 HOSTNAME=$(hostname -f)
-PRIVATE_IP=$(ip -f inet addr show tailscale0 | sed -En -e 's/.*inet ([0-9.]+).*/\1/p')
+PRIVATE_IP=$(ip route get {{ private_network_test_ip }} | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 NETWORK_INTERFACE=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')
 
@@ -19,6 +19,7 @@ fi
 FLANNEL_SETTINGS=""
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
+--disable-cloud-controller \
 --disable servicelb \
 --disable traefik \
 --disable local-storage \
@@ -26,13 +27,15 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --write-kubeconfig-mode=644 \
 --node-name=$HOSTNAME \
 --cluster-cidr=10.244.0.0/16 \
---datastore-endpoint=postgres://postgres:dThi2riavb.xckmy@23.88.46.205:5432/postgres \
+--etcd-expose-metrics=true \
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
 {{ taint }} {{ extra_args }} $FLANNEL_SETTINGS \
 --kubelet-arg="cloud-provider=external" \
---vpn-auth="name=tailscale,joinKey=" \
+--advertise-address=$PRIVATE_IP \
+--node-ip=$PRIVATE_IP \
+--node-external-ip=$PUBLIC_IP \
 {{ server }} {{ tls_sans }}" sh -
 
 systemctl start k3s # on some OSes the service doesn't start automatically for some reason

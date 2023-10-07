@@ -44,10 +44,10 @@ class Kubernetes::Installer
     add_labels_and_taints_to_workers
 
     create_hetzner_cloud_secret
-    # deploy_cloud_controller_manager
-    # deploy_csi_driver
+    deploy_cloud_controller_manager
+    deploy_csi_driver
     deploy_system_upgrade_controller
-    # deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
+    deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
   end
 
   private def set_up_first_master
