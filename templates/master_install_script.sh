@@ -16,8 +16,6 @@ else
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 fi
 
-FLANNEL_SETTINGS=""
-
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
 --disable servicelb \
