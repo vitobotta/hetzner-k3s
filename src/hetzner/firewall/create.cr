@@ -86,6 +86,17 @@ class Hetzner::Firewall::Create
           private_network_subnet
         ],
         destination_ips: [] of String
+      },
+      {
+        description: "Allow all UDP traffic on the Wireguard port",
+        direction: "in",
+        protocol: "udp",
+        port: "51820",
+        source_ips: [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        destination_ips: [] of String
       }
     ]
 
