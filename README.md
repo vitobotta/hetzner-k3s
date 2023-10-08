@@ -46,7 +46,7 @@ ___
 
 I'm a Senior Backend Engineer and DevOps based in Finland and working for event management platform [Brella](https://www.brella.io/).
 
-I am write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
+I also write a [technical blog](https://vitobotta.com/) on programming, DevOps and related technologies.
 
 
 
