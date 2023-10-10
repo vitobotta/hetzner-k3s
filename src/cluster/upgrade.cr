@@ -25,7 +25,7 @@ class Cluster::Upgrade
     Util.check_kubectl
 
     workers_count = settings.worker_node_pools.sum { |pool| pool.instance_count }
-    worker_upgrade_concurrency = [workers_count - 1, 1].max
+    worker_upgrade_concurrency = [(workers_count / 4).to_i, 1].max
 
     masters_upgrade_manifest = Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_MASTERS, {
       new_k3s_version: new_k3s_version,
