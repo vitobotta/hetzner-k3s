@@ -32,7 +32,7 @@ class Configuration::Main
   getter kube_proxy_args : Array(String) = [] of String
   getter existing_network : String?
   getter image : String = "ubuntu-22.04"
-  getter autoscaling_image : String = "ubuntu-22.04"
+  getter autoscaling_image : String?
   getter snapshot_os : String = "default"
   getter private_network_subnet : String = "10.0.0.0/16"
   getter cloud_controller_manager_manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/v1.18.0/deploy/ccm-networks.yaml"
