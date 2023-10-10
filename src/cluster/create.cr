@@ -177,32 +177,36 @@ class Cluster::Create
 
     channel = Channel(Hetzner::Server).new
 
-    create_instances(channel)
-    wait_for_instances_to_be_up(channel)
+    server_creators.each_slice(10) do |slice|
+      create_instances(channel, slice)
+      wait_for_instances_to_be_up(channel, slice)
+    end
   end
 
-  private def create_instances(channel : Channel(Hetzner::Server))
-    server_creators.each do |server_creator|
+  private def create_instances(channel : Channel(Hetzner::Server), slice : Array(Hetzner::Server::Create))
+    slice.each do |server_creator|
       spawn do
         server = server_creator.run
         channel.send(server)
       end
     end
 
-    server_creators.size.times do
+    slice.size.times do
       servers << channel.receive
     end
   end
 
-  private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server))
-    servers.each do |server|
+  private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server), slice : Array(Hetzner::Server::Create))
+    slice.each do |server_creator|
+      server = server_creator.run
+
       spawn do
         ssh.wait_for_server server, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
         channel.send(server)
       end
     end
 
-    server_creators.size.times do
+    slice.size.times do
       channel.receive
     end
   end
