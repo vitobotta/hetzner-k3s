@@ -149,6 +149,9 @@ api_allowed_networks:
 private_network_subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same project
 disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
+# cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
+# service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs
+# cluster_dns: 10.43.0.10 # optional: IPv4 Cluster IP for coredns service. Needs to be an address from the service_cidr range
 # enable_public_net_ipv4: false # default is true
 # enable_public_net_ipv6: false # default is true
 # image: rocky-9 # optional: default is ubuntu-22.04
@@ -457,7 +460,25 @@ Once the cluster is ready you can create persistent volumes out of the box with 
 
 ### Keeping a project per cluster
 
-I recommend that you create a separate Hetzner project for each cluster, because otherwise multiple clusters will attempt to create overlapping routes. I will make the pod cidr configurable in the future to avoid this, but I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
+If you want to create multiple clusters per project, see [Configuring Cluster-CIDR and Service-CIDR](#configuring-cluster-cidr-and-service-cidr). Make sure, that every cluster has its own dedicated Cluster- and Service-CIDR. If they overlap, it will cause problems. But I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
+
+### Configuring Cluster-CIDR and Service-CIDR
+
+Cluster-CIDR and Service-CIDR describe the IP-Ranges that are used for pods and services respectively. Unter normal circumstances you should not need to change these values. However, advanced scenarios may require you to change them to avoid networking conflicts.
+
+**Changing the Cluster-CIDR (Pod IP-Range):**
+
+To change the Cluster-CIDR, uncomment/add the `cluster_cidr` option in your cluster configuration file and provide a valid CIDR notated network to use. The provided network must not be a subnet of your private network.
+
+**Changing the Service-CIDR (Service IP-Range):**
+
+To change the Service-CIDR, uncomment/add the `service_cidr` option in your cluster configuration file and provide a valid CIDR notated network to use. The provided network must not be a subnet of your private network.
+
+Also uncomment the `cluster_dns` option and provide a single IP-Address from your `service_cidr` range. `cluster_dns` sets the IP-Address of the coredns service.
+
+**Sizing the Networks**
+
+The networks you provide should provide enough space for the expected amount of pods/services. By default `/16` networks are used. Please make sure you chose an adequate size, as changing the CIDR afterwards is not supported.
 
 
 

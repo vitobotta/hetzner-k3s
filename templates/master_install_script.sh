@@ -24,7 +24,9 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --disable metrics-server \
 --write-kubeconfig-mode=644 \
 --node-name=$HOSTNAME \
---cluster-cidr=10.244.0.0/16 \
+--cluster-cidr={{ cluster_cidr }} \
+--service-cidr={{ service_cidr }} \
+--cluster-dns={{ cluster_dns }} \
 --etcd-expose-metrics=true \
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
