@@ -158,7 +158,7 @@ schedule_workloads_on_masters: false
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # otional: specified the os type when using a custom snapshot
 cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.18.0/ccm-networks.yaml"
-csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.4.0/deploy/kubernetes/hcloud-csi.yml"
+csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.5.1/deploy/kubernetes/hcloud-csi.yml"
 system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
 masters_pool:
   instance_type: cpx21
