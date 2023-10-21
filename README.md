@@ -464,7 +464,7 @@ If you want to create multiple clusters per project, see [Configuring Cluster-CI
 
 ### Configuring Cluster-CIDR and Service-CIDR
 
-Cluster-CIDR and Service-CIDR describe the IP-Ranges that are used for pods and services respectively. Unter normal circumstances you should not need to change these values. However, advanced scenarios may require you to change them to avoid networking conflicts.
+Cluster-CIDR and Service-CIDR describe the IP-Ranges that are used for pods and services respectively. Under normal circumstances you should not need to change these values. However, advanced scenarios may require you to change them to avoid networking conflicts.
 
 **Changing the Cluster-CIDR (Pod IP-Range):**
 
