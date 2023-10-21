@@ -240,7 +240,7 @@ class Kubernetes::Installer
   private def deploy_cloud_controller_manager
     puts "\nDeploying Hetzner Cloud Controller Manager..."
 
-    response = HTTP::Client.get(settings.cloud_controller_manager_manifest_url)
+    response = Crest.get(settings.cloud_controller_manager_manifest_url)
 
     unless response.success?
       puts "Failed to download CCM manifest from #{settings.cloud_controller_manager_manifest_url}"
