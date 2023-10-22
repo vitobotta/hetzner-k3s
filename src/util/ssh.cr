@@ -13,7 +13,7 @@ class Util::SSH
 
   def run(server, port, command, use_ssh_agent, print_output = true)
     Retriable.retry(max_attempts: 300, backoff: false, base_interval: 1.second, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
-      result = run_command(server, port, command, use_ssh_agent, print_output)
+      run_command(server, port, command, use_ssh_agent, print_output)
     end
   end
 
