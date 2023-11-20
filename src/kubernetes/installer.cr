@@ -118,7 +118,17 @@ class Kubernetes::Installer
   end
 
   private def master_install_script(master)
-    server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
+    server = ""
+    datastore_endpoint = ""
+    etcd_arguments = ""
+
+    if settings.datastore.mode == "etcd"
+      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
+      etcd_arguments = " --etcd-expose-metrics=true "
+    else
+      datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{settings.datastore.external_datastore_endpoint}' "
+    end
+
     flannel_backend = find_flannel_backend
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
@@ -137,6 +147,8 @@ class Kubernetes::Installer
       cluster_cidr: settings.cluster_cidr,
       service_cidr: settings.service_cidr,
       cluster_dns: settings.cluster_dns,
+      datastore_endpoint: datastore_endpoint,
+      etcd_arguments: etcd_arguments
     })
   end
 

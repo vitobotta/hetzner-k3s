@@ -24,6 +24,7 @@ require "./settings/node_pool/location"
 require "./settings/node_pool/instance_count"
 require "./settings/node_pool/node_labels"
 require "./settings/node_pool/node_taints"
+require "./settings/datastore"
 
 
 class Configuration::Loader
@@ -109,6 +110,7 @@ class Configuration::Loader
     Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
     Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
     Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
+    Settings::Datastore.new(errors, settings.datastore).validate
     validate_masters_pool
     validate_worker_node_pools
   end
@@ -134,7 +136,8 @@ class Configuration::Loader
       pool_type: :masters,
       masters_location: masters_location,
       server_types: server_types,
-      locations: locations
+      locations: locations,
+      datastore: settings.datastore
     ).validate
   end
 
@@ -170,7 +173,8 @@ class Configuration::Loader
         pool_type: :workers,
         masters_location: masters_location,
         server_types: server_types,
-        locations: locations
+        locations: locations,
+        datastore: settings.datastore
       ).validate
     end
   end

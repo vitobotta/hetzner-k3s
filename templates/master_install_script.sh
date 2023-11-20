@@ -16,7 +16,7 @@ else
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 fi
 
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
 --disable servicelb \
 --disable traefik \
@@ -27,11 +27,10 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --cluster-cidr={{ cluster_cidr }} \
 --service-cidr={{ service_cidr }} \
 --cluster-dns={{ cluster_dns }} \
---etcd-expose-metrics=true \
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
-{{ taint }} {{ extra_args }} $FLANNEL_SETTINGS \
+{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS \
 --kubelet-arg="cloud-provider=external" \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
