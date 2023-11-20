@@ -160,6 +160,9 @@ schedule_workloads_on_masters: false
 cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.18.0/ccm-networks.yaml"
 csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.5.1/deploy/kubernetes/hcloud-csi.yml"
 system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
+datastore:
+  mode: etcd # etcd (default) or external
+  external_datastore_endpoint: postgres://....
 masters_pool:
   instance_type: cpx21
   instance_count: 3
