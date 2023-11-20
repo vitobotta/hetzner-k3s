@@ -11,7 +11,7 @@ PUBLIC_IP=$(hostname -I | awk '{print $1}')
 NETWORK_INTERFACE=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')
 
 if [[ "{{ disable_flannel }}" = "true" ]]; then
-  FLANNEL_SETTINGS=" --flannel-backend=none --disable-network-policy "
+  FLANNEL_SETTINGS=" --flannel-backend=none --disable-kube-proxy --disable-network-policy "
 else
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 fi
