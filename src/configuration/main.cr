@@ -1,6 +1,7 @@
 require "yaml"
 
 require "./node_pool"
+require "./datastore"
 
 class Configuration::Main
   include YAML::Serializable
@@ -43,4 +44,5 @@ class Configuration::Main
   getter system_upgrade_controller_manifest_url : String = "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
   getter disable_flannel : Bool = false
   getter ssh_port : Int32 = 22
+  getter datastore : Configuration::Datastore = Configuration::Datastore.new
 end
