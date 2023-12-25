@@ -452,7 +452,7 @@ The other annotations should be self explanatory. You can find a list of the ava
 
 **Note**: in a future release it will be possible to configure ingress controllers with host ports, so it will be possible to use an ingress without having to buy a load balancer, but for the time being a load balancer is still required.
 
-
+If you don't want to point load balancer to services/nodes which do not have the nginx ingress controller you can add this label to the nodes without the controller `node.kubernetes.io/exclude-from-external-load-balancers: "true"` as mentioned [here](https://github.com/hetznercloud/hcloud-cloud-controller-manager/issues/174#issuecomment-877211713) .
 
 ### Persistent volumes
 
