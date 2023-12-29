@@ -19,7 +19,7 @@ fi
 if [[ "{{ disable_kube_proxy }}" = "true" ]]; then
   KUBE_PROXY_ARGS=" --disable-kube-proxy "
 else
-  KUBE_PROXY_ARGS=" --kube-proxy-arg=\"metrics-bind-address=0.0.0.0\" "
+  KUBE_PROXY_ARGS=" --kube-proxy-arg=\metrics-bind-address=0.0.0.0\ "
 fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_EXEC="server \
