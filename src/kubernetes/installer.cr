@@ -128,6 +128,7 @@ class Kubernetes::Installer
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
       disable_flannel: settings.disable_flannel.to_s,
+      disable_kube_proxy: settings.disable_kube_proxy.to_s,
       flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
