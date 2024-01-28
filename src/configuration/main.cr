@@ -42,5 +42,6 @@ class Configuration::Main
   getter csi_driver_manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.5.1/deploy/kubernetes/hcloud-csi.yml"
   getter system_upgrade_controller_manifest_url : String = "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
   getter disable_flannel : Bool = false
+  getter disable_kube_proxy : Bool = false
   getter ssh_port : Int32 = 22
 end
