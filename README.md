@@ -156,7 +156,7 @@ schedule_workloads_on_masters: false
 # enable_public_net_ipv6: false # default is true
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
-# snapshot_os: microos # otional: specified the os type when using a custom snapshot
+# snapshot_os: microos # optional: specified the os type when using a custom snapshot
 cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.18.0/ccm-networks.yaml"
 csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.5.1/deploy/kubernetes/hcloud-csi.yml"
 system_upgrade_controller_manifest_url: "https://raw.githubusercontent.com/rancher/system-upgrade-controller/master/manifests/system-upgrade-controller.yaml"
@@ -215,7 +215,7 @@ worker_node_pools:
 
 Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
 
-If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has predecence.
+If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has precedence.
 
 If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
 
@@ -266,7 +266,7 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 
 ### Limitations:
 
-- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys insted of the old RSA type
+- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
 - if you use a snapshot instead of one of the default images, the creation of the servers will take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
