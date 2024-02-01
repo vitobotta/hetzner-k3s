@@ -14,19 +14,20 @@ class Kubernetes::Installer
   HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../templates/hetzner_cloud_secret_manifest.yaml") }}
   CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
+  @first_master_index : Int32
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
   getter masters : Array(Hetzner::Server)
+  getter first_master : Hetzner::Server { masters[@first_master_index] }
   getter workers : Array(Hetzner::Server)
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : Util::SSH
 
-  getter first_master : Hetzner::Server { masters[0] }
   getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil! }
   getter tls_sans : String { generate_tls_sans }
 
-  def initialize(@configuration, @masters, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)
+  def initialize(@configuration, @masters, @first_master_index, @workers, @load_balancer, @ssh, @autoscaling_worker_node_pools)
   end
 
   def run
@@ -66,7 +67,7 @@ class Kubernetes::Installer
 
   private def set_up_other_masters
     channel = Channel(Hetzner::Server).new
-    other_masters = masters[1..-1]
+    other_masters = masters.select { |master| master != first_master }
 
     deploy_masters_in_parallel(channel, other_masters)
     wait_for_masters_deployment(channel, other_masters.size)

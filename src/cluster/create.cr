@@ -37,12 +37,12 @@ class Cluster::Create
     settings.worker_node_pools.select(&.autoscaling_enabled)
   end
   private getter kubernetes_installer : Kubernetes::Installer do
-    Kubernetes::Installer.new(configuration, masters, workers, load_balancer, ssh, autoscaling_worker_node_pools)
+    Kubernetes::Installer.new(configuration, masters, first_master_index.not_nil!, workers, load_balancer, ssh, autoscaling_worker_node_pools)
   end
   private getter ssh : Util::SSH do
     Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
   end
-
+  private property first_master_index : Int32?
   private getter network : Hetzner::Network
   private getter firewall : Hetzner::Firewall
   private getter ssh_key : Hetzner::SSHKey
@@ -73,6 +73,9 @@ class Cluster::Create
     masters_pool.instance_count.times do |i|
       server_creators << create_master_server(i, placement_group)
     end
+    if @first_master_index.nil?
+      @first_master_index = 0
+    end
   end
 
   private def create_placement_group
@@ -88,6 +91,12 @@ class Cluster::Create
     image = settings.masters_pool.image || settings.image
     additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
     additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
+
+    server_finder = Hetzner::Server::Find.new(hetzner_client, master_name)
+    server = server_finder.run
+    if @first_master_index.nil? && server
+      @first_master_index = index
+    end
 
     Hetzner::Server::Create.new(
       hetzner_client: hetzner_client,
