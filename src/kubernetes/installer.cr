@@ -133,7 +133,7 @@ class Kubernetes::Installer
       extra_args: extra_args,
       server: server,
       tls_sans: tls_sans,
-      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1",
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".0",
       cluster_cidr: settings.cluster_cidr,
       service_cidr: settings.service_cidr,
       cluster_dns: settings.cluster_dns,
@@ -146,7 +146,7 @@ class Kubernetes::Installer
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       first_master_private_ip_address: first_master.private_ip_address,
-      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".0"
     })
   end
 
