@@ -147,7 +147,7 @@ class Kubernetes::Installer
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       first_master_private_ip_address: first_master.private_ip_address,
-      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".1"
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".0"
     })
   end
 
