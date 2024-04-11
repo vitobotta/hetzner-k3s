@@ -58,3 +58,5 @@ set +a
 
 echo "*" > /home/app/hetzner-k3s/tmp/.gitignore
 echo "!.gitignore" >> /home/app/hetzner-k3s/tmp/.gitignore
+
+eval `ssh-agent`
