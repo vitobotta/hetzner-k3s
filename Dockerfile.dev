@@ -1,4 +1,4 @@
-FROM alpine:20240329
+FROM alpine:3.19.1
 
 RUN apk update \
   && apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
