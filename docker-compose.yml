@@ -11,6 +11,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ${PWD}:/home/app/hetzner-k3s:cached
+      - ${HOME}/.ssh:/root/.ssh
       - /var/run/docker.sock:/var/run/docker.sock
       - kube:/root/.kube
       - vscode_cache:/vscode/vscode-server:cache
