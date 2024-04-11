@@ -1,0 +1,16 @@
+version: '3.8'
+
+volumes:
+  kube:
+  vscode_cache:
+
+services:
+  hetzner-k3s:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ${PWD}:/home/app/hetzner-k3s:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+      - kube:/root/.kube
+      - vscode_cache:/vscode/vscode-server:cache

@@ -1,0 +1,41 @@
+FROM alpine:20240329
+
+RUN apk update \
+  && apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
+    libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
+    make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards \
+    curl docker zsh bash openssl k9s shadow go \
+    gcc g++ libc-dev libxml2-dev openssl-dev yaml-dev zlib-dev crystal
+
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')/kubectl" && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+
+RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" \
+  && git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+RUN set -x; cd "$(mktemp -d)" \
+  && OS="$(uname | tr '[:upper:]' '[:lower:]')" \
+  && ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')" \
+  && KREW="krew-${OS}_${ARCH}" \
+  && curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" \
+  && tar zxvf "${KREW}.tar.gz" \
+  && ./"${KREW}" install krew \
+  && PATH="$HOME/.krew/bin:$PATH" kubectl krew install ctx \
+  && PATH="$HOME/.krew/bin:$PATH" kubectl krew install ns
+
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+ENV GOPATH=/root/go
+
+RUN mkdir -p $GOPATH/bin
+
+RUN go install github.com/stern/stern@latest
+
+SHELL ["/bin/zsh", "-c"]
+
+RUN echo '/bin/zsh' | chsh `whoami`
+
+RUN rm /root/.zshrc && ln -s /home/app/hetzner-k3s/.zshrc /root/.zshrc
+
+ENV DEVCONTAINER=true
+
+CMD ["tail", "-f", "/dev/null"]
