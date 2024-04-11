@@ -14,7 +14,7 @@ For testing we are going to use this "hello-world" app - https://gist.githubuser
 
 ```yaml
 hetzner_token: nRTJFfhIGNT..........
-cluster_name: hello-world  # hetzner-k3s gives the next names to hosts: hellow-world-cx21-master1 / hellow-world-cpx21-pool-cpx31-worker1
+cluster_name: hello-world  # hetzner-k3s gives the next names to hosts: hello-world-cx21-master1 / hello-world-cpx21-pool-cpx31-worker1
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
 k3s_version: v1.23.3+k3s1
 public_ssh_key_path: "~/.ssh/id_rsa.pub"
