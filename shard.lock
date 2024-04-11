@@ -10,11 +10,11 @@ shards:
 
   crest:
     git: https://github.com/mamantoha/crest.git
-    version: 1.3.7
+    version: 1.3.13
 
   crinja:
     git: https://github.com/straight-shoota/crinja.git
-    version: 0.8.0
+    version: 0.8.1
 
   cron_parser:
     git: https://github.com/kostya/cron_parser.git
@@ -30,15 +30,15 @@ shards:
 
   http_proxy:
     git: https://github.com/mamantoha/http_proxy.git
-    version: 0.9.0
+    version: 0.10.3
 
   ipaddress:
     git: https://github.com/sija/ipaddress.cr.git
-    version: 0.2.1
+    version: 0.2.3
 
   retriable:
     git: https://github.com/sija/retriable.cr.git
-    version: 0.2.4
+    version: 0.2.5
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
@@ -46,5 +46,5 @@ shards:
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
-    version: 2.0.7
+    version: 2.1.4
 
