@@ -2,7 +2,8 @@
 	"name": "${localWorkspaceFolder}",
 
 	"dockerComposeFile": [
-		"docker-compose.yml"
+		"docker-compose.yml",
+		"docker-compose.override.yml"
 	],
 
 	"service": "hetzner-k3s",

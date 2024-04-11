@@ -1,0 +1,10 @@
+version: '3.8'
+
+volumes:
+  kube:
+  vscode_cache:
+
+services:
+  hetzner-k3s:
+    volumes:
+      - ...
