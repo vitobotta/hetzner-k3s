@@ -27,3 +27,4 @@ actions-runner
 .env.vars
 .zsh_history
 temp
+docker-compose.override.yml
