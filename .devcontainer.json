@@ -1,0 +1,129 @@
+{
+	"name": "${localWorkspaceFolder}",
+
+	"dockerComposeFile": [
+		"docker-compose.yml"
+	],
+
+	"service": "hetzner-k3s",
+
+	"workspaceFolder": "/home/app/hetzner-k3s",
+
+	"shutdownAction": "stopCompose",
+
+	"customizations": {
+    "vscode": {
+      "extensions": [
+				"formulahendry.auto-close-tag",
+				"formulahendry.auto-rename-tag",
+				"aaron-bond.better-comments",
+				"angelomollame.conflict-squeezer",
+				"ms-vscode-remote.remote-containers",
+				"ms-azuretools.vscode-docker",
+				"mikestead.dotenv",
+				"kaiwood.endwise",
+				"usernamehw.errorlens",
+				"ninoseki.vscode-gem-lens",
+				"mhutchie.git-graph",
+				"donjayamanne.githistory",
+				"github.vscode-github-actions",
+				"GitHub.vscode-pull-request-github",
+				"GitHub.remotehub",
+				"codezombiech.gitignore",
+				"eamodio.gitlens",
+				"ZainChen.json",
+				"ziyasal.vscode-open-in-github",
+				"christian-kohler.path-intellisense",
+				"wayou.vscode-todo-highlight",
+				"redhat.vscode-xml",
+				"redhat.vscode-yaml",
+				"mutantdino.resourcemonitor",
+				"technosophos.vscode-helm",
+				"crystal-lang-tools.crystal-lang"
+			],
+			"recommendations": [
+				"GitHub.copilot",
+				"GitHub.copilot-chat",
+				"JeroenV.github-copilot-with-context"
+			],
+      "settings": {
+				"editor.tabSize": 2,
+				"editor.wordWrapColumn": 200,
+				"editor.renderWhitespace": "all",
+				"editor.accessibilitySupport": "off",
+				"editor.inlineSuggest.enabled": true,
+				"editor.bracketPairColorization.enabled": true,
+				"editor.foldingImportsByDefault": true,
+				"editor.tabCompletion": "on",
+				"editor.fontFamily": "Source Code Pro",
+				"editor.linkedEditing": true,
+				"editor.stickyScroll.enabled": true,
+
+				"diffEditor.codeLens": true,
+
+				"files.trimTrailingWhitespace": true,
+				"files.insertFinalNewline": true,
+				"files.exclude": {
+					"**/.history": true
+				},
+
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"terminal.integrated.shell.linux": "/bin/zsh",
+				"terminal.integrated.cwd": "/home/app/hetzner-k3s",
+				"terminal.integrated.allowChords": false,
+				"terminal.explorerKind": "integrated",
+				"terminal.integrated.shellIntegration.enabled": true,
+				"terminal.integrated.scrollback": 20000,
+
+				"scm.autoReveal": false,
+
+				"git.autofetch": true,
+				"git.pruneOnFetch": true,
+				"git.openRepositoryInParentFolders": "never",
+
+				"gitlens.ai.experimental.provider": "openai",
+				"gitlens.ai.experimental.openai.model": "gpt-4-turbo-preview",
+
+				"githubPullRequests.pullBranch": "never",
+
+				"github.copilot.enable": {
+					"*": true,
+					"plaintext": false,
+					"markdown": false,
+					"scminput": false,
+					"yaml": true
+				},
+
+				"security.workspace.trust.untrustedFiles": "open",
+
+				"redhat.telemetry.enabled": false,
+
+				"yaml.schemas": {
+						"kubernetes": "*.yaml,*.yml"
+				},
+
+				"workbench.commandPalette.preserveInput": true,
+				"workbench.startupEditor": "none",
+				"workbench.editor.closeOnFileDelete": true,
+				"workbench.editor.highlightModifiedTabs": true,
+				"workbench.editor.autoLockGroups": {
+						"terminalEditor": false
+				},
+
+				"explorer.openEditors.visible": 1,
+				"explorer.autoReveal": false,
+				"explorer.confirmDragAndDrop": false,
+
+				"[json]": {
+						"editor.defaultFormatter": "vscode.json-language-features"
+				},
+
+				"telemetry.telemetryLevel": "off"
+      }
+    }
+	},
+
+	"containerEnv": {
+    "PROJECT": "${localWorkspaceFolder}"
+	}
+}

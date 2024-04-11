@@ -23,3 +23,7 @@ hetzner-k3s
 k3s-releases.yaml
 actions-runner
 /.idea/
+.DS_Store
+.env.vars
+.zsh_history
+temp
