@@ -300,7 +300,7 @@ class Kubernetes::Installer
     puts "\nDeploying k3s System Upgrade Controller..."
 
     # Run second manifest twice to fix problem with namespace creation
-    command = "kubectl apply -f #{settings.system_upgrade_controller_config_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url}"
+    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
