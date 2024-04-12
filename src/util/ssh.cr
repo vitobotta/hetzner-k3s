@@ -3,6 +3,7 @@ require "io"
 require "../util"
 require "retriable"
 require "tasker"
+require "./prefixed_io"
 
 class Util::SSH
   getter private_ssh_key_path : String
@@ -42,7 +43,7 @@ class Util::SSH
 
     result = IO::Memory.new
     all_output = if print_output
-      IO::MultiWriter.new(STDOUT, result)
+      IO::MultiWriter.new(PrefixedIO.new("[#{server.name}] ", STDOUT), result)
     else
       IO::MultiWriter.new(result)
     end
