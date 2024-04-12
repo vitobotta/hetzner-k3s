@@ -37,13 +37,10 @@ stt_title () {
   setTerminalText 2 $@;
 }
 
-# Function to get current Kubernetes context and namespace
 k8s_prompt_info() {
-  # Fetch the current context
   local ctx=$(kubectl config current-context 2>/dev/null)
-  # Fetch the namespace set in the context
   local ns=$(kubectl config view --minify --output 'jsonpath={..namespace}' 2>/dev/null)
-  # Format and display the context and namespace
+
   if [[ -n $ctx ]]; then
     echo "[%{$fg_bold[green]%}$ctx%{$reset_color%}:%{$fg_bold[blue]%}$ns%{$reset_color%}]"
   fi
