@@ -2,8 +2,8 @@ name: Create release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches-ignore:
+      - 'main'
 
 jobs:
 
@@ -21,7 +21,7 @@ jobs:
           - runs_on_tag: macos-latest
             binary_os_suffix: macos
             binary_arch_suffix: amd64
-          - runs_on_tag: ARM64
+          - runs_on_tag: macos-latest-xlarge
             binary_os_suffix: macos
             binary_arch_suffix: arm64
           - runs_on_tag: ubuntu-22.04
@@ -67,8 +67,7 @@ jobs:
             apk update
             apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
               libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
-              make git autoconf automake libtool patch
-            apk add --update --no-cache libssh2-static libssh2-dev crystal shards
+              make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards
 
           run: |
             shards install --without-development
