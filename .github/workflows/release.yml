@@ -24,6 +24,7 @@ jobs:
           - runs_on_tag: macos-latest
             binary_os_suffix: macos
             binary_arch_suffix: arm64
+            arch: aarch64
           - runs_on_tag: ubuntu-22.04
             binary_os_suffix: linux
             binary_arch_suffix: arm64
