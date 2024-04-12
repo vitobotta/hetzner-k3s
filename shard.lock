@@ -4,10 +4,6 @@ shards:
     git: https://github.com/jwaldrip/admiral.cr.git
     version: 1.12.1
 
-  ameba:
-    git: https://github.com/crystal-ameba/ameba.git
-    version: 1.3.1
-
   crest:
     git: https://github.com/mamantoha/crest.git
     version: 1.3.13
@@ -42,7 +38,7 @@ shards:
 
   ssh2:
     git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.5.3+git.commit.2274d4cf0aceeb2f324b0e674e99e3eba5f6d683
+    version: 1.6.1
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
