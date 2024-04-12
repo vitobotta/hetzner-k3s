@@ -6,9 +6,10 @@ class PrefixedIO < IO
   end
 
   def write(slice : Bytes) : Nil
-    content = String.new(slice)
-    content.lines.each do |line|
-      @io << @prefix << "#{line}\n"
+    @io.print @prefix
+    slice.each do |byte|
+      @io.write_byte byte
+      @io.print @prefix if 10 == byte
     end
   end
 end
