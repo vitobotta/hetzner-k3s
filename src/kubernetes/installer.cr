@@ -299,17 +299,8 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl create ns system-upgrade && kubectl annotate ns kubectl.kubernetes.io/last-applied-configuration=true"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy k3s System Upgrade Controller:"
-      puts result.output
-      exit 1
-    end
-
-    command = "kubectl apply -f #{settings.system_upgrade_controller_config_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url}"
+    # Run second manifest twice to fix problem with namespace creation
+    command = "kubectl apply -f #{settings.system_upgrade_controller_config_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
