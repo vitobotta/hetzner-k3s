@@ -18,6 +18,7 @@ fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
+--disable-network-policy \
 --disable servicelb \
 --disable traefik \
 --disable local-storage \

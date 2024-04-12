@@ -242,7 +242,7 @@ class Kubernetes::Installer
 
     unless result.success?
       puts "Failed to create Hetzner Cloud secret:"
-      puts result
+      puts result.output
       exit 1
     end
 
@@ -273,7 +273,7 @@ class Kubernetes::Installer
 
     unless result.success?
       puts "Failed to deploy Cloud Controller Manager:"
-      puts result
+      puts result.output
       exit 1
     end
 
@@ -289,7 +289,7 @@ class Kubernetes::Installer
 
     unless result.success?
       puts "Failed to deploy CSI Driver:"
-      puts result
+      puts result.output
       exit 1
     end
 
@@ -299,13 +299,14 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
+    # Run second manifest twice to fix problem with namespace creation
+    command = "kubectl apply -f #{settings.system_upgrade_controller_config_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url},#{settings.system_upgrade_controller_crd_manifest_url}"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless result.success?
       puts "Failed to deploy k3s System Upgrade Controller:"
-      puts result
+      puts result.output
       exit 1
     end
 
@@ -346,7 +347,7 @@ class Kubernetes::Installer
 
     unless result.success?
       puts "Failed to deploy Cluster Autoscaler:"
-      puts result
+      puts result.output
       exit 1
     end
 
