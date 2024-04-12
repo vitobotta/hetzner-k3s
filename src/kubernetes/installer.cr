@@ -299,7 +299,7 @@ class Kubernetes::Installer
   private def deploy_system_upgrade_controller
     puts "\nDeploying k3s System Upgrade Controller..."
 
-    command = "kubectl create ns system-upgrade"
+    command = "kubectl create ns system-upgrade && kubectl annotate ns kubectl.kubernetes.io/last-applied-configuration=true"
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
