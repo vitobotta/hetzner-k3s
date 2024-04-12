@@ -40,7 +40,7 @@ class Configuration::Main
   getter service_cidr : String = "10.43.0.0/16"
   getter cluster_dns : String = "10.43.0.10"
   getter cloud_controller_manager_manifest_url : String = "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
-  getter csi_driver_manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.5.1/deploy/kubernetes/hcloud-csi.yml"
+  getter csi_driver_manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
   getter system_upgrade_controller_config_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/latest/download/system-upgrade-controller.yaml"
   getter system_upgrade_controller_crd_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/latest/download/crd.yaml"
   getter disable_flannel : Bool = false
