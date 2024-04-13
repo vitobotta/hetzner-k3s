@@ -12,7 +12,7 @@ export VISUAL='code --wait'
 export TERM=xterm-256color
 export XDG_CONFIG_HOME=$HOME/.config
 export ZSH_AUTOSUGGEST_ACCEPT_WIDGETS=("${(@)ZSH_AUTOSUGGEST_ACCEPT_WIDGETS:#forward-char}")
-export PATH="/home/app/hetzner-k3s/bin:$HOME/.krew/bin:./bin:$HOME/bin:$GOPATH/bin:$PATH"
+export PATH="/home/app/hetzner-k3s/bin:$HOME/.krew/bin:./bin:$HOME/bin:$GOPATH/bin:/bundle/bin:$PATH"
 export HISTFILE="/home/app/hetzner-k3s/.zsh_history"
 
 source $ZSH/oh-my-zsh.sh

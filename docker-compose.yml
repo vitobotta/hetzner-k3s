@@ -3,6 +3,7 @@ version: '3.8'
 volumes:
   kube:
   vscode_cache:
+  bundle:
 
 services:
   hetzner-k3s:
@@ -14,4 +15,5 @@ services:
       - ${HOME}/.ssh:/root/.ssh
       - /var/run/docker.sock:/var/run/docker.sock
       - kube:/root/.kube
-      - vscode_cache:/vscode/vscode-server:cache
+      - vscode_cache:/vscode/vscode-server
+      - bundle:/bundle
