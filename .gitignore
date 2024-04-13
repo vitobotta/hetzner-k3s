@@ -6,26 +6,12 @@
 /pkg/
 /spec/reports/
 /tmp/
-
-# rspec failure tracking
-.rspec_status
-/kubeconfig
-/cluster_config.yaml
-dist/hetzner-k3s.jar
-dist/hetzner-k3s
-
+/dist/
 /docs/
 /lib/
 /bin/
-/.shards/
-*.dwarf
-hetzner-k3s
-k3s-releases.yaml
-actions-runner
-/.idea/
 .DS_Store
 .env.vars
 .zsh_history
 temp
 docker-compose.override.yml
-hetzner-k3s.jar
