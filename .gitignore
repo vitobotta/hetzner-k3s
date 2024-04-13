@@ -3,13 +3,8 @@
 /_yardoc/
 /coverage/
 /doc/
-/pkg/
 /spec/reports/
 /tmp/
-/dist/
-/docs/
-/lib/
-/bin/
 .DS_Store
 .env.vars
 .zsh_history

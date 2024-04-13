@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM jruby:9.4.6.0-jre8
+FROM ruby:3.3.0-slim-bookworm
 
 RUN --mount=type=cache,id=dev-apt-cache,sharing=locked,target=/tmp/cache/apt-cache \
     --mount=type=cache,id=dev-apt-lib,sharing=locked,target=/tmp/cache/apt-lib \
