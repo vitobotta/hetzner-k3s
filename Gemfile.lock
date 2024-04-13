@@ -3,6 +3,7 @@ GEM
   specs:
 
 PLATFORMS
+  aarch64-linux
   universal-java-1.8
 
 DEPENDENCIES
