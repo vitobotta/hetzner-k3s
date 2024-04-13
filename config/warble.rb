@@ -9,7 +9,7 @@ Warbler::Config.new do |config|
   # - *executable*: embed a web server and make the war executable
   # - *runnable*: allows to run bin scripts e.g. `java -jar my.war -S rake -T`
   # - *compiled*: compile .rb files to .class files
-  config.features = %w(runnable)
+  config.features = %w(runnable compiled)
 
   # Application directories to be included in the webapp.
   config.dirs = %w(bin lib)
@@ -85,7 +85,7 @@ Warbler::Config.new do |config|
   config.jar_extension = "jar"
 
   # Destionation for the created archive. Defaults to project's root directory.
-  # config.autodeploy_dir = "dist/"
+  config.autodeploy_dir = "dist/"
 
   # Name of the MANIFEST.MF template for the war file. Defaults to a simple
   # MANIFEST.MF that contains the version of Warbler used to create the war file.
@@ -98,7 +98,7 @@ Warbler::Config.new do |config|
 
   # Determines if ruby files in supporting gems will be compiled.
   # Ignored unless compile feature is used.
-  # config.compile_gems = false
+  config.compile_gems = true
 
   # When set it specify the bytecode version for compiled class files
   # config.bytecode_version = "1.6"
