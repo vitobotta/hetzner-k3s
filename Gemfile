@@ -2,4 +2,5 @@
 
 source "https://rubygems.org"
 
-# gem "rails"
+gem "http"
+gem "llhttp-ffi", "~> 0.5.0"
