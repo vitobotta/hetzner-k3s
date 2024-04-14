@@ -1,9 +1,4 @@
 #!/bin/env ruby
-
-require "rubygems"
-require "bundler/setup"
-Bundler.require
+# frozen_string_literal: true
 
 puts "Hello, #{ARGV[0] || 'World'}"
-
-puts HTTP.get("https://ifconfig.me").to_s
