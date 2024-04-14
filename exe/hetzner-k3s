@@ -1,4 +1,7 @@
-#!/bin/env ruby
+#!/usr/bin/env ruby
 # frozen_string_literal: true
+
+require "bundler/setup"
+require "hetzner_k3s"
 
 puts "Hello, #{ARGV[0] || 'World'}"
