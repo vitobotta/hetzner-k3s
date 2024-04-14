@@ -8,7 +8,7 @@ AllCops:
 Gemspec/DeprecatedAttributeAssignment: # new in 1.30
   Enabled: true
 Gemspec/DevelopmentDependencies: # new in 1.44
-  Enabled: true
+  Enabled: false
 Gemspec/RequireMFA: # new in 1.23
   Enabled: true
 Layout/LineContinuationLeadingSpace: # new in 1.31

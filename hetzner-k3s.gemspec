@@ -36,4 +36,10 @@ Gem::Specification.new do |spec|
 
   # For more information and examples about making a new gem, check out our
   # guide at: https://bundler.io/guides/creating_gem.html
+
+  spec.add_development_dependency  "rake", '~> 13.2', '>= 13.2.1'
+  spec.add_development_dependency  "rspec", '~> 3.13'
+  spec.add_development_dependency  "rubocop", '~> 1.63', '>= 1.63.1'
+  spec.add_development_dependency "rubocop-rake", '~> 0.6.0'
+  spec.add_development_dependency "rubocop-rspec", '~> 2.29', '>= 2.29.1'
 end

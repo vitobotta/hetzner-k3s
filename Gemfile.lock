@@ -69,11 +69,11 @@ PLATFORMS
 
 DEPENDENCIES
   hetzner-k3s!
-  rake
-  rspec
-  rubocop
-  rubocop-rake
-  rubocop-rspec
+  rake (~> 13.2, >= 13.2.1)
+  rspec (~> 3.13)
+  rubocop (~> 1.63, >= 1.63.1)
+  rubocop-rake (~> 0.6.0)
+  rubocop-rspec (~> 2.29, >= 2.29.1)
 
 BUNDLED WITH
    2.5.9
