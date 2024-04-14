@@ -6,7 +6,6 @@ Gem::Specification.new do |spec|
   spec.name = "hetzner-k3s"
   spec.version = Hetzner::K3s::VERSION
   spec.authors = ["Vito Botta"]
-  spec.email = ["vito@botta.me"]
 
   spec.summary = "The easiest way to create production grade Kubernetes clusters in Hetzner Cloud"
   spec.description = "A CLI tool to create and manage Kubernetes clusters in Hetzner Cloud using the lightweight distribution k3s by Rancher."
@@ -17,6 +16,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/vitobotta/hetzner-k3s"
   spec.metadata["changelog_uri"] = "https://github.com/vitobotta/hetzner-k3s/releases"
+  spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
