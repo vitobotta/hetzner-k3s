@@ -40,12 +40,20 @@
 				"redhat.vscode-yaml",
 				"mutantdino.resourcemonitor",
 				"technosophos.vscode-helm",
-				"crystal-lang-tools.crystal-lang"
+				"crystal-lang-tools.crystal-lang",
+				"karunamurti.rspec-snippets",
+				"walkme.Ruby-extension-pack",
+				"groksrc.ruby",
+				"miguel-savignano.ruby-symbols"
 			],
 			"recommendations": [
 				"GitHub.copilot",
 				"GitHub.copilot-chat",
-				"JeroenV.github-copilot-with-context"
+				"JeroenV.github-copilot-with-context",
+				"rubocop.vscode-rubocop",
+				"Shopify.ruby-lsp",
+				"castwide.solargraph",
+				"hoovercj.ruby-linter"
 			],
       "settings": {
 				"editor.tabSize": 2,
@@ -114,6 +122,29 @@
 				"explorer.openEditors.visible": 1,
 				"explorer.autoReveal": false,
 				"explorer.confirmDragAndDrop": false,
+
+				"ruby.format": "rubocop",
+				"ruby.lint": {
+					"ruby": true,
+					"rubocop": true
+				},
+
+				"rubyLsp.yjit": true,
+
+				"rubyLsp.enableExperimentalFeatures": true,
+				"rubyLsp.enabledFeatures": {
+						"completion": true,
+						"diagnostics": true,
+						"documentSymbol": true,
+						"formatting": true,
+						"hover": true,
+						"references": true,
+						"rename": true,
+						"selectionRange": true,
+						"workspaceSymbol": true
+				},
+
+				"solargraph.formatting": true,
 
 				"[json]": {
 						"editor.defaultFormatter": "vscode.json-language-features"
