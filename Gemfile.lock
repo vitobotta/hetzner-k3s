@@ -1,12 +1,64 @@
+PATH
+  remote: .
+  specs:
+    hetzner-k3s (2.0.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
+    ast (2.4.2)
+    diff-lcs (1.5.1)
+    json (2.7.2)
+    json (2.7.2-java)
+    language_server-protocol (3.17.0.3)
+    parallel (1.24.0)
+    parser (3.3.0.5)
+      ast (~> 2.4.1)
+      racc
+    racc (1.7.3)
+    racc (1.7.3-java)
+    rainbow (3.1.1)
+    rake (13.2.1)
+    regexp_parser (2.9.0)
+    rexml (3.2.6)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.0)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.1)
+    rubocop (1.63.1)
+      json (~> 2.3)
+      language_server-protocol (>= 3.17.0)
+      parallel (~> 1.10)
+      parser (>= 3.3.0.2)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 1.8, < 3.0)
+      rexml (>= 3.2.5, < 4.0)
+      rubocop-ast (>= 1.31.1, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 2.4.0, < 3.0)
+    rubocop-ast (1.31.2)
+      parser (>= 3.3.0.4)
+    ruby-progressbar (1.13.0)
+    unicode-display_width (2.5.0)
 
 PLATFORMS
   aarch64-linux
   universal-java-1.8
 
 DEPENDENCIES
+  hetzner-k3s!
+  rake (~> 13.0)
+  rspec (~> 3.0)
+  rubocop (~> 1.21)
 
 BUNDLED WITH
    2.5.9
