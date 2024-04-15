@@ -10,6 +10,7 @@ require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
 require "./software/hetzner/secret"
+require "./software/hetzner/cloud_controller_manager"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
@@ -46,7 +47,7 @@ class Kubernetes::Installer
     add_labels_and_taints_to_workers
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-    deploy_cloud_controller_manager
+    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     deploy_csi_driver
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
     deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
@@ -224,37 +225,6 @@ class Kubernetes::Installer
     File.write(kubeconfig_path, kubeconfig)
 
     File.chmod kubeconfig_path, 0o600
-  end
-
-  private def deploy_cloud_controller_manager
-    puts "\nDeploying Hetzner Cloud Controller Manager..."
-
-    response = Crest.get(settings.cloud_controller_manager_manifest_url)
-
-    unless response.success?
-      puts "Failed to download CCM manifest from #{settings.cloud_controller_manager_manifest_url}"
-      puts "Server responded with status #{response.status_code}"
-      exit 1
-    end
-
-    ccm_manifest = response.body.to_s
-    ccm_manifest = ccm_manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
-
-    ccm_manifest_path = "/tmp/ccm_manifest.yaml"
-
-    File.write(ccm_manifest_path, ccm_manifest)
-
-    command = "kubectl apply -f #{ccm_manifest_path}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy Cloud Controller Manager:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...Cloud Controller Manager deployed"
   end
 
   private def deploy_csi_driver
