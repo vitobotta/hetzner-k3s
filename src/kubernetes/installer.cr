@@ -12,11 +12,11 @@ require "./software/system_upgrade_controller"
 require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
+require "./software/cluster_autoscaler"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
-  CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -223,46 +223,7 @@ class Kubernetes::Installer
     File.chmod kubeconfig_path, 0o600
   end
 
-  private def deploy_cluster_autoscaler
-    puts "\nDeploying Cluster Autoscaler..."
 
-    node_pool_args = autoscaling_worker_node_pools.map do |pool|
-      autoscaling = pool.autoscaling.not_nil!
-      "- --nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
-    end.join("\n            ")
-
-    k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
-
-    cloud_init = Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
-
-    certificate_path = ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
-
-    cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
-      node_pool_args: node_pool_args,
-      cloud_init: Base64.strict_encode(cloud_init),
-      image: settings.autoscaling_image || settings.image,
-      firewall_name: settings.cluster_name,
-      ssh_key_name: settings.cluster_name,
-      network_name: (settings.existing_network || settings.cluster_name),
-      certificate_path: certificate_path
-    })
-
-    cluster_autoscaler_manifest_path = "/tmp/cluster_autoscaler_manifest_path.yaml"
-
-    File.write(cluster_autoscaler_manifest_path, cluster_autoscaler_manifest)
-
-    command = "kubectl apply -f #{cluster_autoscaler_manifest_path}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy Cluster Autoscaler:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...Cluster Autoscaler deployed."
-  end
 
   private def add_labels_and_taints_to_masters
     add_labels_or_taints(:label, masters, settings.masters_pool.labels, :master)
@@ -316,6 +277,6 @@ class Kubernetes::Installer
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    deploy_cluster_autoscaler
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script).install
   end
 end
