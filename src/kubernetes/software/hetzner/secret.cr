@@ -8,7 +8,7 @@ class Kubernetes::Software::Hetzner::Secret
   end
 
   def create
-    puts "\nCreating secret for Hetzner Cloud token..."
+    puts "\n[Hetzner Cloud Secret] Creating secret for Hetzner Cloud token..."
 
     secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
       network: (settings.existing_network || settings.cluster_name),
@@ -21,7 +21,7 @@ class Kubernetes::Software::Hetzner::Secret
     EOF
     BASH
 
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner Cloud Secret")
 
     unless result.success?
       puts "Failed to create Hetzner Cloud secret:"
@@ -29,6 +29,6 @@ class Kubernetes::Software::Hetzner::Secret
       exit 1
     end
 
-    puts "...secret created."
+    puts "[Hetzner Cloud Secret] ...secret created"
   end
 end
