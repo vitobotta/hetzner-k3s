@@ -9,11 +9,11 @@ require "../hetzner/server"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
+require "./software/hetzner/secret"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
-  HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../templates/hetzner_cloud_secret_manifest.yaml") }}
   CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
   getter configuration : Configuration::Loader
@@ -45,7 +45,7 @@ class Kubernetes::Installer
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
 
-    create_hetzner_cloud_secret
+    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     deploy_cloud_controller_manager
     deploy_csi_driver
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
@@ -224,31 +224,6 @@ class Kubernetes::Installer
     File.write(kubeconfig_path, kubeconfig)
 
     File.chmod kubeconfig_path, 0o600
-  end
-
-  private def create_hetzner_cloud_secret
-    puts "\nCreating secret for Hetzner Cloud token..."
-
-    secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network: (settings.existing_network || settings.cluster_name),
-      token: settings.hetzner_token
-    })
-
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{secret_manifest}
-    EOF
-    BASH
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to create Hetzner Cloud secret:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...secret created."
   end
 
   private def deploy_cloud_controller_manager
