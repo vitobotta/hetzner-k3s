@@ -1,9 +1,10 @@
 name: Create release
 
 on:
-  push:
-    branches-ignore:
-      - 'main'
+  on:
+    push:
+      tags:
+        - 'v*'
 
 jobs:
 
