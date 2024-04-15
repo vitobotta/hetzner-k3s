@@ -8,12 +8,10 @@ class Kubernetes::Resources::Pod
       include YAML::Serializable::Unmapped
 
       property name : String?
-      property command : String?
+      property image : String?
+      property command : Array(String)?
       property env : Array(EnvVariable)?
       property volumeMounts : Array(VolumeMount)?
-
-      def initialize(@name, @command, @env, @volumeMounts)
-      end
     end
   end
 end
