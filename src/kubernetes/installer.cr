@@ -1,12 +1,14 @@
 require "crinja"
 require "base64"
+require "file_utils"
+
 require "../util"
 require "../util/ssh"
 require "../util/shell"
 require "../hetzner/server"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
-require "file_utils"
+require "./software/system_upgrade_controller"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
@@ -46,7 +48,7 @@ class Kubernetes::Installer
     create_hetzner_cloud_secret
     deploy_cloud_controller_manager
     deploy_csi_driver
-    deploy_system_upgrade_controller
+    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
     deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
   end
 
@@ -294,23 +296,6 @@ class Kubernetes::Installer
     end
 
     puts "...CSI Driver deployed"
-  end
-
-  private def deploy_system_upgrade_controller
-    puts "\nDeploying k3s System Upgrade Controller..."
-
-    # Run second manifest twice to fix problem with namespace creation
-    command = "kubectl apply -f #{settings.system_upgrade_controller_manifest_url}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy k3s System Upgrade Controller:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...k3s System Upgrade Controller deployed."
   end
 
   private def deploy_cluster_autoscaler

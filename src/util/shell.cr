@@ -12,7 +12,7 @@ module Util
       end
     end
 
-    def self.run(command : String, kubeconfig_path : String, hetzner_token : String) : Result
+    def self.run(command : String, kubeconfig_path : String, hetzner_token : String, prefix : String = "") : Result
       cmd_file_path = "/tmp/cli.cmd"
 
       File.write(cmd_file_path, <<-CONTENT
@@ -26,7 +26,11 @@ module Util
       stdout = IO::Memory.new
       stderr = IO::Memory.new
 
-      all_io_out = IO::MultiWriter.new(STDOUT, stdout)
+      all_io_out = if prefix.blank?
+        IO::MultiWriter.new(STDOUT, stdout)
+      else
+        IO::MultiWriter.new(PrefixedIO.new("[#{prefix}] ", STDOUT), stdout)
+      end
       all_io_err = IO::MultiWriter.new(STDERR, stderr)
 
       env = {
