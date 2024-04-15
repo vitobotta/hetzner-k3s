@@ -16,8 +16,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
       exit 1
     end
 
-    ccm_manifest = response.body.to_s
-    ccm_manifest = ccm_manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
+    ccm_manifest = response.body.to_s.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
 
     command = <<-BASH
     kubectl apply -f - <<-EOF
