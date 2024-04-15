@@ -9,11 +9,13 @@ require "../hetzner/server"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
+require "./software/hetzner/secret"
+require "./software/hetzner/cloud_controller_manager"
+require "./software/hetzner/csi_driver"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
-  HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../templates/hetzner_cloud_secret_manifest.yaml") }}
   CLUSTER_AUTOSCALER_MANIFEST = {{ read_file("#{__DIR__}/../../templates/cluster_autoscaler.yaml") }}
 
   getter configuration : Configuration::Loader
@@ -32,24 +34,19 @@ class Kubernetes::Installer
   end
 
   def run
+    Util.check_kubectl
+
     puts "\n=== Setting up Kubernetes ===\n"
 
     set_up_first_master
     set_up_other_masters
     set_up_workers
 
-    puts "\n=== Deploying Hetzner drivers ===\n"
-
-    Util.check_kubectl
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
 
-    create_hetzner_cloud_secret
-    deploy_cloud_controller_manager
-    deploy_csi_driver
-    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
+    install_software
   end
 
   private def set_up_first_master
@@ -226,78 +223,6 @@ class Kubernetes::Installer
     File.chmod kubeconfig_path, 0o600
   end
 
-  private def create_hetzner_cloud_secret
-    puts "\nCreating secret for Hetzner Cloud token..."
-
-    secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network: (settings.existing_network || settings.cluster_name),
-      token: settings.hetzner_token
-    })
-
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{secret_manifest}
-    EOF
-    BASH
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to create Hetzner Cloud secret:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...secret created."
-  end
-
-  private def deploy_cloud_controller_manager
-    puts "\nDeploying Hetzner Cloud Controller Manager..."
-
-    response = Crest.get(settings.cloud_controller_manager_manifest_url)
-
-    unless response.success?
-      puts "Failed to download CCM manifest from #{settings.cloud_controller_manager_manifest_url}"
-      puts "Server responded with status #{response.status_code}"
-      exit 1
-    end
-
-    ccm_manifest = response.body.to_s
-    ccm_manifest = ccm_manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
-
-    ccm_manifest_path = "/tmp/ccm_manifest.yaml"
-
-    File.write(ccm_manifest_path, ccm_manifest)
-
-    command = "kubectl apply -f #{ccm_manifest_path}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy Cloud Controller Manager:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...Cloud Controller Manager deployed"
-  end
-
-  private def deploy_csi_driver
-    puts "\nDeploying Hetzner CSI Driver..."
-
-    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy CSI Driver:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...CSI Driver deployed"
-  end
-
   private def deploy_cluster_autoscaler
     puts "\nDeploying Cluster Autoscaler..."
 
@@ -384,5 +309,13 @@ class Kubernetes::Installer
       sans << "--tls-san=#{master_private_ip}"
     end
     sans.join(" ")
+  end
+
+  private def install_software
+    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
+    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
+    deploy_cluster_autoscaler
   end
 end

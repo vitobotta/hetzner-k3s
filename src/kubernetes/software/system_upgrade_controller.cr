@@ -9,7 +9,6 @@ class Kubernetes::Software::SystemUpgradeController
   getter settings : Configuration::Main { configuration.settings }
 
   def initialize(@configuration, @settings)
-
   end
 
   def install
