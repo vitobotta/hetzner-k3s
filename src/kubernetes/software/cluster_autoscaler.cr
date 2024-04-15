@@ -22,32 +22,11 @@ class Kubernetes::Software::ClusterAutoscaler
   def install
     puts "\n[Cluster Autoscaler] Installing Cluster Autoscaler..."
 
-    node_pool_args = autoscaling_worker_node_pools.map do |pool|
-      autoscaling = pool.autoscaling.not_nil!
-      "- --nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
-    end.join("\n            ")
-
-    k3s_join_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
-
-    cloud_init = ::Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
-
-    certificate_path = ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
-
-    cluster_autoscaler_manifest = Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
-      node_pool_args: node_pool_args,
-      cloud_init: Base64.strict_encode(cloud_init),
-      image: settings.autoscaling_image || settings.image,
-      firewall_name: settings.cluster_name,
-      ssh_key_name: settings.cluster_name,
-      network_name: (settings.existing_network || settings.cluster_name),
-      certificate_path: certificate_path
-    })
-
-    cluster_autoscaler_manifest_path = "/tmp/cluster_autoscaler_manifest_path.yaml"
-
-    File.write(cluster_autoscaler_manifest_path, cluster_autoscaler_manifest)
-
-    command = "kubectl apply -f #{cluster_autoscaler_manifest_path}"
+    command = <<-BASH
+    kubectl apply -f - <<-EOF
+    #{cluster_autoscaler_manifest}
+    EOF
+    BASH
 
     result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Cluster Autoscaler")
 
@@ -58,5 +37,40 @@ class Kubernetes::Software::ClusterAutoscaler
     end
 
     puts "[Cluster Autoscaler] ...Cluster Autoscaler installed"
+  end
+
+  private def cloud_init
+    ::Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+  end
+
+  private def k3s_join_script
+    "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
+  end
+
+  private def certificate_path
+    if ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1"
+      "/etc/ssl/certs/ca-certificates.crt"
+    else
+      "/etc/ssl/certs/ca-bundle.crt"
+    end
+  end
+
+  private def node_pool_args
+    autoscaling_worker_node_pools.map do |pool|
+      autoscaling = pool.autoscaling.not_nil!
+      "- --nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
+    end.join("\n            ")
+  end
+
+  private def cluster_autoscaler_manifest
+    Crinja.render(CLUSTER_AUTOSCALER_MANIFEST, {
+      node_pool_args: node_pool_args,
+      cloud_init: Base64.strict_encode(cloud_init),
+      image: settings.autoscaling_image || settings.image,
+      firewall_name: settings.cluster_name,
+      ssh_key_name: settings.cluster_name,
+      network_name: (settings.existing_network || settings.cluster_name),
+      certificate_path: certificate_path
+    })
   end
 end
