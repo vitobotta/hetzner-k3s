@@ -34,15 +34,14 @@ class Kubernetes::Installer
   end
 
   def run
+    Util.check_kubectl
+
     puts "\n=== Setting up Kubernetes ===\n"
 
     set_up_first_master
     set_up_other_masters
     set_up_workers
 
-    puts "\n=== Deploying Hetzner drivers ===\n"
-
-    Util.check_kubectl
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
