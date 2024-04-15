@@ -11,6 +11,7 @@ require "../configuration/loader"
 require "./software/system_upgrade_controller"
 require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
+require "./software/hetzner/csi_driver"
 
 class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
@@ -48,7 +49,7 @@ class Kubernetes::Installer
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-    deploy_csi_driver
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
     deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
   end
@@ -225,22 +226,6 @@ class Kubernetes::Installer
     File.write(kubeconfig_path, kubeconfig)
 
     File.chmod kubeconfig_path, 0o600
-  end
-
-  private def deploy_csi_driver
-    puts "\nDeploying Hetzner CSI Driver..."
-
-    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
-
-    unless result.success?
-      puts "Failed to deploy CSI Driver:"
-      puts result.output
-      exit 1
-    end
-
-    puts "...CSI Driver deployed"
   end
 
   private def deploy_cluster_autoscaler
