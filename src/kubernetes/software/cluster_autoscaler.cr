@@ -54,7 +54,7 @@ class Kubernetes::Software::ClusterAutoscaler
   private def node_pool_args
     autoscaling_worker_node_pools.map do |pool|
       autoscaling = pool.autoscaling.not_nil!
-      "- --nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
+      "--nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
     end
   end
 
@@ -114,16 +114,16 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def container_command
     command = [
-      "- ./cluster-autoscaler",
-      "-cloud-provider=hetzner",
-      "-enforce-node-group-min-size",
+      "./cluster-autoscaler",
+      "--cloud-provider=hetzner",
+      "--enforce-node-group-min-size",
     ]
 
-    container_command = command += node_pool_args
-    container_command.join("\m")
+    command += node_pool_args
   end
 
   private def patch_autoscaler_container(autoscaler_container)
+    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
     autoscaler_container.command = container_command
 
     set_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT", Base64.strict_encode(cloud_init))
