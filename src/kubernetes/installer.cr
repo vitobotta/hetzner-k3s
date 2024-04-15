@@ -50,7 +50,7 @@ class Kubernetes::Installer
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    deploy_cluster_autoscaler unless autoscaling_worker_node_pools.size.zero?
+    deploy_cluster_autoscaler
   end
 
   private def set_up_first_master
