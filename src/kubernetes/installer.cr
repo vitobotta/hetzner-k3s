@@ -46,11 +46,7 @@ class Kubernetes::Installer
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
 
-    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
-    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    deploy_cluster_autoscaler
+    install_software
   end
 
   private def set_up_first_master
@@ -313,5 +309,13 @@ class Kubernetes::Installer
       sans << "--tls-san=#{master_private_ip}"
     end
     sans.join(" ")
+  end
+
+  private def install_software
+    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
+    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
+    deploy_cluster_autoscaler
   end
 end
