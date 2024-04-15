@@ -18,7 +18,7 @@ class Kubernetes::Software::SystemUpgradeController
     create_crd
     create_resources
 
-    puts "[System Upgrade Controller] ...k3s System Upgrade Controller deployed."
+    puts "[System Upgrade Controller] ...System Upgrade Controller deployed."
   end
 
   private def create_namespace

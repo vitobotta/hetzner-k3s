@@ -32,6 +32,6 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
       exit 1
     end
 
-    puts "[Hetzner Cloud Controller] Hetzner Cloud Controller Manager installed"
+    puts "[Hetzner Cloud Controller] ...Hetzner Cloud Controller Manager installed"
   end
 end
