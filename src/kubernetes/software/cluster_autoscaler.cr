@@ -102,14 +102,8 @@ class Kubernetes::Software::ClusterAutoscaler
     end
   end
 
-  private def patch_tolerations(spec)
-    toleration = Kubernetes::Resources::Pod::Spec::Toleration.new(effect: "NoExecute", key: "CriticalAddonsOnly", value: "true")
-
-    if tolerations = spec.tolerations
-      tolerations << toleration
-    else
-      spec.tolerations = [toleration]
-    end
+  private def patch_tolerations(pod_spec)
+    pod_spec.add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
   end
 
   private def container_command
