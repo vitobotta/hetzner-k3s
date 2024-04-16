@@ -57,13 +57,8 @@ class Kubernetes::Software::SystemUpgradeController
 
   private def deployment_with_added_toleration(resource)
     deployment = Kubernetes::Resources::Deployment.from_yaml(resource.to_yaml)
-    toleration = Kubernetes::Resources::Pod::Spec::Toleration.new(effect: "NoExecute", key: "CriticalAddonsOnly", value: "true")
 
-    if tolerations = deployment.spec.template.spec.tolerations
-      tolerations << toleration
-    else
-      deployment.spec.template.spec.tolerations = [toleration]
-    end
+    deployment.spec.template.spec.add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
 
     deployment
   end
