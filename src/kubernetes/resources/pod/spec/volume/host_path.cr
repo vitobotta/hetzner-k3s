@@ -6,9 +6,6 @@ class Kubernetes::Resources::Pod
         include YAML::Serializable::Unmapped
 
         property path : String?
-
-        def initialize(@path)
-        end
       end
     end
   end
