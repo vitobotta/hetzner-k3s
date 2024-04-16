@@ -1,4 +1,8 @@
+require "../../util"
+
 class Kubernetes::Software::Hetzner::CloudControllerManager
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
 
@@ -18,19 +22,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
 
     ccm_manifest = response.body.to_s.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{ccm_manifest}
-    EOF
-    BASH
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner Cloud Controller")
-
-    unless result.success?
-      puts "Failed to deploy Cloud Controller Manager:"
-      puts result.output
-      exit 1
-    end
+    apply_manifest(yaml: ccm_manifest, prefix: "Hetzner Cloud Controller", error_message: "Failed to install Cloud Controller Manager")
 
     puts "[Hetzner Cloud Controller] ...Hetzner Cloud Controller Manager installed"
   end

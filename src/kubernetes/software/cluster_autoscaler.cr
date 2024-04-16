@@ -9,14 +9,17 @@ require "../resources/resource"
 require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../resources/pod/spec/container"
+require "../util"
 
 class Kubernetes::Software::ClusterAutoscaler
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter worker_install_script : String
   getter first_master : ::Hetzner::Server
-  getter ssh : Util::SSH
+  getter ssh : ::Util::SSH
 
   def initialize(@configuration, @settings, @first_master, @ssh, @autoscaling_worker_node_pools, @worker_install_script)
   end
@@ -24,13 +27,7 @@ class Kubernetes::Software::ClusterAutoscaler
   def install
     puts "\n[Cluster Autoscaler] Installing Cluster Autoscaler..."
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{manifest}
-    EOF
-    BASH
-
-    run_command command
+    apply_manifest(yaml: manifest, prefix: "Cluster Autoscaler", error_message: "Failed to inatall Cluster Autoscaler")
 
     puts "[Cluster Autoscaler] ...Cluster Autoscaler installed"
   end
@@ -90,16 +87,6 @@ class Kubernetes::Software::ClusterAutoscaler
     patch_volumes(deployment.spec.template.spec.volumes)
 
     deployment
-  end
-
-  private def run_command(command)
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Cluster Autoscaler")
-
-    unless result.success?
-      puts "[Cluster Autoscaler] Failed to install the Cluster Autoscaler:"
-      puts result.output
-      exit 1
-    end
   end
 
   private def patch_tolerations(pod_spec)

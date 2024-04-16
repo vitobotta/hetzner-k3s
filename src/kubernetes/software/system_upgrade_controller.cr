@@ -3,8 +3,11 @@ require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../../configuration/loader"
 require "../../configuration/main"
+require "../util"
 
 class Kubernetes::Software::SystemUpgradeController
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
 
@@ -12,21 +15,22 @@ class Kubernetes::Software::SystemUpgradeController
   end
 
   def install
-    puts "\n[System Upgrade Controller] Deploying k3s System Upgrade Controller..."
+    puts "\n[System Upgrade Controller] Installing k3s System Upgrade Controller..."
 
     create_namespace
     create_crd
     create_resources
 
-    puts "[System Upgrade Controller] ...System Upgrade Controller deployed."
+    puts "[System Upgrade Controller] ...System Upgrade Controller installed."
   end
 
   private def create_namespace
-    run_command "kubectl create ns system-upgrade --dry-run=client -o yaml | kubectl apply -f -"
+    command = "kubectl create ns system-upgrade --dry-run=client -o yaml | kubectl apply -f -"
+    apply_kubectl_command(command, prefix = "System Upgrade Controller", error_message = "Failed to install System Upgrade Controller")
   end
 
   private def create_crd
-    run_command "kubectl apply -f #{settings.system_upgrade_controller_crd_manifest_url}"
+    apply_manifest(url: settings.system_upgrade_controller_crd_manifest_url, prefix: "System Upgrade Controller", error_message: "Failed to install System Upgrade Controller")
   end
 
   private def create_resources
@@ -34,13 +38,8 @@ class Kubernetes::Software::SystemUpgradeController
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_manifest = patched_resources.map(&.to_yaml).join
-    updated_manifest_path = "/tmp/manifest.yaml"
 
-    File.write(updated_manifest_path, patched_manifest)
-
-    run_command "kubectl apply -f #{updated_manifest_path}"
-
-    File.delete(updated_manifest_path)
+    apply_manifest(yaml: patched_manifest, prefix: "System Upgrade Controller", error_message: "Failed to install System Upgrade Controller")
   end
 
   private def fetch_resources_manifest
@@ -61,16 +60,6 @@ class Kubernetes::Software::SystemUpgradeController
     deployment.spec.template.spec.add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
 
     deployment
-  end
-
-  private def run_command(command)
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "System Upgrade Controller")
-
-    unless result.success?
-      puts "[System Upgrade Controller] Failed to deploy k3s System Upgrade Controller:"
-      puts result.output
-      exit 1
-    end
   end
 
   private def patch_resources(resources)

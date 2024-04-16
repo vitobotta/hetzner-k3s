@@ -1,4 +1,8 @@
+require "../../util"
+
 class Kubernetes::Software::Hetzner::Secret
+  include Kubernetes::Util
+
   HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../../../templates/hetzner_cloud_secret_manifest.yaml") }}
 
   getter configuration : Configuration::Loader
@@ -15,19 +19,7 @@ class Kubernetes::Software::Hetzner::Secret
       token: settings.hetzner_token
     })
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{secret_manifest}
-    EOF
-    BASH
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner Cloud Secret")
-
-    unless result.success?
-      puts "Failed to create Hetzner Cloud secret:"
-      puts result.output
-      exit 1
-    end
+    apply_manifest(yaml: secret_manifest, prefix: "Hetzner Cloud Secret", error_message: "Failed to create Hetzner Cloud Secret")
 
     puts "[Hetzner Cloud Secret] ...secret created"
   end

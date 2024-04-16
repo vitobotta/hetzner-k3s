@@ -24,7 +24,7 @@ class Kubernetes::Installer
   getter workers : Array(Hetzner::Server)
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter load_balancer : Hetzner::LoadBalancer?
-  getter ssh : Util::SSH
+  getter ssh : ::Util::SSH
 
   getter first_master : Hetzner::Server { masters[0] }
   getter api_server_ip_address : String { masters.size > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil! }
@@ -34,7 +34,7 @@ class Kubernetes::Installer
   end
 
   def run
-    Util.check_kubectl
+    ::Util.check_kubectl
 
     puts "\n=== Setting up Kubernetes ===\n"
 
@@ -255,7 +255,7 @@ class Kubernetes::Installer
 
     command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
 
-    Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
+    ::Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     puts "...done."
   end
