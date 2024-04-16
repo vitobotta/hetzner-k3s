@@ -8,9 +8,6 @@ class Kubernetes::Resources::Pod
 
       property name : String?
       property hostPath : HostPath?
-
-      def initialize(@name, @hostPath)
-      end
     end
   end
 end

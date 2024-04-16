@@ -13,7 +13,7 @@ module Kubernetes::Resources
       property volumes : Array(Kubernetes::Resources::Pod::Spec::Volume)?
 
       def add_toleration(key, value, effect)
-        toleration = Kubernetes::Resources::Pod::Spec::Toleration.new(key, value, effect)
+        toleration = Kubernetes::Resources::Pod::Spec::Toleration.new(key: key, value: value, effect: effect)
 
         if tolerations = self.tolerations
           tolerations << toleration
