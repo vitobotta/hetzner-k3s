@@ -1,7 +1,7 @@
 require "../../configuration/loader"
 require "../../configuration/main"
-require "../../hetzner/server"
-require "../../hetzner/server/create"
+require "../../hetzner/instance"
+require "../../hetzner/instance/create"
 require "../../util"
 require "../../util/shell"
 require "../../util/ssh"
@@ -9,31 +9,33 @@ require "../resources/resource"
 require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../resources/pod/spec/container"
+require "../../util"
 require "../util"
 
 class Kubernetes::Software::ClusterAutoscaler
+  include Util
   include Kubernetes::Util
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter worker_install_script : String
-  getter first_master : ::Hetzner::Server
+  getter first_master : ::Hetzner::Instance
   getter ssh : ::Util::SSH
 
   def initialize(@configuration, @settings, @first_master, @ssh, @autoscaling_worker_node_pools, @worker_install_script)
   end
 
   def install
-    puts "\n[Cluster Autoscaler] Installing Cluster Autoscaler..."
+    log_line "Installing Cluster Autoscaler..."
 
-    apply_manifest(yaml: manifest, prefix: "Cluster Autoscaler", error_message: "Failed to inatall Cluster Autoscaler")
+    apply_manifest_from_yaml(manifest)
 
-    puts "[Cluster Autoscaler] ...Cluster Autoscaler installed"
+    log_line "...Cluster Autoscaler installed"
   end
 
   private def cloud_init
-    ::Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    ::Hetzner::Instance::Create.cloud_init(settings, settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
   end
 
   private def k3s_join_script
@@ -53,18 +55,6 @@ class Kubernetes::Software::ClusterAutoscaler
       autoscaling = pool.autoscaling.not_nil!
       "--nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
     end
-  end
-
-  private def fetch_manifest
-    response = Crest.get(settings.cluster_autoscaler_manifest_url)
-
-    unless response.success?
-      puts "[Cluster Autoscaler] Failed to download Cluster Autoscaler manifest from #{settings.cluster_autoscaler_manifest_url}"
-      puts "[Cluster Autoscaler] Server responded with status #{response.status_code}"
-      exit 1
-    end
-
-    response.body.to_s
   end
 
   private def patch_resources(resources)
@@ -159,9 +149,13 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def manifest
-    manifest = fetch_manifest
+    manifest = fetch_manifest(settings.cluster_autoscaler_manifest_url)
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_resources.map(&.to_yaml).join
+  end
+
+  private def default_log_prefix
+    "Cluster Autoscaler"
   end
 end

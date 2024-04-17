@@ -26,7 +26,7 @@ k3s is my favorite Kubernetes distribution because it uses much less memory and 
 
 Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **2-3 minutes** only. This includes
 
-- creating all the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
+- creating all the infrastructure resources (instances, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
@@ -230,7 +230,7 @@ Hetzner cloud init settings (`additional_packages` & `post_create_commands`) can
 
 At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
-For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
+For the available instance types and their specs, either check from inside a project when adding an instance manually or run the following with your Hetzner token:
 
 ```bash
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_types'
@@ -263,7 +263,7 @@ export API_TOKEN=...
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/images?per_page=100'
 ```
 
-Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server.
+Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing instance. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template instance.
 
 I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
@@ -272,7 +272,7 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 ### Limitations:
 
 - if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
-- if you use a snapshot instead of one of the default images, the creation of the servers will take longer than when using a regular image
+- if you use a snapshot instead of one of the default images, the creation of the instances will take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
 - autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
@@ -491,7 +491,7 @@ ___
 
 ## Troubleshooting
 
-If the tool hangs forever after creating servers and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+If the tool hangs forever after creating instances and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
 
 
 

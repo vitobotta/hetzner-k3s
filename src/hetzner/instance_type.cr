@@ -1,6 +1,6 @@
 require "./client"
 
-class Hetzner::ServerType
+class Hetzner::InstanceType
   include JSON::Serializable
 
   property id : Int32

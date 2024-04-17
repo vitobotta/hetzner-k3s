@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::Firewall::Create
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter firewall_name : String
   getter private_network_subnet : String
@@ -25,21 +28,21 @@ class Hetzner::Firewall::Create
 
   def run
     firewall = firewall_finder.run
+    action = firewall ? :update : :create
 
     if firewall
-      print "Updating firewall..."
+      log_line "Updating firewall..."
       action_path = "/firewalls/#{firewall.id}/actions/set_rules"
     else
-      print "Creating firewall..."
+      log_line "Creating firewall..."
       action_path = "/firewalls"
     end
 
     begin
       hetzner_client.post(action_path, firewall_config)
-      puts "done."
+      log_line action == :update ? "...firewall updated" : "...firewall created"
     rescue ex : Crest::RequestFailed
-      STDERR.puts "Failed to create or update firewall: #{ex.message}"
-      STDERR.puts ex.response
+      STDERR.puts "[#{default_log_prefix}] Failed to create or update firewall: #{ex.message}"
       exit 1
     end
 
@@ -104,5 +107,9 @@ class Hetzner::Firewall::Create
       name: firewall_name,
       rules: rules
     }
+  end
+
+  private def default_log_prefix
+    "Firewall"
   end
 end

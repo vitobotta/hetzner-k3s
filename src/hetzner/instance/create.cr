@@ -5,32 +5,43 @@ require "../firewall"
 require "../network"
 require "../placement_group"
 require "./find"
+require "../../util"
+require "../../util/ssh"
 
-class Hetzner::Server::Create
+class Hetzner::Instance::Create
+  include Util
+
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
-  getter hetzner_client : Hetzner::Client
-  getter cluster_name : String
-  getter server_name : String
-  getter instance_type : String
-  getter image : String | Int64
-  getter location : String
-  getter ssh_key : Hetzner::SSHKey
-  getter firewall : Hetzner::Firewall
-  getter placement_group : Hetzner::PlacementGroup
-  getter network : Hetzner::Network
-  getter enable_public_net_ipv4 : Bool
-  getter enable_public_net_ipv6 : Bool
-  getter additional_packages : Array(String)
-  getter additional_post_create_commands : Array(String)
-  getter server_finder : Hetzner::Server::Find
-  getter snapshot_os : String
-  getter ssh_port : Int32
+  private getter hetzner_client : Hetzner::Client
+  private getter cluster_name : String
+  private getter instance_name : String
+  private getter instance_type : String
+  private getter image : String | Int64
+  private getter location : String
+  private getter ssh_key : Hetzner::SSHKey
+  private getter firewall : Hetzner::Firewall
+  private getter placement_group : Hetzner::PlacementGroup
+  private getter network : Hetzner::Network
+  private getter enable_public_net_ipv4 : Bool
+  private getter enable_public_net_ipv6 : Bool
+  private getter additional_packages : Array(String)
+  private getter additional_post_create_commands : Array(String)
+  private getter instance_finder : Hetzner::Instance::Find
+  private getter snapshot_os : String
+  private getter ssh_port : Int32
+  private getter settings : Configuration::Main
+  private getter private_ssh_key_path : String
+  private getter public_ssh_key_path : String
+  private getter ssh : Util::SSH do
+    Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
+  end
 
   def initialize(
+      @settings,
       @hetzner_client,
       @cluster_name,
-      @server_name,
+      @instance_name,
       @instance_type,
       @image,
       @snapshot_os,
@@ -42,49 +53,54 @@ class Hetzner::Server::Create
       @enable_public_net_ipv4,
       @enable_public_net_ipv6,
       @ssh_port,
+      @private_ssh_key_path,
+      @public_ssh_key_path,
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String
     )
 
-    @server_finder = Hetzner::Server::Find.new(@hetzner_client, @server_name)
+    @instance_finder = Hetzner::Instance::Find.new(@hetzner_client, @instance_name)
   end
 
   def run
-    server = server_finder.run
+    instance = instance_finder.run
 
-    if server
-      puts "Server #{server_name} already exists, skipping."
+    if instance
+      log_line "Instance #{instance_name} already exists, skipping create"
+      wait_for_instance_to_be_ready
     else
-      puts "Creating server #{server_name}..."
+      log_line "Creating instance #{instance_name}..."
 
-      hetzner_client.post("/servers", server_config)
-      server = wait_for_server_creation
+      hetzner_client.post("/servers", instance_config)
+      instance = wait_for_instance_to_be_ready
 
-      puts "...server #{server_name} created."
+      log_line "...instance #{instance_name} created"
     end
 
-    server.not_nil!
+    instance.not_nil!
 
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to create server: #{ex.message}"
-    STDERR.puts ex.response
-
+    STDERR.puts "[#{default_log_prefix}] Failed to create instance: #{ex.message}"
     exit 1
   end
 
-  private def wait_for_server_creation
+  private def wait_for_instance_to_be_ready
     loop do
-      server = server_finder.run
-      return server if server.try(&.private_ip_address)
-      sleep 1
+      instance = instance_finder.run
+
+      if instance && instance.try(&.private_ip_address)
+        ssh.wait_for_instance instance, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
+        return instance
+      end
+      sleep 3
     end
   end
 
-  private def server_config
-    user_data = Hetzner::Server::Create.cloud_init(ssh_port, snapshot_os, additional_packages, additional_post_create_commands)
+  private def instance_config
+    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh_port, snapshot_os, additional_packages, additional_post_create_commands)
 
     {
-      name: server_name,
+      name: instance_name,
       location: location,
       image: image,
       firewalls: [
@@ -104,13 +120,13 @@ class Hetzner::Server::Create
       user_data: user_data,
       labels: {
         cluster: cluster_name,
-        role: (server_name =~ /master/ ? "master" : "worker")
+        role: (instance_name =~ /master/ ? "master" : "worker")
       },
       placement_group: placement_group.id
     }
   end
 
-  def self.cloud_init(ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
       post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands),
@@ -176,5 +192,9 @@ class Hetzner::Server::Create
       "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
       "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
     ]
+  end
+
+  private def default_log_prefix
+    "Instance #{instance_name}"
   end
 end

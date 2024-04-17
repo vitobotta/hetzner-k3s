@@ -1,18 +1,8 @@
+require "./shell/command_result"
+
 module Util
   module Shell
-    class Result
-      getter output : String
-      getter status : Int32
-
-      def initialize(@output, @status)
-      end
-
-      def success?
-        status.zero?
-      end
-    end
-
-    def self.run(command : String, kubeconfig_path : String, hetzner_token : String, prefix : String = "") : Result
+    def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error  = true, log_prefix = "") : CommandResult
       cmd_file_path = "/tmp/cli.cmd"
 
       File.write(cmd_file_path, <<-CONTENT
@@ -26,10 +16,12 @@ module Util
       stdout = IO::Memory.new
       stderr = IO::Memory.new
 
-      all_io_out = if prefix.blank?
+      log_prefix = log_prefix.blank? ? default_log_prefix : log_prefix
+
+      all_io_out = if log_prefix.blank?
         IO::MultiWriter.new(STDOUT, stdout)
       else
-        IO::MultiWriter.new(PrefixedIO.new("[#{prefix}] ", STDOUT), stdout)
+        IO::MultiWriter.new(PrefixedIO.new("[#{log_prefix}] ", STDOUT), stdout)
       end
       all_io_err = IO::MultiWriter.new(STDERR, stderr)
 
@@ -46,14 +38,14 @@ module Util
       )
 
       output = status.success? ? stdout.to_s : stderr.to_s
-      Result.new(output, status.exit_code)
-    end
-  end
+      result = CommandResult.new(output, status.exit_code)
 
-  private def self.write_file(path : String, content : String, append : Bool = false)
-    mode = append ? "a" : "w"
-    File.open(path, mode) do |file|
-      file.print(content)
+      unless result.success?
+        log_line "#{error_message}: #{result.output}", log_prefix: log_prefix
+        exit 1 if abort_on_error
+      end
+
+      result
     end
   end
 end

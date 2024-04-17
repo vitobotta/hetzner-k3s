@@ -5,7 +5,7 @@ require "../hetzner/placement_group/create"
 require "../hetzner/ssh_key/create"
 require "../hetzner/firewall/create"
 require "../hetzner/network/create"
-require "../hetzner/server/create"
+require "../hetzner/instance/create"
 require "../hetzner/load_balancer/create"
 require "../util/ssh"
 require "../kubernetes/installer"
@@ -27,17 +27,17 @@ class Cluster::Create
   private getter private_ssh_key_path : String do
     configuration.private_ssh_key_path
   end
-  private getter masters : Array(Hetzner::Server) do
-    servers.select { |server| server.master? }.sort_by(&.name)
+  private getter masters : Array(Hetzner::Instance) do
+    instances.select { |instance| instance.master? }.sort_by(&.name)
   end
-  private getter workers : Array(Hetzner::Server) do
-    servers.select { |server| !server.master? }.sort_by(&.name)
+  private getter workers : Array(Hetzner::Instance) do
+    instances.select { |instance| instance.master? }.sort_by(&.name)
   end
   private getter autoscaling_worker_node_pools : Array(Configuration::NodePool) do
     settings.worker_node_pools.select(&.autoscaling_enabled)
   end
   private getter kubernetes_installer : Kubernetes::Installer do
-    Kubernetes::Installer.new(configuration, masters, workers, load_balancer, ssh, autoscaling_worker_node_pools)
+    Kubernetes::Installer.new(configuration, load_balancer, ssh, autoscaling_worker_node_pools)
   end
   private getter ssh : Util::SSH do
     Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
@@ -48,31 +48,38 @@ class Cluster::Create
   private getter ssh_key : Hetzner::SSHKey
   private getter load_balancer : Hetzner::LoadBalancer?
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
-  private property servers : Array(Hetzner::Server) = [] of Hetzner::Server
-  private property server_creators : Array(Hetzner::Server::Create) = [] of Hetzner::Server::Create
+  private property instances : Array(Hetzner::Instance) = [] of Hetzner::Instance
+  private property master_instance_creators : Array(Hetzner::Instance::Create) do
+    initialize_masters
+  end
+  private property worker_instance_creators : Array(Hetzner::Instance::Create) do
+    initialize_worker_nodes
+  end
+
+  private property kubernetes_masters_installation_queue_channel = Channel(Hetzner::Instance).new
+  private property kubernetes_workers_installation_queue_channel = Channel(Hetzner::Instance).new
 
   def initialize(@configuration)
-    puts "\n=== Creating infrastructure resources ===\n"
-
     @network = find_or_create_network.not_nil!
     @firewall = create_firewall
     @ssh_key = create_ssh_key
   end
 
   def run
-    create_servers
-    create_load_balancer if settings.masters_pool.instance_count > 1
-
-    kubernetes_installer.run
+    create_instances
   end
 
   private def initialize_masters
+    creators = Array(Hetzner::Instance::Create).new
+
     masters_pool = settings.masters_pool
     placement_group = create_placement_group
 
     masters_pool.instance_count.times do |i|
-      server_creators << create_master_server(i, placement_group)
+      creators << create_master_instance(i, placement_group)
     end
+
+    creators
   end
 
   private def create_placement_group
@@ -82,17 +89,18 @@ class Cluster::Create
     ).run
   end
 
-  private def create_master_server(index : Int32, placement_group)
+  private def create_master_instance(index : Int32, placement_group)
     instance_type = settings.masters_pool.instance_type
     master_name = "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
     image = settings.masters_pool.image || settings.image
     additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
     additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
 
-    Hetzner::Server::Create.new(
+    Hetzner::Instance::Create.new(
+      settings: settings,
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
-      server_name: master_name,
+      instance_name: master_name,
       instance_type: instance_type,
       image: image,
       snapshot_os: settings.snapshot_os,
@@ -104,12 +112,15 @@ class Cluster::Create
       ssh_port: settings.ssh_port,
       enable_public_net_ipv4: settings.enable_public_net_ipv4,
       enable_public_net_ipv6: settings.enable_public_net_ipv6,
+      private_ssh_key_path: private_ssh_key_path,
+      public_ssh_key_path: public_ssh_key_path,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
   end
 
   private def initialize_worker_nodes
+    creators = Array(Hetzner::Instance::Create).new
     no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
 
     no_autoscaling_worker_node_pools.each do |node_pool|
@@ -117,9 +128,11 @@ class Cluster::Create
 
       node_pool.instance_count.times do |i|
         placement_group = placement_groups[i % placement_groups.size]
-        server_creators << create_worker_server(i, node_pool, placement_group)
+        creators << create_worker_instance(i, node_pool, placement_group)
       end
     end
+
+    creators
   end
 
   private def create_placement_groups_for_node_pool(node_pool)
@@ -135,17 +148,18 @@ class Cluster::Create
     end
   end
 
-  private def create_worker_server(index : Int32, node_pool, placement_group)
+  private def create_worker_instance(index : Int32, node_pool, placement_group)
     instance_type = node_pool.instance_type
     node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
     additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
 
-    Hetzner::Server::Create.new(
+    Hetzner::Instance::Create.new(
+      settings: settings,
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
-      server_name: node_name,
+      instance_name: node_name,
       instance_type: instance_type,
       image: image,
       snapshot_os: settings.snapshot_os,
@@ -157,6 +171,8 @@ class Cluster::Create
       ssh_port: settings.ssh_port,
       enable_public_net_ipv4: settings.enable_public_net_ipv4,
       enable_public_net_ipv6: settings.enable_public_net_ipv6,
+      private_ssh_key_path: private_ssh_key_path,
+      public_ssh_key_path: public_ssh_key_path,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
@@ -171,44 +187,42 @@ class Cluster::Create
     ).run
   end
 
-  private def create_servers
-    initialize_masters
-    initialize_worker_nodes
-
-    channel = Channel(Hetzner::Server).new
-
-    server_creators.each_slice(10) do |slice|
-      create_instances(channel, slice)
-      wait_for_instances_to_be_up(channel, slice)
+  private def create_masters
+    master_instance_creators.each_slice([System.cpu_count, 10].min) do |slice|
+      slice.each do |instance_creator|
+        spawn do
+          instance = instance_creator.run
+          kubernetes_masters_installation_queue_channel.send(instance)
+        end
+      end
     end
   end
 
-  private def create_instances(channel : Channel(Hetzner::Server), slice : Array(Hetzner::Server::Create))
-    slice.each do |server_creator|
-      spawn do
-        server = server_creator.run
-        channel.send(server)
+  private def create_workers
+    worker_instance_creators.each_slice([System.cpu_count, 10].min) do |slice|
+      slice.each do |instance_creator|
+        spawn do
+          instance = instance_creator.run
+          kubernetes_workers_installation_queue_channel.send(instance)
+        end
       end
-    end
 
-    slice.size.times do
-      servers << channel.receive
+      sleep slice.size
     end
   end
 
-  private def wait_for_instances_to_be_up(channel : Channel(Hetzner::Server), slice : Array(Hetzner::Server::Create))
-    slice.each do |server_creator|
-      server = server_creator.run
+  private def create_instances
+    create_masters
+    create_workers
 
-      spawn do
-        ssh.wait_for_server server, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
-        channel.send(server)
-      end
-    end
+    create_load_balancer if settings.masters_pool.instance_count > 1
 
-    slice.size.times do
-      channel.receive
-    end
+    kubernetes_installer.run(
+      masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
+      workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
+      master_count: master_instance_creators.size,
+      worker_count: worker_instance_creators.size
+    )
   end
 
   private def find_network
@@ -254,5 +268,9 @@ class Cluster::Create
       ssh_key_name: settings.cluster_name,
       public_ssh_key_path: public_ssh_key_path
     ).run
+  end
+
+  private def default_log_prefix
+    "Cluster create"
   end
 end

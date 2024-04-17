@@ -3,5 +3,5 @@ require "./instance"
 class Hetzner::InstancesList
   include JSON::Serializable
 
-  property instances : Array(Hetzner::Instance)
+  property servers : Array(Hetzner::Instance)
 end

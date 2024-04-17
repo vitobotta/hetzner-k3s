@@ -2,7 +2,7 @@ require "json"
 require "./public_net"
 require "./network_interface"
 
-class Hetzner::Server
+class Hetzner::Instance
   include JSON::Serializable
 
   property id : Int32

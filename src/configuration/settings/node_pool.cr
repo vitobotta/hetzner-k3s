@@ -1,5 +1,5 @@
 require "../../hetzner/location"
-require "../../hetzner/server_type"
+require "../../hetzner/instance_type"
 require "../node_pool"
 require "../datastore"
 
@@ -8,7 +8,7 @@ class Configuration::Settings::NodePool
   getter pool : Configuration::NodePool
   getter pool_type : Symbol = :workers
   getter masters_location : String?
-  getter server_types : Array(Hetzner::ServerType) = [] of Hetzner::ServerType
+  getter instance_types : Array(Hetzner::InstanceType) = [] of Hetzner::InstanceType
   getter locations : Array(Hetzner::Location) = [] of Hetzner::Location
 
   getter pool_name : String { masters? ? "masters" : pool.try(&.name) || "<unnamed-pool>" }
@@ -16,14 +16,14 @@ class Configuration::Settings::NodePool
 
   getter datastore : Configuration::Datastore
 
-  def initialize(@errors, @pool, @pool_type, @masters_location, @server_types, @locations, @datastore)
+  def initialize(@errors, @pool, @pool_type, @masters_location, @instance_types, @locations, @datastore)
   end
 
   def validate
     return unless pool
 
     PoolName.new(errors, pool_type, pool_name).validate
-    InstanceType.new(errors, pool, server_types).validate
+    InstanceType.new(errors, pool, instance_types).validate
     Location.new(errors, pool, pool_type, masters_location, locations).validate
     InstanceCount.new(errors, pool, pool_type, datastore).validate unless pool.autoscaling_enabled
     NodeLabels.new(errors, pool_type, pool.try(&.labels)).validate

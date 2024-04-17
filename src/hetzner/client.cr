@@ -4,8 +4,8 @@ require "json"
 
 require "./location"
 require "./locations_list"
-require "./server_type"
-require "./server_types_list"
+require "./instance_type"
+require "./instance_types_list"
 
 class Hetzner::Client
   getter token : String?
@@ -22,10 +22,10 @@ class Hetzner::Client
     @locations = [] of Location
   end
 
-  def server_types : Array(ServerType)
-    @server_types ||= Hetzner::ServerTypesList.from_json(get("/server_types")).server_types
+  def instance_types : Array(InstanceType)
+    @instance_types ||= Hetzner::InstanceTypesList.from_json(get("/server_types")).server_types
   rescue ex : Crest::RequestFailed
-    @server_types = [] of ServerType
+    @instance_types = [] of InstanceType
   end
 
   def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String

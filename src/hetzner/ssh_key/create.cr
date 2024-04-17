@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::SSHKey::Create
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter ssh_key_name : String
   getter public_ssh_key_path : String
@@ -15,22 +18,20 @@ class Hetzner::SSHKey::Create
     ssh_key = ssh_key_finder.run
 
     if ssh_key
-      puts "SSH key already exists, skipping."
+      log_line "SSH key already exists, skipping create"
     else
-      print "Creating SSH key..."
+      log_line "Creating SSH key..."
 
       create_ssh_key
       ssh_key = ssh_key_finder.run
 
-      puts "done."
+      log_line "...SSH key created"
     end
 
     ssh_key.not_nil!
 
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to create SSH key: #{ex.message}"
-    STDERR.puts ex.response
-
+    STDERR.puts "[#{default_log_prefix}] Failed to create SSH key: #{ex.message}"
     exit 1
   end
 
@@ -41,5 +42,9 @@ class Hetzner::SSHKey::Create
     }
 
     hetzner_client.post("/ssh_keys", ssh_key_config)
+  end
+
+  private def default_log_prefix
+    "SSH key"
   end
 end

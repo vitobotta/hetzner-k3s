@@ -3,7 +3,7 @@ require "../hetzner/placement_group/delete"
 require "../hetzner/ssh_key/delete"
 require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
-require "../hetzner/server/delete"
+require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
 
 class Cluster::Delete
@@ -18,20 +18,19 @@ class Cluster::Delete
     configuration.public_ssh_key_path
   end
 
-  private property server_deletors : Array(Hetzner::Server::Delete) = [] of Hetzner::Server::Delete
+  private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
   def initialize(@configuration)
   end
 
   def run
-    puts "\n=== Deleting infrastructure resources ===\n"
-
     delete_resources
   end
 
   private def delete_resources
     delete_load_balancer
-    delete_servers
+    sleep 5
+    delete_instances
     delete_placement_groups
     delete_network
     delete_firewall
@@ -45,20 +44,20 @@ class Cluster::Delete
     ).run
   end
 
-  private def delete_servers
+  private def delete_instances
     initialize_masters
     initialize_worker_nodes
 
     channel = Channel(String).new
 
-    server_deletors.each do |server_deletor|
+    instance_deletors.each do |instance_deletor|
       spawn do
-        server_deletor.run
-        channel.send(server_deletor.server_name)
+        instance_deletor.run
+        channel.send(instance_deletor.instance_name)
       end
     end
 
-    server_deletors.size.times do
+    instance_deletors.size.times do
       channel.receive
     end
   end
@@ -101,9 +100,9 @@ class Cluster::Delete
 
   private def initialize_masters
     settings.masters_pool.instance_count.times do |i|
-      server_deletors << Hetzner::Server::Delete.new(
+      instance_deletors << Hetzner::Instance::Delete.new(
         hetzner_client: hetzner_client,
-        server_name: "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+        instance_name: "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
       )
     end
   end
@@ -113,9 +112,9 @@ class Cluster::Delete
 
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
-        server_deletors << Hetzner::Server::Delete.new(
+        instance_deletors << Hetzner::Instance::Delete.new(
           hetzner_client: hetzner_client,
-          server_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
+          instance_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
         )
       end
     end

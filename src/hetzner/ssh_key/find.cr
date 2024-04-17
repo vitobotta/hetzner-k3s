@@ -22,13 +22,16 @@ class Hetzner::SSHKey::Find
   private def fetch_ssh_keys
     SSHKeysList.from_json(hetzner_client.get("/ssh_keys")).ssh_keys
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to fetch ssh keys: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to fetch ssh keys: #{ex.message}"
     exit 1
   end
 
   private def calculate_fingerprint(public_ssh_key_path)
     private_key = File.read(public_ssh_key_path).split[1]
     Digest::MD5.hexdigest(Base64.decode(private_key)).chars.each_slice(2).map(&.join).join(":")
+  end
+
+  private def default_log_prefix
+    "SSH key"
   end
 end

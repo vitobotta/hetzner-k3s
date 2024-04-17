@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::LoadBalancer::Delete
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter cluster_name : String
   getter load_balancer_name : String do
@@ -17,17 +20,16 @@ class Hetzner::LoadBalancer::Delete
     load_balancer = load_balancer_finder.run
 
     if load_balancer
-      print "Deleting load balancer for API server..."
+      log_line "Deleting load balancer for API server..."
       delete_load_balancer(load_balancer.id)
-      puts "done."
+      log_line "...load balancer for API server deleted"
     else
-      puts "Load balancer for API server does not exist, skipping."
+      log_line "Load balancer for API server does not exist, skipping delete"
     end
 
     load_balancer_name
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete load balancer: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to delete load balancer: #{ex.message}"
     exit 1
   end
 
@@ -43,5 +45,9 @@ class Hetzner::LoadBalancer::Delete
       },
       type: "label_selector"
     }
+  end
+
+  private def default_log_prefix
+    "API Load balancer"
   end
 end
