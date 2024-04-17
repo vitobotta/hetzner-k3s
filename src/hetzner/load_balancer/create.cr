@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::LoadBalancer::Create
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter cluster_name : String
   getter location : String
@@ -19,18 +22,17 @@ class Hetzner::LoadBalancer::Create
     load_balancer = load_balancer_finder.run
 
     if load_balancer
-      puts "Load balancer for API server already exists, skipping."
+      log_line "Load balancer for API server already exists, skipping create"
     else
-      print "Creating load balancer for API server..."
+      log_line "Creating load balancer for API server..."
       create_load_balancer
       load_balancer = wait_for_load_balancer_public_ip
-      puts "done."
+      log_line "...load balancer for API server created"
     end
 
     load_balancer.not_nil!
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to create load balancer: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to create load balancer: #{ex.message}"
     exit 1
   end
 
@@ -74,5 +76,9 @@ class Hetzner::LoadBalancer::Create
         }
       ]
     }
+  end
+
+  private def default_log_prefix
+    "API Load balancer"
   end
 end

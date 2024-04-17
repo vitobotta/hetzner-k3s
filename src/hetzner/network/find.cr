@@ -18,8 +18,11 @@ class Hetzner::Network::Find
   private def fetch_networks
     NetworksList.from_json(hetzner_client.get("/networks")).networks
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to fetch networks: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to fetch networks: #{ex.message}"
     exit 1
+  end
+
+  private def default_log_prefix
+    "Private network"
   end
 end

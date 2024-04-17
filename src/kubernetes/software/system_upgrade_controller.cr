@@ -3,9 +3,11 @@ require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../../configuration/loader"
 require "../../configuration/main"
+require "../../util"
 require "../util"
 
 class Kubernetes::Software::SystemUpgradeController
+  include Util
   include Kubernetes::Util
 
   getter configuration : Configuration::Loader
@@ -15,43 +17,31 @@ class Kubernetes::Software::SystemUpgradeController
   end
 
   def install
-    puts "\n[System Upgrade Controller] Installing k3s System Upgrade Controller..."
+    log_line "Installing System Upgrade Controller..."
 
     create_namespace
     create_crd
     create_resources
 
-    puts "[System Upgrade Controller] ...System Upgrade Controller installed."
+    log_line "...System Upgrade Controller installed"
   end
 
   private def create_namespace
     command = "kubectl create ns system-upgrade --dry-run=client -o yaml | kubectl apply -f -"
-    apply_kubectl_command(command, prefix = "System Upgrade Controller", error_message = "Failed to install System Upgrade Controller")
+    apply_kubectl_command(command, error_message = "Failed to install System Upgrade Controller")
   end
 
   private def create_crd
-    apply_manifest(url: settings.system_upgrade_controller_crd_manifest_url, prefix: "System Upgrade Controller", error_message: "Failed to install System Upgrade Controller")
+    apply_manifest_from_url(settings.system_upgrade_controller_crd_manifest_url)
   end
 
   private def create_resources
-    manifest = fetch_resources_manifest
+    manifest = fetch_manifest(settings.system_upgrade_controller_deployment_manifest_url)
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_manifest = patched_resources.map(&.to_yaml).join
 
-    apply_manifest(yaml: patched_manifest, prefix: "System Upgrade Controller", error_message: "Failed to install System Upgrade Controller")
-  end
-
-  private def fetch_resources_manifest
-    response = Crest.get(settings.system_upgrade_controller_deployment_manifest_url)
-
-    unless response.success?
-      puts "[System Upgrade Controller] Failed to download System Upgrade Controller manifest from #{settings.system_upgrade_controller_deployment_manifest_url}"
-      puts "[System Upgrade Controller] Server responded with status #{response.status_code}"
-      exit 1
-    end
-
-    response.body.to_s
+    apply_manifest_from_yaml(patched_manifest)
   end
 
   private def deployment_with_added_toleration(resource)
@@ -72,5 +62,9 @@ class Kubernetes::Software::SystemUpgradeController
         resource
       end
     end
+  end
+
+  private def default_log_prefix
+    "System Upgrade Controller"
   end
 end

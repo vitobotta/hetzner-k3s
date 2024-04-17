@@ -18,8 +18,11 @@ class Hetzner::LoadBalancer::Find
   private def fetch_load_balancers
     LoadBalancersList.from_json(hetzner_client.get("/load_balancers")).load_balancers
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to fetch load balancers: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to fetch load balancers: #{ex.message}"
     exit 1
+  end
+
+  private def default_log_prefix
+    "API Load balancer"
   end
 end

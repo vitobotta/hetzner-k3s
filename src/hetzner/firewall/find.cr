@@ -18,8 +18,11 @@ class Hetzner::Firewall::Find
   private def fetch_firewalls
     FirewallsList.from_json(hetzner_client.get("/firewalls")).firewalls
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to fetch firewalls: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to fetch firewalls: #{ex.message}"
     [] of Firewall
+  end
+
+  private def default_log_prefix
+    "Firewall"
   end
 end

@@ -18,8 +18,11 @@ class Hetzner::PlacementGroup::Find
   private def fetch_placement_groups
     PlacementGroupsList.from_json(hetzner_client.get("/placement_groups")).placement_groups
   rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to fetch placement groups: #{ex.message}"
-    STDERR.puts ex.response
+    STDERR.puts "[#{default_log_prefix}] Failed to fetch placement groups: #{ex.message}"
     exit 1
+  end
+
+  private def default_log_prefix
+    "Placement groups"
   end
 end

@@ -4,7 +4,7 @@ require "crest"
 require "./main"
 
 require "../hetzner/client"
-require "../hetzner/server_type"
+require "../hetzner/instance_type"
 require "../hetzner/location"
 
 require "./settings/configuration_file_path"
@@ -25,9 +25,12 @@ require "./settings/node_pool/instance_count"
 require "./settings/node_pool/node_labels"
 require "./settings/node_pool/node_taints"
 require "./settings/datastore"
+require "../util"
 
 
 class Configuration::Loader
+  include Util
+
   getter hetzner_client : Hetzner::Client?
   getter errors : Array(String) = [] of String
   getter settings : Configuration::Main
@@ -58,9 +61,9 @@ class Configuration::Loader
     settings.masters_pool.try &.location
   end
 
-  getter server_types : Array(Hetzner::ServerType) do
-    server_types = hetzner_client.server_types
-    handle_api_errors(server_types, "Cannot fetch server types with Hetzner API, please try again later")
+  getter instance_types : Array(Hetzner::InstanceType) do
+    instance_types = hetzner_client.instance_types
+    handle_api_errors(instance_types, "Cannot fetch instance types with Hetzner API, please try again later")
   end
 
   getter locations : Array(Hetzner::Location) do
@@ -71,7 +74,7 @@ class Configuration::Loader
   getter new_k3s_version : String?
   getter configuration_file_path : String
 
-  private property server_types_loaded : Bool = false
+  private property instance_types_loaded : Bool = false
   private property locations_loaded : Bool = false
 
   def initialize(@configuration_file_path, @new_k3s_version)
@@ -83,7 +86,7 @@ class Configuration::Loader
   end
 
   def validate(command)
-    print "Validating configuration..."
+    log_line "Validating configuration..."
 
     Settings::ClusterName.new(errors, settings.cluster_name).validate
 
@@ -122,7 +125,7 @@ class Configuration::Loader
 
   private def print_validation_result
     if errors.empty?
-      puts "...configuration seems valid."
+      log_line "...configuration seems valid."
     else
       print_errors
       exit 1
@@ -135,7 +138,7 @@ class Configuration::Loader
       pool: settings.masters_pool,
       pool_type: :masters,
       masters_location: masters_location,
-      server_types: server_types,
+      instance_types: instance_types,
       locations: locations,
       datastore: settings.datastore
     ).validate
@@ -172,7 +175,7 @@ class Configuration::Loader
         pool: worker_node_pool,
         pool_type: :workers,
         masters_location: masters_location,
-        server_types: server_types,
+        instance_types: instance_types,
         locations: locations,
         datastore: settings.datastore
       ).validate
@@ -182,10 +185,10 @@ class Configuration::Loader
   private def print_errors
     return if errors.empty?
 
-    puts "\nSome information in the configuration file requires your attention:"
+    log_line "Some information in the configuration file requires your attention:"
 
     errors.each do |error|
-      STDERR.puts "  - #{error}"
+      STDERR.puts "[#{default_log_prefix}]  - #{error}"
     end
 
     exit 1
@@ -199,5 +202,9 @@ class Configuration::Loader
     end
 
     data
+  end
+
+  private def default_log_prefix
+    "Configuration"
   end
 end
