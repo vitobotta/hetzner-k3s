@@ -101,7 +101,7 @@ class Hetzner::Instance::Create
 
     until ready
       log_line "Waiting for instance to be created..."
-      sleep 5
+      sleep 10
 
       instance = instance_finder.run
 
