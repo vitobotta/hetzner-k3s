@@ -12,7 +12,7 @@ require "../kubernetes/installer"
 require "../util/ssh"
 
 class Cluster::Create
-  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
+  MAX_INSTANCES_PER_PLACEMENT_GROUP = 7
   CONCURRENCY = 5
 
   private getter configuration : Configuration::Loader
