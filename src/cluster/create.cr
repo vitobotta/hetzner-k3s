@@ -13,7 +13,6 @@ require "../util/ssh"
 
 class Cluster::Create
   MAX_INSTANCES_PER_PLACEMENT_GROUP = 7
-  CONCURRENCY = 10
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -58,10 +57,10 @@ class Cluster::Create
   end
 
   private property kubernetes_masters_installation_queue_channel do
-    Channel(Hetzner::Instance).new(CONCURRENCY)
+    Channel(Hetzner::Instance).new
   end
   private property kubernetes_workers_installation_queue_channel do
-    Channel(Hetzner::Instance).new(CONCURRENCY)
+    Channel(Hetzner::Instance).new
   end
 
   def initialize(@configuration)
@@ -201,31 +200,13 @@ class Cluster::Create
   end
 
   private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel)
-    mutex = Mutex.new
-
-    instance_creators.each_slice(CONCURRENCY) do |slice|
-      created = [] of Hetzner::Instance
-
-      slice.each do |instance_creator|
-        spawn do
-          instance = instance_creator.run
-
-          mutex.synchronize do
-            created << instance
-          end
-
-          kubernetes_installation_queue_channel.send(instance)
-        end
+    instance_creators.each do |instance_creator|
+      spawn do
+        instance = instance_creator.run
+        kubernetes_installation_queue_channel.send(instance)
       end
-
-      while created.size != slice.size
-        sleep 1
-      end
-
-      sleep 3
     end
   end
-
 
   private def create_instances
     create_masters
