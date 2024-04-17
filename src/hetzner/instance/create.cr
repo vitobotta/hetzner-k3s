@@ -84,7 +84,11 @@ class Hetzner::Instance::Create
       attempts += 1
       log_line "Creating instance #{instance_name} (attempt #{attempts})..."
       success, response = hetzner_client.post("/servers", instance_config)
-      break if success
+      if success
+        break
+      else
+        puts response
+      end
     end
 
     ensure_instance_is_ready
