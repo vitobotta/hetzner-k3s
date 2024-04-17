@@ -150,9 +150,6 @@ class Hetzner::Instance::Create
       firewalls: [
         { firewall: firewall.id }
       ],
-      networks: [
-        network.id
-      ],
       public_net: {
         enable_ipv4: enable_public_net_ipv4,
         enable_ipv6: enable_public_net_ipv6,
