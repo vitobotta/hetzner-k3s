@@ -40,7 +40,8 @@
 				"redhat.vscode-yaml",
 				"mutantdino.resourcemonitor",
 				"technosophos.vscode-helm",
-				"crystal-lang-tools.crystal-lang"
+				"jgillich.crystal-lang-fixed"
+				// "crystal-lang-tools.crystal-lang"
 			],
 			"recommendations": [
 				"GitHub.copilot",
