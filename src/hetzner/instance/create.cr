@@ -13,9 +13,9 @@ class Hetzner::Instance::Create
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
+  getter instance_name : String
   private getter hetzner_client : Hetzner::Client
   private getter cluster_name : String
-  private getter instance_name : String
   private getter instance_type : String
   private getter image : String | Int64
   private getter location : String
@@ -67,33 +67,73 @@ class Hetzner::Instance::Create
 
     if instance
       log_line "Instance #{instance_name} already exists, skipping create"
-      wait_for_instance_to_be_ready
+      ensure_instance_is_ready
     else
-      log_line "Creating instance #{instance_name}..."
-
-      hetzner_client.post("/servers", instance_config)
-      instance = wait_for_instance_to_be_ready
+      instance = create_instance
 
       log_line "...instance #{instance_name} created"
     end
 
     instance.not_nil!
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to create instance: #{ex.message}"
-    exit 1
   end
 
-  private def wait_for_instance_to_be_ready
+  private def create_instance
+    attempts = 0
+
     loop do
+      attempts += 1
+      log_line "Creating instance #{instance_name} (attempt #{attempts})..."
+      success, response = hetzner_client.post("/servers", instance_config)
+      break if success
+    end
+
+    ensure_instance_is_ready
+  end
+
+  private def ensure_instance_is_ready
+    ready = false
+    powering_on_count = 0
+    attaching_to_network_count = 0
+
+    until ready
+      log_line "Waiting for instance to be created..."
+      sleep 5
+
       instance = instance_finder.run
 
-      if instance && instance.try(&.private_ip_address)
-        ssh.wait_for_instance instance, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
-        return instance
+      next unless instance
+
+      log_line "Instance status: #{instance.status}"
+
+      unless instance.status == "running"
+        powering_on_count += 1
+        power_on_instance(instance, powering_on_count)
+        next
       end
-      sleep 3
+
+      unless instance.try(&.private_ip_address)
+        attaching_to_network_count += 1
+        attach_instance_to_network(instance, attaching_to_network_count)
+        next
+      end
+
+      ssh.wait_for_instance instance, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
+      ready = true
     end
+
+    instance
+  end
+
+  private def power_on_instance(instance, powering_on_count)
+    log_line "Powering on instance (attempt #{powering_on_count})"
+    hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
+    log_line "Waiting for instance to be powered on..."
+  end
+
+  private def attach_instance_to_network(instance, attaching_to_network_count)
+    log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
+    hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.id })
+    log_line "Waiting for instance to be attached to the network..."
   end
 
   private def instance_config
@@ -122,7 +162,8 @@ class Hetzner::Instance::Create
         cluster: cluster_name,
         role: (instance_name =~ /master/ ? "master" : "worker")
       },
-      placement_group: placement_group.id
+      placement_group: placement_group.id,
+      start_after_create: false
     }
   end
 

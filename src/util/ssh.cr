@@ -21,15 +21,15 @@ class Util::SSH
   end
 
   def wait_for_instance(instance, port, use_ssh_agent, test_command, expected_result)
-    log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
-
     loop do
+      log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
+
       sleep 1
 
       result = nil
 
       Retriable.retry(on: Tasker::Timeout, backoff: false) do
-        Tasker.timeout(5.seconds) do
+        Tasker.timeout(1.second) do
           result = run(instance, port, test_command, use_ssh_agent, false)
         end
       end

@@ -7,6 +7,7 @@ class Hetzner::Instance
 
   property id : Int32
   property name : String
+  property status : String
   getter public_net : PublicNet?
   getter private_net : Array(Hetzner::NetworkInterface)?
 

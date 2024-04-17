@@ -13,6 +13,7 @@ require "../util/ssh"
 
 class Cluster::Create
   MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
+  CONCURRENCY = 5
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -56,8 +57,12 @@ class Cluster::Create
     initialize_worker_nodes
   end
 
-  private property kubernetes_masters_installation_queue_channel = Channel(Hetzner::Instance).new
-  private property kubernetes_workers_installation_queue_channel = Channel(Hetzner::Instance).new
+  private property kubernetes_masters_installation_queue_channel do
+    Channel(Hetzner::Instance).new(CONCURRENCY)
+  end
+  private property kubernetes_workers_installation_queue_channel do
+    Channel(Hetzner::Instance).new(CONCURRENCY)
+  end
 
   def initialize(@configuration)
     @network = find_or_create_network.not_nil!
@@ -188,28 +193,26 @@ class Cluster::Create
   end
 
   private def create_masters
-    master_instance_creators.each_slice([System.cpu_count, 10].min) do |slice|
-      slice.each do |instance_creator|
-        spawn do
-          instance = instance_creator.run
-          kubernetes_masters_installation_queue_channel.send(instance)
-        end
-      end
-    end
+    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel)
   end
 
   private def create_workers
-    worker_instance_creators.each_slice([System.cpu_count, 10].min) do |slice|
+    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
+  end
+
+  private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel)
+    instance_creators.each_slice(CONCURRENCY) do |slice|
       slice.each do |instance_creator|
         spawn do
           instance = instance_creator.run
-          kubernetes_workers_installation_queue_channel.send(instance)
+          kubernetes_installation_queue_channel.send(instance)
         end
       end
 
-      sleep slice.size
+      sleep 10
     end
   end
+
 
   private def create_instances
     create_masters

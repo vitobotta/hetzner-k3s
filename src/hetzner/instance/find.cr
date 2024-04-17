@@ -10,7 +10,8 @@ class Hetzner::Instance::Find
   end
 
   def run
-    instances = InstancesList.from_json(hetzner_client.get("/servers",{:name => instance_name})).servers
+    response = hetzner_client.get("/servers",{:name => instance_name})
+    instances = InstancesList.from_json(response).servers
     instances.find do |instance|
       instance.name == instance_name
     end

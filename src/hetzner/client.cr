@@ -44,10 +44,13 @@ class Hetzner::Client
       "#{api_url}#{path}",
       params.to_json,
       json: true,
-      headers: headers
+      headers: headers,
+      handle_errors: false
     )
 
-    response.body
+    success = response.status_code >= 200 && response.status_code < 300
+
+    [success, response.body]
   end
 
   def put(path, params = {} of KeyType => ValueType)
