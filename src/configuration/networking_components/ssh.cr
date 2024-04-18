@@ -24,7 +24,6 @@ class Configuration::NetworkingComponents::SSH
   end
 
   private def validate_path(errors, path, key_type)
-    puts path
     if ! File.exists?(path)
       errors << "#{key_type}_key_path does not exist"
     elsif File.directory?(path)
