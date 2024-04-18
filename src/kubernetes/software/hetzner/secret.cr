@@ -16,8 +16,12 @@ class Kubernetes::Software::Hetzner::Secret
   def create
     log_line "Creating secret for Hetzner Cloud token..."
 
-    existing_network_name = settings.networking.private_network.existing_network_name
-    network_name = existing_network_name.empty? ? settings.cluster_name : existing_network_name
+    network_name = if settings.networking.private_network.enabled
+      existing_network_name = settings.networking.private_network.existing_network_name
+      existing_network_name.empty? ? settings.cluster_name : existing_network_name
+    else
+      ""
+    end
 
     secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
       network: network_name,
