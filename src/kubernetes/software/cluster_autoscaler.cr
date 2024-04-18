@@ -35,7 +35,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def cloud_init
-    ::Hetzner::Instance::Create.cloud_init(settings, settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
   end
 
   private def k3s_join_script
@@ -43,7 +43,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def certificate_path
-    @certificate_path ||= if ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1"
+    @certificate_path ||= if ssh.run(first_master, settings.networking.ssh.port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.networking.ssh.use_agent, false).chomp == "1"
       "/etc/ssl/certs/ca-certificates.crt"
     else
       "/etc/ssl/certs/ca-bundle.crt"
@@ -101,7 +101,7 @@ class Kubernetes::Software::ClusterAutoscaler
     set_container_environment_variable(autoscaler_container, "HCLOUD_IMAGE", settings.autoscaling_image || settings.image)
     set_container_environment_variable(autoscaler_container, "HCLOUD_FIREWALL", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_SSH_KEY", settings.cluster_name)
-    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.existing_network || settings.cluster_name))
+    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.networking.private_network.existing_network_name || settings.cluster_name))
 
     set_certificate_path(autoscaler_container)
   end

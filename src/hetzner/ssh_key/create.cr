@@ -6,11 +6,14 @@ class Hetzner::SSHKey::Create
   include Util
 
   getter hetzner_client : Hetzner::Client
+  getter settings : Configuration::Main
   getter ssh_key_name : String
   getter public_ssh_key_path : String
   getter ssh_key_finder : Hetzner::SSHKey::Find
 
-  def initialize(@hetzner_client, @ssh_key_name, @public_ssh_key_path)
+  def initialize(@hetzner_client, @settings)
+    @ssh_key_name = settings.cluster_name
+    @public_ssh_key_path = settings.networking.ssh.public_key_path
     @ssh_key_finder = Hetzner::SSHKey::Find.new(hetzner_client, ssh_key_name, public_ssh_key_path)
   end
 

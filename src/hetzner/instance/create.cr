@@ -13,7 +13,8 @@ class Hetzner::Instance::Create
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
-  getter instance_name : String
+  private getter settings : Configuration::Main
+  private getter instance_name : String
   private getter hetzner_client : Hetzner::Client
   private getter cluster_name : String
   private getter instance_type : String
@@ -29,37 +30,39 @@ class Hetzner::Instance::Create
   private getter additional_post_create_commands : Array(String)
   private getter instance_finder : Hetzner::Instance::Find
   private getter snapshot_os : String
-  private getter ssh_port : Int32
+  private getter ssh : Configuration::NetworkingComponents::SSH
   private getter settings : Configuration::Main
   private getter private_ssh_key_path : String
   private getter public_ssh_key_path : String
   private getter mutex : Mutex
-  private getter ssh : Util::SSH do
-    Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
+  private getter ssh_client : Util::SSH do
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
   end
 
   def initialize(
-      @mutex,
       @settings,
       @hetzner_client,
-      @cluster_name,
+      @mutex,
       @instance_name,
       @instance_type,
       @image,
-      @snapshot_os,
-      @location,
       @ssh_key,
       @firewall,
       @placement_group,
       @network,
-      @enable_public_net_ipv4,
-      @enable_public_net_ipv6,
-      @ssh_port,
-      @private_ssh_key_path,
-      @public_ssh_key_path,
       @additional_packages = [] of String,
-      @additional_post_create_commands = [] of String
+      @additional_post_create_commands = [] of String,
+      @location = ""
     )
+
+    @cluster_name = settings.cluster_name
+    @snapshot_os = settings.snapshot_os
+    @location = settings.masters_pool.location if location.empty?
+    @ssh = settings.networking.ssh
+    @enable_public_net_ipv4 = settings.networking.public_network.ipv4
+    @enable_public_net_ipv6 = settings.networking.public_network.ipv6
+    @private_ssh_key_path = settings.networking.ssh.private_key_path
+    @public_ssh_key_path = settings.networking.ssh.public_key_path
 
     @instance_finder = Hetzner::Instance::Find.new(@hetzner_client, @instance_name)
   end
@@ -127,7 +130,7 @@ class Hetzner::Instance::Create
         next
       end
 
-      ssh.wait_for_instance instance, settings.ssh_port, settings.use_ssh_agent, "echo ready", "ready"
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
       ready = true
     end
 
@@ -147,7 +150,7 @@ class Hetzner::Instance::Create
   end
 
   private def instance_config
-    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh_port, snapshot_os, additional_packages, additional_post_create_commands)
+    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_post_create_commands)
 
     {
       name: instance_name,

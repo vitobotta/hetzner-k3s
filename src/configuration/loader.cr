@@ -12,11 +12,7 @@ require "./settings/cluster_name"
 require "./settings/kubeconfig_path"
 require "./settings/k3s_version"
 require "./settings/new_k3s_version"
-require "./settings/public_ssh_key_path"
-require "./settings/private_ssh_key_path"
-require "./settings/private_network"
-require "./settings/networks"
-require "./settings/existing_network_name"
+require "./networking"
 require "./settings/node_pool"
 require "./settings/node_pool/autoscaling"
 require "./settings/node_pool/pool_name"
@@ -44,14 +40,6 @@ class Configuration::Loader
     end
 
     Hetzner::Client.new(settings.hetzner_token)
-  end
-
-  getter public_ssh_key_path do
-    Path[settings.public_ssh_key_path].expand(home: true).to_s
-  end
-
-  getter private_ssh_key_path do
-    Path[settings.private_ssh_key_path].expand(home: true).to_s
   end
 
   getter kubeconfig_path do
@@ -109,13 +97,10 @@ class Configuration::Loader
   private def validate_create_settings
     Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
     Settings::K3sVersion.new(errors, settings.k3s_version).validate
-    Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
-    Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
-    Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
-    Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
-    Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
     Settings::Datastore.new(errors, settings.datastore).validate
-    Settings::PrivateNetwork.new(errors, settings.private_network).validate
+
+    settings.networking.validate(errors, hetzner_client)
+
     validate_masters_pool
     validate_worker_node_pools
   end
