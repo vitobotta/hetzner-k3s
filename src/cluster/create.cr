@@ -235,7 +235,7 @@ class Cluster::Create
       network_name: settings.cluster_name,
       location: settings.masters_pool.location,
       locations: configuration.locations,
-      private_network_subnet: settings.private_network_subnet
+      private_network: settings.private_network
     ).run
   end
 
@@ -250,7 +250,7 @@ class Cluster::Create
       ssh_allowed_networks: settings.ssh_allowed_networks,
       api_allowed_networks: settings.api_allowed_networks,
       high_availability: settings.masters_pool.instance_count > 1,
-      private_network_subnet: settings.private_network_subnet,
+      private_network: settings.private_network,
       ssh_port: settings.ssh_port
     ).run
   end
