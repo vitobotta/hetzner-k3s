@@ -32,11 +32,11 @@ class Kubernetes::Software::SystemUpgradeController
   end
 
   private def create_crd
-    apply_manifest_from_url(settings.system_upgrade_controller_crd_manifest_url)
+    apply_manifest_from_url(settings.manifests.system_upgrade_controller_crd_manifest_url)
   end
 
   private def create_resources
-    manifest = fetch_manifest(settings.system_upgrade_controller_deployment_manifest_url)
+    manifest = fetch_manifest(settings.manifests.system_upgrade_controller_deployment_manifest_url)
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_manifest = patched_resources.map(&.to_yaml).join

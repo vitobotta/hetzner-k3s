@@ -149,7 +149,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def manifest
-    manifest = fetch_manifest(settings.cluster_autoscaler_manifest_url)
+    manifest = fetch_manifest(settings.manifests.cluster_autoscaler_manifest_url)
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_resources.map(&.to_yaml).join
