@@ -160,6 +160,7 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
+      cni: settings.networking.cni.mode,
       first_master_private_ip_address: first_master.private_ip_address,
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
