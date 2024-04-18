@@ -60,6 +60,6 @@ module Kubernetes::Util
   end
 
   def kubernetes_component_args_list(settings_group, setting)
-    setting.map { |arg| " --#{settings_group}-arg=\"#{arg}\" " }.join
+    setting.map { |arg| " --#{settings_group}-arg \"#{arg}\" " }.join
   end
 end
