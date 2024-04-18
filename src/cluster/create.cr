@@ -63,6 +63,8 @@ class Cluster::Create
     Channel(Hetzner::Instance).new
   end
 
+  private property mutex : Mutex = Mutex.new
+
   def initialize(@configuration)
     @network = find_or_create_network.not_nil!
     @firewall = create_firewall
@@ -101,6 +103,7 @@ class Cluster::Create
     additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Instance::Create.new(
+      mutex: mutex,
       settings: settings,
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
@@ -160,6 +163,7 @@ class Cluster::Create
     additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Instance::Create.new(
+      mutex: mutex,
       settings: settings,
       hetzner_client: hetzner_client,
       cluster_name: settings.cluster_name,
@@ -191,14 +195,6 @@ class Cluster::Create
     ).run
   end
 
-  private def create_masters
-    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel)
-  end
-
-  private def create_workers
-    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
-  end
-
   private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel)
     instance_creators.each do |instance_creator|
       spawn do
@@ -209,8 +205,8 @@ class Cluster::Create
   end
 
   private def create_instances
-    create_masters
-    create_workers
+    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel)
+    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
 
     create_load_balancer if settings.masters_pool.instance_count > 1
 

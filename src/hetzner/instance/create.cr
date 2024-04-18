@@ -33,11 +33,13 @@ class Hetzner::Instance::Create
   private getter settings : Configuration::Main
   private getter private_ssh_key_path : String
   private getter public_ssh_key_path : String
+  private getter mutex : Mutex
   private getter ssh : Util::SSH do
     Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
   end
 
   def initialize(
+      @mutex,
       @settings,
       @hetzner_client,
       @cluster_name,
@@ -117,7 +119,12 @@ class Hetzner::Instance::Create
 
       unless instance.try(&.private_ip_address)
         attaching_to_network_count += 1
-        attach_instance_to_network(instance, attaching_to_network_count)
+
+        mutex.synchronize do
+          attach_instance_to_network(instance, attaching_to_network_count)
+          sleep 1
+        end
+
         next
       end
 
