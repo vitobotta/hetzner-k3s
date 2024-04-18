@@ -6,6 +6,7 @@ if [[ $(< /etc/initialized) != "true" ]]; then
 fi
 
 HOSTNAME=$(hostname -f)
+PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [[ "{{ private_network_enabled }}" = "true" ]]; then
   PRIVATE_IP=$(ip route get {{ private_network_test_ip }} | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
