@@ -10,10 +10,10 @@ PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [[ "{{ private_network_enabled }}" = "true" ]]; then
   PRIVATE_IP=$(ip route get {{ private_network_test_ip }} | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
-  NETWORK_INTERFACE=" --flannel-iface=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}')"
+  NETWORK_INTERFACE=" --flannel-iface=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}') "
 else
   PRIVATE_IP="${PUBLIC_IP}"
-  NETWORK_INTERFACE=""
+  NETWORK_INTERFACE=" "
 fi
 
 if [[ "{{ cni }}" = "flannel" ]]; then
@@ -24,7 +24,6 @@ fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
---disable-network-policy \
 --disable servicelb \
 --disable traefik \
 --disable local-storage \
