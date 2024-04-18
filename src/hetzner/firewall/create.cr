@@ -11,7 +11,6 @@ class Hetzner::Firewall::Create
   getter private_network : Configuration::Settings::PrivateNetwork
   getter ssh_allowed_networks : Array(String)
   getter api_allowed_networks : Array(String)
-  getter high_availability : Bool
   getter firewall_finder : Hetzner::Firewall::Find
   getter ssh_port : Int32
 
@@ -20,7 +19,6 @@ class Hetzner::Firewall::Create
       @firewall_name,
       @ssh_allowed_networks,
       @api_allowed_networks,
-      @high_availability,
       @private_network,
       @ssh_port
     )
@@ -72,29 +70,6 @@ class Hetzner::Firewall::Create
         destination_ips: [] of String
       },
       {
-        description: "Allow all TCP traffic between nodes on the private network",
-        direction: "in",
-        protocol: "tcp",
-        port: "any",
-        source_ips: [
-          private_network.subnet
-        ],
-        destination_ips: [] of String
-      },
-      {
-        description: "Allow all UDP traffic between nodes on the private network",
-        direction: "in",
-        protocol: "udp",
-        port: "any",
-        source_ips: [
-          private_network.subnet
-        ],
-        destination_ips: [] of String
-      }
-    ]
-
-    unless high_availability
-      rules << {
         description: "Allow port 6443 (Kubernetes API server)",
         direction: "in",
         protocol: "tcp",
@@ -102,6 +77,27 @@ class Hetzner::Firewall::Create
         source_ips: api_allowed_networks,
         destination_ips: [] of String
       }
+    ]
+
+    if private_network.enabled?
+      rules += [
+        {
+          description: "Allow all TCP traffic between nodes on the private network",
+          direction: "in",
+          protocol: "tcp",
+          port: "any",
+          source_ips: private_network.enabled? ? [private_network.subnet] : [] of String,
+          destination_ips: [] of String
+        },
+        {
+          description: "Allow all UDP traffic between nodes on the private network",
+          direction: "in",
+          protocol: "udp",
+          port: "any",
+          source_ips: private_network.enabled? ? [private_network.subnet] : [] of String,
+          destination_ips: [] of String
+        }
+      ]
     end
 
     {
