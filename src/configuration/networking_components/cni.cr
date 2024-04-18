@@ -10,7 +10,7 @@ class Configuration::NetworkingComponents::CNI
   end
 
   def validate(errors)
-    return unless enabled && ["flannel"].includes?(mode)
+    return unless enabled && !["flannel"].includes?(mode)
 
     errors << "CNI must be 'flannel'"
   end
