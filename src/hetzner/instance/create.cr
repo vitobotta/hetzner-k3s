@@ -122,11 +122,7 @@ class Hetzner::Instance::Create
 
       unless instance.try(&.private_ip_address)
         attaching_to_network_count += 1
-
-        mutex.synchronize do
-          attach_instance_to_network(instance, attaching_to_network_count)
-        end
-
+        attach_instance_to_network(instance, attaching_to_network_count)
         next
       end
 
@@ -144,9 +140,11 @@ class Hetzner::Instance::Create
   end
 
   private def attach_instance_to_network(instance, attaching_to_network_count)
-    log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-    hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.id })
-    log_line "Waiting for instance to be attached to the network..."
+    mutex.synchronize do
+      log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
+      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.id })
+      log_line "Waiting for instance to be attached to the network..."
+    end
   end
 
   private def instance_config
