@@ -58,4 +58,8 @@ module Kubernetes::Util
 
     response.body.to_s
   end
+
+  def kubernetes_component_args_list(settings_group, setting)
+    setting.map { |arg| " --#{settings_group}-arg=\"#{arg}\" " }.join
+  end
 end

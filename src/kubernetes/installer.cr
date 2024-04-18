@@ -160,7 +160,8 @@ class Kubernetes::Installer
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       first_master_private_ip_address: first_master.private_ip_address,
-      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".0"
+      private_network_test_ip: settings.private_network_subnet.split(".")[0..2].join(".") + ".0",
+      extra_args: kubelet_args_list
     })
   end
 
@@ -174,32 +175,28 @@ class Kubernetes::Installer
     selected_k3s_index >= k3s_1_23_6_index ? " --flannel-backend=wireguard-native " : " --flannel-backend=wireguard "
   end
 
-  private def args_list(settings_group, setting)
-    setting.map { |arg| " --#{settings_group}-arg=\"#{arg}\" " }.join
-  end
-
   private def kube_api_server_args_list
-    args_list("kube-apiserver", settings.kube_api_server_args)
+    kubernetes_component_args_list("kube-apiserver", settings.kube_api_server_args)
   end
 
   private def kube_scheduler_args_list
-    args_list("kube-scheduler", settings.kube_scheduler_args)
+    kubernetes_component_args_list("kube-scheduler", settings.kube_scheduler_args)
   end
 
   private def kube_controller_manager_args_list
-    args_list("kube-controller-manager", settings.kube_controller_manager_args)
+    kubernetes_component_args_list("kube-controller-manager", settings.kube_controller_manager_args)
   end
 
   private def kube_cloud_controller_manager_args_list
-    args_list("kube-cloud-controller-manager", settings.kube_cloud_controller_manager_args)
+    kubernetes_component_args_list("kube-cloud-controller-manager", settings.kube_cloud_controller_manager_args)
   end
 
   private def kubelet_args_list
-    args_list("kubelet", ["resolv-conf=/etc/k8s-resolv.conf"] + settings.kubelet_args)
+    kubernetes_component_args_list("kubelet", settings.all_kubelet_args)
   end
 
   private def kube_proxy_args_list
-    args_list("kube-proxy", settings.kube_proxy_args)
+    kubernetes_component_args_list("kube-proxy", settings.kube_proxy_args)
   end
 
   private def k3s_token
