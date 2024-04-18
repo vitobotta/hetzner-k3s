@@ -21,12 +21,6 @@ class Cluster::Create
   private getter settings : Configuration::Main do
     configuration.settings
   end
-  private getter public_ssh_key_path : String do
-    configuration.public_ssh_key_path
-  end
-  private getter private_ssh_key_path : String do
-    configuration.private_ssh_key_path
-  end
   private getter masters : Array(Hetzner::Instance) do
     instances.select { |instance| instance.master? }.sort_by(&.name)
   end
@@ -37,10 +31,10 @@ class Cluster::Create
     settings.worker_node_pools.select(&.autoscaling_enabled)
   end
   private getter kubernetes_installer : Kubernetes::Installer do
-    Kubernetes::Installer.new(configuration, load_balancer, ssh, autoscaling_worker_node_pools)
+    Kubernetes::Installer.new(configuration, load_balancer, ssh_client, autoscaling_worker_node_pools)
   end
-  private getter ssh : Util::SSH do
-    Util::SSH.new(private_ssh_key_path, public_ssh_key_path)
+  private getter ssh_client : Util::SSH do
+    Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
   end
 
   private getter network : Hetzner::Network
@@ -103,24 +97,16 @@ class Cluster::Create
     additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Instance::Create.new(
-      mutex: mutex,
       settings: settings,
       hetzner_client: hetzner_client,
-      cluster_name: settings.cluster_name,
+      mutex: mutex,
       instance_name: master_name,
       instance_type: instance_type,
       image: image,
-      snapshot_os: settings.snapshot_os,
-      location: settings.masters_pool.location,
       placement_group: placement_group,
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
-      ssh_port: settings.ssh_port,
-      enable_public_net_ipv4: settings.enable_public_net_ipv4,
-      enable_public_net_ipv6: settings.enable_public_net_ipv6,
-      private_ssh_key_path: private_ssh_key_path,
-      public_ssh_key_path: public_ssh_key_path,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
@@ -163,24 +149,17 @@ class Cluster::Create
     additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Instance::Create.new(
-      mutex: mutex,
       settings: settings,
       hetzner_client: hetzner_client,
-      cluster_name: settings.cluster_name,
+      mutex: mutex,
       instance_name: node_name,
       instance_type: instance_type,
       image: image,
-      snapshot_os: settings.snapshot_os,
       location: node_pool.location,
       placement_group: placement_group,
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
-      ssh_port: settings.ssh_port,
-      enable_public_net_ipv4: settings.enable_public_net_ipv4,
-      enable_public_net_ipv6: settings.enable_public_net_ipv6,
-      private_ssh_key_path: private_ssh_key_path,
-      public_ssh_key_path: public_ssh_key_path,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
@@ -219,7 +198,7 @@ class Cluster::Create
   end
 
   private def find_network
-    existing_network_name = settings.existing_network
+    existing_network_name = settings.networking.private_network.existing_network_name
 
     return find_existing_network(existing_network_name) if existing_network_name
     create_new_network
@@ -230,14 +209,13 @@ class Cluster::Create
   end
 
   private def create_new_network
-    return unless settings.private_network.enabled?
+    return unless settings.networking.private_network.enabled
 
     Hetzner::Network::Create.new(
+      settings: settings,
       hetzner_client: hetzner_client,
       network_name: settings.cluster_name,
-      location: settings.masters_pool.location,
-      locations: configuration.locations,
-      private_network: settings.private_network
+      locations: configuration.locations
     ).run
   end
 
@@ -247,20 +225,16 @@ class Cluster::Create
 
   private def create_firewall
     Hetzner::Firewall::Create.new(
+      settings: settings,
       hetzner_client: hetzner_client,
-      firewall_name: settings.cluster_name,
-      ssh_allowed_networks: settings.ssh_allowed_networks,
-      api_allowed_networks: settings.api_allowed_networks,
-      private_network: settings.private_network,
-      ssh_port: settings.ssh_port
+      firewall_name: settings.cluster_name
     ).run
   end
 
   private def create_ssh_key
     Hetzner::SSHKey::Create.new(
       hetzner_client: hetzner_client,
-      ssh_key_name: settings.cluster_name,
-      public_ssh_key_path: public_ssh_key_path
+      settings: settings
     ).run
   end
 

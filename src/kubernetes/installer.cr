@@ -96,7 +96,7 @@ class Kubernetes::Installer
   private def set_up_first_master(master_count)
     log_line "Deploying k3s...", log_prefix: "Instance #{first_master.name}"
 
-    output = ssh.run(first_master, settings.ssh_port, master_install_script(first_master, master_count), settings.use_ssh_agent)
+    output = ssh.run(first_master, settings.networking.ssh.port, master_install_script(first_master, master_count), settings.networking.ssh.use_agent)
 
     log_line  "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
 
@@ -109,13 +109,13 @@ class Kubernetes::Installer
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
     log_line "Deploying k3s...", log_prefix: "Instance #{master.name}"
-    ssh.run(master, settings.ssh_port, master_install_script(master, master_count), settings.use_ssh_agent)
+    ssh.run(master, settings.networking.ssh.port, master_install_script(master, master_count), settings.networking.ssh.use_agent)
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
   private def deploy_k3s_to_worker(worker : Hetzner::Instance)
     log_line "Deploying k3s to worker #{worker.name}...", log_prefix: "Instance #{worker.name}"
-    ssh.run(worker, settings.ssh_port, worker_install_script, settings.use_ssh_agent)
+    ssh.run(worker, settings.networking.ssh.port, worker_install_script, settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
@@ -139,17 +139,17 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      disable_flannel: settings.disable_flannel.to_s,
+      cni: settings.networking.cni.mode,
       flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
       server: server,
       tls_sans: generate_tls_sans(master_count),
-      private_network_enabled: settings.private_network.enabled.to_s,
-      private_network_test_ip: settings.private_network.subnet.split(".")[0..2].join(".") + ".0",
-      cluster_cidr: settings.cluster_cidr,
-      service_cidr: settings.service_cidr,
-      cluster_dns: settings.cluster_dns,
+      private_network_enabled: settings.networking.private_network.enabled.to_s,
+      private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
+      cluster_cidr: settings.networking.cluster_cidr,
+      service_cidr: settings.networking.service_cidr,
+      cluster_dns: settings.networking.cluster_dns,
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments
     })
@@ -161,14 +161,14 @@ class Kubernetes::Installer
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       first_master_private_ip_address: first_master.private_ip_address,
-      private_network_enabled: settings.private_network.enabled.to_s,
-      private_network_test_ip: settings.private_network.subnet.split(".")[0..2].join(".") + ".0",
+      private_network_enabled: settings.networking.private_network.enabled.to_s,
+      private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
       extra_args: kubelet_args_list
     })
   end
 
   private def find_flannel_backend
-    return " " unless configuration.settings.enable_encryption
+    return " " unless configuration.settings.networking.cni.encryption
 
     available_releases = K3s.available_releases
     selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
@@ -203,7 +203,7 @@ class Kubernetes::Installer
 
   private def k3s_token
     token = begin
-      ssh.run(first_master, settings.ssh_port, "cat /var/lib/rancher/k3s/server/node-token", settings.use_ssh_agent, print_output: false)
+      ssh.run(first_master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false)
     rescue
       ""
     end
@@ -216,7 +216,7 @@ class Kubernetes::Installer
 
     log_line "Saving the kubeconfig file to #{kubeconfig_path}...", "Control plane"
 
-    kubeconfig = ssh.run(first_master, settings.ssh_port, "cat /etc/rancher/k3s/k3s.yaml", settings.use_ssh_agent, print_output: false).
+    kubeconfig = ssh.run(first_master, settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", settings.networking.ssh.use_agent, print_output: false).
       gsub("127.0.0.1",  settings.api_server_hostname ? settings.api_server_hostname : api_server_ip_address(master_count)).
       gsub("default", settings.cluster_name)
 

@@ -1,27 +1,27 @@
 require "../client"
 require "./find"
 require "../../util"
-require "../../configuration/settings/private_network.cr"
+require "../../configuration/networking"
 
 class Hetzner::Firewall::Create
   include Util
 
-  getter hetzner_client : Hetzner::Client
-  getter firewall_name : String
-  getter private_network : Configuration::Settings::PrivateNetwork
-  getter ssh_allowed_networks : Array(String)
-  getter api_allowed_networks : Array(String)
-  getter firewall_finder : Hetzner::Firewall::Find
-  getter ssh_port : Int32
+  private getter settings : Configuration::Main
+  private getter hetzner_client : Hetzner::Client
+  private getter firewall_name : String
+  private getter firewall_finder : Hetzner::Firewall::Find
+  private getter private_network : Configuration::NetworkingComponents::PrivateNetwork
+  private getter ssh : Configuration::NetworkingComponents::SSH
+  private getter allowed_networks : Configuration::NetworkingComponents::AllowedNetworks
 
   def initialize(
+      @settings,
       @hetzner_client,
       @firewall_name,
-      @ssh_allowed_networks,
-      @api_allowed_networks,
-      @private_network,
-      @ssh_port
     )
+    @private_network = settings.networking.private_network
+    @ssh = settings.networking.ssh
+    @allowed_networks = settings.networking.allowed_networks
     @firewall_finder = Hetzner::Firewall::Find.new(hetzner_client, firewall_name)
   end
 
@@ -55,8 +55,8 @@ class Hetzner::Firewall::Create
         description: "Allow SSH port",
         direction: "in",
         protocol: "tcp",
-        port: ssh_port.to_s,
-        source_ips: ssh_allowed_networks,
+        port: ssh.port.to_s,
+        source_ips: allowed_networks.ssh,
         destination_ips: [] of String
       },
       {
@@ -74,19 +74,19 @@ class Hetzner::Firewall::Create
         direction: "in",
         protocol: "tcp",
         port: "6443",
-        source_ips: api_allowed_networks,
+        source_ips: allowed_networks.api,
         destination_ips: [] of String
       }
     ]
 
-    if private_network.enabled?
+    if private_network.enabled
       rules += [
         {
           description: "Allow all TCP traffic between nodes on the private network",
           direction: "in",
           protocol: "tcp",
           port: "any",
-          source_ips: private_network.enabled? ? [private_network.subnet] : [] of String,
+          source_ips: private_network.enabled ? [private_network.subnet] : [] of String,
           destination_ips: [] of String
         },
         {
@@ -94,7 +94,7 @@ class Hetzner::Firewall::Create
           direction: "in",
           protocol: "udp",
           port: "any",
-          source_ips: private_network.enabled? ? [private_network.subnet] : [] of String,
+          source_ips: private_network.enabled ? [private_network.subnet] : [] of String,
           destination_ips: [] of String
         }
       ]

@@ -14,10 +14,6 @@ class Cluster::Delete
   private getter settings : Configuration::Main do
     configuration.settings
   end
-  private getter public_ssh_key_path : String do
-    configuration.public_ssh_key_path
-  end
-
   private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
   def initialize(@configuration)
@@ -94,7 +90,7 @@ class Cluster::Delete
     Hetzner::SSHKey::Delete.new(
       hetzner_client: hetzner_client,
       ssh_key_name: settings.cluster_name,
-      public_ssh_key_path: public_ssh_key_path
+      public_ssh_key_path: settings.networking.ssh.public_key_path
     ).run
   end
 
