@@ -199,7 +199,8 @@ class Hetzner::Instance::Create
   def self.mandatory_post_create_commands
     [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
-      "update-crypto-policies --set DEFAULT:SHA1 || true"
+      "update-crypto-policies --set DEFAULT:SHA1 || true",
+      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
 

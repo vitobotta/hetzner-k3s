@@ -195,7 +195,7 @@ class Kubernetes::Installer
   end
 
   private def kubelet_args_list
-    args_list("kubelet", settings.kubelet_args)
+    args_list("kubelet", ["resolv-conf=/etc/k8s-resolv.conf"] + settings.kubelet_args)
   end
 
   private def kube_proxy_args_list
