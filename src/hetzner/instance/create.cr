@@ -122,7 +122,6 @@ class Hetzner::Instance::Create
 
         mutex.synchronize do
           attach_instance_to_network(instance, attaching_to_network_count)
-          sleep 1
         end
 
         next
