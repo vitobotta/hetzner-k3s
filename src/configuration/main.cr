@@ -47,4 +47,8 @@ class Configuration::Main
   getter disable_flannel : Bool = false
   getter ssh_port : Int32 = 22
   getter datastore : Configuration::Datastore = Configuration::Datastore.new
+
+  def all_kubelet_args
+    ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
+  end
 end

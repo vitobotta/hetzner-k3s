@@ -32,7 +32,6 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
 {{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS \
---kubelet-arg="cloud-provider=external" \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
