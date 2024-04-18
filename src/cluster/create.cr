@@ -230,6 +230,8 @@ class Cluster::Create
   end
 
   private def create_new_network
+    return unless settings.private_network.enabled?
+
     Hetzner::Network::Create.new(
       hetzner_client: hetzner_client,
       network_name: settings.cluster_name,
@@ -249,7 +251,6 @@ class Cluster::Create
       firewall_name: settings.cluster_name,
       ssh_allowed_networks: settings.ssh_allowed_networks,
       api_allowed_networks: settings.api_allowed_networks,
-      high_availability: settings.masters_pool.instance_count > 1,
       private_network: settings.private_network,
       ssh_port: settings.ssh_port
     ).run
