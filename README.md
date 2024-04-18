@@ -146,7 +146,9 @@ ssh_allowed_networks:
   - 0.0.0.0/0 # ensure your current IP is included in the range
 api_allowed_networks:
   - 0.0.0.0/0 # ensure your current IP is included in the range
-private_network_subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same project
+private_network:
+  enabled : true
+  subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same project
 disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
 # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs

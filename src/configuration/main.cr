@@ -2,6 +2,7 @@ require "yaml"
 
 require "./node_pool"
 require "./datastore"
+require ""
 
 class Configuration::Main
   include YAML::Serializable
@@ -35,7 +36,7 @@ class Configuration::Main
   getter image : String = "ubuntu-22.04"
   getter autoscaling_image : String?
   getter snapshot_os : String = "default"
-  getter private_network_subnet : String = "10.0.0.0/16"
+  getter private_network : Configuration::Settings::PrivateNetwork = Configuration::Settings::PrivateNetwork.new
   getter cluster_cidr : String = "10.244.0.0/16"
   getter service_cidr : String = "10.43.0.0/16"
   getter cluster_dns : String = "10.43.0.10"

@@ -1,6 +1,7 @@
 require "../client"
 require "./find"
 require "../../util"
+require "../../configuration/settings/private_network"
 
 class Hetzner::Network::Create
   include Util
@@ -10,9 +11,9 @@ class Hetzner::Network::Create
   getter location : String
   getter network_finder : Hetzner::Network::Find
   getter locations : Array(Hetzner::Location)
-  getter private_network_subnet : String
+  getter private_network : Configuration::Settings::PrivateNetwork
 
-  def initialize(@hetzner_client, @network_name, @location, @locations, @private_network_subnet)
+  def initialize(@hetzner_client, @network_name, @location, @locations, @private_network)
     @network_finder = Hetzner::Network::Find.new(@hetzner_client, @network_name)
   end
 
@@ -42,10 +43,10 @@ class Hetzner::Network::Create
 
     {
       name: network_name,
-      ip_range: private_network_subnet,
+      ip_range: private_network.subnet,
       subnets: [
         {
-          ip_range: private_network_subnet,
+          ip_range: private_network.subnet,
           network_zone: network_zone,
           type: "cloud"
         }

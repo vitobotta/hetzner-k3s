@@ -14,6 +14,7 @@ require "./settings/k3s_version"
 require "./settings/new_k3s_version"
 require "./settings/public_ssh_key_path"
 require "./settings/private_ssh_key_path"
+require "./settings/private_network"
 require "./settings/networks"
 require "./settings/existing_network_name"
 require "./settings/node_pool"
@@ -114,6 +115,7 @@ class Configuration::Loader
     Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
     Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
     Settings::Datastore.new(errors, settings.datastore).validate
+    Settings::PrivateNetwork.new(errors, settings.private_network).validate
     validate_masters_pool
     validate_worker_node_pools
   end
