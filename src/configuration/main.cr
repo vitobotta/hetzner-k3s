@@ -2,6 +2,7 @@ require "yaml"
 
 require "./node_pool"
 require "./datastore"
+require "./manifests"
 
 class Configuration::Main
   include YAML::Serializable
@@ -26,12 +27,8 @@ class Configuration::Main
   getter autoscaling_image : String?
   getter snapshot_os : String = "default"
   getter networking : Configuration::Networking = Configuration::Networking.new
-  getter cloud_controller_manager_manifest_url : String = "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
-  getter csi_driver_manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
-  getter system_upgrade_controller_deployment_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
-  getter system_upgrade_controller_crd_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
-  getter cluster_autoscaler_manifest_url : String = "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
   getter datastore : Configuration::Datastore = Configuration::Datastore.new
+  getter manifests : Configuration::Manifests = Configuration::Manifests.new
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args

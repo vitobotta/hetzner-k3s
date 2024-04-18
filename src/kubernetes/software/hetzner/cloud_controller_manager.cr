@@ -24,7 +24,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   end
 
   private def manifest
-    manifest = fetch_manifest(settings.cloud_controller_manager_manifest_url)
+    manifest = fetch_manifest(settings.manifests.cloud_controller_manager_manifest_url)
     manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.networking.cluster_cidr}")
   end
 end
