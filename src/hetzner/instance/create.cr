@@ -108,7 +108,6 @@ class Hetzner::Instance::Create
 
     until ready
       unless instance_existed
-        log_line "Waiting for instance to be running..."
         sleep 10
       end
 
