@@ -5,6 +5,7 @@ require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
 require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
+require "../hetzner/placement_group/all"
 
 class Cluster::Delete
   private getter configuration : Configuration::Loader
@@ -58,20 +59,6 @@ class Cluster::Delete
     end
   end
 
-  private def delete_placement_groups
-    Hetzner::PlacementGroup::Delete.new(
-      hetzner_client: hetzner_client,
-      placement_group_name: "#{settings.cluster_name}-masters"
-    ).run
-
-    settings.worker_node_pools.each do |node_pool|
-      Hetzner::PlacementGroup::Delete.new(
-        hetzner_client: hetzner_client,
-        placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
-      ).run
-    end
-  end
-
   private def delete_network
     Hetzner::Network::Delete.new(
       hetzner_client: hetzner_client,
@@ -114,5 +101,9 @@ class Cluster::Delete
         )
       end
     end
+  end
+
+  private def delete_placement_groups
+    Hetzner::PlacementGroup::All.new(hetzner_client).delete_all
   end
 end
