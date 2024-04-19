@@ -211,23 +211,27 @@ class Kubernetes::Installer
     kubernetes_component_args_list("kube-proxy", settings.kube_proxy_args)
   end
 
-  private def k3s_token
-    tokens = masters.map do |master|
-      token_by_master(master)
-    end.reject(&.empty?)
+  private def k3s_token : String
+    @k3s_token ||= begin
+      tokens = masters.map do |master|
+        token_by_master(master)
+      end.reject(&.empty?)
 
-    if tokens.empty?
-      Random::Secure.hex
-    else
-      tokens = tokens.tally
-      max_counts = tokens.max_of { |_, count| count }
-      token = tokens.key_for(max_counts)
-      token.empty? ? Random::Secure.hex : token.split(':').last
+      if tokens.empty?
+        Random::Secure.hex
+      else
+        tokens = tokens.tally
+        max_counts = tokens.max_of { |_, count| count }
+        token = tokens.key_for(max_counts)
+        token.empty? ? Random::Secure.hex : token.split(':').last
+      end
     end
   end
 
   private def first_master : Hetzner::Instance
     @first_master ||= begin
+      return masters[0] if k3s_token.empty?
+
       bootstrapped_master = masters.sort_by(&.name).find do |master|
         token_by_master(master) == k3s_token
       end
