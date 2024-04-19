@@ -30,11 +30,6 @@ class Hetzner::PlacementGroup::Delete
         log_line "Deleting placement group #{placement_group_name}..."
       end
 
-      if placement_group && placement_group.servers.any?
-        log_line "Placement group #{placement_group_name} is not empty, skipping delete"
-        return placement_group_name
-      end
-
       hetzner_client.delete("/placement_groups", placement_group.id)
 
       log_line "...placement group #{placement_group_name} deleted"
