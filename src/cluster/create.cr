@@ -21,12 +21,6 @@ class Cluster::Create
   private getter settings : Configuration::Main do
     configuration.settings
   end
-  private getter masters : Array(Hetzner::Instance) do
-    instances.select { |instance| instance.master? }.sort_by(&.name)
-  end
-  private getter workers : Array(Hetzner::Instance) do
-    instances.select { |instance| instance.master? }.sort_by(&.name)
-  end
   private getter autoscaling_worker_node_pools : Array(Configuration::NodePool) do
     settings.worker_node_pools.select(&.autoscaling_enabled)
   end
@@ -37,7 +31,7 @@ class Cluster::Create
     Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
   end
 
-  private getter network : Hetzner::Network
+  private getter network : Hetzner::Network?
   private getter firewall : Hetzner::Firewall
   private getter ssh_key : Hetzner::SSHKey
   private getter load_balancer : Hetzner::LoadBalancer?
@@ -60,8 +54,8 @@ class Cluster::Create
   private property mutex : Mutex = Mutex.new
 
   def initialize(@configuration)
-    @network = find_or_create_network.not_nil!
-    @firewall = create_firewall
+    @network = find_or_create_network
+    @firewall = configure_firewall
     @ssh_key = create_ssh_key
   end
 
@@ -167,26 +161,37 @@ class Cluster::Create
 
   private def create_load_balancer
     @load_balancer = Hetzner::LoadBalancer::Create.new(
+      settings: settings,
       hetzner_client: hetzner_client,
-      cluster_name: settings.cluster_name,
       location: configuration.masters_location,
-      network_id: network.id
+      network_id: network.try(&.id)
     ).run
   end
 
-  private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel)
+  private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel, wait = false)
+    wait_channel = Channel(Hetzner::Instance::Create).new
+
     instance_creators.each do |instance_creator|
       spawn do
         instance = instance_creator.run
+        mutex.synchronize { instances << instance }
+        wait_channel = wait_channel.send(instance_creator)
         kubernetes_installation_queue_channel.send(instance)
       end
+    end
+
+    return unless wait
+
+    instance_creators.size.times do |instance_creator|
+      wait_channel.receive
     end
   end
 
   private def create_instances
-    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel)
+    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
     create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
 
+    configure_firewall
     create_load_balancer if settings.masters_pool.instance_count > 1
 
     kubernetes_installer.run(
@@ -223,11 +228,12 @@ class Cluster::Create
     find_network || create_new_network
   end
 
-  private def create_firewall
+  private def configure_firewall
     Hetzner::Firewall::Create.new(
       settings: settings,
       hetzner_client: hetzner_client,
-      firewall_name: settings.cluster_name
+      firewall_name: settings.cluster_name,
+      masters: masters
     ).run
   end
 
@@ -240,5 +246,13 @@ class Cluster::Create
 
   private def default_log_prefix
     "Cluster create"
+  end
+
+  private def masters
+    instances.select { |instance| instance.master? }.sort_by(&.name)
+  end
+
+  private def workers
+    instances.select { |instance| instance.master? }.sort_by(&.name)
   end
 end

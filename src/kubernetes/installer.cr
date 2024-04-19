@@ -30,6 +30,8 @@ class Kubernetes::Installer
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
 
+  private getter first_master : Hetzner::Instance?
+
   def initialize(
       @configuration,
       @load_balancer,
@@ -42,28 +44,27 @@ class Kubernetes::Installer
     ensure_kubectl_is_installed!
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
-    set_up_workers(workers_installation_queue_channel, worker_count)
+    set_up_workers(workers_installation_queue_channel, worker_count, master_count)
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
 
-    install_software
+    install_software(master_count)
   end
 
   private def set_up_control_plane(masters_installation_queue_channel, master_count)
-    masters_ready_channel = Channel(Hetzner::Instance).new
+    master_count.times do
+      masters << masters_installation_queue_channel.receive
+    end
 
-    master = masters_installation_queue_channel.receive
-    masters << master
+    masters_ready_channel = Channel(Hetzner::Instance).new
 
     set_up_first_master(master_count)
 
-    mutex = Mutex.new
+    other_masters = masters - [first_master]
 
-    (master_count - 1).times do
+    other_masters.each do |master|
       spawn do
-        master = masters_installation_queue_channel.receive
-        mutex.synchronize { masters << master }
         deploy_k3s_to_master(master, master_count)
         masters_ready_channel.send(master)
       end
@@ -74,7 +75,7 @@ class Kubernetes::Installer
     end
   end
 
-  private def set_up_workers(workers_installation_queue_channel, worker_count)
+  private def set_up_workers(workers_installation_queue_channel, worker_count, master_count)
     workers_ready_channel = Channel(Hetzner::Instance).new
 
     mutex = Mutex.new
@@ -83,7 +84,7 @@ class Kubernetes::Installer
       spawn do
         worker = workers_installation_queue_channel.receive
         mutex.synchronize { workers << worker }
-        deploy_k3s_to_worker(worker)
+        deploy_k3s_to_worker(worker, master_count)
         workers_ready_channel.send(worker)
       end
     end
@@ -93,7 +94,7 @@ class Kubernetes::Installer
     end
   end
 
-  private def set_up_first_master(master_count)
+  private def set_up_first_master(master_count : Int)
     log_line "Deploying k3s...", log_prefix: "Instance #{first_master.name}"
 
     output = ssh.run(first_master, settings.networking.ssh.port, master_install_script(first_master, master_count), settings.networking.ssh.use_agent)
@@ -102,9 +103,17 @@ class Kubernetes::Installer
 
     sleep 10 unless /No change detected/ =~ output
 
-    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
-
     save_kubeconfig(master_count)
+
+    command = "timeout 5 kubectl cluster-info 2> /dev/null"
+
+    loop do
+      result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false).output
+      break if result.includes?("running")
+      sleep 1
+    end
+
+    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
   end
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
@@ -113,9 +122,9 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
-  private def deploy_k3s_to_worker(worker : Hetzner::Instance)
+  private def deploy_k3s_to_worker(worker : Hetzner::Instance, master_count)
     log_line "Deploying k3s to worker #{worker.name}...", log_prefix: "Instance #{worker.name}"
-    ssh.run(worker, settings.networking.ssh.port, worker_install_script, settings.networking.ssh.use_agent)
+    ssh.run(worker, settings.networking.ssh.port, worker_install_script(master_count), settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
@@ -155,13 +164,13 @@ class Kubernetes::Installer
     })
   end
 
-  private def worker_install_script
+  private def worker_install_script(master_count)
     Crinja.render(WORKER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
       cni: settings.networking.cni.mode,
-      first_master_private_ip_address: first_master.private_ip_address,
+      api_server_ip_address: api_server_ip_address(master_count),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
       extra_args: kubelet_args_list
@@ -203,13 +212,34 @@ class Kubernetes::Installer
   end
 
   private def k3s_token
-    token = begin
-      ssh.run(first_master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false)
-    rescue
-      ""
-    end
+    tokens = masters.map do |master|
+      token_by_master(master)
+    end.reject(&.empty?)
 
-    token.empty? ? Random::Secure.hex : token.split(':').last
+    if tokens.empty?
+      Random::Secure.hex
+    else
+      tokens = tokens.tally
+      max_counts = tokens.max_of { |_, count| count }
+      token = tokens.key_for(max_counts)
+      token.empty? ? Random::Secure.hex : token.split(':').last
+    end
+  end
+
+  private def first_master : Hetzner::Instance
+    @first_master ||= begin
+      bootstrapped_master = masters.sort_by(&.name).find do |master|
+        token_by_master(master) == k3s_token
+      end
+
+      bootstrapped_master || masters[0]
+    end
+  end
+
+  private def token_by_master(master : Hetzner::Instance)
+    ssh.run(master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false).split(':').last
+  rescue
+    ""
   end
 
   private def save_kubeconfig(master_count)
@@ -262,34 +292,43 @@ class Kubernetes::Installer
   end
 
   private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{api_server_ip_address(master_count)}"]
+    sans = [
+      "--tls-san=#{api_server_ip_address(master_count)}",
+      "--tls-san=127.0.0.1"
+    ]
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
-    sans << "--tls-san=#{load_balancer.not_nil!.private_ip_address}" if masters.size > 1
+
+    if masters.size > 1
+      if settings.networking.private_network.enabled
+        sans << "--tls-san=#{load_balancer.not_nil!.private_ip_address}"
+      else
+        sans << "--tls-san=#{load_balancer.not_nil!.public_ip_address}"
+      end
+    end
 
     masters.each do |master|
       master_private_ip = master.private_ip_address
+      master_public_ip = master.public_ip_address
       sans << "--tls-san=#{master_private_ip}"
+      sans << "--tls-san=#{master_public_ip}"
     end
-    sans.join(" ")
+
+    sans.uniq.join(" ")
   end
 
-  private def install_software
+  private def install_software(master_count)
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script).install
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
   end
 
   private def default_log_prefix
     "Kubernetes software"
   end
 
-  private def first_master
-    masters[0].not_nil!
-  end
-
-  private def api_server_ip_address(master_count)
+  private def api_server_ip_address(master_count : Int)
     master_count > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil!
   end
 end

@@ -5,16 +5,18 @@ require "../../util"
 class Hetzner::LoadBalancer::Create
   include Util
 
+  getter settings : Configuration::Main
   getter hetzner_client : Hetzner::Client
   getter cluster_name : String
   getter location : String
-  getter network_id : Int64
+  getter network_id : Int64? = 0
   getter load_balancer_finder : Hetzner::LoadBalancer::Find
   getter load_balancer_name : String do
     "#{cluster_name}-api"
   end
 
-  def initialize(@hetzner_client, @cluster_name, @location, @network_id)
+  def initialize(@settings, @hetzner_client, @location, @network_id)
+    @cluster_name = settings.cluster_name
     @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, load_balancer_name)
   end
 
@@ -49,33 +51,62 @@ class Hetzner::LoadBalancer::Create
   end
 
   private def load_balancer_config
-    {
-      algorithm: {
-        type: "round_robin"
-      },
-      load_balancer_type: "lb11",
-      location: location,
-      name: load_balancer_name,
-      network: network_id,
-      public_interface: true,
-      services: [
-        {
-          destination_port: 6443,
-          listen_port: 6443,
-          protocol: "tcp",
-          proxyprotocol: false
-        }
-      ],
-      targets: [
-        {
-          label_selector: {
-            selector: "cluster=#{cluster_name},role=master"
-          },
-          type: "label_selector",
-          use_private_ip: true
-        }
-      ]
-    }
+    if settings.networking.private_network.enabled
+      {
+        algorithm: {
+          type: "round_robin"
+        },
+        load_balancer_type: "lb11",
+        location: location,
+        name: load_balancer_name,
+        network: network_id,
+        public_interface: true,
+        services: [
+          {
+            destination_port: 6443,
+            listen_port: 6443,
+            protocol: "tcp",
+            proxyprotocol: false
+          }
+        ],
+        targets: [
+          {
+            label_selector: {
+              selector: "cluster=#{cluster_name},role=master"
+            },
+            type: "label_selector",
+            use_private_ip: true
+          }
+        ]
+      }
+    else
+      {
+        algorithm: {
+          type: "round_robin"
+        },
+        load_balancer_type: "lb11",
+        location: location,
+        name: load_balancer_name,
+        public_interface: true,
+        services: [
+          {
+            destination_port: 6443,
+            listen_port: 6443,
+            protocol: "tcp",
+            proxyprotocol: false
+          }
+        ],
+        targets: [
+          {
+            label_selector: {
+              selector: "cluster=#{cluster_name},role=master"
+            },
+            type: "label_selector",
+            use_private_ip: false
+          }
+        ]
+      }
+    end
   end
 
   private def default_log_prefix
