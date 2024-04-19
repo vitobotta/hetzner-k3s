@@ -103,11 +103,24 @@ class Configuration::Loader
 
     validate_masters_pool
     validate_worker_node_pools
+
+    validate_kubectl_presence
+    validate_helm_presence
   end
 
   private def validate_upgrade_settings
     Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
     Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+
+    validate_kubectl_presence
+  end
+
+  private def validate_kubectl_presence
+    errors << "kubectl is not installed or not in PATH" unless which("kubectl")
+  end
+
+  private def validate_helm_presence
+    errors << "helm is not installed or not in PATH" unless which("helm")
   end
 
   private def print_validation_result
