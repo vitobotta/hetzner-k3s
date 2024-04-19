@@ -2,7 +2,7 @@ require "./shell/command_result"
 
 module Util
   module Shell
-    def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error  = true, log_prefix = "") : CommandResult
+    def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error  = true, log_prefix = "", print_output : Bool = true) : CommandResult
       cmd_file_path = "/tmp/cli.cmd"
 
       File.write(cmd_file_path, <<-CONTENT
@@ -18,12 +18,18 @@ module Util
 
       log_prefix = log_prefix.blank? ? default_log_prefix : log_prefix
 
-      all_io_out = if log_prefix.blank?
-        IO::MultiWriter.new(STDOUT, stdout)
+      if print_output
+        all_io_out = if log_prefix.blank?
+          IO::MultiWriter.new(STDOUT, stdout)
+        else
+          IO::MultiWriter.new(PrefixedIO.new("[#{log_prefix}] ", STDOUT), stdout)
+        end
+
+        all_io_err = IO::MultiWriter.new(STDERR, stderr)
       else
-        IO::MultiWriter.new(PrefixedIO.new("[#{log_prefix}] ", STDOUT), stdout)
+        all_io_out = stdout
+        all_io_err = stderr
       end
-      all_io_err = IO::MultiWriter.new(STDERR, stderr)
 
       env = {
         "KUBECONFIG" => kubeconfig_path,

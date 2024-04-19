@@ -108,7 +108,7 @@ class Kubernetes::Installer
     command = "timeout 5 kubectl cluster-info 2> /dev/null"
 
     loop do
-      result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false).output
+      result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false, print_output: false).output
       break if result.includes?("running")
       sleep 1
     end
