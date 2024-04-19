@@ -123,16 +123,30 @@ class Cluster::Create
   end
 
   private def create_placement_groups_for_node_pool(node_pool)
-    placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil
+    placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
 
-    (1..placement_groups_count).map do |index|
+    placement_groups_channel = Channel(Hetzner::PlacementGroup).new
+
+    (1..placement_groups_count).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
 
-      Hetzner::PlacementGroup::Create.new(
-        hetzner_client: hetzner_client,
-        placement_group_name: placement_group_name
-      ).run
+      spawn do
+        placement_group = Hetzner::PlacementGroup::Create.new(
+          hetzner_client: hetzner_client,
+          placement_group_name: placement_group_name
+        ).run
+
+        placement_groups_channel.send(placement_group)
+      end
     end
+
+    placement_groups = Array(Hetzner::PlacementGroup).new
+
+    placement_groups_count.times do
+      placement_groups << placement_groups_channel.receive
+    end
+
+    placement_groups
   end
 
   private def create_worker_instance(index : Int32, node_pool, placement_group)
@@ -175,7 +189,7 @@ class Cluster::Create
       spawn do
         instance = instance_creator.run
         mutex.synchronize { instances << instance }
-        wait_channel = wait_channel.send(instance_creator)
+        wait_channel = wait_channel.send(instance_creator) if wait
         kubernetes_installation_queue_channel.send(instance)
       end
     end
