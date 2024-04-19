@@ -28,7 +28,10 @@ class Kubernetes::Software::Cilium
     --set ipam.operator.clusterPoolIPv4PodCIDRList="#{settings.networking.cluster_cidr}" \
     --set rollOutCiliumPods=true \
     --set operator.rollOutPods=true \
-    --set kubeProxyReplacement=true \
+    --set kubeProxyReplacement=strict \
+    --set ipam.mode=kubernetes \
+    --set hubble.enabled=true \
+    --set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}" \
     --set k8sServiceHost=127.0.0.1 \
     --set k8sServicePort=6444 \
     cilium cilium/cilium
