@@ -7,6 +7,7 @@ class Hetzner::Firewall::Create
   include Util
 
   private getter settings : Configuration::Main
+  private getter masters : Array(Hetzner::Instance)
   private getter hetzner_client : Hetzner::Client
   private getter firewall_name : String
   private getter firewall_finder : Hetzner::Firewall::Find
@@ -18,6 +19,7 @@ class Hetzner::Firewall::Create
       @settings,
       @hetzner_client,
       @firewall_name,
+      @masters
     )
     @private_network = settings.networking.private_network
     @ssh = settings.networking.ssh
@@ -79,14 +81,14 @@ class Hetzner::Firewall::Create
       }
     ]
 
-    if private_network.enabled
+    if private_network.try(&.enabled)
       rules += [
         {
           description: "Allow all TCP traffic between nodes on the private network",
           direction: "in",
           protocol: "tcp",
           port: "any",
-          source_ips: private_network.enabled ? [private_network.subnet] : [] of String,
+          source_ips: [private_network.subnet],
           destination_ips: [] of String
         },
         {
@@ -94,10 +96,70 @@ class Hetzner::Firewall::Create
           direction: "in",
           protocol: "udp",
           port: "any",
-          source_ips: private_network.enabled ? [private_network.subnet] : [] of String,
+          source_ips: [private_network.subnet],
           destination_ips: [] of String
         }
       ]
+    else
+      rules += [
+        {
+          description: "Allow wireguard traffic (default)",
+          direction: "in",
+          protocol: "tcp",
+          port: "51820",
+          source_ips: [
+            "0.0.0.0/0",
+            "::/0"
+          ],
+          destination_ips: [] of String
+        },
+        {
+          description: "Allow wireguard traffic (default)",
+          direction: "in",
+          protocol: "tcp",
+          port: "51821",
+          source_ips: [
+            "0.0.0.0/0",
+            "::/0"
+          ],
+          destination_ips: [] of String
+        },
+        {
+          description: "Allow wireguard traffic (cilium)",
+          direction: "in",
+          protocol: "tcp",
+          port: "51871",
+          source_ips: [
+            "0.0.0.0/0",
+            "::/0"
+          ],
+          destination_ips: [] of String
+        }
+      ]
+
+      if masters.size > 0
+        master_ips = masters.map do |master|
+          "#{master.public_ip_address}/32"
+        end
+
+        rules << {
+          description: "Allow etcd traffic between masters",
+          direction: "in",
+          protocol: "tcp",
+          port: "2379",
+          source_ips: master_ips,
+          destination_ips: [] of String
+        }
+
+        rules << {
+          description: "Allow etcd traffic between masters",
+          direction: "in",
+          protocol: "tcp",
+          port: "2380",
+          source_ips: master_ips,
+          destination_ips: [] of String
+        }
+      end
     end
 
     {

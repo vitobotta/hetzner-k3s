@@ -23,7 +23,7 @@ class Hetzner::Instance::Create
   private getter ssh_key : Hetzner::SSHKey
   private getter firewall : Hetzner::Firewall
   private getter placement_group : Hetzner::PlacementGroup
-  private getter network : Hetzner::Network
+  private getter network : Hetzner::Network?
   private getter enable_public_net_ipv4 : Bool
   private getter enable_public_net_ipv6 : Bool
   private getter additional_packages : Array(String)
@@ -38,6 +38,7 @@ class Hetzner::Instance::Create
   private getter ssh_client : Util::SSH do
     Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
   end
+  private getter instance_existed : Bool = false
 
   def initialize(
       @settings,
@@ -71,6 +72,7 @@ class Hetzner::Instance::Create
     instance = instance_finder.run
 
     if instance
+      @instance_existed = true
       log_line "Instance #{instance_name} already exists, skipping create"
       ensure_instance_is_ready
     else
@@ -105,8 +107,10 @@ class Hetzner::Instance::Create
     attaching_to_network_count = 0
 
     until ready
-      log_line "Waiting for instance to be created..."
-      sleep 10
+      unless instance_existed
+        log_line "Waiting for instance to be powered on..."
+        sleep 10
+      end
 
       instance = instance_finder.run
 
@@ -120,7 +124,7 @@ class Hetzner::Instance::Create
         next
       end
 
-      unless instance.try(&.private_ip_address)
+      if settings.networking.private_network.enabled && !instance.try(&.private_ip_address)
         attaching_to_network_count += 1
         attach_instance_to_network(instance, attaching_to_network_count)
         next
@@ -142,7 +146,7 @@ class Hetzner::Instance::Create
   private def attach_instance_to_network(instance, attaching_to_network_count)
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.id })
+      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.not_nil!.id })
       log_line "Waiting for instance to be attached to the network..."
     end
   end

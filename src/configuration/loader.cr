@@ -99,7 +99,7 @@ class Configuration::Loader
     Settings::K3sVersion.new(errors, settings.k3s_version).validate
     Settings::Datastore.new(errors, settings.datastore).validate
 
-    settings.networking.validate(errors, hetzner_client)
+    settings.networking.validate(errors, hetzner_client, settings.networking.private_network)
 
     validate_masters_pool
     validate_worker_node_pools
