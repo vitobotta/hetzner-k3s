@@ -10,6 +10,7 @@ require "../hetzner/instance"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
+require "./software/cilium"
 require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
@@ -323,6 +324,7 @@ class Kubernetes::Installer
   end
 
   private def install_software(master_count)
+    Kubernetes::Software::Cilium.new(configuration, settings).install
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install

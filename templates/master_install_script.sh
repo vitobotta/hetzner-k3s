@@ -19,7 +19,16 @@ fi
 if [[ "{{ cni }}" = "flannel" ]]; then
   FLANNEL_SETTINGS=" {{ flannel_backend }} $NETWORK_INTERFACE "
 else
-  FLANNEL_SETTINGS=" --flannel-backend=none --disable-kube-proxy "
+  FLANNEL_SETTINGS=" --flannel-backend=none  "
+fi
+
+if [[ "{{ cni }}" = "cilium" ]]; then
+  ip link delete cilium_host
+  ip link delete cilium_net
+  ip link delete cilium_vxlan
+
+  iptables-save | grep -iv cilium | iptables-restore
+  ip6tables-save | grep -iv cilium | ip6tables-restore
 fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \
