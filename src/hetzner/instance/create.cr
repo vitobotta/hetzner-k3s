@@ -1,7 +1,6 @@
 require "crinja"
 require "../client"
 require "../ssh_key"
-require "../firewall"
 require "../network"
 require "../placement_group"
 require "./find"
@@ -21,7 +20,6 @@ class Hetzner::Instance::Create
   private getter image : String | Int64
   private getter location : String
   private getter ssh_key : Hetzner::SSHKey
-  private getter firewall : Hetzner::Firewall
   private getter network : Hetzner::Network?
   private getter enable_public_net_ipv4 : Bool
   private getter enable_public_net_ipv6 : Bool
@@ -47,7 +45,6 @@ class Hetzner::Instance::Create
       @instance_type,
       @image,
       @ssh_key,
-      @firewall,
       @network,
       @placement_group : Hetzner::PlacementGroup? = nil,
       @additional_packages = [] of String,
@@ -156,9 +153,6 @@ class Hetzner::Instance::Create
       name: instance_name,
       location: location,
       image: image,
-      firewalls: [
-        { firewall: firewall.id }
-      ],
       public_net: {
         enable_ipv4: enable_public_net_ipv4,
         enable_ipv6: enable_public_net_ipv6,

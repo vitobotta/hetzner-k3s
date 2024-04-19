@@ -105,6 +105,8 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
+    sleep 5
+
     command = "timeout 5 kubectl cluster-info 2> /dev/null"
 
     loop do

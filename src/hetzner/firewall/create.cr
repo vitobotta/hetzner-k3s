@@ -164,7 +164,15 @@ class Hetzner::Firewall::Create
 
     {
       name: firewall_name,
-      rules: rules
+      rules: rules,
+      apply_to: [
+        {
+          label_selector: {
+            selector: "cluster=#{settings.cluster_name}"
+          },
+          type: "label_selector"
+        }
+      ]
     }
   end
 
