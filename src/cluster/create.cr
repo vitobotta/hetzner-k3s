@@ -34,7 +34,6 @@ class Cluster::Create
   end
 
   private getter network : Hetzner::Network?
-  private getter firewall : Hetzner::Firewall
   private getter ssh_key : Hetzner::SSHKey
   private getter load_balancer : Hetzner::LoadBalancer?
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
@@ -58,7 +57,6 @@ class Cluster::Create
 
   def initialize(@configuration)
     @network = find_or_create_network
-    @firewall = configure_firewall
     @ssh_key = create_ssh_key
     fetch_existing_placement_groups
   end
@@ -122,7 +120,6 @@ class Cluster::Create
       instance_type: instance_type,
       image: image,
       ssh_key: ssh_key,
-      firewall: firewall,
       network: network,
       placement_group: placement_group,
       additional_packages: additional_packages,
@@ -229,7 +226,6 @@ class Cluster::Create
       image: image,
       location: node_pool.location,
       ssh_key: ssh_key,
-      firewall: firewall,
       network: network,
       placement_group: placement_group,
       additional_packages: additional_packages,
