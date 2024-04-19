@@ -22,7 +22,6 @@ class Hetzner::Instance::Create
   private getter location : String
   private getter ssh_key : Hetzner::SSHKey
   private getter firewall : Hetzner::Firewall
-  private getter placement_group : Hetzner::PlacementGroup
   private getter network : Hetzner::Network?
   private getter enable_public_net_ipv4 : Bool
   private getter enable_public_net_ipv6 : Bool
@@ -49,8 +48,8 @@ class Hetzner::Instance::Create
       @image,
       @ssh_key,
       @firewall,
-      @placement_group,
       @network,
+      @placement_group : Hetzner::PlacementGroup? = nil,
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String,
       @location = ""
@@ -153,7 +152,7 @@ class Hetzner::Instance::Create
   private def instance_config
     user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_post_create_commands)
 
-    {
+    base_config = {
       name: instance_name,
       location: location,
       image: image,
@@ -173,9 +172,16 @@ class Hetzner::Instance::Create
         cluster: cluster_name,
         role: (instance_name =~ /master/ ? "master" : "worker")
       },
-      placement_group: placement_group.id,
       start_after_create: false
     }
+
+    placement_group = @placement_group
+
+    if placement_group.nil?
+      base_config
+    else
+      base_config.merge({ placement_group: placement_group.id })
+    end
   end
 
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)

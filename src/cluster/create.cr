@@ -2,6 +2,7 @@ require "../configuration/main"
 require "../configuration/loader"
 require "../hetzner/client"
 require "../hetzner/placement_group/create"
+require "../hetzner/placement_group/all"
 require "../hetzner/ssh_key/create"
 require "../hetzner/firewall/create"
 require "../hetzner/network/create"
@@ -12,7 +13,8 @@ require "../kubernetes/installer"
 require "../util/ssh"
 
 class Cluster::Create
-  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
+  MAX_PLACEMENT_GROUPS = 50
+  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10 # Assuming this is the maximum number of instances per placement group
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -52,22 +54,26 @@ class Cluster::Create
   end
 
   private property mutex : Mutex = Mutex.new
+  private property all_placement_groups : Array(Hetzner::PlacementGroup) = Array(Hetzner::PlacementGroup).new
 
   def initialize(@configuration)
     @network = find_or_create_network
     @firewall = configure_firewall
     @ssh_key = create_ssh_key
+    fetch_existing_placement_groups
   end
 
   def run
-    create_instances
+    create_resources
+
+    refresh_and_delete_unused_placement_groups
   end
 
   private def initialize_masters
     creators = Array(Hetzner::Instance::Create).new
 
     masters_pool = settings.masters_pool
-    placement_group = create_placement_group
+    placement_group = create_placement_group_for_masters
 
     masters_pool.instance_count.times do |i|
       creators << create_master_instance(i, placement_group)
@@ -76,14 +82,32 @@ class Cluster::Create
     creators
   end
 
-  private def create_placement_group
-    Hetzner::PlacementGroup::Create.new(
-      hetzner_client: hetzner_client,
-      placement_group_name: "#{settings.cluster_name}-masters"
-    ).run
+  private def create_placement_group_for_masters
+    placement_group_name = "#{settings.cluster_name}-masters"
+
+    placement_group = all_placement_groups.find { |pg| pg.name == placement_group_name }
+
+    unless placement_group
+      placement_group = Hetzner::PlacementGroup::Create.new(
+        hetzner_client: hetzner_client,
+        placement_group_name: placement_group_name
+      ).run
+
+      track_placement_group(placement_group)
+    end
+
+    placement_group
   end
 
-  private def create_master_instance(index : Int32, placement_group)
+  private def track_placement_group(placement_group)
+    mutex.synchronize do
+      unless all_placement_groups.any? { |pg| pg.name == placement_group.name }
+        all_placement_groups << placement_group
+      end
+    end
+  end
+
+  private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     instance_type = settings.masters_pool.instance_type
     master_name = "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
     image = settings.masters_pool.image || settings.image
@@ -97,10 +121,10 @@ class Cluster::Create
       instance_name: master_name,
       instance_type: instance_type,
       image: image,
-      placement_group: placement_group,
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
+      placement_group: placement_group,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
@@ -110,9 +134,9 @@ class Cluster::Create
     creators = Array(Hetzner::Instance::Create).new
     no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
 
-    no_autoscaling_worker_node_pools.each do |node_pool|
-      placement_groups = create_placement_groups_for_node_pool(node_pool)
+    create_placement_groups_for_worker_node_pools(no_autoscaling_worker_node_pools)
 
+    no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
         placement_group = placement_groups[i % placement_groups.size]
         creators << create_worker_instance(i, node_pool, placement_group)
@@ -122,14 +146,55 @@ class Cluster::Create
     creators
   end
 
-  private def create_placement_groups_for_node_pool(node_pool)
-    placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
+  private def initialize_worker_nodes
+    creators = Array(Hetzner::Instance::Create).new
+    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
 
+    create_placement_groups_for_worker_node_pools(no_autoscaling_worker_node_pools)
+
+    no_autoscaling_worker_node_pools.each do |node_pool|
+      node_pool_placement_groups = all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
+      node_pool.instance_count.times do |i|
+        placement_group = node_pool_placement_groups[i % node_pool_placement_groups.size]
+        creators << create_worker_instance(i, node_pool, placement_group)
+      end
+    end
+
+    creators
+  end
+
+  private def create_placement_groups_for_worker_node_pools(node_pools)
+    node_pools = node_pools.sort_by(&.name.not_nil!)
+
+    remaining_placement_groups = MAX_PLACEMENT_GROUPS - all_placement_groups.size
     placement_groups_channel = Channel(Hetzner::PlacementGroup).new
-    placement_groups = Array(Hetzner::PlacementGroup).new
+    created_placement_groups = 0
+
+    node_pools.each do |node_pool|
+      next if node_pool.instance_count <= 0
+
+      created_placement_groups += create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
+      remaining_placement_groups -= created_placement_groups
+
+      break if remaining_placement_groups <= 0
+    end
+
+    created_placement_groups.times { placement_groups_channel.receive }
+  end
+
+  private def delete_unused_placement_groups
+    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+  end
+
+  private def create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
+    placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
+    placement_groups_count = [placement_groups_count, remaining_placement_groups].min
+    created_placement_groups = 0
 
     (1..placement_groups_count).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
+
+      next if all_placement_groups.any? { |pg| pg.name == placement_group_name }
 
       spawn do
         placement_group = Hetzner::PlacementGroup::Create.new(
@@ -137,18 +202,18 @@ class Cluster::Create
           placement_group_name: placement_group_name
         ).run
 
+        track_placement_group(placement_group)
         placement_groups_channel.send(placement_group)
       end
+
+      created_placement_groups += 1
+      break if remaining_placement_groups - created_placement_groups <= 0
     end
 
-    placement_groups_count.times do
-      placement_groups << placement_groups_channel.receive
-    end
-
-    placement_groups
+    created_placement_groups
   end
 
-  private def create_worker_instance(index : Int32, node_pool, placement_group)
+  private def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     instance_type = node_pool.instance_type
     node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
     image = node_pool.image || settings.image
@@ -163,10 +228,10 @@ class Cluster::Create
       instance_type: instance_type,
       image: image,
       location: node_pool.location,
-      placement_group: placement_group,
       ssh_key: ssh_key,
       firewall: firewall,
       network: network,
+      placement_group: placement_group,
       additional_packages: additional_packages,
       additional_post_create_commands: additional_post_create_commands
     )
@@ -200,7 +265,9 @@ class Cluster::Create
     end
   end
 
-  private def create_instances
+  private def create_resources
+    delete_unused_placement_groups
+
     create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
     create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
 
@@ -267,5 +334,14 @@ class Cluster::Create
 
   private def workers
     instances.select { |instance| instance.master? }.sort_by(&.name)
+  end
+
+  private def fetch_existing_placement_groups
+    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).run
+  end
+
+  private def refresh_and_delete_unused_placement_groups
+    fetch_existing_placement_groups
+    delete_unused_placement_groups
   end
 end
