@@ -12,7 +12,7 @@ require "../kubernetes/installer"
 require "../util/ssh"
 
 class Cluster::Create
-  MAX_INSTANCES_PER_PLACEMENT_GROUP = 7
+  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -126,6 +126,7 @@ class Cluster::Create
     placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
 
     placement_groups_channel = Channel(Hetzner::PlacementGroup).new
+    placement_groups = Array(Hetzner::PlacementGroup).new
 
     (1..placement_groups_count).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
@@ -139,8 +140,6 @@ class Cluster::Create
         placement_groups_channel.send(placement_group)
       end
     end
-
-    placement_groups = Array(Hetzner::PlacementGroup).new
 
     placement_groups_count.times do
       placement_groups << placement_groups_channel.receive
