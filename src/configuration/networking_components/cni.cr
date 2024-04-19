@@ -9,6 +9,10 @@ class Configuration::NetworkingComponents::CNI
   def initialize
   end
 
+  def mode
+    enabled ? @mode : "none"
+  end
+
   def validate(errors, private_network)
     if enabled && !["flannel"].includes?(mode)
       errors << "CNI must be 'flannel'"
