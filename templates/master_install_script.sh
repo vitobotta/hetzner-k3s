@@ -16,7 +16,7 @@ else
   NETWORK_INTERFACE=" "
 fi
 
-if [[ "{{ cni }}" = "flannel" ]]; then
+if [[ "{{ flannel }}" = "true" ]]; then
   FLANNEL_SETTINGS=" {{ flannel_backend }} $NETWORK_INTERFACE "
 else
   FLANNEL_SETTINGS=" --flannel-backend=none --disable-kube-proxy --disable-network-policy "
