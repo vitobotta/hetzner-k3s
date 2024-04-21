@@ -150,7 +150,6 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      cni: settings.networking.cni.mode,
       flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
@@ -171,7 +170,6 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      cni: settings.networking.cni.mode,
       api_server_ip_address: api_server_ip_address(master_count),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
@@ -180,7 +178,7 @@ class Kubernetes::Installer
   end
 
   private def find_flannel_backend
-    return " " unless configuration.settings.networking.cni.encryption
+    return " " unless configuration.settings.networking.flannel.encryption
 
     available_releases = K3s.available_releases
     selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
