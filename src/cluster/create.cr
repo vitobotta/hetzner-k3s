@@ -56,7 +56,7 @@ class Cluster::Create
   private property all_placement_groups : Array(Hetzner::PlacementGroup) = Array(Hetzner::PlacementGroup).new
 
   def initialize(@configuration)
-    @network = find_or_create_network
+    @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
     fetch_existing_placement_groups
   end

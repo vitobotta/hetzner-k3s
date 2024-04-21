@@ -157,9 +157,8 @@ networking:
     enabled : true
     subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same
     existing_network_name: "" # if you want to use an existing network, specify the name here
-  cni:
+  flannel:
     enabled: true  # set to false if you want to install some CNI other than Flannel
-    mode: flannel
     encryption: false
   cluster_cidr: 10.244.0.0/16
   service_cidr: 10.43.0.0/16
