@@ -18,7 +18,7 @@
 
 ## What is this?
 
-This is a CLI tool to super quickly and super easily create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/). In a recent test I created a 50 node HA cluster (3 masters, 47 worker nodes) in just **2 minutes and 42 seconds**. I believe this is a world record :)
+This is a CLI tool to super quickly and super easily create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/). In a recent test I created a 200 node HA cluster (3 masters, 197 worker nodes) in just under **4 minutes** (when using only public network since private networks are limited to 100 instances per network). I believe this is a world record :)
 
 Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market and locations in both Europe and USA.
 
