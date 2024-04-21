@@ -319,7 +319,7 @@ class Kubernetes::Installer
       sans << "--tls-san=#{master_public_ip}"
     end
 
-    sans.uniq.join(" ")
+    sans.uniq.sort.join(" ")
   end
 
   private def install_software(master_count)
