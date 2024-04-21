@@ -28,4 +28,3 @@ actions-runner
 .zsh_history
 temp
 docker-compose.override.yml
-cilium
