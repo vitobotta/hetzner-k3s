@@ -18,11 +18,10 @@ class Hetzner::Instance
   def private_ip_address
     net = private_net
 
-    if net.try(&.empty?)
-      public_ip_address
-    elsif net
-      net[0].ip
-    end
+    return public_ip_address unless net
+    return if net.try(&.empty?)
+
+    net[0].ip
   end
 
   def host_ip_address

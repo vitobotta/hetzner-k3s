@@ -324,7 +324,6 @@ class Kubernetes::Installer
   end
 
   private def install_software(master_count)
-    Kubernetes::Software::Cilium.new(configuration, settings).install
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install

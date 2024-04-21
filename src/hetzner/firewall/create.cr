@@ -114,21 +114,10 @@ class Hetzner::Firewall::Create
           destination_ips: [] of String
         },
         {
-          description: "Allow wireguard traffic (default)",
+          description: "Allow wireguard traffic",
           direction: "in",
           protocol: "tcp",
           port: "51821",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
-        },
-        {
-          description: "Allow wireguard traffic (cilium)",
-          direction: "in",
-          protocol: "tcp",
-          port: "51871",
           source_ips: [
             "0.0.0.0/0",
             "::/0"
