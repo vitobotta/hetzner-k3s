@@ -274,17 +274,32 @@ class Cluster::Create
     delete_unused_placement_groups
 
     create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
-    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
 
     configure_firewall
-    create_load_balancer if settings.masters_pool.instance_count > 1
+    create_load_balancer if master_instance_creators.size > 1
 
-    kubernetes_installer.run(
-      masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
-      workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
-      master_count: master_instance_creators.size,
-      worker_count: worker_instance_creators.size
+    kubernetes_installer = Kubernetes::Installer.new(
+      configuration,
+      load_balancer,
+      ssh_client,
+      autoscaling_worker_node_pools,
+      cluster_state,
+      state_file_path
     )
+
+    spawn do
+      kubernetes_installer.run(
+        masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
+        workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
+        completed_channel: completed_channel,
+        master_count: master_instance_creators.size,
+        worker_count: worker_instance_creators.size
+      )
+    end
+
+    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
+
+    completed_channel.receive
   end
 
   private def find_network
