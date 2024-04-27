@@ -17,15 +17,29 @@ class Hetzner::Client
   end
 
   def locations : Array(Location)
-    @locations ||= Hetzner::LocationsList.from_json(get("/locations")).locations
-  rescue ex : Crest::RequestFailed
-    @locations = [] of Location
+    @locations ||= begin
+      success, response = get("/locations")
+
+      if success
+        Hetzner::LocationsList.from_json(response).locations
+      else
+        puts "[Preflight checks] Unable to fetch locations via Hetzner API"
+        exit 1
+      end
+    end
   end
 
   def instance_types : Array(InstanceType)
-    @instance_types ||= Hetzner::InstanceTypesList.from_json(get("/server_types")).server_types
-  rescue ex : Crest::RequestFailed
-    @instance_types = [] of InstanceType
+    @instance_types ||= begin
+      success, response = get("/server_types")
+
+      if success
+        Hetzner::InstanceTypesList.from_json(response).server_types
+      else
+        puts "[Preflight checks] Unable to fetch instance types via Hetzner API"
+        exit 1
+      end
+    end
   end
 
   def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String
@@ -84,7 +98,7 @@ class Hetzner::Client
   end
 
   private def headers
-    {
+    @headers ||= {
       "Authorization" => "Bearer #{token}",
     }
   end
@@ -99,7 +113,7 @@ class Hetzner::Client
 
     while wait_time > 0
       reset_time = Time.utc.to_unix + wait_time
-      puts "Hetzner API Rate Limit hit. Waiting until #{Time.unix(reset_time).to_s} for reset..."
+      puts "[Hetzner API] Rate Limit hit. Waiting until #{Time.unix(reset_time).to_s} for reset..."
       sleep_time = [wait_time, 5].min
       sleep(sleep_time)
       wait_time -= sleep_time
