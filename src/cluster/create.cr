@@ -26,9 +26,6 @@ class Cluster::Create
   private getter autoscaling_worker_node_pools : Array(Configuration::NodePool) do
     settings.worker_node_pools.select(&.autoscaling_enabled)
   end
-  private getter kubernetes_installer : Kubernetes::Installer do
-    Kubernetes::Installer.new(configuration, load_balancer, ssh_client, autoscaling_worker_node_pools)
-  end
   private getter ssh_client : Util::SSH do
     Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
   end
@@ -46,11 +43,13 @@ class Cluster::Create
   end
 
   private property kubernetes_masters_installation_queue_channel do
-    Channel(Hetzner::Instance).new
+    Channel(Hetzner::Instance).new(5)
   end
   private property kubernetes_workers_installation_queue_channel do
-    Channel(Hetzner::Instance).new
+    Channel(Hetzner::Instance).new(10)
   end
+
+  private property completed_channel : Channel(Nil) = Channel(Nil).new
 
   private property mutex : Mutex = Mutex.new
   private property all_placement_groups : Array(Hetzner::PlacementGroup) = Array(Hetzner::PlacementGroup).new
