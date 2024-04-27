@@ -33,13 +33,18 @@ class Hetzner::LoadBalancer::Create
     end
 
     load_balancer.not_nil!
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to create load balancer: #{ex.message}"
-    exit 1
   end
 
   private def create_load_balancer
-    hetzner_client.post("/load_balancers", load_balancer_config)
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post("/load_balancers", load_balancer_config)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to create load balancer: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to create load balancer in 5 seconds..."
+        raise "Failed to create load balancer"
+      end
+    end
   end
 
   private def wait_for_load_balancer_public_ip
