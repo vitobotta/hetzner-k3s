@@ -72,6 +72,17 @@ class Hetzner::Firewall::Create
         destination_ips: [] of String
       },
       {
+        description: "Node port range",
+        direction: "in",
+        protocol: "tcp",
+        port: "30000-32767",
+        source_ips: [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        destination_ips: [] of String
+      },
+      {
         description: "Allow port 6443 (Kubernetes API server)",
         direction: "in",
         protocol: "tcp",
