@@ -14,6 +14,7 @@ require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
 require "./software/cluster_autoscaler"
+require "../cluster_state"
 
 class Kubernetes::Installer
   include Util
@@ -31,25 +32,33 @@ class Kubernetes::Installer
   getter ssh : ::Util::SSH
 
   private getter first_master : Hetzner::Instance?
+  private getter cluster_state : ClusterState
+  private getter state_file_path : String
 
   def initialize(
       @configuration,
       @load_balancer,
       @ssh,
-      @autoscaling_worker_node_pools
+      @autoscaling_worker_node_pools,
+      @cluster_state,
+      @state_file_path
     )
   end
 
-  def run(masters_installation_queue_channel, workers_installation_queue_channel, master_count, worker_count)
+  def run(masters_installation_queue_channel, workers_installation_queue_channel, completed_channel, master_count, worker_count)
     ensure_kubectl_is_installed!
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
     set_up_workers(workers_installation_queue_channel, worker_count, master_count)
 
+    cluster_state.write(state_file_path)
+
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
 
     install_software(master_count)
+
+    completed_channel.send(nil)
   end
 
   private def set_up_control_plane(masters_installation_queue_channel, master_count)
