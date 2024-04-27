@@ -244,13 +244,22 @@ class Cluster::Create
 
   private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel, wait = false)
     wait_channel = Channel(Hetzner::Instance::Create).new
+    semaphore = Channel(Nil).new(10)
 
     instance_creators.each do |instance_creator|
+      semaphore.send(nil)
       spawn do
-        instance = instance_creator.run
-        mutex.synchronize { instances << instance }
-        wait_channel = wait_channel.send(instance_creator) if wait
-        kubernetes_installation_queue_channel.send(instance)
+        instance = nil
+        begin
+          instance = instance_creator.run
+          semaphore.receive # release the semaphore immediately after instance creation
+        ensure
+          if instance
+            mutex.synchronize { instances << instance }
+            wait_channel = wait_channel.send(instance_creator) if wait
+            kubernetes_installation_queue_channel.send(instance)
+          end
+        end
       end
     end
 
