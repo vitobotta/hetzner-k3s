@@ -23,7 +23,7 @@ class Configuration::Main
   getter kube_cloud_controller_manager_args : Array(String) = [] of String
   getter kubelet_args : Array(String) = [] of String
   getter kube_proxy_args : Array(String) = [] of String
-  getter image : String = "ubuntu-22.04"
+  getter image : String = "ubuntu-24.04"
   getter autoscaling_image : String?
   getter snapshot_os : String = "default"
   getter networking : Configuration::Networking = Configuration::Networking.new

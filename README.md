@@ -164,7 +164,7 @@ networking:
   service_cidr: 10.43.0.0/16
   cluster_dns: 10.43.0.10
 
-image: ubuntu-22.04
+image: ubuntu-24.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # optional: specified the os type when using a custom snapshot
 
