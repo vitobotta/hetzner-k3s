@@ -32,10 +32,6 @@ class Hetzner::SSHKey::Create
     end
 
     ssh_key.not_nil!
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to create SSH key: #{ex.message}"
-    exit 1
   end
 
   private def create_ssh_key
@@ -44,7 +40,15 @@ class Hetzner::SSHKey::Create
         "public_key" => File.read(public_ssh_key_path).chomp
     }
 
-    hetzner_client.post("/ssh_keys", ssh_key_config)
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post("/ssh_keys", ssh_key_config)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to create SSH key: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to create SSH key in 5 seconds"
+        raise "Failed to create SSH key"
+      end
+    end
   end
 
   private def default_log_prefix

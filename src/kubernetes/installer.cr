@@ -106,7 +106,17 @@ class Kubernetes::Installer
   private def set_up_first_master(master_count : Int)
     log_line "Deploying k3s...", log_prefix: "Instance #{first_master.name}"
 
-    output = ssh.run(first_master, settings.networking.ssh.port, master_install_script(first_master, master_count), settings.networking.ssh.use_agent)
+    install_script = master_install_script(first_master, master_count)
+    # new_script_hash = Digest::SHA256.hexdigest(install_script)
+
+    # unless cluster_state.seed_master_install_script_sha256.empty? || new_script_hash == cluster_state.seed_master_install_script_sha256
+    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{first_master.name} - CNI"
+    #   ssh.run(first_master, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
+    #   log_line "...Cilium networking reset", log_prefix: "Instance #{first_master.name} - CNI"
+    #   cluster_state.seed_master_install_script_sha256 = new_script_hash
+    # end
+
+    output = ssh.run(first_master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
 
     log_line  "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
 
@@ -125,17 +135,77 @@ class Kubernetes::Installer
     end
 
     log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
+
+    command = <<-BASH
+    helm repo add cilium https://helm.cilium.io/
+
+    helm upgrade --install \
+    --version v1.15.4 \
+    --namespace kube-system \
+    --set encryption.enabled=true \
+    --set encryption.type=wireguard \
+    --set encryption.nodeEncryption=true \
+    --set routingMode=tunnel \
+    --set tunnelProtocol=vxlan \
+    --set kubeProxyReplacement=true \
+    --set hubble.enabled=true \
+    --set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}" \
+    --set hubble.relay.enabled=true \
+    --set hubble.ui.enabled=true \
+    --set k8sServiceHost=127.0.0.1 \
+    --set k8sServicePort=6444 \
+    --set operator.replicas=1 \
+    cilium cilium/cilium
+
+    kubectl -n kube-system rollout status ds cilium
+
+    #kubectl get pods --all-namespaces -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,HOSTNETWORK:.spec.hostNetwork --no-headers=true | grep '<none>' | awk '{print "-n "$1" "$2}' | xargs -r kubectl delete pod
+
+    helm upgrade --install \
+    --version v0.0.22 \
+    --create-namespace \
+    --namespace spegel \
+    --set spegel.containerdSock=/run/k3s/containerd/containerd.sock \
+    --set spegel.containerdContentPath=/var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content \
+    --set spegel.containerdRegistryConfigPath=/var/lib/rancher/k3s/agent/etc/containerd/certs.d \
+    --set spegel.logLevel="DEBUG" \
+    spegel oci://ghcr.io/spegel-org/helm-charts/spegel
+    BASH
+
+    result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
   end
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
     log_line "Deploying k3s...", log_prefix: "Instance #{master.name}"
-    ssh.run(master, settings.networking.ssh.port, master_install_script(master, master_count), settings.networking.ssh.use_agent)
+
+    install_script = master_install_script(master, master_count)
+    # new_script_hash = Digest::SHA256.hexdigest(install_script)
+
+    # unless cluster_state.other_master_install_script_sha256.empty? || new_script_hash == cluster_state.other_master_install_script_sha256
+    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{first_master.name} - CNI"
+    #   ssh.run(first_master, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
+    #   log_line "...Cilium networking reset", log_prefix: "Instance #{first_master.name} - CNI"
+    #   cluster_state.other_master_install_script_sha256 = new_script_hash
+    # end
+
+    ssh.run(master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
   private def deploy_k3s_to_worker(worker : Hetzner::Instance, master_count)
     log_line "Deploying k3s to worker #{worker.name}...", log_prefix: "Instance #{worker.name}"
-    ssh.run(worker, settings.networking.ssh.port, worker_install_script(master_count), settings.networking.ssh.use_agent)
+
+    install_script = worker_install_script(master_count)
+    # new_script_hash = Digest::SHA256.hexdigest(install_script)
+
+    # unless cluster_state.worker_install_script_sha256.empty? || new_script_hash == cluster_state.worker_install_script_sha256
+    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{worker.name} - CNI"
+    #   ssh.run(worker, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
+    #   log_line "...Cilium networking reset", log_prefix: "Instance #{worker.name} - CNI"
+    #   cluster_state.worker_install_script_sha256 = new_script_hash
+    # end
+
+    ssh.run(worker, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 

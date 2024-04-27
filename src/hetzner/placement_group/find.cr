@@ -16,11 +16,17 @@ class Hetzner::PlacementGroup::Find
   end
 
   private def fetch_placement_groups
-    response = hetzner_client.get("/placement_groups", { :name => placement_group_name })
-    PlacementGroupsList.from_json(response).placement_groups
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to fetch placement groups: #{ex.message}"
-    exit 1
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.get("/placement_groups", { :name => placement_group_name })
+
+      if success
+        PlacementGroupsList.from_json(response).placement_groups
+      else
+        STDERR.puts "[#{default_log_prefix}] Failed to fetch placement group #{placement_group_name}: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to fetch placement group #{placement_group_name} in 5 seconds..."
+        raise "Failed to fetch placement groups"
+      end
+    end
   end
 
   private def default_log_prefix

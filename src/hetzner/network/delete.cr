@@ -17,7 +17,15 @@ class Hetzner::Network::Delete
     if network = network_finder.run
       log_line "Deleting private network..."
 
-      hetzner_client.delete("/networks", network.id)
+      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+        success, response = hetzner_client.delete("/networks", network.id)
+
+        unless success
+          STDERR.puts "[#{default_log_prefix}] Failed to delete private network: #{response}"
+          STDERR.puts "[#{default_log_prefix}] Retrying to delete private network in 5 seconds..."
+          raise "Failed to delete private network"
+        end
+      end
 
       log_line "...private network deleted"
     else
@@ -25,10 +33,6 @@ class Hetzner::Network::Delete
     end
 
     network_name
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to delete network: #{ex.message}"
-    exit 1
   end
 
   private def default_log_prefix

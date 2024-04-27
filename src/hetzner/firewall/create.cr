@@ -39,12 +39,16 @@ class Hetzner::Firewall::Create
       action_path = "/firewalls"
     end
 
-    begin
-      hetzner_client.post(action_path, firewall_config)
-      log_line action == :update ? "...firewall updated" : "...firewall created"
-    rescue ex : Crest::RequestFailed
-      STDERR.puts "[#{default_log_prefix}] Failed to create or update firewall: #{ex.message}"
-      exit 1
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post(action_path, firewall_config)
+
+      if success
+        log_line action == :update ? "...firewall updated" : "...firewall created"
+      else
+        STDERR.puts "[#{default_log_prefix}] Failed to create or update firewall: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to create or update firewall in 5 seconds..."
+        raise "Failed to create or update firewall"
+      end
     end
 
     firewall = firewall_finder.run

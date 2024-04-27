@@ -86,7 +86,8 @@ class Hetzner::Instance::Create
     loop do
       attempts += 1
       log_line "Creating instance #{instance_name} (attempt #{attempts})..."
-      success, _response = hetzner_client.post("/servers", instance_config)
+      success, response = hetzner_client.post("/servers", instance_config)
+      puts response unless success
       break if success
     end
 

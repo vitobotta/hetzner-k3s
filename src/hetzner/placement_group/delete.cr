@@ -30,18 +30,22 @@ class Hetzner::PlacementGroup::Delete
         log_line "Deleting placement group #{placement_group_name}..."
       end
 
-      hetzner_client.delete("/placement_groups", placement_group.id)
+      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+        success, response = hetzner_client.delete("/placement_groups", placement_group.id)
 
-      log_line "...placement group #{placement_group_name} deleted"
+        if success
+          log_line "...placement group #{placement_group_name} deleted"
+        else
+          STDERR.puts "[#{default_log_prefix}] Failed to delete placement group #{placement_group_name}: #{response}"
+          STDERR.puts "[#{default_log_prefix}] Retrying to delete placement group #{placement_group_name} in 5 seconds..."
+          raise "Failed to delete placement group"
+        end
+      end
     else
       log_line "Placement group #{placement_group_name} does not exist, skipping delete"
     end
 
     placement_group_name
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to delete placement group: #{ex.message}"
-    exit 1
   end
 
   private def default_log_prefix

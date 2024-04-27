@@ -22,10 +22,8 @@ class Hetzner::SSHKey::Delete
     return handle_existing_ssh_key(ssh_key) if ssh_key.name == ssh_key_name
 
     log_line "An SSH key with the expected fingerprint existed before creating the cluster, so I won't delete it"
+
     ssh_key_name
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "[#{default_log_prefix}] Failed to delete ssh key: #{ex.message}"
-    exit 1
   end
 
   private def handle_no_ssh_key
@@ -35,8 +33,19 @@ class Hetzner::SSHKey::Delete
 
   private def handle_existing_ssh_key(ssh_key)
     log_line "Deleting SSH key..."
-    hetzner_client.delete("/ssh_keys", ssh_key.id)
-    log_line "...SSH key deleted"
+
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.delete("/ssh_keys", ssh_key.id)
+
+      if success
+        log_line "...SSH key deleted"
+      else
+        STDERR.puts "[#{default_log_prefix}] Failed to delete ssh key: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete ssh key in 5 seconds..."
+        raise "Failed to delete ssh key"
+      end
+    end
+
     ssh_key_name
   end
 
