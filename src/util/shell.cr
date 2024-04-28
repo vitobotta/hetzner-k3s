@@ -47,7 +47,7 @@ module Util
       result = CommandResult.new(output, status.exit_code)
 
       unless result.success?
-        log_line "#{error_message}: #{result.output}", log_prefix: log_prefix
+        log_line "#{error_message}: #{result.output}", log_prefix: log_prefix if print_output
         exit 1 if abort_on_error
       end
 
