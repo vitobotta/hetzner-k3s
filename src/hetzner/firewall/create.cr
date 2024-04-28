@@ -116,41 +116,46 @@ class Hetzner::Firewall::Create
         }
       ]
     else
-      rules += [
-        {
-          description: "Allow wireguard traffic (default)",
-          direction: "in",
-          protocol: "tcp",
-          port: "51820",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
-        },
-        {
-          description: "Allow wireguard traffic",
-          direction: "in",
-          protocol: "tcp",
-          port: "51821",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
-        },
-        {
-          description: "Allow wireguard traffic (Cilium)",
-          direction: "in",
-          protocol: "tcp",
-          port: "51871",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
-        }
-      ]
+      if settings.networking.cni.cilium?
+        rules += [
+          {
+            description: "Allow wireguard traffic (Cilium)",
+            direction: "in",
+            protocol: "tcp",
+            port: "51871",
+            source_ips: [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            destination_ips: [] of String
+          }
+        ]
+      else
+        rules += [
+          {
+            description: "Allow wireguard traffic (default)",
+            direction: "in",
+            protocol: "tcp",
+            port: "51820",
+            source_ips: [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            destination_ips: [] of String
+          },
+          {
+            description: "Allow wireguard traffic",
+            direction: "in",
+            protocol: "tcp",
+            port: "51821",
+            source_ips: [
+              "0.0.0.0/0",
+              "::/0"
+            ],
+            destination_ips: [] of String
+          }
+        ]
+      end
 
       if masters.size > 0
         master_ips = masters.map do |master|
