@@ -201,7 +201,13 @@ class Kubernetes::Installer
     elsif cni.flannel?
       " "
     else
-      " --flannel-backend=none --disable-kube-proxy --disable-network-policy "
+      args = [
+        "--flannel-backend=none",
+        "--disable-network-policy"
+      ]
+
+      args << "--disable-kube-proxy" unless cni.kube_proxy?
+      args.join(" ")
     end
   end
 
