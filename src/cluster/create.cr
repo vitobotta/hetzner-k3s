@@ -11,7 +11,6 @@ require "../hetzner/load_balancer/create"
 require "../util/ssh"
 require "../kubernetes/installer"
 require "../util/ssh"
-require "../cluster_state"
 
 class Cluster::Create
   MAX_PLACEMENT_GROUPS = 50
@@ -54,15 +53,10 @@ class Cluster::Create
 
   private property mutex : Mutex = Mutex.new
   private property all_placement_groups : Array(Hetzner::PlacementGroup) = Array(Hetzner::PlacementGroup).new
-  private property cluster_state : ClusterState
-  private property state_file_path : String
 
   def initialize(@configuration)
     @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
-    @state_file_path = File.expand_path("./#{settings.cluster_name}.state")
-    File.write(state_file_path, "---") unless File.exists?(state_file_path)
-    @cluster_state = ClusterState.read(@state_file_path)
     fetch_existing_placement_groups
   end
 
@@ -287,9 +281,7 @@ class Cluster::Create
       configuration,
       load_balancer,
       ssh_client,
-      autoscaling_worker_node_pools,
-      cluster_state,
-      state_file_path
+      autoscaling_worker_node_pools
     )
 
     spawn do

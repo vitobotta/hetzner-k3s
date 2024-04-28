@@ -32,7 +32,6 @@ class Cluster::Delete
     delete_network
     delete_firewall
     delete_ssh_key
-    delete_state_file
   end
 
   private def delete_load_balancer
@@ -106,10 +105,5 @@ class Cluster::Delete
 
   private def delete_placement_groups
     Hetzner::PlacementGroup::All.new(hetzner_client).delete_all
-  end
-
-  private def delete_state_file
-    state_file_path = File.expand_path("./#{settings.cluster_name}.state")
-    File.delete(state_file_path) if File.exists?(state_file_path)
   end
 end
