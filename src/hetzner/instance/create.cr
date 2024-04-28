@@ -251,6 +251,8 @@ class Hetzner::Instance::Create
   end
 
   private def find_instance_with_kubectl
+    return nil unless File.exists?(settings.kubeconfig_path)
+
     command = %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
 
     result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
