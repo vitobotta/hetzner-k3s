@@ -6,9 +6,11 @@ require "../placement_group"
 require "./find"
 require "../../util"
 require "../../util/ssh"
+require "../../util/shell"
 
 class Hetzner::Instance::Create
   include Util
+  include Util::Shell
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
@@ -65,7 +67,7 @@ class Hetzner::Instance::Create
   end
 
   def run
-    instance = instance_finder.run
+    instance = find_instance_with_kubectl || instance_finder.run
 
     if instance
       @instance_existed = true
@@ -246,5 +248,32 @@ class Hetzner::Instance::Create
 
   private def default_log_prefix
     "Instance #{instance_name}"
+  end
+
+  private def find_instance_with_kubectl
+    command = %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
+
+    result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
+
+    if result.success?
+      internal_ip, external_ip = result.output.split("\n")
+
+      unless internal_ip.blank? && external_ip.blank?
+        instance = Hetzner::Instance.new(
+          id: Random::Secure.rand(Int32::MIN..Int32::MAX),
+          status: "running",
+          instance_name: instance_name,
+          internal_ip: internal_ip,
+          external_ip: external_ip
+        )
+
+        result = ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+
+        if result == "ready"
+          log_line "Instance was already a member of the cluster"
+          instance
+        end
+      end
+    end
   end
 end
