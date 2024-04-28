@@ -503,6 +503,33 @@ Please create a PR if you want to propose any changes, or open an issue if you a
 If you would like to financially support the project, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
 
 ___
+## Building from source
+
+This tool is written in [Crystal](https://crystal-lang.org/). To build it, or to make some changes in the code and try them, you will need to install Crystal locally, or to work in a container. This repository contains a Dockerfile that builds a container image with Crystal as well as the other required dependencies. There is also a Compose file to conveniently run a container using that image, and mount the source code into the container.
+
+To build and run the development container, run:
+```bash
+docker compose up -d
+```
+
+Then, to enter the container:
+```bash
+docker compose exec hetzner-k3s bash
+```
+
+Once inside the container, you can run `hetzner-k3s` like this:
+```bash
+crystal run ./src/hetzner-k3s.cr -- create --config cluster_config.yaml
+```
+
+To generate a binary, you can do:
+```bash
+crystal build ./src/hetzner-k3s.cr --static
+```
+
+The `--static` flag will make sure that the resulting binary is statically linked, and doesn't have dependencies on libraries that may or may not be available on the system where you will want to run it.
+
+___
 ## License
 
 This tool is available as open source under the terms of the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
