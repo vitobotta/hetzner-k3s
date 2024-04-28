@@ -150,7 +150,7 @@ private_network_subnet: 10.0.0.0/16 # ensure this doesn't overlap with other net
 disable_flannel: false # set to true if you want to install a different CNI
 schedule_workloads_on_masters: false
 # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
-# service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs
+# service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
 # cluster_dns: 10.43.0.10 # optional: IPv4 Cluster IP for coredns service. Needs to be an address from the service_cidr range
 # enable_public_net_ipv4: false # default is true
 # enable_public_net_ipv6: false # default is true
