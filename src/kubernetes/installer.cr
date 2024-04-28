@@ -346,6 +346,7 @@ class Kubernetes::Installer
 
   private def install_software(master_count)
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
+    Kubernetes::Software::Spegel.new(configuration, settings).install if settings.additional_software.spegel.enabled
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
