@@ -161,6 +161,8 @@ networking:
     enabled: true  # set to false if you want to install some CNI other than Flannel or Cilium yourself
     encryption: false
     mode: flannel # other option is cilium
+    cilium:
+      chart_version: v1.15.4
   cluster_cidr: 10.244.0.0/16
   service_cidr: 10.43.0.0/16
   cluster_dns: 10.43.0.10
