@@ -10,6 +10,7 @@ require "../hetzner/instance"
 require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
+require "./software/cilium"
 require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
@@ -122,44 +123,6 @@ class Kubernetes::Installer
     end
 
     log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
-
-    command = <<-BASH
-    helm repo add cilium https://helm.cilium.io/
-
-    helm upgrade --install \
-    --version v1.15.4 \
-    --namespace kube-system \
-    --set encryption.enabled=true \
-    --set encryption.type=wireguard \
-    --set encryption.nodeEncryption=true \
-    --set routingMode=tunnel \
-    --set tunnelProtocol=vxlan \
-    --set kubeProxyReplacement=true \
-    --set hubble.enabled=true \
-    --set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}" \
-    --set hubble.relay.enabled=true \
-    --set hubble.ui.enabled=true \
-    --set k8sServiceHost=127.0.0.1 \
-    --set k8sServicePort=6444 \
-    --set operator.replicas=1 \
-    cilium cilium/cilium
-
-    kubectl -n kube-system rollout status ds cilium
-
-    #kubectl get pods --all-namespaces -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,HOSTNETWORK:.spec.hostNetwork --no-headers=true | grep '<none>' | awk '{print "-n "$1" "$2}' | xargs -r kubectl delete pod
-
-    helm upgrade --install \
-    --version v0.0.22 \
-    --create-namespace \
-    --namespace spegel \
-    --set spegel.containerdSock=/run/k3s/containerd/containerd.sock \
-    --set spegel.containerdContentPath=/var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content \
-    --set spegel.containerdRegistryConfigPath=/var/lib/rancher/k3s/agent/etc/containerd/certs.d \
-    --set spegel.logLevel="DEBUG" \
-    spegel oci://ghcr.io/spegel-org/helm-charts/spegel
-    BASH
-
-    result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
   end
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
@@ -376,6 +339,7 @@ class Kubernetes::Installer
   end
 
   private def install_software(master_count)
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
