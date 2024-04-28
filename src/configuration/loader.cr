@@ -51,13 +51,11 @@ class Configuration::Loader
   end
 
   getter instance_types : Array(Hetzner::InstanceType) do
-    instance_types = hetzner_client.instance_types
-    handle_api_errors(instance_types, "Cannot fetch instance types with Hetzner API, please try again later")
+    hetzner_client.instance_types
   end
 
   getter locations : Array(Hetzner::Location) do
-    locations = hetzner_client.locations
-    handle_api_errors(locations, "Cannot fetch locations with Hetzner API, please try again later")
+    hetzner_client.locations
   end
 
   getter new_k3s_version : String?
@@ -192,16 +190,6 @@ class Configuration::Loader
     end
 
     exit 1
-  end
-
-  private def handle_api_errors(data, error_message)
-    if data.empty?
-      errors << error_message
-      print_errors
-      exit 1
-    end
-
-    data
   end
 
   private def default_log_prefix
