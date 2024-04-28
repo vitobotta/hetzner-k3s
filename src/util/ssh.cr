@@ -20,24 +20,26 @@ class Util::SSH
     end
   end
 
-  def wait_for_instance(instance, port, use_ssh_agent, test_command, expected_result)
+  def wait_for_instance(instance, port, use_ssh_agent, test_command, expected_result, max_attempts : Int16 = 20)
+    result = nil
+
     loop do
       log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
 
       sleep 1
 
-      result = nil
-
-      Retriable.retry(on: Tasker::Timeout, backoff: false) do
+      Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(1.second) do
           result = run(instance, port, test_command, use_ssh_agent, false)
         end
       end
 
-      break if result == expected_result
+      break result if result == expected_result
     end
 
     log_line "...instance #{instance.name} is now up.", log_prefix: "Instance #{instance.name}"
+
+    result
   end
 
   private def run_command(instance, port, command, use_ssh_agent, print_output = true)
