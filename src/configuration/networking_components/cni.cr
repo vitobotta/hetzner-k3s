@@ -1,4 +1,5 @@
 require "./ciium"
+require "./flannel"
 
 class Configuration::NetworkingComponents::CNI
   include YAML::Serializable
@@ -8,6 +9,7 @@ class Configuration::NetworkingComponents::CNI
   getter mode : String = "flannel"
   getter encryption : Bool = true
   getter cilium : Configuration::NetworkingComponents::Cilium = Configuration::NetworkingComponents::Cilium.new
+  getter flannel : Configuration::NetworkingComponents::Flannel = Configuration::NetworkingComponents::Flannel.new
 
   def initialize
   end
@@ -38,5 +40,9 @@ class Configuration::NetworkingComponents::CNI
 
   def enabled?
     enabled
+  end
+
+  def kube_proxy?
+    cilium? ? false : !flannel.disable_kube_proxy?
   end
 end
