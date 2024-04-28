@@ -42,7 +42,7 @@ class Hetzner::Client
     end
   end
 
-  def get(path, params : Hash = {} of Symbol => String | Bool | Nil) : String
+  def get(path, params : Hash = {} of Symbol => String | Bool | Nil)
     response = with_rate_limit do
       Crest.get(
         "#{api_url}#{path}",
@@ -113,7 +113,8 @@ class Hetzner::Client
 
     while wait_time > 0
       reset_time = Time.utc.to_unix + wait_time
-      puts "[Hetzner API] Rate Limit hit. Waiting until #{Time.unix(reset_time).to_s} for reset..."
+      remaining_time = Time::Span.new(seconds: wait_time)
+      puts "[Hetzner API] Rate Limit hit. Waiting for #{remaining_time.total_hours.floor}h#{remaining_time.minutes.floor}m#{remaining_time.seconds.floor}s until reset..."
       sleep_time = [wait_time, 5].min
       sleep(sleep_time)
       wait_time -= sleep_time
