@@ -1,3 +1,5 @@
+require "./ciium"
+
 class Configuration::NetworkingComponents::CNI
   include YAML::Serializable
   include YAML::Serializable::Unmapped
@@ -5,6 +7,7 @@ class Configuration::NetworkingComponents::CNI
   getter enabled : Bool = true
   getter mode : String = "flannel"
   getter encryption : Bool = true
+  getter cilium : Configuration::NetworkingComponents::Cilium = Configuration::NetworkingComponents::Cilium.new
 
   def initialize
   end

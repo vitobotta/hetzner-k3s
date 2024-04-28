@@ -20,7 +20,7 @@ class Kubernetes::Software::Cilium
     helm repo add cilium https://helm.cilium.io/
 
     helm upgrade --install \
-    --version v1.15.4 \
+    --version #{settings.networking.cni.cilium.chart_version} \
     --namespace kube-system \
     --set encryption.enabled=true \
     --set encryption.type=wireguard \
