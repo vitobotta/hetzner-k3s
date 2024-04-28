@@ -22,9 +22,9 @@ class Kubernetes::Software::Cilium
     helm upgrade --install \
     --version #{settings.networking.cni.cilium.chart_version} \
     --namespace kube-system \
-    --set encryption.enabled=true \
+    --set encryption.enabled=#{settings.networking.cni.enabled.to_s} \
     --set encryption.type=wireguard \
-    --set encryption.nodeEncryption=true \
+    --set encryption.nodeEncryption=#{settings.networking.cni.enabled.to_s} \
     --set routingMode=tunnel \
     --set tunnelProtocol=vxlan \
     --set kubeProxyReplacement=true \
