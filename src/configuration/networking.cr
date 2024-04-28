@@ -1,4 +1,4 @@
-require "./networking_components/flannel"
+require "./networking_components/cni"
 require "./networking_components/allowed_networks"
 require "./networking_components/private_network"
 require "./networking_components/public_network"
@@ -11,7 +11,7 @@ module Configuration
     include YAML::Serializable
     include YAML::Serializable::Unmapped
 
-    getter flannel : ::Configuration::NetworkingComponents::Flannel = ::Configuration::NetworkingComponents::Flannel.new
+    getter cni : ::Configuration::NetworkingComponents::CNI = ::Configuration::NetworkingComponents::CNI.new
     getter private_network : ::Configuration::NetworkingComponents::PrivateNetwork = ::Configuration::NetworkingComponents::PrivateNetwork.new
     getter public_network : ::Configuration::NetworkingComponents::PublicNetwork = ::Configuration::NetworkingComponents::PublicNetwork.new
     getter allowed_networks : ::Configuration::NetworkingComponents::AllowedNetworks = ::Configuration::NetworkingComponents::AllowedNetworks.new
@@ -24,7 +24,7 @@ module Configuration
     end
 
     def validate(errors, hetzner_client, private_network)
-      flannel.validate(errors, private_network)
+      cni.validate(errors, private_network)
       allowed_networks.validate(errors)
       private_network.validate(errors, hetzner_client)
     end
