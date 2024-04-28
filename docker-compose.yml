@@ -6,6 +6,11 @@ volumes:
 
 services:
   hetzner-k3s:
+    # If you want to connect to your servers over IPv6 when running in a container,
+    # you will need to configure Docker to provide IPv6 connectivity to containers.
+    # Alternatively, if you're working on Linux and your host machine has IPv6,
+    # you can use "network_mode: host".
+    #network_mode: host
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -15,3 +20,4 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - kube:/root/.kube
       - vscode_cache:/vscode/vscode-server:cache
+    working_dir: /home/app/hetzner-k3s
