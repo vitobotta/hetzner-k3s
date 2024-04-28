@@ -133,9 +133,9 @@ class Hetzner::Client
     end
   end
 
-  private def handle_response(response)
+  private def handle_response(response) : Tuple(Bool, String)
     success = response.status_code >= 200 && response.status_code < 300
 
-    [success, response.body]
+    {success, response.body.to_s}
   end
 end
