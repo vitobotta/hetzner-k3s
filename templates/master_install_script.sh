@@ -16,10 +16,10 @@ else
   NETWORK_INTERFACE=" "
 fi
 
-if [[ "{{ flannel }}" = "true" ]]; then
+if [[ "{{ cni }}" = "true" ]] && [[ "{{ cni_mode }}" = "flannel" ]]; then
   FLANNEL_SETTINGS=" {{ flannel_backend }} $NETWORK_INTERFACE "
 else
-  FLANNEL_SETTINGS=" --flannel-backend=none --disable-kube-proxy --disable-network-policy "
+  FLANNEL_SETTINGS=" {{ flannel_backend }} "
 fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \

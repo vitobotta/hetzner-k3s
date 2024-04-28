@@ -35,6 +35,8 @@ class Kubernetes::Installer
   private getter cluster_state : ClusterState
   private getter state_file_path : String
 
+  private getter cni : Configuration::NetworkingComponents::CNI { cni }
+
   def initialize(
       @configuration,
       @load_balancer,
@@ -221,7 +223,6 @@ class Kubernetes::Installer
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{settings.datastore.external_datastore_endpoint}' "
     end
 
-    flannel_backend = find_flannel_backend
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
 
@@ -229,7 +230,8 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
       k3s_token: k3s_token,
-      flannel: settings.networking.cni.enabled.to_s,
+      cni: cni.enabled.to_s,
+      cni_mode: cni.mode,
       flannel_backend: flannel_backend,
       taint: taint,
       extra_args: extra_args,
@@ -253,19 +255,22 @@ class Kubernetes::Installer
       api_server_ip_address: api_server_ip_address(master_count),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
-      extra_args: kubelet_args_list,
-      flannel: settings.networking.cni.enabled.to_s
+      extra_args: kubelet_args_list
     })
   end
 
-  private def find_flannel_backend
-    return " " unless configuration.settings.networking.cni.encryption
+  private def flannel_backend
+    if cni.flannel? && cni.encryption?
+      available_releases = K3s.available_releases
+      selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
+      k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
 
-    available_releases = K3s.available_releases
-    selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
-    k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
-
-    selected_k3s_index >= k3s_1_23_6_index ? " --flannel-backend=wireguard-native " : " --flannel-backend=wireguard "
+      selected_k3s_index >= k3s_1_23_6_index ? " --flannel-backend=wireguard-native " : " --flannel-backend=wireguard "
+    elsif cni.flannel?
+      " "
+    else
+      " --flannel-backend=none --disable-kube-proxy --disable-network-policy "
+    end
   end
 
   private def kube_api_server_args_list
