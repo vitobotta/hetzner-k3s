@@ -14,7 +14,6 @@ require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
 require "./software/cluster_autoscaler"
-require "../cluster_state"
 
 class Kubernetes::Installer
   include Util
@@ -32,8 +31,6 @@ class Kubernetes::Installer
   getter ssh : ::Util::SSH
 
   private getter first_master : Hetzner::Instance?
-  private getter cluster_state : ClusterState
-  private getter state_file_path : String
 
   private getter cni : Configuration::NetworkingComponents::CNI { cni }
 
@@ -41,9 +38,7 @@ class Kubernetes::Installer
       @configuration,
       @load_balancer,
       @ssh,
-      @autoscaling_worker_node_pools,
-      @cluster_state,
-      @state_file_path
+      @autoscaling_worker_node_pools
     )
   end
 
@@ -52,8 +47,6 @@ class Kubernetes::Installer
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
     set_up_workers(workers_installation_queue_channel, worker_count, master_count)
-
-    cluster_state.write(state_file_path)
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
@@ -109,14 +102,6 @@ class Kubernetes::Installer
     log_line "Deploying k3s...", log_prefix: "Instance #{first_master.name}"
 
     install_script = master_install_script(first_master, master_count)
-    # new_script_hash = Digest::SHA256.hexdigest(install_script)
-
-    # unless cluster_state.seed_master_install_script_sha256.empty? || new_script_hash == cluster_state.seed_master_install_script_sha256
-    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{first_master.name} - CNI"
-    #   ssh.run(first_master, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
-    #   log_line "...Cilium networking reset", log_prefix: "Instance #{first_master.name} - CNI"
-    #   cluster_state.seed_master_install_script_sha256 = new_script_hash
-    # end
 
     output = ssh.run(first_master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
 
@@ -181,14 +166,6 @@ class Kubernetes::Installer
     log_line "Deploying k3s...", log_prefix: "Instance #{master.name}"
 
     install_script = master_install_script(master, master_count)
-    # new_script_hash = Digest::SHA256.hexdigest(install_script)
-
-    # unless cluster_state.other_master_install_script_sha256.empty? || new_script_hash == cluster_state.other_master_install_script_sha256
-    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{first_master.name} - CNI"
-    #   ssh.run(first_master, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
-    #   log_line "...Cilium networking reset", log_prefix: "Instance #{first_master.name} - CNI"
-    #   cluster_state.other_master_install_script_sha256 = new_script_hash
-    # end
 
     ssh.run(master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
@@ -198,14 +175,6 @@ class Kubernetes::Installer
     log_line "Deploying k3s to worker #{worker.name}...", log_prefix: "Instance #{worker.name}"
 
     install_script = worker_install_script(master_count)
-    # new_script_hash = Digest::SHA256.hexdigest(install_script)
-
-    # unless cluster_state.worker_install_script_sha256.empty? || new_script_hash == cluster_state.worker_install_script_sha256
-    #   log_line "Resetting Cilium networking due to k3s configuration changes...", log_prefix: "Instance #{worker.name} - CNI"
-    #   ssh.run(worker, settings.networking.ssh.port, cilium_rest_script, settings.networking.ssh.use_agent)
-    #   log_line "...Cilium networking reset", log_prefix: "Instance #{worker.name} - CNI"
-    #   cluster_state.worker_install_script_sha256 = new_script_hash
-    # end
 
     ssh.run(worker, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
