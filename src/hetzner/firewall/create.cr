@@ -133,7 +133,7 @@ class Hetzner::Firewall::Create
       else
         rules += [
           {
-            description: "Allow wireguard traffic (default)",
+            description: "Allow wireguard traffic",
             direction: "in",
             protocol: "tcp",
             port: "51820",
