@@ -63,7 +63,7 @@ class Hetzner::Instance::Create
     @private_ssh_key_path = settings.networking.ssh.private_key_path
     @public_ssh_key_path = settings.networking.ssh.public_key_path
 
-    @instance_finder = Hetzner::Instance::Find.new(@hetzner_client, @instance_name)
+    @instance_finder = Hetzner::Instance::Find.new(@settings, @hetzner_client, @instance_name)
   end
 
   def run
