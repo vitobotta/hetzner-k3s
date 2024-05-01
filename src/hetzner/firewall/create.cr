@@ -158,7 +158,7 @@ class Hetzner::Firewall::Create
       end
 
       if masters.size > 0
-        master_ips = masters.map do |master|
+\       master_ips = masters.map do |master|
           "#{master.public_ip_address}/32"
         end
 
