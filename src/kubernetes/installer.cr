@@ -101,8 +101,6 @@ class Kubernetes::Installer
   end
 
   private def set_up_first_master(master_count : Int)
-    log_line "Deploying k3s...", log_prefix: "Instance #{first_master.name}"
-
     install_script = master_install_script(first_master, master_count)
 
     output = ssh.run(first_master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
@@ -127,8 +125,6 @@ class Kubernetes::Installer
   end
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
-    log_line "Deploying k3s...", log_prefix: "Instance #{master.name}"
-
     install_script = master_install_script(master, master_count)
 
     ssh.run(master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
@@ -136,8 +132,6 @@ class Kubernetes::Installer
   end
 
   private def deploy_k3s_to_worker(worker : Hetzner::Instance, master_count)
-    log_line "Deploying k3s to worker #{worker.name}...", log_prefix: "Instance #{worker.name}"
-
     install_script = worker_install_script(master_count)
 
     ssh.run(worker, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
