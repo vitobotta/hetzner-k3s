@@ -259,6 +259,7 @@ class Hetzner::Instance::Create
 
     if result.success?
       internal_ip, external_ip = result.output.split("\n")
+      external_ip = internal_ip if external_ip.blank? # before CCM is installed external IP is not available
 
       unless internal_ip.blank? && external_ip.blank?
         instance = Hetzner::Instance.new(
