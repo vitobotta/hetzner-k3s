@@ -196,7 +196,7 @@ class Cluster::Create
     placement_groups_count = [placement_groups_count, remaining_placement_groups].min
     created_placement_groups = 0
 
-    (1..placement_groups_count).each do |index|
+    ((all_placement_groups.size + 1)..(all_placement_groups.size + placement_groups_count)).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
 
       next if all_placement_groups.any? { |pg| pg.name == placement_group_name }
