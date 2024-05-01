@@ -11,8 +11,15 @@ class Hetzner::Instance::Delete
   getter instance_name : String
   getter instance_finder : Hetzner::Instance::Find
 
-  def initialize(@hetzner_client, @instance_name)
-    @instance_finder = Hetzner::Instance::Find.new(@hetzner_client, @instance_name)
+  private getter settings : Configuration::Main
+  private getter ssh : Configuration::NetworkingComponents::SSH
+  private getter ssh_client : Util::SSH do
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
+  end
+
+  def initialize(@settings, @hetzner_client, @instance_name)
+    @ssh = settings.networking.ssh
+    @instance_finder = Hetzner::Instance::Find.new(@settings, @hetzner_client, @instance_name)
   end
 
   def run
