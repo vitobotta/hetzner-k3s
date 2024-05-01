@@ -35,12 +35,9 @@ class Cluster::Create
   private getter load_balancer : Hetzner::LoadBalancer?
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
   private property instances : Array(Hetzner::Instance) = [] of Hetzner::Instance
-  private property master_instance_creators : Array(Hetzner::Instance::Create) do
-    initialize_masters
-  end
-  private property worker_instance_creators : Array(Hetzner::Instance::Create) do
-    initialize_worker_nodes
-  end
+
+  private getter master_instance_creators : Array(Hetzner::Instance::Create)
+  private getter worker_instance_creators : Array(Hetzner::Instance::Create)
 
   private property kubernetes_masters_installation_queue_channel do
     Channel(Hetzner::Instance).new(5)
@@ -57,16 +54,42 @@ class Cluster::Create
   def initialize(@configuration)
     @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
-    fetch_existing_placement_groups
+    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+    @master_instance_creators = initialize_master_instance_creators
+    @worker_instance_creators = initialize_worker_instance_creators
   end
 
   def run
-    create_resources
+    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
 
-    refresh_and_delete_unused_placement_groups
+    configure_firewall
+    create_load_balancer if master_instance_creators.size > 1
+
+    kubernetes_installer = Kubernetes::Installer.new(
+      configuration,
+      load_balancer,
+      ssh_client,
+      autoscaling_worker_node_pools
+    )
+
+    spawn do
+      kubernetes_installer.run(
+        masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
+        workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
+        completed_channel: completed_channel,
+        master_count: master_instance_creators.size,
+        worker_count: worker_instance_creators.size
+      )
+    end
+
+    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
+
+    completed_channel.receive
+
+    delete_unused_placement_groups
   end
 
-  private def initialize_masters
+  private def initialize_master_instance_creators
     creators = Array(Hetzner::Instance::Create).new
 
     masters_pool = settings.masters_pool
@@ -126,7 +149,7 @@ class Cluster::Create
     )
   end
 
-  private def initialize_worker_nodes
+  private def initialize_worker_instance_creators
     creators = Array(Hetzner::Instance::Create).new
     no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
 
@@ -163,7 +186,9 @@ class Cluster::Create
   end
 
   private def delete_unused_placement_groups
-    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+    mutex.synchronize do
+      @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+    end
   end
 
   private def create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
@@ -253,36 +278,6 @@ class Cluster::Create
     end
   end
 
-  private def create_resources
-    delete_unused_placement_groups
-
-    create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
-
-    configure_firewall
-    create_load_balancer if master_instance_creators.size > 1
-
-    kubernetes_installer = Kubernetes::Installer.new(
-      configuration,
-      load_balancer,
-      ssh_client,
-      autoscaling_worker_node_pools
-    )
-
-    spawn do
-      kubernetes_installer.run(
-        masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
-        workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
-        completed_channel: completed_channel,
-        master_count: master_instance_creators.size,
-        worker_count: worker_instance_creators.size
-      )
-    end
-
-    create_instances_concurrently(worker_instance_creators, kubernetes_workers_installation_queue_channel)
-
-    completed_channel.receive
-  end
-
   private def find_network
     existing_network_name = settings.networking.private_network.existing_network_name
 
@@ -335,14 +330,5 @@ class Cluster::Create
 
   private def workers
     instances.select { |instance| instance.master? }.sort_by(&.name)
-  end
-
-  private def fetch_existing_placement_groups
-    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).run
-  end
-
-  private def refresh_and_delete_unused_placement_groups
-    fetch_existing_placement_groups
-    delete_unused_placement_groups
   end
 end
