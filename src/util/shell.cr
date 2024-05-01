@@ -1,9 +1,10 @@
 require "./shell/command_result"
+require "random/secure"
 
 module Util
   module Shell
     def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error  = true, log_prefix = "", print_output : Bool = true) : CommandResult
-      cmd_file_path = "/tmp/cli.cmd"
+      cmd_file_path = "/tmp/cli_#{Random::Secure.hex(8)}.cmd"
 
       File.write(cmd_file_path, <<-CONTENT
       set -euo pipefail
