@@ -22,6 +22,7 @@ class Cluster::Delete
 
   def run
     delete_resources
+    File.delete(settings.kubeconfig_path) if File.exists?(settings.kubeconfig_path)
   end
 
   private def delete_resources
