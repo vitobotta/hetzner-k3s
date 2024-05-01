@@ -158,7 +158,7 @@ class Cluster::Create
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool_placement_groups = all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
       node_pool.instance_count.times do |i|
-        placement_group = node_pool_placement_groups[i % node_pool_placement_groups.size]
+        placement_group = node_pool_placement_groups[(i // MAX_INSTANCES_PER_PLACEMENT_GROUP) % node_pool_placement_groups.size]
         creators << create_worker_instance(i, node_pool, placement_group)
       end
     end
