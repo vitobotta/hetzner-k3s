@@ -165,7 +165,7 @@ class Hetzner::Instance::Create
         cluster: cluster_name,
         role: (instance_name =~ /master/ ? "master" : "worker")
       },
-      start_after_create: false
+      start_after_create: !settings.networking.private_network.enabled
     }
 
     placement_group = @placement_group
