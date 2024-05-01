@@ -39,11 +39,6 @@ class Kubernetes::Software::Cilium
 
     echo "Waiting for Cilium to be ready..."
     kubectl -n kube-system rollout status ds cilium
-
-    echo "Rescheduling Cilium-unmmanged pods..."
-    kubectl get pods --all-namespaces -o custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,HOSTNETWORK:.spec.hostNetwork --no-headers=true | grep '<none>' | awk '{print $1, $2}' | while read namespace pod; do
-      kubectl delete pod "$pod" -n "$namespace"
-    done
     BASH
 
     run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
