@@ -38,7 +38,8 @@ class Hetzner::PlacementGroup::All
       success, response = hetzner_client.get("/placement_groups", { :per_page => 100 })
 
       if success
-        PlacementGroupsList.from_json(response).placement_groups
+        groups = PlacementGroupsList.from_json(response).placement_groups
+        groups.sort_by { |placement_group| placement_group.name }
       else
         STDERR.puts "[#{default_log_prefix}] Failed to fetch placement groups: #{response}"
         STDERR.puts "[#{default_log_prefix}] Retrying to fetch placement groups in 5 seconds..."
