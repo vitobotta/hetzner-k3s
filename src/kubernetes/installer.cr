@@ -48,12 +48,13 @@ class Kubernetes::Installer
     ensure_kubectl_is_installed!
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
+
+    install_software(master_count)
+
     set_up_workers(workers_installation_queue_channel, worker_count, master_count)
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
-
-    install_software(master_count)
 
     completed_channel.send(nil)
   end
