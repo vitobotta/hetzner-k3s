@@ -11,6 +11,7 @@ class Hetzner::Client
   getter token : String?
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
+  private getter mutex : Mutex = Mutex.new
 
   def initialize(token)
     @token = token
@@ -126,7 +127,9 @@ class Hetzner::Client
       response = yield
 
       if response.status_code == 429
-        handle_rate_limit(response)
+        mutex.synchronize do
+          handle_rate_limit(response)
+        end
       else
         return response
       end
