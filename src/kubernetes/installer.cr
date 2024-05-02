@@ -11,7 +11,6 @@ require "../hetzner/load_balancer"
 require "../configuration/loader"
 require "./software/system_upgrade_controller"
 require "./software/cilium"
-require "./software/spegel"
 require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
@@ -171,7 +170,8 @@ class Kubernetes::Installer
       service_cidr: settings.networking.service_cidr,
       cluster_dns: settings.networking.cluster_dns,
       datastore_endpoint: datastore_endpoint,
-      etcd_arguments: etcd_arguments
+      etcd_arguments: etcd_arguments,
+      embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
     })
   end
 
@@ -342,7 +342,6 @@ class Kubernetes::Installer
 
   private def install_software(master_count)
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
-    Kubernetes::Software::Spegel.new(configuration, settings).install if settings.additional_software.spegel.enabled
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
