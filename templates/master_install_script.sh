@@ -52,7 +52,6 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 {{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
---flannel-external-ip \
 --node-external-ip=$PUBLIC_IP \
 {{ server }} {{ tls_sans }}" sh -
 
