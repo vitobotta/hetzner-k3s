@@ -62,4 +62,25 @@ module Kubernetes::Util
   def kubernetes_component_args_list(settings_group, setting)
     setting.map { |arg| " --#{settings_group}-arg \"#{arg}\" " }.join
   end
+
+  def port_open?(ip, port, timeout = 1.0)
+    begin
+      socket = TCPSocket.new(ip, port, connect_timeout: timeout)
+      socket.close
+      true
+    rescue Socket::Error | IO::TimeoutError
+      false
+    end
+  end
+
+  def api_server_ready?(kubeconfig_path)
+    return false unless File.exists?(kubeconfig_path)
+
+    kubeconfig = YAML.parse(File.read(kubeconfig_path))
+    server = kubeconfig["clusters"][0]["cluster"]["server"].as_s
+    ip_address = server.split(":")[1].gsub("//", "")
+    port = server.split(":")[2]
+
+    port_open?(ip_address, port, timeout = 1.0)
+  end
 end
