@@ -105,7 +105,7 @@ class Hetzner::Instance::Create
     attaching_to_network_count = 0
 
     until ready
-      unless instance_existed
+      if !instance_existed && settings.networking.private_network.enabled
         sleep 10
       end
 
@@ -115,7 +115,7 @@ class Hetzner::Instance::Create
 
       log_line "Instance status: #{instance.status}"
 
-      unless instance.status == "running"
+      if instance.status != "running" && settings.networking.private_network.enabled
         powering_on_count += 1
         power_on_instance(instance, powering_on_count)
         next
