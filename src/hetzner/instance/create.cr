@@ -7,10 +7,13 @@ require "./find"
 require "../../util"
 require "../../util/ssh"
 require "../../util/shell"
+require "../../kubernetes/util"
+
 
 class Hetzner::Instance::Create
   include Util
   include Util::Shell
+  include Kubernetes::Util
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
@@ -251,7 +254,7 @@ class Hetzner::Instance::Create
   end
 
   private def find_instance_with_kubectl
-    return nil unless File.exists?(settings.kubeconfig_path)
+    return nil unless api_server_ready?(settings.kubeconfig_path)
 
     command = %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
 
