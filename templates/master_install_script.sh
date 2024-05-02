@@ -22,6 +22,19 @@ else
   FLANNEL_SETTINGS=" {{ flannel_backend }} "
 fi
 
+if [[ "{{ embedded_registry_mirror_enabled }}" = "true" ]]; then
+  EMBEDDED_REGISTRY_MIRROR=" --embedded-registry "
+else
+  EMBEDDED_REGISTRY_MIRROR=" "
+fi
+
+mkdir -p /etc/rancher/k3s
+
+cat > /etc/rancher/k3s/registries.yaml <<EOF
+mirrors:
+  "*":
+EOF
+
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_EXEC="server \
 --disable-cloud-controller \
 --disable servicelb \
@@ -36,12 +49,11 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
-{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS \
+{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
+--flannel-external-ip \
 --node-external-ip=$PUBLIC_IP \
 {{ server }} {{ tls_sans }}" sh -
-
-systemctl start k3s # on some OSes the service doesn't start automatically for some reason
 
 echo true > /etc/initialized

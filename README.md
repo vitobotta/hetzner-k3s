@@ -197,10 +197,8 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 
-additional_software:
-  spegel:
-    enabled: true
-    chart_version: v0.0.22
+embedded_registry_mirror:
+  enabled: true
 
 # additional_packages:
 # - somepackage
