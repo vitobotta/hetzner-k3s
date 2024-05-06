@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::Firewall::Delete
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter firewall_name : String
   getter firewall_finder : Hetzner::Firewall::Find
@@ -14,21 +17,29 @@ class Hetzner::Firewall::Delete
     firewall = firewall_finder.run
 
     if firewall
-      print "Deleting firewall..."
+      log_line "Deleting firewall..."
       delete_firewall(firewall.id)
-      puts "done."
+      log_line "...firewall deleted."
     else
-      puts "firewall does not exist, skipping."
+      log_line "Firewall does not exist, skipping delete"
     end
 
     firewall_name
   end
 
   private def delete_firewall(firewall_id)
-    hetzner_client.delete("/firewalls", firewall_id)
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete firewall: #{ex.message}"
-    STDERR.puts ex.response
-    exit 1
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.delete("/firewalls", firewall_id)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to delete firewall: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete firewall in 5 seconds..."
+        raise "Failed to delete firewall"
+      end
+    end
+  end
+
+  private def default_log_prefix
+    "Firewall"
   end
 end

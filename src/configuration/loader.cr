@@ -4,7 +4,7 @@ require "crest"
 require "./main"
 
 require "../hetzner/client"
-require "../hetzner/server_type"
+require "../hetzner/instance_type"
 require "../hetzner/location"
 
 require "./settings/configuration_file_path"
@@ -12,10 +12,7 @@ require "./settings/cluster_name"
 require "./settings/kubeconfig_path"
 require "./settings/k3s_version"
 require "./settings/new_k3s_version"
-require "./settings/public_ssh_key_path"
-require "./settings/private_ssh_key_path"
-require "./settings/networks"
-require "./settings/existing_network_name"
+require "./networking"
 require "./settings/node_pool"
 require "./settings/node_pool/autoscaling"
 require "./settings/node_pool/pool_name"
@@ -25,9 +22,12 @@ require "./settings/node_pool/instance_count"
 require "./settings/node_pool/node_labels"
 require "./settings/node_pool/node_taints"
 require "./settings/datastore"
+require "../util"
 
 
 class Configuration::Loader
+  include Util
+
   getter hetzner_client : Hetzner::Client?
   getter errors : Array(String) = [] of String
   getter settings : Configuration::Main
@@ -42,14 +42,6 @@ class Configuration::Loader
     Hetzner::Client.new(settings.hetzner_token)
   end
 
-  getter public_ssh_key_path do
-    Path[settings.public_ssh_key_path].expand(home: true).to_s
-  end
-
-  getter private_ssh_key_path do
-    Path[settings.private_ssh_key_path].expand(home: true).to_s
-  end
-
   getter kubeconfig_path do
     Path[settings.kubeconfig_path].expand(home: true).to_s
   end
@@ -58,20 +50,18 @@ class Configuration::Loader
     settings.masters_pool.try &.location
   end
 
-  getter server_types : Array(Hetzner::ServerType) do
-    server_types = hetzner_client.server_types
-    handle_api_errors(server_types, "Cannot fetch server types with Hetzner API, please try again later")
+  getter instance_types : Array(Hetzner::InstanceType) do
+    hetzner_client.instance_types
   end
 
   getter locations : Array(Hetzner::Location) do
-    locations = hetzner_client.locations
-    handle_api_errors(locations, "Cannot fetch locations with Hetzner API, please try again later")
+    hetzner_client.locations
   end
 
   getter new_k3s_version : String?
   getter configuration_file_path : String
 
-  private property server_types_loaded : Bool = false
+  private property instance_types_loaded : Bool = false
   private property locations_loaded : Bool = false
 
   def initialize(@configuration_file_path, @new_k3s_version)
@@ -83,7 +73,7 @@ class Configuration::Loader
   end
 
   def validate(command)
-    print "Validating configuration..."
+    log_line "Validating configuration..."
 
     Settings::ClusterName.new(errors, settings.cluster_name).validate
 
@@ -105,24 +95,35 @@ class Configuration::Loader
   private def validate_create_settings
     Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
     Settings::K3sVersion.new(errors, settings.k3s_version).validate
-    Settings::PublicSSHKeyPath.new(errors, public_ssh_key_path).validate
-    Settings::PrivateSSHKeyPath.new(errors, private_ssh_key_path).validate
-    Settings::ExistingNetworkName.new(errors, hetzner_client, settings.existing_network).validate
-    Settings::Networks.new(errors, settings.ssh_allowed_networks, "SSH").validate
-    Settings::Networks.new(errors, settings.api_allowed_networks, "API").validate
     Settings::Datastore.new(errors, settings.datastore).validate
+
+    settings.networking.validate(errors, hetzner_client, settings.networking.private_network)
+
     validate_masters_pool
     validate_worker_node_pools
+
+    validate_kubectl_presence
+    validate_helm_presence
   end
 
   private def validate_upgrade_settings
     Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
     Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+
+    validate_kubectl_presence
+  end
+
+  private def validate_kubectl_presence
+    errors << "kubectl is not installed or not in PATH" unless which("kubectl")
+  end
+
+  private def validate_helm_presence
+    errors << "helm is not installed or not in PATH" unless which("helm")
   end
 
   private def print_validation_result
     if errors.empty?
-      puts "...configuration seems valid."
+      log_line "...configuration seems valid."
     else
       print_errors
       exit 1
@@ -135,7 +136,7 @@ class Configuration::Loader
       pool: settings.masters_pool,
       pool_type: :masters,
       masters_location: masters_location,
-      server_types: server_types,
+      instance_types: instance_types,
       locations: locations,
       datastore: settings.datastore
     ).validate
@@ -172,7 +173,7 @@ class Configuration::Loader
         pool: worker_node_pool,
         pool_type: :workers,
         masters_location: masters_location,
-        server_types: server_types,
+        instance_types: instance_types,
         locations: locations,
         datastore: settings.datastore
       ).validate
@@ -182,22 +183,16 @@ class Configuration::Loader
   private def print_errors
     return if errors.empty?
 
-    puts "\nSome information in the configuration file requires your attention:"
+    log_line "Some information in the configuration file requires your attention:"
 
     errors.each do |error|
-      STDERR.puts "  - #{error}"
+      STDERR.puts "[#{default_log_prefix}]  - #{error}"
     end
 
     exit 1
   end
 
-  private def handle_api_errors(data, error_message)
-    if data.empty?
-      errors << error_message
-      print_errors
-      exit 1
-    end
-
-    data
+  private def default_log_prefix
+    "Configuration"
   end
 end

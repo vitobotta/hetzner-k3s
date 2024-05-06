@@ -12,13 +12,13 @@
 
 ---
 
-# The easiest way to create production grade Kubernetes clusters in Hetzner Cloud
+# The easiest and fastest way to create production grade Kubernetes clusters in Hetzner Cloud
 
 
 
 ## What is this?
 
-This is a CLI tool to quickly create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/).
+This is a CLI tool to super quickly and super easily create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/). In a recent test I created a 200 node HA cluster (3 masters, 197 worker nodes) in just **under 4 minutes** (when using only public network since private networks are limited to 100 instances per network). I believe this is a world record :)
 
 Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market and locations in both Europe and USA.
 
@@ -26,7 +26,7 @@ k3s is my favorite Kubernetes distribution because it uses much less memory and 
 
 Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **2-3 minutes** only. This includes
 
-- creating all the infrastructure resources (servers, private network, firewall, load balancer for the API server for HA clusters)
+- creating all the infrastructure resources (instances, private network, firewall, load balancer for the API server for HA clusters)
 - deploying k3s to the nodes
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
@@ -157,18 +157,25 @@ schedule_workloads_on_masters: false
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # optional: specified the os type when using a custom snapshot
-# cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
-# csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
-# system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
-# system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
-# cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+
+manifests:
+  cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
+  csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
+  system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
+  system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
+  cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
+
 masters_pool:
   instance_type: cpx21
   instance_count: 3
   location: nbg1
+
+schedule_workloads_on_masters: false
+
 worker_node_pools:
 - name: small-static
   instance_type: cpx21
@@ -181,7 +188,7 @@ worker_node_pools:
   # taints:
   #   - key: something
   #     value: value1:NoSchedule
-- name: big-autoscaled
+- name: medium-autoscaled
   instance_type: cpx31
   instance_count: 2
   location: fsn1
@@ -189,14 +196,18 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
+
+embedded_registry_mirror:
+  enabled: true
+
 # additional_packages:
 # - somepackage
+
 # post_create_commands:
 # - apt update
 # - apt upgrade -y
 # - apt autoremove -y
-# enable_encryption: true
-# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
+
 # kube_api_server_args:
 # - arg1
 # - ...
@@ -230,7 +241,7 @@ Hetzner cloud init settings (`additional_packages` & `post_create_commands`) can
 
 At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
 
-For the available instance types and their specs, either check from inside a project when adding a server manually or run the following with your Hetzner token:
+For the available instance types and their specs, either check from inside a project when adding an instance manually or run the following with your Hetzner token:
 
 ```bash
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_types'
@@ -253,7 +264,7 @@ Additional networking setup is required via cloud init, so it's important that t
 
 ### Using alternative OS images
 
-By default, the image in use is `ubuntu-22.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different static node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 22.04 on ARM instances, set `image` to `103908130` with a specific image ID. With regard to autoscaling, due to a limitation in the Cluster Autoscaler for Hetzner it is not possible yet to specify a different image for each autoscaled pool, so for now you can specify the image for all autoscaled pools by setting the `autoscaling_image` setting if you want to use an image different from the one specified in `image`.
+By default, the image in use is `ubuntu-24.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different static node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 24.04 on ARM instances, set `image` to `103908130` with a specific image ID. With regard to autoscaling, due to a limitation in the Cluster Autoscaler for Hetzner it is not possible yet to specify a different image for each autoscaled pool, so for now you can specify the image for all autoscaled pools by setting the `autoscaling_image` setting if you want to use an image different from the one specified in `image`.
 
 To see the list of available images, run the following:
 
@@ -263,7 +274,7 @@ export API_TOKEN=...
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/images?per_page=100'
 ```
 
-Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing server. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template server.
+Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing instance. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template instance.
 
 I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
 
@@ -272,7 +283,7 @@ I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but 
 ### Limitations:
 
 - if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
-- if you use a snapshot instead of one of the default images, the creation of the servers will take longer than when using a regular image
+- if you use a snapshot instead of one of the default images, the creation of the instances will take longer than when using a regular image
 - the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
 - if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
 - autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
@@ -491,7 +502,7 @@ ___
 
 ## Troubleshooting
 
-If the tool hangs forever after creating servers and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+If the tool hangs forever after creating instances and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
 
 
 

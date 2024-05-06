@@ -22,44 +22,58 @@ disable_flannel: false # set to true if you want to install a different CNI
 # image: rocky-9 # optional: default is ubuntu-22.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # optional: specified the os type when using a custom snapshot
-# cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
-# csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
-# system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
-# system_upgrade_controller_crd_manifest_urlL "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
-# cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+
+manifests:
+  cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
+  csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
+  system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
+  system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
+  cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
+
 masters_pool:
   instance_type: cpx21
   instance_count: 3
-  location: fsn1
+  location: nbg1
+
+schedule_workloads_on_masters: false
+
 worker_node_pools:
-- name: small
+- name: small-static
   instance_type: cpx21
   instance_count: 4
   location: hel1
+  # image: debian-11
   # labels:
   #   - key: purpose
   #     value: blah
   # taints:
   #   - key: something
   #     value: value1:NoSchedule
-- name: big
+- name: medium-autoscaled
   instance_type: cpx31
   instance_count: 2
+  location: fsn1
   autoscaling:
     enabled: true
     min_instances: 0
     max_instances: 3
+
+embedded_registry_mirror:
+  enabled: true
+
+
 # additional_packages:
 # - somepackage
+
 # post_create_commands:
 # - apt update
 # - apt upgrade -y
 # - apt autoremove -y
-# enable_encryption: true
-# existing_network: <specify if you want to use an existing network, otherwise one will be created for this cluster>
+
 # kube_api_server_args:
 # - arg1
 # - ...
@@ -78,4 +92,4 @@ worker_node_pools:
 # kube_proxy_args:
 # - arg1
 # - ...
-
+# api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.

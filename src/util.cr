@@ -1,5 +1,5 @@
- module Util
-  def self.which(command)
+module Util
+  def which(command)
     exts = ENV.fetch("PATHEXT", "").split(";")
     paths = ENV["PATH"]?.try(&.split(Process::PATH_DELIMITER)) || [] of String
 
@@ -13,10 +13,10 @@
     nil
   end
 
-  def self.check_kubectl
-    return if which("kubectl")
-
-    puts "Please ensure kubectl is installed and in your PATH."
-    exit 1
+  def log_line(line, log_prefix = "")
+    log_prefix = log_prefix.blank? ? default_log_prefix : log_prefix
+    puts "[#{log_prefix}] #{line}"
   end
+
+  abstract def default_log_prefix
 end

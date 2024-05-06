@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::LoadBalancer::Delete
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter cluster_name : String
   getter load_balancer_name : String do
@@ -17,23 +20,34 @@ class Hetzner::LoadBalancer::Delete
     load_balancer = load_balancer_finder.run
 
     if load_balancer
-      print "Deleting load balancer for API server..."
+      log_line "Deleting load balancer for API server..."
       delete_load_balancer(load_balancer.id)
-      puts "done."
+      log_line "...load balancer for API server deleted"
     else
-      puts "Load balancer for API server does not exist, skipping."
+      log_line "Load balancer for API server does not exist, skipping delete"
     end
 
     load_balancer_name
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete load balancer: #{ex.message}"
-    STDERR.puts ex.response
-    exit 1
   end
 
   private def delete_load_balancer(load_balancer_id)
-    hetzner_client.post("/load_balancers/#{load_balancer_id}/actions/remove_target", remove_targets_config)
-    hetzner_client.delete("/load_balancers", load_balancer_id)
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post("/load_balancers/#{load_balancer_id}/actions/remove_target", remove_targets_config)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to delete load balancer: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete load balancer in 5 seconds..."
+        raise "Failed to delete load balancer"
+      end
+
+      success, response = hetzner_client.delete("/load_balancers", load_balancer_id)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to delete load balancer: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete load balancer in 5 seconds..."
+        raise "Failed to delete load balancer"
+      end
+    end
   end
 
   private def remove_targets_config
@@ -43,5 +57,9 @@ class Hetzner::LoadBalancer::Delete
       },
       type: "label_selector"
     }
+  end
+
+  private def default_log_prefix
+    "API Load balancer"
   end
 end
