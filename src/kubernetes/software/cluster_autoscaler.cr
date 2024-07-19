@@ -131,6 +131,8 @@ class Kubernetes::Software::ClusterAutoscaler
     set_container_environment_variable(autoscaler_container, "HCLOUD_FIREWALL", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_SSH_KEY", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.existing_network || settings.cluster_name))
+    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV4", settings.enable_public_net_ipv4.to_s)
+    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV6", settings.enable_public_net_ipv6.to_s)
 
     set_certificate_path(autoscaler_container)
   end
