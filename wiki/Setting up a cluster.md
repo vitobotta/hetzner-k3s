@@ -127,9 +127,25 @@ Be careful, this will delete current Hetzner's load balancer as a result when yo
 new Hetzner's load balancer possibly will be created with a new public IP address.
 
 12. In a few minutes check that the "EXTERNAL-IP" column has IP instead of "pending": `kubectl get svc -n ingress-nginx`
-13. Open your Hetzner's cloud console (site), "Your project -> Load Balancers" and find PUBLIC IP in front of the name you used with "load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME" annotation. Copy/Remember this IP.
-14. Download hello-world app: `curl https://gist.githubusercontent.com/vitobotta/6e73f724c5b94355ec21b9eee6f626f1/raw/3036d4c4283a08ab82b99fffea8df3dded1d1f78/deployment.yaml --output hello-world.yaml`
-15. Edit the file (add annotation + add Hetzner's Load Balancer IP Address) and set the hostname:
+
+13. `load-balancer.hetzner.cloud/uses-proxyprotocol: "true"` annotation requires `use-proxy-protocol: "true"` for ingress-nginx, so let's create file: `touch ingress-nginx-configmap.yaml`
+14. Add content to just created file: `nano ingress-nginx-configmap.yaml`
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # Do not change name - this is the name required by Nginx Ingress Controller
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+data:
+  use-proxy-protocol: "true"
+```
+
+15. Apply config map: `kubectl apply -f ./ingress-nginx-configmap.yaml`
+16. Open your Hetzner's cloud console (site), "Your project -> Load Balancers" and find PUBLIC IP in front of the name you used with "load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME" annotation. Copy/Remember this IP.
+17. Download hello-world app: `curl https://gist.githubusercontent.com/vitobotta/6e73f724c5b94355ec21b9eee6f626f1/raw/3036d4c4283a08ab82b99fffea8df3dded1d1f78/deployment.yaml --output hello-world.yaml`
+18. Edit the file (add annotation + add Hetzner's Load Balancer IP Address) and set the hostname:
 
 ```yaml
 ---
@@ -145,32 +161,18 @@ spec:
   ....
 ```
 
-16. Install hello-world app: `kubectl apply -f hello-world.yaml`
-17. Check http://hello-world.IP_FROM_STEP_13.nip.io
+19. Install hello-world app: `kubectl apply -f hello-world.yaml`
+20. Check http://hello-world.IP_FROM_STEP_13.nip.io
 You should see the RANCHER Hello world! page.
 "host.IP_FROM_STEP_13.nip.io" (the key part is ".nip.io") is just a quick way to test things without configuring DNS (a query to a hostname ending in nip.io simply returns the IP address it finds in the hostname itself).
-18. In order to connect yourDomain.com, you need to:
- - assign IP address from the step 13 to your domain in DNS panel of your domain registrar;
- - change "- host: hello-world.IP_FROM_STEP_13.nip.io" to "- host: yourDomain.com";
- - `kubectl apply -f hello-world.yaml`
- - wait 1-30 mins until DNS records are updated.
+21. In order to connect yourDomain.com, you need to:
+  - assign IP address from the step 13 to your domain in DNS panel of your domain registrar
+  - change "- host: hello-world.IP_FROM_STEP_13.nip.io" to "- host: yourDomain.com";
+  - `kubectl apply -f hello-world.yaml`
+  - wait 1-30 mins until DNS records are updated.
 
-If you need LetsEncrypt
-19. `load-balancer.hetzner.cloud/uses-proxyprotocol: "true"` annotation requires `use-proxy-protocol: "true"` for ingress-nginx, so let's create file: `touch ingress-nginx-configmap.yaml`
-20. Add content to just created file: `nano ingress-nginx-configmap.yaml`
+#### If you need LetsEncrypt
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  # Do not change name - this is the name required by Nginx Ingress Controller
-  name: ingress-nginx-controller
-  namespace: ingress-nginx
-data:
-  use-proxy-protocol: "true"
-```
-
-21. Apply config map: `kubectl apply -f ./ingress-nginx-configmap.yaml`
 22. Add LetsEncrypt Helm repo: `helm repo add jetstack https://charts.jetstack.io`
 23. Update information of available charts locally from chart repositories: `helm repo update`
 24. Install LetsEncrypt certificates issuer:
