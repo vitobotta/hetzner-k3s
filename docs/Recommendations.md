@@ -12,6 +12,7 @@ However keep in mind that this default configuration - that uses a Hetzner priva
 Notes:
 - if you disable the private network due to the limitation mentioned above, encryption will be enforced at CNI level to secure the traffic between nodes over the public network.
 - if you want to use something other than Cilium or Flannel (e.g. Calico), then you can disable the automatic setup of the CNI so you can install a CNI of your choice. We may add built in support for more CNIs in future releases.
+- from v2.0.0 on you can also use an external SQL datastore like Postgres instead of the embedded etcd as datastore for the Kubernetes API. This can also help scaling larger clusters.
 
 ## Registry mirror
 
