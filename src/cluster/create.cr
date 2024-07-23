@@ -259,13 +259,21 @@ class Cluster::Create
       spawn do
         instance = nil
         begin
-          instance = instance_creator.run
+          Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
+            Tasker.timeout(30.seconds) do
+              instance = instance_creator.run
+            end
+          end
+
           semaphore.receive # release the semaphore immediately after instance creation
+        rescue e : Exception
+          puts "Error creating instance: #{e.message}"
         ensure
-          if instance
-            mutex.synchronize { instances << instance }
+          created_instance = instance
+          if created_instance
+            mutex.synchronize { instances << created_instance }
             wait_channel = wait_channel.send(instance_creator) if wait
-            kubernetes_installation_queue_channel.send(instance)
+            kubernetes_installation_queue_channel.send(created_instance)
           end
         end
       end
