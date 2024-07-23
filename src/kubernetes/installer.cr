@@ -113,12 +113,16 @@ class Kubernetes::Installer
 
     sleep 5
 
-    command = "timeout 5 kubectl cluster-info 2> /dev/null"
+    command = "kubectl cluster-info 2> /dev/null"
 
-    loop do
-      result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false, print_output: false)
-      break if result.output.includes?("running")
-      sleep 1
+    Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
+      Tasker.timeout(30.seconds) do
+        loop do
+          result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false, print_output: false)
+          break if result.output.includes?("running")
+          sleep 1
+        end
+      end
     end
 
     log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
