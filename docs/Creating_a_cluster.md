@@ -8,43 +8,55 @@ hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.26.4+k3s1
-public_ssh_key_path: "~/.ssh/id_rsa.pub"
-private_ssh_key_path: "~/.ssh/id_rsa"
-use_ssh_agent: false # set to true if your key has a passphrase or if SSH connections don't work or seem to hang without agent. See https://github.com/vitobotta/hetzner-k3s#limitations
-# ssh_port: 22
-ssh_allowed_networks:
-  - 0.0.0.0/0 # ensure your current IP is included in the range
-api_allowed_networks:
-  - 0.0.0.0/0 # ensure your current IP is included in the range
-private_network_subnet: 10.0.0.0/16 # ensure this doesn't overlap with other networks in the same project
-disable_flannel: false # set to true if you want to install a different CNI
-schedule_workloads_on_masters: false
-# cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
-# service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
-# cluster_dns: 10.43.0.10 # optional: IPv4 Cluster IP for coredns service. Needs to be an address from the service_cidr range
-# enable_public_net_ipv4: false # default is true
-# enable_public_net_ipv6: false # default is true
-# image: rocky-9 # optional: default is ubuntu-22.04
-# autoscaling_image: 103908130 # optional, defaults to the `image` setting
-# snapshot_os: microos # optional: specified the os type when using a custom snapshot
 
-manifests:
-  cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.19.0/ccm-networks.yaml"
-  csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.6.0/deploy/kubernetes/hcloud-csi.yml"
-  system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
-  system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
-  cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+networking:
+  ssh:
+    port: 22
+    use_agent: false # set to true if your key has a passphrase
+    public_key_path: "~/.ssh/id_ed25519.pub"
+    private_key_path: "~/.ssh/id_ed25519"
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+  public_network:
+    ipv4: true
+    ipv6: true
+  private_network:
+    enabled : true
+    subnet: 10.0.0.0/16
+    existing_network_name: ""
+  cni:
+    enabled: true
+    encryption: false
+    mode: flannel
+  # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
+  # service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
+  # cluster_dns: 10.43.0.10 # optional: IPv4 Cluster IP for coredns service. Needs to be an address from the service_cidr range
+
+
+# manifests:
+#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm-networks.yaml"
+#   csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.8.0/deploy/kubernetes/hcloud-csi.yml"
+#   system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
+#   system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
+#   cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
 
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
 
+schedule_workloads_on_masters: false
+
+# image: rocky-9 # optional: default is ubuntu-22.04
+# autoscaling_image: 103908130 # optional, defaults to the `image` setting
+# snapshot_os: microos # optional: specified the os type when using a custom snapshot
+
 masters_pool:
   instance_type: cpx21
   instance_count: 3
   location: nbg1
-
-schedule_workloads_on_masters: false
 
 worker_node_pools:
 - name: small-static
@@ -172,3 +184,5 @@ The networks you provide should provide enough space for the expected amount of 
 ### Idempotency
 
 The `create` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
+
+Note that the kubeconfig will be overwritten when you re-run the `create` command.

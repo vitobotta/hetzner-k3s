@@ -50,6 +50,7 @@ See my public profile with links for connecting with me [here](https://vitobotta
 
 - [Installation](docs/Installation.md)
 - [Creating a cluster](docs/Creating_a_cluster.md)
+- [Recommendations](docs/Recommendations.md)
 - [Maintenance](docs/Maintenance.md)
 - [Deleting a cluster](docs/Deleting_a_cluster.md)
 - [Load balancers](docs/Load_balancers.md)

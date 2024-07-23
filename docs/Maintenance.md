@@ -26,6 +26,10 @@ In a future release I will add some automation for the cleanup.
 
 It's easy to convert a non-HA with a single master cluster to HA with multiple masters. Just change the masters instance count and re-run the `create` command. This will create a load balancer for the API server and update the kubeconfig so that all the API requests go through the load balancer.
 
+## Replacing the seed master
+
+When creating a new cluster, the seed master (or first master) in a HA configuration is `master1`. The seed master will change if you delete `master1` due to some issues with the node so it gets recreated. Whenever the seed master changes, k3s must be restarted on the existing masters.
+
 ___
 ## Upgrading to a new version of k3s
 
