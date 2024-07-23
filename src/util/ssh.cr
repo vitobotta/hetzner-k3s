@@ -29,7 +29,7 @@ class Util::SSH
       sleep 1
 
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
-        Tasker.timeout(1.second) do
+        Tasker.timeout(5.second) do
           result = run(instance, port, test_command, use_ssh_agent, false)
           log_line result, log_prefix: "Instance #{instance.name}" if result != expected_result
         end
