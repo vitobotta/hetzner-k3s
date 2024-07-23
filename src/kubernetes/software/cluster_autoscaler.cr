@@ -94,14 +94,14 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patch_autoscaler_container(autoscaler_container)
-    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
+    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.30.2"
     autoscaler_container.command = container_command
 
     set_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT", Base64.strict_encode(cloud_init))
     set_container_environment_variable(autoscaler_container, "HCLOUD_IMAGE", settings.autoscaling_image || settings.image)
     set_container_environment_variable(autoscaler_container, "HCLOUD_FIREWALL", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_SSH_KEY", settings.cluster_name)
-    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.networking.private_network.existing_network_name || settings.cluster_name))
+    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.networking.private_network.existing_network_name.blank? ? settings.cluster_name : settings.networking.private_network.existing_network_name))
 
     set_certificate_path(autoscaler_container)
   end

@@ -15,7 +15,7 @@ module Util
 
   def log_line(line, log_prefix = "")
     log_prefix = log_prefix.blank? ? default_log_prefix : log_prefix
-    puts "[#{Time.local}] [#{log_prefix}] #{line}"
+    puts "[#{log_prefix}] #{line}"
   end
 
   abstract def default_log_prefix
