@@ -129,7 +129,13 @@ class Cluster::Create
 
   private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     instance_type = settings.masters_pool.instance_type
-    master_name = "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
+
+    master_name = if settings.include_instance_type_in_instance_name
+      "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
+    else
+      "#{settings.cluster_name}-master#{index + 1}"
+    end
+
     image = settings.masters_pool.image || settings.image
     additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
     additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
@@ -220,7 +226,13 @@ class Cluster::Create
 
   private def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     instance_type = node_pool.instance_type
-    node_name = "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
+
+    node_name = if settings.include_instance_type_in_instance_name
+      "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
+    else
+      "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{index + 1}"
+    end
+
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
     additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands

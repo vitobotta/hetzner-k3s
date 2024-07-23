@@ -31,6 +31,7 @@ class Configuration::Main
   getter datastore : Configuration::Datastore = Configuration::Datastore.new
   getter manifests : Configuration::Manifests = Configuration::Manifests.new
   getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
+  getter include_instance_type_in_instance_name : Bool = false
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args

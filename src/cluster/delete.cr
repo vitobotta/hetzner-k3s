@@ -84,10 +84,16 @@ class Cluster::Delete
 
   private def initialize_masters
     settings.masters_pool.instance_count.times do |i|
+      instance_name = if settings.include_instance_type_in_instance_name
+        "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+      else
+        "#{settings.cluster_name}-master#{i + 1}"
+      end
+
       instance_deletors << Hetzner::Instance::Delete.new(
         settings: settings,
         hetzner_client: hetzner_client,
-        instance_name: "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+        instance_name: instance_name
       )
     end
   end
@@ -97,10 +103,16 @@ class Cluster::Delete
 
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
+        instance_name = if settings.include_instance_type_in_instance_name
+          "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
+        else
+          "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{i + 1}"
+        end
+
         instance_deletors << Hetzner::Instance::Delete.new(
           settings: settings,
           hetzner_client: hetzner_client,
-          instance_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
+          instance_name: instance_name
         )
       end
     end
