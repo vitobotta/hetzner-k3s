@@ -18,7 +18,7 @@ class Hetzner::Instance::Create
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
   private getter settings : Configuration::Main
-  private getter instance_name : String
+  getter instance_name : String
   private getter hetzner_client : Hetzner::Client
   private getter cluster_name : String
   private getter instance_type : String
