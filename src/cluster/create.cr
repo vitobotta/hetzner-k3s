@@ -282,10 +282,13 @@ class Cluster::Create
           puts "Error creating instance: #{e.message}"
         ensure
           created_instance = instance
+
           if created_instance
             mutex.synchronize { instances << created_instance }
             wait_channel = wait_channel.send(instance_creator) if wait
             kubernetes_installation_queue_channel.send(created_instance)
+          else
+            puts "Instance creation for #{instance_creator.instance_name} failed. Try rerunning the create command."
           end
         end
       end
