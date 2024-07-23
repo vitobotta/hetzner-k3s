@@ -157,7 +157,7 @@ class Hetzner::Firewall::Create
         ]
       end
 
-      if masters.size > 0
+      if masters.size > 0 && settings.datastore.mode == "etcd"
         master_ips = masters.map do |master|
           "#{master.public_ip_address}/32"
         end
