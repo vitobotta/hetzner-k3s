@@ -1,3 +1,8 @@
+while [ ! -f /var/lib/cloud/instance/boot-finished ]; do
+	echo "Awaiting cloud/instance/boot-finished..."
+	sleep 5
+done
+
 touch /etc/initialized
 
 if [[ $(< /etc/initialized) != "true" ]]; then
