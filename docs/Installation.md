@@ -6,7 +6,7 @@ All that is needed to use this tool is
 
 - an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
 
-- kubectl installed
+- kubectl and Helm installed
 
 ___
 # Installation
