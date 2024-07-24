@@ -69,19 +69,3 @@ sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
 
 I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
 
-
-### Limitations:
-
-- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
-- if you use a snapshot instead of one of the default images, the creation of the instances will take longer than when using a regular image
-- the setting `api_allowed_networks` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
-- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
-- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
-- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster (this will be addressed in a future update)
-- SSH keys with passphrases can only be used if you set `use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
-
-```bash
-eval "$(ssh-agent -s)"
-ssh-add --apple-use-keychain ~/.ssh/<private key>
-```
-

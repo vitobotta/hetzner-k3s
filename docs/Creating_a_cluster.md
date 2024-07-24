@@ -186,3 +186,20 @@ The networks you provide should provide enough space for the expected amount of 
 The `create` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
 
 Note that the kubeconfig will be overwritten when you re-run the `create` command.
+
+
+### Limitations:
+
+- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
+- if you use a snapshot instead of one of the default images, the creation of the instances will take longer than when using a regular image
+- the setting `networking`.`allowed_networks`.`api` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters require a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
+- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
+- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
+- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster (this will be addressed in a future update)
+- SSH keys with passphrases can only be used if you set `networking`.`ssh`.`use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
+
+```bash
+eval "$(ssh-agent -s)"
+ssh-add --apple-use-keychain ~/.ssh/<private key>
+```
+
