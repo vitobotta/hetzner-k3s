@@ -223,6 +223,18 @@ class Hetzner::Instance::Create
       post_create_commands += microos_commands
     end
 
+    additional_post_create_commands = additional_post_create_commands.map do |command|
+      if command.includes?("\n")
+        lines = ["|"]
+        command.split("\n").each do |line|
+          lines << "  " + line
+        end
+        lines.join("\n")
+      else
+        command
+      end
+    end
+
     post_create_commands += additional_post_create_commands + final_commands
 
     "- #{post_create_commands.join("\n- ")}"
