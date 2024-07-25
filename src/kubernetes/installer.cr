@@ -285,28 +285,28 @@ class Kubernetes::Installer
   end
 
   private def add_labels_and_taints_to_masters
-    add_labels_or_taints(:label, masters, settings.masters_pool.labels, :master)
-    add_labels_or_taints(:taint, masters, settings.masters_pool.taints, :master)
+    add_labels_or_taints(:label, masters, settings.masters_pool.labels, "masters_pool")
+    add_labels_or_taints(:taint, masters, settings.masters_pool.taints, "masters_pool")
   end
 
   private def add_labels_and_taints_to_workers
     settings.worker_node_pools.each do |node_pool|
       instance_type = node_pool.instance_type
-      node_name_prefix = /#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker/
+      node_name_prefix = /#{settings.cluster_name}-pool-#{node_pool.name}-worker/
 
       nodes = workers.select { |worker| node_name_prefix =~ worker.name }
 
-      add_labels_or_taints(:label, nodes, node_pool.labels, :worker)
-      add_labels_or_taints(:taint, nodes, node_pool.taints, :worker)
+      add_labels_or_taints(:label, nodes, node_pool.labels, node_pool.name)
+      add_labels_or_taints(:taint, nodes, node_pool.taints, node_pool.name)
     end
   end
 
-  private def add_labels_or_taints(mark_type, instances, marks, instance_type)
+  private def add_labels_or_taints(mark_type, instances, marks, node_pool_name)
     return unless marks.any?
 
     node_names = instances.map(&.name).join(" ")
 
-    log_line "\nAdding #{mark_type}s to #{instance_type}s...", log_prefix: "Node labels"
+    log_line "\nAdding #{mark_type}s to #{node_pool_name} pool workers...", log_prefix: "Node labels"
 
     all_marks = marks.map do |mark|
       "#{mark.key}=#{mark.value}"
