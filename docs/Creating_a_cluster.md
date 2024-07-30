@@ -18,7 +18,7 @@ networking:
   allowed_networks:
     ssh:
       - 0.0.0.0/0
-    api:
+    api: # this will firewall port 6443 on the nodes; it will NOT firewall the API load balancer
       - 0.0.0.0/0
   public_network:
     ipv4: true
@@ -50,7 +50,7 @@ datastore:
 
 schedule_workloads_on_masters: false
 
-# image: rocky-9 # optional: default is ubuntu-22.04
+# image: rocky-9 # optional: default is ubuntu-24.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
 # snapshot_os: microos # optional: specified the os type when using a custom snapshot
 
