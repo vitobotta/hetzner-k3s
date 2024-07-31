@@ -14,7 +14,7 @@ echo "Cloud init finished: $(cat $fn_cloud)"
 
 touch /etc/initialized
 
-if [[ $(< /etc/initialized) != "true" ]]; then
+if [ "$(cat /etc/initialized 2>/dev/null)" != "true" ]; then
   systemctl restart NetworkManager || true
   dhclient eth1 -v || true
 fi
@@ -22,7 +22,7 @@ fi
 HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
-if [[ "{{ private_network_enabled }}" = "true" ]]; then
+if [ "{{ private_network_enabled }}" = "true" ]; then
   PRIVATE_IP=$(ip route get {{ private_network_test_ip }} | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
   NETWORK_INTERFACE=" --flannel-iface=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}') "
 else
