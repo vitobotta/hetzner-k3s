@@ -276,7 +276,7 @@ class Kubernetes::Installer
     log_line "Saving the kubeconfig file to #{kubeconfig_path}...", "Control plane"
 
     kubeconfig = ssh.run(first_master, settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", settings.networking.ssh.use_agent, print_output: false).
-      gsub("127.0.0.1",  settings.api_server_hostname ? settings.api_server_hostname : api_server_ip_address(master_count)).
+      gsub("127.0.0.1",  api_server_ip_address(master_count)).
       gsub("default", settings.cluster_name)
 
     File.write(kubeconfig_path, kubeconfig)
