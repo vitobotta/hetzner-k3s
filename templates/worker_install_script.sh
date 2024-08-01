@@ -1,5 +1,5 @@
 fn_cloud="/var/lib/cloud/instance/boot-finished"
-function await_cloud_init {
+await_cloud_init() {
   echo "🕒 Awaiting cloud config (may take a minute...)"
   while true; do
     for _ in $(seq 1 10); do
