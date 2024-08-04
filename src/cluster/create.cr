@@ -272,7 +272,7 @@ class Cluster::Create
         instance = nil
         begin
           Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
-            Tasker.timeout(30.seconds) do
+            Tasker.timeout(60.seconds) do
               instance = instance_creator.run
             end
           end
