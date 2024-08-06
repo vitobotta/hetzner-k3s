@@ -3,8 +3,9 @@ require "../hetzner/placement_group/delete"
 require "../hetzner/ssh_key/delete"
 require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
-require "../hetzner/server/delete"
+require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
+require "../hetzner/placement_group/all"
 
 class Cluster::Delete
   private getter configuration : Configuration::Loader
@@ -14,24 +15,20 @@ class Cluster::Delete
   private getter settings : Configuration::Main do
     configuration.settings
   end
-  private getter public_ssh_key_path : String do
-    configuration.public_ssh_key_path
-  end
-
-  private property server_deletors : Array(Hetzner::Server::Delete) = [] of Hetzner::Server::Delete
+  private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
   def initialize(@configuration)
   end
 
   def run
-    puts "\n=== Deleting infrastructure resources ===\n"
-
     delete_resources
+    File.delete(settings.kubeconfig_path) if File.exists?(settings.kubeconfig_path)
   end
 
   private def delete_resources
     delete_load_balancer
-    delete_servers
+    sleep 5
+    delete_instances
     delete_placement_groups
     delete_network
     delete_firewall
@@ -45,35 +42,21 @@ class Cluster::Delete
     ).run
   end
 
-  private def delete_servers
+  private def delete_instances
     initialize_masters
     initialize_worker_nodes
 
     channel = Channel(String).new
 
-    server_deletors.each do |server_deletor|
+    instance_deletors.each do |instance_deletor|
       spawn do
-        server_deletor.run
-        channel.send(server_deletor.server_name)
+        instance_deletor.run
+        channel.send(instance_deletor.instance_name)
       end
     end
 
-    server_deletors.size.times do
+    instance_deletors.size.times do
       channel.receive
-    end
-  end
-
-  private def delete_placement_groups
-    Hetzner::PlacementGroup::Delete.new(
-      hetzner_client: hetzner_client,
-      placement_group_name: "#{settings.cluster_name}-masters"
-    ).run
-
-    settings.worker_node_pools.each do |node_pool|
-      Hetzner::PlacementGroup::Delete.new(
-        hetzner_client: hetzner_client,
-        placement_group_name: "#{settings.cluster_name}-#{node_pool.name}"
-      ).run
     end
   end
 
@@ -95,15 +78,22 @@ class Cluster::Delete
     Hetzner::SSHKey::Delete.new(
       hetzner_client: hetzner_client,
       ssh_key_name: settings.cluster_name,
-      public_ssh_key_path: public_ssh_key_path
+      public_ssh_key_path: settings.networking.ssh.public_key_path
     ).run
   end
 
   private def initialize_masters
     settings.masters_pool.instance_count.times do |i|
-      server_deletors << Hetzner::Server::Delete.new(
+      instance_name = if settings.include_instance_type_in_instance_name
+        "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+      else
+        "#{settings.cluster_name}-master#{i + 1}"
+      end
+
+      instance_deletors << Hetzner::Instance::Delete.new(
+        settings: settings,
         hetzner_client: hetzner_client,
-        server_name: "#{settings.cluster_name}-#{settings.masters_pool.instance_type}-master#{i + 1}"
+        instance_name: instance_name
       )
     end
   end
@@ -113,11 +103,22 @@ class Cluster::Delete
 
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
-        server_deletors << Hetzner::Server::Delete.new(
+        instance_name = if settings.include_instance_type_in_instance_name
+          "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
+        else
+          "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{i + 1}"
+        end
+
+        instance_deletors << Hetzner::Instance::Delete.new(
+          settings: settings,
           hetzner_client: hetzner_client,
-          server_name: "#{settings.cluster_name}-#{node_pool.instance_type}-pool-#{node_pool.name}-worker#{i + 1}"
+          instance_name: instance_name
         )
       end
     end
+  end
+
+  private def delete_placement_groups
+    Hetzner::PlacementGroup::All.new(hetzner_client).delete_all
   end
 end

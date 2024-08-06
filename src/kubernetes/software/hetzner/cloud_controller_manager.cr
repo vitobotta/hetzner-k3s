@@ -1,4 +1,10 @@
+require "../../../util"
+require "../../util"
+
 class Kubernetes::Software::Hetzner::CloudControllerManager
+  include Util
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
 
@@ -6,32 +12,25 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   end
 
   def install
-    puts "\n[Hetzner Cloud Controller] Installing Hetzner Cloud Controller Manager..."
+    log_line "Installing Hetzner Cloud Controller Manager..."
 
-    response = Crest.get(settings.cloud_controller_manager_manifest_url)
+    apply_manifest_from_yaml(manifest)
 
-    unless response.success?
-      puts "Failed to download CCM manifest from #{settings.cloud_controller_manager_manifest_url}"
-      puts "Server responded with status #{response.status_code}"
-      exit 1
+    log_line "Hetzner Cloud Controller Manager installed"
+  end
+
+  private def default_log_prefix
+    "Hetzner Cloud Controller"
+  end
+
+  private def manifest
+    manifest_url = if settings.networking.private_network.enabled
+      settings.manifests.cloud_controller_manager_manifest_url
+    else
+      settings.manifests.cloud_controller_manager_manifest_url.gsub("-networks", "")
     end
 
-    ccm_manifest = response.body.to_s.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.cluster_cidr}")
-
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{ccm_manifest}
-    EOF
-    BASH
-
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner Cloud Controller")
-
-    unless result.success?
-      puts "Failed to deploy Cloud Controller Manager:"
-      puts result.output
-      exit 1
-    end
-
-    puts "[Hetzner Cloud Controller] ...Hetzner Cloud Controller Manager installed"
+    manifest = fetch_manifest(manifest_url)
+    manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.networking.cluster_cidr}")
   end
 end

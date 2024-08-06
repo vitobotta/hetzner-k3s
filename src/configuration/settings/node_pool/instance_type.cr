@@ -1,12 +1,12 @@
 require "../../node_pool"
-require "../../../hetzner/server_type"
+require "../../../hetzner/instance_type"
 
 class Configuration::Settings::NodePool::InstanceType
   getter errors : Array(String)
   getter pool : Configuration::NodePool
-  getter server_types : Array(Hetzner::ServerType)
+  getter instances_types : Array(Hetzner::InstanceType)
 
-  def initialize(@errors, @pool, @server_types)
+  def initialize(@errors, @pool, @instances_types)
   end
 
   def validate
@@ -16,6 +16,6 @@ class Configuration::Settings::NodePool::InstanceType
   end
 
   private def valid_instance_type?
-    server_types.any? { |server_type| server_type.name == pool.instance_type }
+    instances_types.any? { |instance_type| instance_type.name == pool.instance_type }
   end
 end

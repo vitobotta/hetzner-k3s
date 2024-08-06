@@ -1,4 +1,10 @@
+require "../../../util"
+require "../../util"
+
 class Kubernetes::Software::Hetzner::CSIDriver
+  include Util
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
 
@@ -6,18 +12,14 @@ class Kubernetes::Software::Hetzner::CSIDriver
   end
 
   def install
-    puts "\n[Hetzner CSI Driver] Installing Hetzner CSI Driver..."
+    log_line "Installing Hetzner CSI Driver..."
 
-    command = "kubectl apply -f #{settings.csi_driver_manifest_url}"
+    apply_manifest_from_url(settings.manifests.csi_driver_manifest_url)
 
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner CSI Driver")
+    log_line "Hetzner CSI Driver installed"
+  end
 
-    unless result.success?
-      puts "Failed to deploy CSI Driver:"
-      puts result.output
-      exit 1
-    end
-
-    puts "[Hetzner CSI Driver] ...CSI Driver installed"
+  private def default_log_prefix
+    "Hetzner CSI Driver"
   end
 end

@@ -26,10 +26,16 @@ class Configuration::Settings::NodePool::Location
   end
 
   private def validate_network_zone(location)
-    in_network_zone = masters_location == "ash" ? location == "ash" : location != "ash"
+    in_network_zone = if masters_location == "ash"
+      location == "ash"
+    elsif masters_location == "hil"
+      location == "hil"
+    else
+      !%w(ash hil).includes?(location)
+    end
 
     unless in_network_zone
-      errors << "#{pool_type} pool must be in the same network zone as the masters. If the masters are located in Ashburn, all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn."
+      errors << "#{pool_type} pool must be in the same network zone as the masters when using a private network. If the masters are located in Ashburn, then all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn. Same thing for Hillsboro. If the masters are located in Germany or Finland, then also the worker node pools must be located in either Germany or Finland since these locations belong to the same network zone."
     end
   end
 end

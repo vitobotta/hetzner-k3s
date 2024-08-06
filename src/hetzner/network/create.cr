@@ -1,39 +1,48 @@
 require "../client"
 require "./find"
+require "../../util"
+require "../../configuration/main"
+require "../../configuration/networking"
 
 class Hetzner::Network::Create
+  include Util
+
   getter hetzner_client : Hetzner::Client
+  getter settings : Configuration::Main
   getter network_name : String
   getter location : String
   getter network_finder : Hetzner::Network::Find
   getter locations : Array(Hetzner::Location)
-  getter private_network_subnet : String
 
-  def initialize(@hetzner_client, @network_name, @location, @locations, @private_network_subnet)
-    @network_finder = Hetzner::Network::Find.new(@hetzner_client, @network_name)
+  def initialize(@settings, @hetzner_client, @network_name, @locations)
+    @location = settings.masters_pool.location
+    @network_finder = Hetzner::Network::Find.new(hetzner_client, network_name)
   end
 
   def run
     network = network_finder.run
 
     if network
-      puts "Network already exists, skipping."
+      log_line "Private network already exists, skipping create"
     else
-      print "Creating network..."
+      log_line "Creating private network..."
 
-      hetzner_client.post("/networks", network_config)
+      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+        success, response = hetzner_client.post("/networks", network_config)
+
+        unless success
+          STDERR.puts "[#{default_log_prefix}] Failed to create private network: #{response}"
+          STDERR.puts "[#{default_log_prefix}] Retrying to create private network in 5 seconds..."
+          raise "Failed to create private network"
+        end
+      end
+
       network = network_finder.run
 
-      puts "done."
+      log_line "...private network created"
     end
 
     network.not_nil!
-
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to create network: #{ex.message}"
-    STDERR.puts ex.response
-
-    exit 1
   end
 
   private def network_config
@@ -41,14 +50,18 @@ class Hetzner::Network::Create
 
     {
       name: network_name,
-      ip_range: private_network_subnet,
+      ip_range: settings.networking.private_network.subnet,
       subnets: [
         {
-          ip_range: private_network_subnet,
+          ip_range: settings.networking.private_network.subnet,
           network_zone: network_zone,
           type: "cloud"
         }
       ]
     }
+  end
+
+  private def default_log_prefix
+    "Private Network"
   end
 end
