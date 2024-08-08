@@ -1,0 +1,47 @@
+---
+cluster_name: $NAME
+kubeconfig_path: $KUBECONFIG
+k3s_version: v1.30.2+k3s2
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false # set to true if your key has a passphrase
+    public_key_path: sshkey.pub
+    private_key_path: sshkey
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api: # this will firewall port 6443 on the nodes; it will NOT firewall the API load balancer
+      - 0.0.0.0/0
+  public_network:
+    ipv4: true
+    ipv6: true
+  private_network:
+    enabled : true
+    subnet: 10.0.0.0/16
+    existing_network_name: ""
+  cni:
+    enabled: true
+    encryption: false
+    mode: flannel
+
+datastore:
+  mode: etcd # etcd (default) or external
+
+schedule_workloads_on_masters: false
+
+masters_pool:
+  instance_type: cpx11
+  instance_count: 3
+  location: $LOCATION
+
+worker_node_pools:
+- name: pool1
+  instance_type: cpx11
+  instance_count: 1
+  location: $LOCATION
+
+embedded_registry_mirror:
+  enabled: true
+

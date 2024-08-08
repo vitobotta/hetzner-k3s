@@ -29,3 +29,7 @@ temp
 docker-compose.override.yml
 cilium
 calicoctl
+
+e2e-tests/env
+e2e-tests/sshkey*
+e2e-tests/test-*
