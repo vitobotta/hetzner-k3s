@@ -102,12 +102,9 @@ class Hetzner::Instance::Create
   private def ensure_instance_is_ready
     ready = false
     powering_on_count = 0
-    attaching_to_network_count = 0
 
     until ready
-      if !instance_existed && settings.networking.private_network.enabled
-        sleep 10
-      end
+      sleep 10 unless instance_existed
 
       instance = instance_finder.run
 
@@ -115,15 +112,9 @@ class Hetzner::Instance::Create
 
       log_line "Instance status: #{instance.status}"
 
-      if instance.status != "running" && settings.networking.private_network.enabled
+      if instance.status != "running"
         powering_on_count += 1
         power_on_instance(instance, powering_on_count)
-        next
-      end
-
-      if settings.networking.private_network.enabled && !instance.try(&.private_ip_address)
-        attaching_to_network_count += 1
-        attach_instance_to_network(instance, attaching_to_network_count)
         next
       end
 
@@ -138,14 +129,6 @@ class Hetzner::Instance::Create
     log_line "Powering on instance (attempt #{powering_on_count})"
     hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
     log_line "Waiting for instance to be powered on..."
-  end
-
-  private def attach_instance_to_network(instance, attaching_to_network_count)
-    mutex.synchronize do
-      log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.not_nil!.id })
-      log_line "Waiting for instance to be attached to the network..."
-    end
   end
 
   private def instance_config
@@ -168,16 +151,16 @@ class Hetzner::Instance::Create
         cluster: cluster_name,
         role: (instance_name =~ /master/ ? "master" : "worker")
       },
-      start_after_create: !settings.networking.private_network.enabled
+      start_after_create: true
     }
 
     placement_group = @placement_group
+    network = @network
 
-    if placement_group.nil?
-      base_config
-    else
-      base_config.merge({ placement_group: placement_group.id })
-    end
+    base_config = base_config.merge({ placement_group: placement_group.id }) unless placement_group.nil?
+    base_config = base_config.merge({ networks: [network.id] }) unless network.nil?
+
+    base_config
   end
 
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
