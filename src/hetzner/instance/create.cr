@@ -195,6 +195,8 @@ class Hetzner::Instance::Create
     [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
+      "systemctl disable --now ssh.socket || true",
+      "systemctl enable --now ssh.service || true",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
