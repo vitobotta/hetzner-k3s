@@ -33,7 +33,7 @@ class Hetzner::Firewall::Delete
 
       unless success
         STDERR.puts "[#{default_log_prefix}] Failed to delete firewall: #{response}"
-        STDERR.puts "[#{default_log_prefix}] Retrying to delete firewall in 5 seconds (delete autoscaled instances if any)..."
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete firewall in 5 seconds..."
         raise "Failed to delete firewall"
       end
     end
