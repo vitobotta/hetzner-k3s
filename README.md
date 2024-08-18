@@ -26,7 +26,7 @@ k3s is my favorite Kubernetes distribution because it uses much less memory and 
 
 Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **2-3 minutes** only. This includes
 
-- creating all the infrastructure resources (instances, private network, firewall, load balancer for the API server for HA clusters)
+- creating all the infrastructure resources (instances, private network, firewall)
 - deploying k3s to the nodes
 - installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
