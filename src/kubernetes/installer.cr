@@ -38,7 +38,7 @@ class Kubernetes::Installer
 
   def initialize(
       @configuration,
-      @load_balancer,
+      # @load_balancer,
       @ssh,
       @autoscaling_worker_node_pools
     )
@@ -48,6 +48,8 @@ class Kubernetes::Installer
     ensure_kubectl_is_installed!
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
+
+    save_kubeconfig(master_count)
 
     install_software(master_count)
 
@@ -153,7 +155,7 @@ class Kubernetes::Installer
     etcd_arguments = ""
 
     if settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address(master_count)}:6443 "
+      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
       etcd_arguments = " --etcd-expose-metrics=true "
     else
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{settings.datastore.external_datastore_endpoint}' "
@@ -189,7 +191,7 @@ class Kubernetes::Installer
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
       k3s_version: settings.k3s_version,
-      api_server_ip_address: api_server_ip_address(master_count),
+      api_server_ip_address: api_server_ip_address,
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
       extra_args: kubelet_args_list
@@ -278,15 +280,38 @@ class Kubernetes::Installer
   private def save_kubeconfig(master_count)
     kubeconfig_path = configuration.kubeconfig_path
 
-    log_line "Saving the kubeconfig file to #{kubeconfig_path}...", "Control plane"
+    log_line "Generating the kubeconfig file to #{kubeconfig_path}...", "Control plane"
 
     kubeconfig = ssh.run(first_master, settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", settings.networking.ssh.use_agent, print_output: false).
-      gsub("127.0.0.1",  api_server_ip_address(master_count)).
       gsub("default", settings.cluster_name)
 
     File.write(kubeconfig_path, kubeconfig)
 
+    masters.each_with_index do |master, index|
+      master_ip_address = settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
+      master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
+      master_kubeconfig = kubeconfig
+        .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
+        .gsub("name: #{settings.cluster_name}", "name: #{master.name}")
+        .gsub("cluster: #{settings.cluster_name}", "cluster: #{master.name}")
+        .gsub("user: #{settings.cluster_name}", "user: #{master.name}")
+        .gsub("current-context: #{settings.cluster_name}", "current-context: #{master.name}")
+
+      File.write(master_kubeconfig_path, master_kubeconfig)
+    end
+
+    paths = masters.map { |master| "#{kubeconfig_path}-#{master.name}" }.join(":")
+
+    system("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}")
+    system("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{first_master.name}")
+
+    masters.each do |master|
+      FileUtils.rm("#{kubeconfig_path}-#{master.name}")
+    end
+
     File.chmod kubeconfig_path, 0o600
+
+    log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
   end
 
   private def add_labels_and_taints_to_masters
@@ -326,18 +351,10 @@ class Kubernetes::Installer
 
   private def generate_tls_sans(master_count)
     sans = [
-      "--tls-san=#{api_server_ip_address(master_count)}",
+      "--tls-san=#{api_server_ip_address}",
       "--tls-san=127.0.0.1"
     ]
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
-
-    if masters.size > 1
-      if settings.networking.private_network.enabled
-        sans << "--tls-san=#{load_balancer.not_nil!.private_ip_address}"
-      else
-        sans << "--tls-san=#{load_balancer.not_nil!.public_ip_address}"
-      end
-    end
 
     masters.each do |master|
       master_private_ip = master.private_ip_address
@@ -362,7 +379,7 @@ class Kubernetes::Installer
     "Kubernetes software"
   end
 
-  private def api_server_ip_address(master_count : Int)
-    master_count > 1 ? load_balancer.not_nil!.public_ip_address.not_nil! : first_master.host_ip_address.not_nil!
+  private def api_server_ip_address
+    first_master.host_ip_address.not_nil!
   end
 end

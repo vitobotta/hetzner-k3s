@@ -63,11 +63,11 @@ class Cluster::Create
     create_instances_concurrently(master_instance_creators, kubernetes_masters_installation_queue_channel, wait: true)
 
     configure_firewall
-    create_load_balancer if master_instance_creators.size > 1
+    # create_load_balancer if master_instance_creators.size > 1
 
     kubernetes_installer = Kubernetes::Installer.new(
       configuration,
-      load_balancer,
+      # load_balancer,
       ssh_client,
       autoscaling_worker_node_pools
     )
