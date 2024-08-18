@@ -195,8 +195,8 @@ class Hetzner::Instance::Create
     [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "systemctl disable --now ssh.socket || true",
-      "systemctl enable --now ssh.service || true",
+      "chmod +x /etc/configure-ssh.sh",
+      "/etc/configure-ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
@@ -208,7 +208,9 @@ class Hetzner::Instance::Create
       post_create_commands += microos_commands
     end
 
-    additional_post_create_commands = additional_post_create_commands.map do |command|
+    post_create_commands += additional_post_create_commands + final_commands
+
+    post_create_commands.map! do |command|
       if command.includes?("\n")
         lines = ["|"]
         command.split("\n").each do |line|
@@ -219,8 +221,6 @@ class Hetzner::Instance::Create
         command
       end
     end
-
-    post_create_commands += additional_post_create_commands + final_commands
 
     "- #{post_create_commands.join("\n- ")}"
   end
