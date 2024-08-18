@@ -6,8 +6,13 @@ require "../hetzner/network/delete"
 require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
 require "../hetzner/placement_group/all"
+require "../util/shell"
+require "../util"
 
 class Cluster::Delete
+  include Util
+  include Util::Shell
+
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
     configuration.hetzner_client
@@ -26,8 +31,8 @@ class Cluster::Delete
   end
 
   private def delete_resources
-    delete_load_balancer
-    sleep 5
+    # delete_load_balancer
+    # sleep 5
     delete_instances
     delete_placement_groups
     delete_network
@@ -45,6 +50,7 @@ class Cluster::Delete
   private def delete_instances
     initialize_masters
     initialize_worker_nodes
+    detect_nodes_with_kubectl
 
     channel = Channel(String).new
 
@@ -120,5 +126,24 @@ class Cluster::Delete
 
   private def delete_placement_groups
     Hetzner::PlacementGroup::All.new(hetzner_client).delete_all
+  end
+
+  private def default_log_prefix
+    "Cluster cleanup"
+  end
+
+  private def detect_nodes_with_kubectl
+    result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name | tail -n +2", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
+    all_node_names = result.output.split("\n")
+
+    all_node_names.each do |node_name|
+      unless instance_deletors.find { |deletor| deletor.instance_name == node_name }
+        instance_deletors << Hetzner::Instance::Delete.new(
+          settings: settings,
+          hetzner_client: hetzner_client,
+          instance_name: node_name
+        )
+      end
+    end
   end
 end
