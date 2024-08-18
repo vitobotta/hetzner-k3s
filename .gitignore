@@ -14,7 +14,6 @@
 dist/hetzner-k3s.jar
 dist/hetzner-k3s
 
-/docs/
 /lib/
 /bin/
 /.shards/
@@ -28,3 +27,11 @@ actions-runner
 .zsh_history
 temp
 docker-compose.override.yml
+cilium
+calicoctl
+
+e2e-tests/env
+e2e-tests/sshkey*
+e2e-tests/test-*
+create.log
+delete.log

@@ -1,7 +1,7 @@
 require "../../configuration/loader"
 require "../../configuration/main"
-require "../../hetzner/server"
-require "../../hetzner/server/create"
+require "../../hetzner/instance"
+require "../../hetzner/instance/create"
 require "../../util"
 require "../../util/shell"
 require "../../util/ssh"
@@ -9,34 +9,33 @@ require "../resources/resource"
 require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../resources/pod/spec/container"
+require "../../util"
+require "../util"
 
 class Kubernetes::Software::ClusterAutoscaler
+  include Util
+  include Kubernetes::Util
+
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
   getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
   getter worker_install_script : String
-  getter first_master : ::Hetzner::Server
-  getter ssh : Util::SSH
+  getter first_master : ::Hetzner::Instance
+  getter ssh : ::Util::SSH
 
   def initialize(@configuration, @settings, @first_master, @ssh, @autoscaling_worker_node_pools, @worker_install_script)
   end
 
   def install
-    puts "\n[Cluster Autoscaler] Installing Cluster Autoscaler..."
+    log_line "Installing Cluster Autoscaler..."
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{manifest}
-    EOF
-    BASH
+    apply_manifest_from_yaml(manifest)
 
-    run_command command
-
-    puts "[Cluster Autoscaler] ...Cluster Autoscaler installed"
+    log_line "...Cluster Autoscaler installed"
   end
 
   private def cloud_init
-    ::Hetzner::Server::Create.cloud_init(settings.ssh_port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
+    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
   end
 
   private def k3s_join_script
@@ -50,7 +49,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def certificate_path
-    @certificate_path ||= if ssh.run(first_master, settings.ssh_port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.use_ssh_agent, false).chomp == "1"
+    @certificate_path ||= if ssh.run(first_master, settings.networking.ssh.port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.networking.ssh.use_agent, false).chomp == "1"
       "/etc/ssl/certs/ca-certificates.crt"
     else
       "/etc/ssl/certs/ca-bundle.crt"
@@ -62,18 +61,6 @@ class Kubernetes::Software::ClusterAutoscaler
       autoscaling = pool.autoscaling.not_nil!
       "--nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
     end
-  end
-
-  private def fetch_manifest
-    response = Crest.get(settings.cluster_autoscaler_manifest_url)
-
-    unless response.success?
-      puts "[Cluster Autoscaler] Failed to download Cluster Autoscaler manifest from #{settings.cluster_autoscaler_manifest_url}"
-      puts "[Cluster Autoscaler] Server responded with status #{response.status_code}"
-      exit 1
-    end
-
-    response.body.to_s
   end
 
   private def patch_resources(resources)
@@ -98,24 +85,8 @@ class Kubernetes::Software::ClusterAutoscaler
     deployment
   end
 
-  private def run_command(command)
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Cluster Autoscaler")
-
-    unless result.success?
-      puts "[Cluster Autoscaler] Failed to install the Cluster Autoscaler:"
-      puts result.output
-      exit 1
-    end
-  end
-
-  private def patch_tolerations(spec)
-    toleration = Kubernetes::Resources::Pod::Spec::Toleration.new(effect: "NoExecute", key: "CriticalAddonsOnly", value: "true")
-
-    if tolerations = spec.tolerations
-      tolerations << toleration
-    else
-      spec.tolerations = [toleration]
-    end
+  private def patch_tolerations(pod_spec)
+    pod_spec.add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
   end
 
   private def container_command
@@ -129,16 +100,16 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patch_autoscaler_container(autoscaler_container)
-    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.29.0"
+    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.30.2"
     autoscaler_container.command = container_command
 
     set_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT", Base64.strict_encode(cloud_init))
     set_container_environment_variable(autoscaler_container, "HCLOUD_IMAGE", settings.autoscaling_image || settings.image)
     set_container_environment_variable(autoscaler_container, "HCLOUD_FIREWALL", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_SSH_KEY", settings.cluster_name)
-    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.existing_network || settings.cluster_name))
-    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV4", settings.enable_public_net_ipv4.to_s)
-    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV6", settings.enable_public_net_ipv6.to_s)
+    set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.networking.private_network.existing_network_name.blank? ? settings.cluster_name : settings.networking.private_network.existing_network_name))
+    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV4", settings.networking.public_network.ipv4.to_s)
+    set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV6", settings.networking.public_network.ipv6.to_s)
 
     set_certificate_path(autoscaler_container)
   end
@@ -186,9 +157,13 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def manifest
-    manifest = fetch_manifest
+    manifest = fetch_manifest(settings.manifests.cluster_autoscaler_manifest_url)
     resources = YAML.parse_all(manifest)
     patched_resources = patch_resources(resources)
     patched_resources.map(&.to_yaml).join
+  end
+
+  private def default_log_prefix
+    "Cluster Autoscaler"
   end
 end
