@@ -7,7 +7,7 @@ The tool requires a simple configuration file in order to create/upgrade/delete 
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
-k3s_version: v1.30.2+k3s2
+k3s_version: v1.30.3+k3s1
 
 networking:
   ssh:
@@ -133,7 +133,7 @@ curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_
 To create the cluster run:
 
 ```bash
-hetzner-k3s create --config cluster_config.yaml
+hetzner-k3s create --config cluster_config.yaml | tee create.log
 ```
 
 This will take a few minutes depending on the number of masters and worker nodes.
