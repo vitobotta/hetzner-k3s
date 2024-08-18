@@ -1,4 +1,10 @@
+require "../../../util"
+require "../../util"
+
 class Kubernetes::Software::Hetzner::Secret
+  include Util
+  include Kubernetes::Util
+
   HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../../../templates/hetzner_cloud_secret_manifest.yaml") }}
 
   getter configuration : Configuration::Loader
@@ -8,27 +14,26 @@ class Kubernetes::Software::Hetzner::Secret
   end
 
   def create
-    puts "\n[Hetzner Cloud Secret] Creating secret for Hetzner Cloud token..."
+    log_line "Creating secret for Hetzner Cloud token..."
+
+    network_name = if settings.networking.private_network.enabled
+      existing_network_name = settings.networking.private_network.existing_network_name
+      existing_network_name.empty? ? settings.cluster_name : existing_network_name
+    else
+      ""
+    end
 
     secret_manifest = Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network: (settings.existing_network || settings.cluster_name),
+      network: network_name,
       token: settings.hetzner_token
     })
 
-    command = <<-BASH
-    kubectl apply -f - <<-EOF
-    #{secret_manifest}
-    EOF
-    BASH
+    apply_manifest_from_yaml(secret_manifest)
 
-    result = Util::Shell.run(command, configuration.kubeconfig_path, settings.hetzner_token, prefix: "Hetzner Cloud Secret")
+    log_line "...secret created"
+  end
 
-    unless result.success?
-      puts "Failed to create Hetzner Cloud secret:"
-      puts result.output
-      exit 1
-    end
-
-    puts "[Hetzner Cloud Secret] ...secret created"
+  private def default_log_prefix
+    "Hetzner Cloud Secret"
   end
 end

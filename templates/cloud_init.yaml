@@ -3,18 +3,26 @@ preserve_hostname: true
 
 write_files:
 {{ eth1_str }}
-
-- content: |
-    Port {{ ssh_port }}
-    PasswordAuthentication no
-    X11Forwarding no
-    MaxAuthTries 2
-    AllowTcpForwarding no
-    AllowAgentForwarding no
-    PubkeyAcceptedKeyTypes=+ssh-rsa
-  path: /etc/ssh/sshd_config.d/ssh.conf
-
 {{ growpart_str }}
+- content: |
+    [Socket]
+    ListenStream=
+    ListenStream={{ ssh_port}}
+  path: /etc/systemd/system/ssh.socket.d/listen.conf
+- content: |
+    if systemctl is-active ssh.socket > /dev/null 2>&1
+    then
+      # OpenSSH is using socket activation
+      systemctl disable ssh
+      systemctl daemon-reload
+      systemctl restart ssh.socket
+      systemctl stop ssh
+    else
+      # OpenSSH is not using socket activation
+      sed -i 's/^#*Port .*/Port {{ ssh_port }}/' /etc/ssh/sshd_config
+    fi
+    systemctl restart ssh
+  path: /etc/configure-ssh.sh
 
 packages: [{{ packages_str }}]
 

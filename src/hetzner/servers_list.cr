@@ -1,7 +1,7 @@
-require "./server"
+require "./instance"
 
-class Hetzner::ServersList
+class Hetzner::InstancesList
   include JSON::Serializable
 
-  property servers : Array(Hetzner::Server)
+  property instances : Array(Hetzner::Instance)
 end

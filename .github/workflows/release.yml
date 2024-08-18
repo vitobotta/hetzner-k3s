@@ -30,7 +30,7 @@ jobs:
             binary_arch_suffix: arm64
             arch: aarch64
             distro: alpine_latest
-          - runs_on_tag: ubuntu-22.04
+          - runs_on_tag: ubuntu-24.04
             binary_os_suffix: linux
             binary_arch_suffix: amd64
             arch: none

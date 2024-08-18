@@ -1,7 +1,10 @@
 require "../client"
 require "./find"
+require "../../util"
 
 class Hetzner::Network::Delete
+  include Util
+
   getter hetzner_client : Hetzner::Client
   getter network_name : String
   getter network_finder : Hetzner::Network::Find
@@ -12,21 +15,27 @@ class Hetzner::Network::Delete
 
   def run
     if network = network_finder.run
-      print "Deleting network..."
+      log_line "Deleting private network..."
 
-      hetzner_client.delete("/networks", network.id)
+      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+        success, response = hetzner_client.delete("/networks", network.id)
 
-      puts "done."
+        unless success
+          STDERR.puts "[#{default_log_prefix}] Failed to delete private network: #{response}"
+          STDERR.puts "[#{default_log_prefix}] Retrying to delete private network in 5 seconds..."
+          raise "Failed to delete private network"
+        end
+      end
+
+      log_line "...private network deleted"
     else
-      puts "Network does not exist, skipping."
+      log_line "Private network does not exist, skipping delete"
     end
 
     network_name
+  end
 
-  rescue ex : Crest::RequestFailed
-    STDERR.puts "Failed to delete network: #{ex.message}"
-    STDERR.puts ex.response
-
-    exit 1
+  private def default_log_prefix
+    "Private network"
   end
 end
