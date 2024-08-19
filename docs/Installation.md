@@ -31,7 +31,7 @@ You need to install these dependencies first:
 - pcre
 - gmp
 
-##### Intel
+##### Intel / x86
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/2.0.2/hetzner-k3s-macos-amd64
@@ -39,7 +39,7 @@ chmod +x hetzner-k3s-macos-amd64
 sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 ```
 
-##### Apple Silicon / M1
+##### Apple Silicon / ARM
 
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/2.0.2/hetzner-k3s-macos-arm64
