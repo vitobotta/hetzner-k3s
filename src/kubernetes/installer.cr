@@ -380,6 +380,10 @@ class Kubernetes::Installer
   end
 
   private def api_server_ip_address
-    first_master.host_ip_address.not_nil!
+    if first_master.private_ip_address.nil?
+      first_master.public_ip_address
+    else
+      first_master.private_ip_address
+    end
   end
 end
