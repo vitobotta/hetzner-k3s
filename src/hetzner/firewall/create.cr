@@ -180,20 +180,20 @@ class Hetzner::Firewall::Create
           destination_ips: [] of String
         }
       end
+    end
 
-      if settings.embedded_registry_mirror.enabled
-        rules << {
-          description: "Allow traffic between nodes for peer-to-peer image distribution",
-          direction: "in",
-          protocol: "tcp",
-          port: "5001",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
-        }
-      end
+    if settings.embedded_registry_mirror.enabled
+      rules << {
+        description: "Allow traffic between nodes for peer-to-peer image distribution",
+        direction: "in",
+        protocol: "tcp",
+        port: "5001",
+        source_ips: [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        destination_ips: [] of String
+      }
     end
 
     {
