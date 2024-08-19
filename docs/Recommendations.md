@@ -17,3 +17,7 @@ Notes:
 ## Registry mirror
 
 v2.0.0 introduces a setting to optionally enable the `embedded registry mirror` in k3s (see [this page](https://docs.k3s.io/installation/registry-mirror) for more information. This is basically an installation of [Spegel](https://github.com/spegel-org/spegel) which enables peer-to-peer distribution of container images between the nodes of a cluster. This can help avoid problems with nodes not being able to pull images because their IPs have been banned by registry (due to malicious use of the same IPs in the past or similar reason), because a node will try pulling an image from other nodes via the embedded registry mirror, before pulling the image from the upstream registry. This also speeds up pods creation because less time is spent downloading images from the upstream registries when deployments have many replicas spread across many nodes.
+
+## Clusters using only the public network
+
+If you disable the private network to be able to create a cluster with more than 100 nodes, then you cannot restrict access to the Kubernetes API by IP address because otherwise the API would not be accessible from the nodes. This limitation may be removed in a future release if a workaround is found, but for the time being the API must be accessible to 0.0.0.0/0 when the private network is disabled.
