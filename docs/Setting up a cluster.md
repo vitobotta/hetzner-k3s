@@ -302,6 +302,19 @@ To simplify everything, in the case of Nginx...
 - Ingress Controller has different annotations (rules). You can use them inside `kind: Ingress` as a result such rules become "global" and inside `kind: Service` as a result such rules become "local" (service-specific).
 - Ingress Controller consists of a Pod and a Service. The Pod runs the Controller, which constantly polls the /ingresses endpoint on the API server of your cluster for updates to available Ingress Resources.
 
+#### 7. How to make autoscaling configure automatically IP routes to use a NAT server for new nodes?
+- You need to have a NAT server - as explained in this [Hetzner community tutorial](https://community.hetzner.com/tutorials/how-to-set-up-nat-for-cloud-networks#step-2---adding-the-route-to-the-network).
+- Use `post_create_commands` (multiple lines commands don't seem to be supported at the moment):
+```yaml
+additional_packages:
+  - ifupdown
+post_create_commands:
+  - apt update
+  - apt upgrade -y
+  - apt autoremove -y
+  - ip route add default via 10.0.0.1  # Adapt this to your gateway IP
+```
+
 ## Useful commands
 
 ```bash
