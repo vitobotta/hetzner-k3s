@@ -17,7 +17,7 @@ class Configuration::NetworkingComponents::AllowedNetworks
     current_ip = IPAddress.new("127.0.0.1")
 
     begin
-      current_ip = IPAddress.new(Crest.get("http://whatismyip.akamai.com").body)
+      current_ip = IPAddress.new(Crest.get("https://ipinfo.io/ip").body)
     rescue ex : Crest::RequestFailed
       errors << "Unable to determine your current IP (necessary to validate allowed networks for SSH and API)"
       return
