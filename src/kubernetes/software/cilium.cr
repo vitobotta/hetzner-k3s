@@ -36,6 +36,8 @@ class Kubernetes::Software::Cilium
     --set k8sServiceHost=127.0.0.1 \
     --set k8sServicePort=6444 \
     --set operator.replicas=1 \
+    --set operator.resources.requests.memory=128Mi \
+    --set resources.requests.memory=512Mi \
     cilium cilium/cilium
 
     echo "Waiting for Cilium to be ready..."
