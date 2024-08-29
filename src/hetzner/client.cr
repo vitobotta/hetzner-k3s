@@ -61,7 +61,7 @@ class Hetzner::Client
     response = with_rate_limit do
       Crest.post(
         "#{api_url}#{path}",
-        params.to_json,
+        params,
         json: true,
         headers: headers,
         handle_errors: false
@@ -75,7 +75,7 @@ class Hetzner::Client
     response = with_rate_limit do
       Crest.put(
         "#{api_url}#{path}",
-        params.to_json,
+        params,
         json: true,
         headers: headers,
         handle_errors: false

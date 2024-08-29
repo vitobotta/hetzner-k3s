@@ -52,10 +52,10 @@ class Hetzner::LoadBalancer::Delete
 
   private def remove_targets_config
     {
-      label_selector: {
-        selector: "cluster=#{cluster_name},role=master"
+      :label_selector => {
+        :selector => "cluster=#{cluster_name},role=master"
       },
-      type: "label_selector"
+      :type => "label_selector"
     }
   end
 
