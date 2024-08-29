@@ -49,13 +49,13 @@ class Hetzner::Network::Create
     network_zone = locations.find { |l| l.name == location }.not_nil!.network_zone
 
     {
-      name: network_name,
-      ip_range: settings.networking.private_network.subnet,
-      subnets: [
+      :name => network_name,
+      :ip_range => settings.networking.private_network.subnet,
+      :subnets => [
         {
-          ip_range: settings.networking.private_network.subnet,
-          network_zone: network_zone,
-          type: "cloud"
+          :ip_range => settings.networking.private_network.subnet,
+          :network_zone => network_zone,
+          :type => "cloud"
         }
       ]
     }

@@ -145,7 +145,7 @@ class Hetzner::Instance::Create
   private def attach_instance_to_network(instance, attaching_to_network_count)
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.not_nil!.id })
+      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { :network => network.not_nil!.id })
       log_line "Waiting for instance to be attached to the network..."
     end
   end
@@ -154,30 +154,30 @@ class Hetzner::Instance::Create
     user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_post_create_commands)
 
     base_config = {
-      name: instance_name,
-      location: location,
-      image: image,
-      public_net: {
-        enable_ipv4: enable_public_net_ipv4,
-        enable_ipv6: enable_public_net_ipv6,
+      :name => instance_name,
+      :location => location,
+      :image => image,
+      :public_net => {
+        :enable_ipv4 => enable_public_net_ipv4,
+        :enable_ipv6 => enable_public_net_ipv6,
       },
-      server_type: instance_type,
-      ssh_keys: [
+      :server_type => instance_type,
+      :ssh_keys => [
         ssh_key.id
       ],
-      user_data: user_data,
-      labels: {
-        cluster: cluster_name,
-        role: (instance_name =~ /master/ ? "master" : "worker")
+      :user_data => user_data,
+      :labels => {
+        :cluster => cluster_name,
+        :role => (instance_name =~ /master/ ? "master" : "worker")
       },
-      start_after_create: true
+      :start_after_create => true
     }
 
     placement_group = @placement_group
     network = @network
 
-    base_config = base_config.merge({ placement_group: placement_group.id }) unless placement_group.nil?
-    base_config = base_config.merge({ networks: [network.id] }) unless network.nil?
+    base_config = base_config.merge({ :placement_group => placement_group.id }) unless placement_group.nil?
+    base_config = base_config.merge({ :networks => [network.id] }) unless network.nil?
 
     base_config
   end
