@@ -13,22 +13,28 @@ For testing we are going to use this "hello-world" app - https://gist.githubuser
 4. Create file `hetzner-k3s_cluster_config.yaml` with the config below (this is a config for High Available (HA) cluster with 3 master nodes + 3 worker nodes. You can use 1+1 for testing):
 
 ```yaml
-hetzner_token: nRTJFfhIGNT..........
-cluster_name: hello-world  # hetzner-k3s gives the next names to hosts: hello-world-cx21-master1 / hello-world-cpx21-pool-cpx31-worker1
+hetzner_token: ...
+cluster_name: hello-world
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
 k3s_version: v1.23.3+k3s1
-public_ssh_key_path: "~/.ssh/id_rsa.pub"
-private_ssh_key_path: "~/.ssh/id_rsa"
-use_ssh_agent: true
-ssh_allowed_networks:
-  - 0.0.0.0/0
-api_allowed_networks:
-  - 0.0.0.0/0
-schedule_workloads_on_masters: false
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false
+    public_key_path: "~/.ssh/id_rsa.pub"
+    private_key_path: "~/.ssh/id_rsa"
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+
 masters_pool:
-  instance_type: cx21
+  instance_type: cpx21
   instance_count: 3
   location: nbg1
+
 worker_node_pools:
 - name: small
   instance_type: cpx21
@@ -43,6 +49,8 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 ```
+
+Refer to the full config example in - [Creating a cluster](Creating_a_cluster.md) for details on all the settings that can be customized
 
 5. Create cluster: `hetzner-k3s create --config hetzner-k3s_cluster_config.yaml`
 6. `hetzner-k3s` automatically creates a `kubeconfig`file for the cluster in the directory of your computer where you run the tool,
