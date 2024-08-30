@@ -100,7 +100,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patch_autoscaler_container(autoscaler_container)
-    autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:v1.30.2"
+    autoscaler_container.image = "docker.io/hetznercloud/cluster-autoscaler:v1.31.0-hcloud1"
     autoscaler_container.command = container_command
 
     set_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT", Base64.strict_encode(cloud_init))
