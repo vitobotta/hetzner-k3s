@@ -39,13 +39,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def k3s_join_script
-    start_index = worker_install_script.index("touch /etc/initialized") || 0
-    # make sure we early detect, when this line would be changed in the worker install script.
-    # Keeping "cloud init finished"-detection within the autoscaled nodes would deadlock,
-    # since there we run it *during* cloud init.
-    raise "Error: 'touch /etc/initialized' not found in worker_install_script" unless start_index
-    script_part = worker_install_script[start_index..-1]
-    "|\n    #{script_part.gsub("\n", "\n    ")}"
+    "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
   end
 
   private def certificate_path

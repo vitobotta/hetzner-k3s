@@ -182,10 +182,10 @@ class Hetzner::Instance::Create
     base_config
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands),
+      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
       growpart_str: growpart(snapshot_os),
       ssh_port: ssh_port
@@ -214,13 +214,12 @@ class Hetzner::Instance::Create
     [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "chmod +x /etc/configure-ssh.sh",
       "/etc/configure-ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
 
-  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands)
+  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
     post_create_commands = mandatory_post_create_commands
 
     if snapshot_os == "microos"
@@ -239,7 +238,7 @@ class Hetzner::Instance::Create
       end
     end
 
-    post_create_commands += additional_post_create_commands + final_commands
+    post_create_commands = post_create_commands + init_commands + additional_post_create_commands
 
     "- #{post_create_commands.join("\n- ")}"
   end
