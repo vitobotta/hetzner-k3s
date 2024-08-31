@@ -70,6 +70,7 @@ TIP: If you don't want to run `kubectl apply ...` every time, you can store all 
 # 4. Install ingress-nginx:
 # helm upgrade --install \
 # ingress-nginx ingress-nginx/ingress-nginx \
+# --set controller.ingressClassResource.default=true \ # remove this line if you don't want Nginx to become the default Ingress Controller
 # -f ./ingress-nginx-annotations.yaml \
 # --namespace ingress-nginx \
 # --create-namespace
@@ -125,10 +126,15 @@ controller:
 ```bash
 helm upgrade --install \
 ingress-nginx ingress-nginx/ingress-nginx \
+--set controller.ingressClassResource.default=true \
 -f ~/.kube/ingress-nginx-annotations.yaml \
 --namespace ingress-nginx \
 --create-namespace
 ```
+
+`--set controller.ingressClassResource.default=true` will configure this to be the default Ingress Class for your cluster.
+Without a default, you must specify an Ingress Class for every Ingress object you deploy, which is often difficult when deploying Helm Charts.
+If you do not set a default Ingress Class nor specify one on the Ingress resource, Nginx will serve a 404 Not Found page, as it did not "pick up" the Ingress resource.
 
 TIP: Just in case you need to delete it: `helm uninstall ingress-nginx -n ingress-nginx`.
 Be careful, this will delete current Hetzner's load balancer and as a result when you install a new ingress controller,
@@ -222,7 +228,6 @@ kind: Ingress
 metadata:
   name: hello-world
   annotations:
-    kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: "letsencrypt-prod"    # <<<--- Add annotation
     kubernetes.io/tls-acme: "true"                        # <<<--- Add annotation
 spec:
@@ -235,6 +240,8 @@ spec:
 
   ....
 ```
+
+TIP: if you chose not to configure Nginx as the default Ingress Class, you must add the `kubernetes.io/ingress.class: nginx` annotation.
 
 28. Apply changes: `kubectl apply -f ./hello-world.yaml`
 
