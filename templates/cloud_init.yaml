@@ -1,10 +1,10 @@
 #cloud-config
 preserve_hostname: true
 
+{{ growpart_str }}
+
 write_files:
 {{ eth1_str }}
-
-{{ growpart_str }}
 
 - path: /etc/systemd/system/ssh.socket.d/listen.conf
   content: |
