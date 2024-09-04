@@ -8,7 +8,13 @@ module K3s
   RELEASES_FILENAME = "/tmp/k3s-releases.yaml"
 
   def self.available_releases
-    return YAML.parse(File.read(RELEASES_FILENAME)).as_a if File.exists?(RELEASES_FILENAME)
+    if File.exists?(RELEASES_FILENAME)
+      if (Time.utc - File.info(RELEASES_FILENAME).modification_time) > 7.days
+        File.delete(RELEASES_FILENAME)
+      else
+        return YAML.parse(File.read(RELEASES_FILENAME)).as_a
+      end
+    end
 
     releases = fetch_all_releases_from_github
     File.open(RELEASES_FILENAME, "w") { |f| YAML.dump(releases, f) }
