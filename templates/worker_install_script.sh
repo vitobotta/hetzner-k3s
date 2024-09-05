@@ -4,15 +4,23 @@ HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [ "{{ private_network_enabled }}" = "true" ]; then
-  echo "Using private network " > /var/log/hetzner-k3s.log
+  echo "Using private network " >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
-  SUBNET_PREFIX=$(echo $SUBNET | cut -d'/' -f1 | sed 's/\./\\./g' | sed 's/0$//')
   MAX_ATTEMPTS=30
   DELAY=10
   UP="false"
 
   for i in $(seq 1 $MAX_ATTEMPTS); do
-    if ip -4 addr show | grep -q "inet $SUBNET_PREFIX"; then
+    NETWORK_INTERFACE=$(
+      ip -o link show |
+        grep -w 'mtu 1450' |
+        awk -F': ' '{print $2}' |
+        grep -Ev 'cilium|br|flannel|docker|veth' |
+        xargs -I {} bash -c 'ethtool {} &>/dev/null && echo {}' |
+        head -n1
+    )
+
+    if [ ! -z "$NETWORK_INTERFACE" ]; then
       echo "Private network IP in subnet $SUBNET is up" 2>&1 | tee -a /var/log/hetzner-k3s.log
       UP="true"
       break
@@ -25,17 +33,22 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
     echo "Timeout waiting for private network IP in subnet $SUBNET" 2>&1 | tee -a /var/log/hetzner-k3s.log
   fi
 
-  PRIVATE_IP=$(ip route get {{ private_network_test_ip }} | awk -F"src " 'NR==1{split($2,a," ");print a[1]}')
-  NETWORK_INTERFACE=" --flannel-iface=$(ip route get {{ private_network_test_ip }} | awk -F"dev " 'NR==1{split($2,a," ");print a[1]}') "
+  PRIVATE_IP=$(
+    ip -4 -o addr show dev "$NETWORK_INTERFACE" |
+      awk '{print $4}' |
+      cut -d'/' -f1 |
+      head -n1
+  )
+  FLANNEL_SETTINGS=" --flannel-iface=$NETWORK_INTERFACE "
 else
-  echo "Using public network " > /var/log/hetzner-k3s.log
+  echo "Using public network " >/var/log/hetzner-k3s.log
   PRIVATE_IP="${PUBLIC_IP}"
-  NETWORK_INTERFACE=" "
+  FLANNEL_SETTINGS=" "
 fi
 
 mkdir -p /etc/rancher/k3s
 
-cat > /etc/rancher/k3s/registries.yaml <<EOF
+cat >/etc/rancher/k3s/registries.yaml <<EOF
 mirrors:
   "*":
 EOF
@@ -44,6 +57,6 @@ curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_VERSION="
 --node-name=$HOSTNAME {{ extra_args }} \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
-$NETWORK_INTERFACE " sh -
+$FLANNEL_SETTINGS " sh -
 
-echo true > /etc/initialized
+echo true >/etc/initialized
