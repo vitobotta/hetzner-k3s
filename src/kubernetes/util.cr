@@ -83,4 +83,8 @@ module Kubernetes::Util
 
     port_open?(ip_address, port, timeout = 1.0)
   end
+
+  private def present?(value : String?)
+    value.try(&.strip).try(&.empty?) == false
+  end
 end
