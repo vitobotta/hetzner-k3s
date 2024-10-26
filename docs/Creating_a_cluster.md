@@ -47,18 +47,23 @@ networking:
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
-  # s3: # can only be enabled for etcd mode
-  #   enabled: false
-  #   endpoint: "s3.amazonaws.com" # optional defaults to s3.amazonaws.com
-  #   endpoint_ca: "" # optional
-  #   skip_ssl_verify: false # optional defaults to false
-  #   access_key: ""
-  #   secret_key: ""
-  #   bucket: ""
-  #   region: "us-east-1" # optional defaults to us-east-1
-  #   folder: "" # optional
-  #   insecure: false # optional defaults to false
-  #   timeout: "5m0s" # optional defaults to 5m0s
+  # etcd: # optional
+  #   backups: # optional
+  #     enabled: true # optional
+  #     retention: 5 # optional
+  #     dir: ${data-dir}/db/snapshots # optional
+  #     s3: # optional - can only be enabled for etcd mode
+  #       enabled: true
+  #       endpoint: "s3.amazonaws.com" # optional
+  #       endpoint_ca: "" # optional
+  #       skip_ssl_verify: false # optional
+  #       access_key: ""
+  #       secret_key: ""
+  #       bucket: ""
+  #       region: "us-east-1" # optional
+  #       folder: "" # optional
+  #       insecure: false # optional
+  #       timeout: "5m0s" # optional
 
 schedule_workloads_on_masters: false
 

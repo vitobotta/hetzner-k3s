@@ -183,7 +183,7 @@ class Kubernetes::Installer
       cluster_dns: settings.networking.cluster_dns,
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments,
-      s3_arguments: generate_s3_arguments(),
+      etcd_backup_settings: etcd_backup_settings,
       embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
     })
   end
@@ -390,20 +390,31 @@ class Kubernetes::Installer
     end
   end
 
-  private def generate_s3_arguments
+  private def etcd_backup_settings
+    if !settings.datastore.etcd.backups.enabled
+      return "--etcd-disable-snapshots"
+    end
+
     opts = [] of String
 
-    opts << "--etcd-s3" if settings.datastore.s3.enabled
-    opts << "--etcd-s3-endpoint=#{settings.datastore.s3.endpoint}" if present?(settings.datastore.s3.endpoint)
-    opts << "--etcd-s3-endpoint-ca=#{settings.datastore.s3.endpoint_ca}" if present?(settings.datastore.s3.endpoint_ca)
-    opts << "--etcd-s3-skip-ssl-verify" if settings.datastore.s3.skip_ssl_verify
-    opts << "--etcd-s3-access-key=#{settings.datastore.s3.access_key}" if present?(settings.datastore.s3.access_key)
-    opts << "--etcd-s3-secret-key=#{settings.datastore.s3.secret_key}" if present?(settings.datastore.s3.secret_key)
-    opts << "--etcd-s3-bucket=#{settings.datastore.s3.bucket}" if present?(settings.datastore.s3.bucket)
-    opts << "--etcd-s3-region=#{settings.datastore.s3.region}" if present?(settings.datastore.s3.region)
-    opts << "--etcd-s3-folder=#{settings.datastore.s3.folder}" if present?(settings.datastore.s3.folder)
-    opts << "--etcd-s3-insecure" if settings.datastore.s3.insecure
-    opts << "--etcd-s3-timeout=#{settings.datastore.s3.timeout}" if present?(settings.datastore.s3.timeout)
+    backups = settings.datastore.etcd.backups
+    opts << "--etcd-snapshot-retention=#{backups.retention}" if backups.retention != nil
+    opts << "--etcd-snapshot-dir=#{backups.dir}" if present?(backups.dir)
+
+    s3 = backups.s3
+    if s3.enabled
+      opts << "--etcd-s3"
+      opts << "--etcd-s3-endpoint=#{s3.endpoint}" if present?(s3.endpoint)
+      opts << "--etcd-s3-endpoint-ca=#{s3.endpoint_ca}" if present?(s3.endpoint_ca)
+      opts << "--etcd-s3-skip-ssl-verify" if s3.skip_ssl_verify
+      opts << "--etcd-s3-access-key=#{s3.access_key}" if present?(s3.access_key)
+      opts << "--etcd-s3-secret-key=#{s3.secret_key}" if present?(s3.secret_key)
+      opts << "--etcd-s3-bucket=#{s3.bucket}" if present?(s3.bucket)
+      opts << "--etcd-s3-region=#{s3.region}" if present?(s3.region)
+      opts << "--etcd-s3-folder=#{s3.folder}" if present?(s3.folder)
+      opts << "--etcd-s3-insecure" if s3.insecure
+      opts << "--etcd-s3-timeout=#{s3.timeout}" if present?(s3.timeout)
+    end
 
     opts.uniq.sort.join(" ")
   end
