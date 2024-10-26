@@ -110,6 +110,8 @@ embedded_registry_mirror:
 # - arg1
 # - ...
 # api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
+#timeouts:
+#  instance_creation_timeout: 60 # Sometimes when you use a private network the cloud init step takes a long time so you have to increase the timeout
 ```
 
 Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
