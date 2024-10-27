@@ -53,6 +53,7 @@ datastore:
   #     enabled: true # optional
   #     retention: 5 # optional
   #     dir: ${data-dir}/db/snapshots # optional
+  #     compress: false # optional
   #     s3: # optional - can only be enabled for etcd mode
   #       enabled: true
   #       endpoint: "s3.amazonaws.com" # optional

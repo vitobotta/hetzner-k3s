@@ -415,6 +415,7 @@ class Kubernetes::Installer
     backups = settings.datastore.etcd.backups
     opts << "--etcd-snapshot-retention=#{backups.retention}" if present?(backups.retention)
     opts << "--etcd-snapshot-dir=#{backups.dir}" if present?(backups.dir)
+    opts << "--etcd-snapshot-compress" if backups.compress
 
     s3 = backups.s3
     if s3.enabled
