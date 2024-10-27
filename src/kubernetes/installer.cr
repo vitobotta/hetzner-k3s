@@ -391,14 +391,14 @@ class Kubernetes::Installer
   end
 
   private def etcd_backup_settings
-    if !settings.datastore.etcd.backups.enabled
+    unless settings.datastore.etcd.backups.enabled
       return "--etcd-disable-snapshots"
     end
 
     opts = [] of String
 
     backups = settings.datastore.etcd.backups
-    opts << "--etcd-snapshot-retention=#{backups.retention}" if backups.retention != nil
+    opts << "--etcd-snapshot-retention=#{backups.retention}" if present?(backups.retention)
     opts << "--etcd-snapshot-dir=#{backups.dir}" if present?(backups.dir)
 
     s3 = backups.s3
