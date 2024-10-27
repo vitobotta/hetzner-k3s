@@ -16,7 +16,6 @@ class Configuration::Settings::Datastore
       errors << "bucket is required for S3 backups" if s3.bucket.strip.empty?
     when "external"
       errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
-      errors << "etcd options cannot be set for external datastore" if datastore.etcd
     else
       errors << "datastore mode is invalid - allowed values are 'etcd' and 'external'"
     end
