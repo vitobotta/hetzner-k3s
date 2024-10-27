@@ -80,6 +80,12 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 {{ server }} {{ tls_sans }}" sh -
 
 echo "Restarting k3s service" 2>&1 | tee -a /var/log/hetzner-k3s.log
-systemctl restart k3s
+if [ -x /sbin/openrc-run ]; then
+    rc-service k3s restart
+fi
+if [ -d /run/systemd ]; then
+    systemctl restart k3s
+fi
+
 
 echo true > /etc/initialized
