@@ -410,6 +410,8 @@ class Kubernetes::Installer
   end
 
   private def etcd_backup_settings
+    return "" unless settings.datastore.mode == "etcd"
+
     unless settings.datastore.etcd.backups.enabled
       return "--etcd-disable-snapshots"
     end
