@@ -5,6 +5,7 @@ class Configuration::Datastore::Backups
   include YAML::Serializable
 
   getter enabled : Bool = true
+  getter schedule_cron : String?
   getter retention : Int32?
   getter dir : String?
   getter compress : Bool = false

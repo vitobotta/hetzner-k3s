@@ -52,6 +52,7 @@ datastore:
   #   backups: # optional
   #     enabled: true # optional
   #     retention: 5 # optional
+  #     schedule_cron: "0 */12 * * *"  # optional
   #     dir: ${data-dir}/db/snapshots # optional
   #     compress: false # optional
   #     s3: # optional - can only be enabled for etcd mode

@@ -45,7 +45,15 @@ else
   EMBEDDED_REGISTRY_MIRROR=" "
 fi
 
-mkdir -p /etc/rancher/k3s
+mkdir -p /etc/rancher/k3s/config.yaml.d
+
+if [ "{{ etcd_schedule_cron }}" != "" ]; then
+    cat > /etc/rancher/k3s/config.yaml.d/hetzner-k3s.yaml <<EOF
+etcd-snapshot-schedule-cron: "{{ etcd_schedule_cron }}"
+EOF
+else
+    rm -f /etc/rancher/k3s/config.yaml.d/hetzner-k3s.yaml 2>/dev/null
+fi
 
 cat > /etc/rancher/k3s/registries.yaml <<EOF
 mirrors:
@@ -70,5 +78,8 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
 {{ server }} {{ tls_sans }}" sh -
+
+echo "Restarting k3s service" 2>&1 | tee -a /var/log/hetzner-k3s.log
+systemctl restart k3s
 
 echo true > /etc/initialized

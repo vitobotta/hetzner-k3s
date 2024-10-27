@@ -155,6 +155,7 @@ class Kubernetes::Installer
     server = ""
     datastore_endpoint = ""
     etcd_arguments = ""
+    etcd_schedule_cron = ""
 
     if settings.datastore.mode == "etcd"
       server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
@@ -165,6 +166,8 @@ class Kubernetes::Installer
 
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
+
+    etcd_schedule_cron = settings.datastore.etcd.backups.schedule_cron if present?(settings.datastore.etcd.backups.schedule_cron)
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
@@ -186,6 +189,7 @@ class Kubernetes::Installer
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments,
       etcd_backup_settings: etcd_backup_settings,
+      etcd_schedule_cron: etcd_schedule_cron,
       embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
     })
   end
