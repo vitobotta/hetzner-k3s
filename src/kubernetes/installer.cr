@@ -116,6 +116,8 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
+    save_server_token()
+
     sleep 5
 
     command = "kubectl cluster-info 2> /dev/null"
@@ -315,6 +317,19 @@ class Kubernetes::Installer
     File.chmod kubeconfig_path, 0o600
 
     log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
+  end
+
+  private def save_server_token()
+    return unless present?(settings.token_path)
+    token_path = settings.token_path.not_nil!
+
+    log_line "Generating the token file to #{token_path}...", "Control plane"
+
+    token = ssh.run(first_master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/token", settings.networking.ssh.use_agent, print_output: false)
+
+    File.write(token_path, token)
+
+    log_line "...token file generated as #{token_path}.", "Control plane"
   end
 
   private def add_labels_and_taints_to_masters

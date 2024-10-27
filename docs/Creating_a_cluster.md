@@ -7,6 +7,7 @@ The tool requires a simple configuration file in order to create/upgrade/delete 
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
+# token_path: "./token" # optional, saves the server token file
 k3s_version: v1.30.3+k3s1
 
 networking:

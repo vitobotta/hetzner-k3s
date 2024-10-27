@@ -11,6 +11,7 @@ class Configuration::Main
   getter hetzner_token : String = ENV.fetch("HCLOUD_TOKEN", "")
   getter cluster_name : String
   getter kubeconfig_path : String
+  getter token_path : String?
   getter k3s_version : String
   getter api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
