@@ -1,6 +1,6 @@
 class Configuration::Settings::Datastore
   getter errors : Array(String)
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Datastore::Config
 
   def initialize(@errors, @datastore)
   end
