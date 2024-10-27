@@ -4,7 +4,7 @@ S3 backups can be enabled for the embedded etcd mode only. You can see the expla
 
 > "In addition to backing up the datastore itself, you must also back up the server token file at /var/lib/rancher/k3s/server/token. You must restore this file, or pass its value into the --token option, when restoring from backup. If you do not use the same token value when restoring, the snapshot will be unusable, as the token is used to encrypt confidential data within the datastore itself." [K3S Backup/Restore Docs](https://docs.k3s.io/datastore/backup-restore)
 
-You can save the server token file to desk by setting the `token_path` value in your cluster_config.yaml:
+You can save the server token file to disk by setting the `token_path` value in your cluster_config.yaml:
 
 ```yaml
 token_path: "./token"
