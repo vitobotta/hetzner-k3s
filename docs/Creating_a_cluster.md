@@ -18,7 +18,7 @@ networking:
   allowed_networks:
     ssh:
       - 0.0.0.0/0
-    api: # this will firewall port 6443 on the nodes; it will NOT firewall the API load balancer
+    api: # this will firewall port 6443 on the nodes
       - 0.0.0.0/0
   public_network:
     ipv4: true
@@ -81,7 +81,7 @@ worker_node_pools:
     max_instances: 3
 
 embedded_registry_mirror:
-  enabled: true
+  enabled: false # Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
 # additional_packages:
 # - somepackage
