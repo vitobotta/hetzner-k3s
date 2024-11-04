@@ -177,6 +177,7 @@ class Kubernetes::Installer
       tls_sans: generate_tls_sans(master_count),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
+      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
       cluster_dns: settings.networking.cluster_dns,
@@ -194,6 +195,7 @@ class Kubernetes::Installer
       api_server_ip_address: api_server_ip_address,
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_test_ip: settings.networking.private_network.subnet.split(".")[0..2].join(".") + ".0",
+      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       extra_args: kubelet_args_list
     })
   end
@@ -380,6 +382,10 @@ class Kubernetes::Installer
   end
 
   private def api_server_ip_address
-    first_master.host_ip_address.not_nil!
+    if first_master.private_ip_address.nil?
+      first_master.public_ip_address
+    else
+      first_master.private_ip_address
+    end
   end
 end
