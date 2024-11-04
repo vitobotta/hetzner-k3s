@@ -81,7 +81,7 @@ worker_node_pools:
     max_instances: 3
 
 embedded_registry_mirror:
-  enabled: true
+  enabled: false # Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
 # additional_packages:
 # - somepackage
