@@ -42,8 +42,8 @@ class Hetzner::PlacementGroup::Create
 
   private def placement_group_config
     {
-      "name" => placement_group_name,
-      "type" => "spread"
+      :name => placement_group_name,
+      :type => "spread"
     }
   end
 

@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs_on_tag: macos-latest
+          - runs_on_tag: macos-13
             binary_os_suffix: macos
             binary_arch_suffix: amd64
           - runs_on_tag: macos-14

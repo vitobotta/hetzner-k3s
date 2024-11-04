@@ -58,101 +58,101 @@ class Hetzner::Firewall::Create
   private def firewall_config
     rules = [
       {
-        description: "Allow SSH port",
-        direction: "in",
-        protocol: "tcp",
-        port: ssh.port.to_s,
-        source_ips: allowed_networks.ssh,
-        destination_ips: [] of String
+        :description => "Allow SSH port",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => ssh.port.to_s,
+        :source_ips => allowed_networks.ssh,
+        :destination_ips => [] of String
       },
       {
-        description: "Allow ICMP (ping)",
-        direction: "in",
-        protocol: "icmp",
-        source_ips: [
+        :description => "Allow ICMP (ping)",
+        :direction => "in",
+        :protocol =>  "icmp",
+        :source_ips => [
           "0.0.0.0/0",
           "::/0"
         ],
-        destination_ips: [] of String
+        :destination_ips => [] of String
       },
       {
-        description: "Node port range",
-        direction: "in",
-        protocol: "tcp",
-        port: "30000-32767",
-        source_ips: [
+        :description => "Node port range",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => "30000-32767",
+        :source_ips => [
           "0.0.0.0/0",
           "::/0"
         ],
-        destination_ips: [] of String
+        :destination_ips => [] of String
       },
       {
-        description: "Allow port 6443 (Kubernetes API server)",
-        direction: "in",
-        protocol: "tcp",
-        port: "6443",
-        source_ips: allowed_networks.api,
-        destination_ips: [] of String
+        :description => "Allow port 6443 (Kubernetes API server)",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => "6443",
+        :source_ips => allowed_networks.api,
+        :destination_ips => [] of String
       }
     ]
 
     if private_network.try(&.enabled)
       rules += [
         {
-          description: "Allow all TCP traffic between nodes on the private network",
-          direction: "in",
-          protocol: "tcp",
-          port: "any",
-          source_ips: [private_network.subnet],
-          destination_ips: [] of String
+          :description => "Allow all TCP traffic between nodes on the private network",
+          :direction => "in",
+          :protocol =>  "tcp",
+          :port => "any",
+          :source_ips => [private_network.subnet],
+          :destination_ips => [] of String
         },
         {
-          description: "Allow all UDP traffic between nodes on the private network",
-          direction: "in",
-          protocol: "udp",
-          port: "any",
-          source_ips: [private_network.subnet],
-          destination_ips: [] of String
+          :description => "Allow all UDP traffic between nodes on the private network",
+          :direction => "in",
+          :protocol =>  "udp",
+          :port => "any",
+          :source_ips => [private_network.subnet],
+          :destination_ips => [] of String
         }
       ]
     else
       if settings.networking.cni.cilium?
         rules += [
           {
-            description: "Allow wireguard traffic (Cilium)",
-            direction: "in",
-            protocol: "tcp",
-            port: "51871",
-            source_ips: [
+            :description => "Allow wireguard traffic (Cilium)",
+            :direction => "in",
+            :protocol =>  "tcp",
+            :port => "51871",
+            :source_ips => [
               "0.0.0.0/0",
               "::/0"
             ],
-            destination_ips: [] of String
+            :destination_ips => [] of String
           }
         ]
       else
         rules += [
           {
-            description: "Allow wireguard traffic",
-            direction: "in",
-            protocol: "tcp",
-            port: "51820",
-            source_ips: [
+            :description => "Allow wireguard traffic",
+            :direction => "in",
+            :protocol =>  "tcp",
+            :port => "51820",
+            :source_ips => [
               "0.0.0.0/0",
               "::/0"
             ],
-            destination_ips: [] of String
+            :destination_ips => [] of String
           },
           {
-            description: "Allow wireguard traffic",
-            direction: "in",
-            protocol: "tcp",
-            port: "51821",
-            source_ips: [
+            :description => "Allow wireguard traffic",
+            :direction => "in",
+            :protocol =>  "tcp",
+            :port => "51821",
+            :source_ips => [
               "0.0.0.0/0",
               "::/0"
             ],
-            destination_ips: [] of String
+            :destination_ips => [] of String
           }
         ]
       end
@@ -163,48 +163,48 @@ class Hetzner::Firewall::Create
         end
 
         rules << {
-          description: "Allow etcd traffic between masters",
-          direction: "in",
-          protocol: "tcp",
-          port: "2379",
-          source_ips: master_ips,
-          destination_ips: [] of String
+          :description => "Allow etcd traffic between masters",
+          :direction => "in",
+          :protocol =>  "tcp",
+          :port => "2379",
+          :source_ips => master_ips,
+          :destination_ips => [] of String
         }
 
         rules << {
-          description: "Allow etcd traffic between masters",
-          direction: "in",
-          protocol: "tcp",
-          port: "2380",
-          source_ips: master_ips,
-          destination_ips: [] of String
-        }
-      end
-
-      if settings.embedded_registry_mirror.enabled
-        rules << {
-          description: "Allow traffic between nodes for peer-to-peer image distribution",
-          direction: "in",
-          protocol: "tcp",
-          port: "5001",
-          source_ips: [
-            "0.0.0.0/0",
-            "::/0"
-          ],
-          destination_ips: [] of String
+          :description => "Allow etcd traffic between masters",
+          :direction => "in",
+          :protocol =>  "tcp",
+          :port => "2380",
+          :source_ips => master_ips,
+          :destination_ips => [] of String
         }
       end
     end
 
+    if settings.embedded_registry_mirror.enabled
+      rules << {
+        :description => "Allow traffic between nodes for peer-to-peer image distribution",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => "5001",
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        :destination_ips => [] of String
+      }
+    end
+
     {
-      name: firewall_name,
-      rules: rules,
-      apply_to: [
+      :name => firewall_name,
+      :rules => rules,
+      :apply_to => [
         {
-          label_selector: {
-            selector: "cluster=#{settings.cluster_name}"
+          :label_selector => {
+            :selector => "cluster=#{settings.cluster_name}"
           },
-          type: "label_selector"
+          :type => "label_selector"
         }
       ]
     }

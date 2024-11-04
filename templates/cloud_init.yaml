@@ -3,13 +3,18 @@ preserve_hostname: true
 
 write_files:
 {{ eth1_str }}
+
 {{ growpart_str }}
-- content: |
+
+- path: /etc/systemd/system/ssh.socket.d/listen.conf
+  content: |
     [Socket]
     ListenStream=
     ListenStream={{ ssh_port}}
-  path: /etc/systemd/system/ssh.socket.d/listen.conf
-- content: |
+
+- path: /etc/configure-ssh.sh
+  permissions: '0755'
+  content: |
     if systemctl is-active ssh.socket > /dev/null 2>&1
     then
       # OpenSSH is using socket activation
@@ -22,7 +27,7 @@ write_files:
       sed -i 's/^#*Port .*/Port {{ ssh_port }}/' /etc/ssh/sshd_config
     fi
     systemctl restart ssh
-  path: /etc/configure-ssh.sh
+
 
 packages: [{{ packages_str }}]
 

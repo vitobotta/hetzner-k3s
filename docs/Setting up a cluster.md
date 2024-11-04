@@ -9,26 +9,32 @@ For testing we are going to use this "hello-world" app - https://gist.githubuser
 
 1. Install `kubectl` on your computer: https://kubernetes.io/docs/tasks/tools/#kubectl
 2. Install `Helm` on your computer: https://helm.sh/docs/intro/install/
-3. Install `hetzner-k3s` on your computer: https://github.com/vitobotta/hetzner-k3s#getting-started
+3. Install `hetzner-k3s` on your computer: [Installation](Installation.md)
 4. Create file `hetzner-k3s_cluster_config.yaml` with the config below (this is a config for High Available (HA) cluster with 3 master nodes + 3 worker nodes. You can use 1+1 for testing):
 
 ```yaml
-hetzner_token: nRTJFfhIGNT..........
-cluster_name: hello-world  # hetzner-k3s gives the next names to hosts: hello-world-cx21-master1 / hello-world-cpx21-pool-cpx31-worker1
+hetzner_token: ...
+cluster_name: hello-world
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
 k3s_version: v1.23.3+k3s1
-public_ssh_key_path: "~/.ssh/id_rsa.pub"
-private_ssh_key_path: "~/.ssh/id_rsa"
-use_ssh_agent: true
-ssh_allowed_networks:
-  - 0.0.0.0/0
-api_allowed_networks:
-  - 0.0.0.0/0
-schedule_workloads_on_masters: false
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false
+    public_key_path: "~/.ssh/id_rsa.pub"
+    private_key_path: "~/.ssh/id_rsa"
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+
 masters_pool:
-  instance_type: cx21
+  instance_type: cpx21
   instance_count: 3
   location: nbg1
+
 worker_node_pools:
 - name: small
   instance_type: cpx21
@@ -43,6 +49,8 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 ```
+
+Refer to the full config example in - [Creating a cluster](Creating_a_cluster.md) for details on all the settings that can be customized
 
 5. Create cluster: `hetzner-k3s create --config hetzner-k3s_cluster_config.yaml`
 6. `hetzner-k3s` automatically creates a `kubeconfig`file for the cluster in the directory of your computer where you run the tool,
@@ -62,6 +70,7 @@ TIP: If you don't want to run `kubectl apply ...` every time, you can store all 
 # 4. Install ingress-nginx:
 # helm upgrade --install \
 # ingress-nginx ingress-nginx/ingress-nginx \
+# --set controller.ingressClassResource.default=true \ # remove this line if you don't want Nginx to become the default Ingress Controller
 # -f ./ingress-nginx-annotations.yaml \
 # --namespace ingress-nginx \
 # --create-namespace
@@ -117,14 +126,19 @@ controller:
 ```bash
 helm upgrade --install \
 ingress-nginx ingress-nginx/ingress-nginx \
+--set controller.ingressClassResource.default=true \
 -f ~/.kube/ingress-nginx-annotations.yaml \
 --namespace ingress-nginx \
 --create-namespace
 ```
 
+`--set controller.ingressClassResource.default=true` will configure this to be the default Ingress Class for your cluster.
+Without a default, you must specify an Ingress Class for every Ingress object you deploy, which is often difficult when deploying Helm Charts.
+If you do not set a default Ingress Class nor specify one on the Ingress resource, Nginx will serve a 404 Not Found page, as it did not "pick up" the Ingress resource.
+
 TIP: Just in case you need to delete it: `helm uninstall ingress-nginx -n ingress-nginx`.
-Be careful, this will delete current Hetzner's load balancer as a result when you install a new ingress controller,
-new Hetzner's load balancer possibly will be created with a new public IP address.
+Be careful, this will delete current Hetzner's load balancer and as a result when you install a new ingress controller,
+a new Hetzner's load balancer possibly will be created with a new public IP address.
 
 12. In a few minutes check that the "EXTERNAL-IP" column has IP instead of "pending": `kubectl get svc -n ingress-nginx`
 
@@ -167,9 +181,9 @@ You should see the RANCHER Hello world! page.
 "host.IP_FROM_STEP_13.nip.io" (the key part is ".nip.io") is just a quick way to test things without configuring DNS (a query to a hostname ending in nip.io simply returns the IP address it finds in the hostname itself). Also, if you enabled [proxy-protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt) as shown above, you should find your own current public IP address in the `X-Forwarded-For` header - i.e. the application can "see" it.
 21. In order to connect yourDomain.com, you need to:
   - assign IP address from the step 13 to your domain in DNS panel of your domain registrar
-  - change "- host: hello-world.IP_FROM_STEP_13.nip.io" to "- host: yourDomain.com";
+  - change `- host: hello-world.IP_FROM_STEP_13.nip.io` to `- host: yourDomain.com`;
   - `kubectl apply -f hello-world.yaml`
-  - wait 1-30 mins until DNS records are updated.
+  - wait  until DNS records are updated.
 
 #### If you need LetsEncrypt
 
@@ -181,7 +195,7 @@ You should see the RANCHER Hello world! page.
 helm upgrade --install \
 --namespace cert-manager \
 --create-namespace \
---set installCRDs=true \
+--set crds.enabled=true \
 cert-manager jetstack/cert-manager
 ```
 
@@ -206,7 +220,7 @@ spec:
 ```
 
 26. Apply file: `kubectl apply -f ./lets-encrypt.yaml`
-27. Change `nano hello-world.yaml`:
+27. Edit `hello-world.yaml` and add settings for TLS encryption:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -214,7 +228,6 @@ kind: Ingress
 metadata:
   name: hello-world
   annotations:
-    kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: "letsencrypt-prod"    # <<<--- Add annotation
     kubernetes.io/tls-acme: "true"                        # <<<--- Add annotation
 spec:
@@ -228,60 +241,19 @@ spec:
   ....
 ```
 
+TIP: if you chose not to configure Nginx as the default Ingress Class, you must add the `kubernetes.io/ingress.class: nginx` annotation.
+
 28. Apply changes: `kubectl apply -f ./hello-world.yaml`
 
-Instructions are based on the README + [this answer](https://github.com/vitobotta/hetzner-k3s/issues/13#issuecomment-901857297).
+
 
 ## FAQs
 
-#### 1. What Load Balancers will be installed?
-`hetzner-k3s` installs/configures load balancer(s) for you via [Hetzner's cloud controller manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager).
-They cost money. The cheapest right now is 5 EUR/month.
+#### 1. Is it possible to use for example MetalLB instead of Hetzner's LB?
 
-If you are going to have a High Available (HA) cluster, you need to have 3/5/7/... (odd number) master nodes.
-In this case you will get 2 Hetzner's load balancers:
-- one for Kubernetes API (this one will be installed automatically by hetzner-k3s);
-- one for the ingress controller (for this one you need to add annotation "load-balancer.hetzner.cloud/location: XYZ" to ingress-nginx).
-
-In case if you need to have just 1 master node, there will be just 1 Hetzner's load balancer - for the ingress controller (you need to add annotation "load-balancer.hetzner.cloud/location: XYZ" to ingress-nginx).
-
-#### 2. Can we use "rules" block of ingress-nginx (the one which Kubernetes uses as a LoadBalancer) instead of creating our own "per-app" ingress as well as cert-manager like shown below
-
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
- name: ingress-nginx
- annotations:
-   nginx.ingress.kubernetes.io/rewrite-target: /
-   nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-   cert-manager.io/cluster-issuer: letsencrypt-prod
-   kubernetes.io/ingress.class: nginx
-spec:
-  ingressClassName: nginx
-  tls:
-  - hosts:
-    - yourDomain.com
-    secretName: letsencrypt-certs
-  rules:
-  - host: yourDomain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: myService
-            port:
-              number: 80
-```
-
-A separate ingresse resource for each app is recommended though. I also usually keep apps in separate namespaces, so in that case I need to have separate ingress resources.
-
-#### 3. Is it possible to use for example MetalLB instead of Hetzner's LB?
 There is a way to use MetalLB with floating IPs in Hetzner Cloud but I don't recommend it. The setup with standard load balancers is much simpler and load balancers are not that much more expensive than floating IPs so IMO there's no point using MetalLB.
 
-#### 4. How to create and push docker images to a repository and how to allow kubernetes to work with this image (gitlab example)?
+#### 2. How to create and push docker images to a repository and how to allow kubernetes to work with this image (gitlab example)?
 On a computer which creates an image:
 - `docker login registry.gitlab.com`
 - `docker build -t registry.gitlab.com/COMPANY_NAME/REPO_NAME:IMAGE_NAME -f /some/path/to/Dockerfile .`
@@ -291,16 +263,30 @@ On a computer which runs kubernetes:
 - generate secret to access images: `kubectl create secret docker-registry gitlabcreds --docker-server=https://registry.gitlab.com --docker-username=MYUSER --docker-password=MYPWD --docker-email=MYEMAIL -n NAMESPACE_OF_YOUR_APP -o yaml > docker-secret.yaml`
 - apply secret: `kubectl apply -f docker-secret.yaml -n NAMESPACE_OF_YOUR_APP`
 
-#### 5. How to check how much resources nodes/pods use?
+#### 3. How to check how much resources nodes/pods use?
 - Install metrics-server https://github.com/kubernetes-sigs/metrics-server
 - Then use either `kubectl top nodes` or `kubectl top pods -A`
 
-#### 6. What is Ingress?
+#### 4. What is Ingress?
 There are 2 types of "ingress" -> `Ingress Controller` and `Ingress Resources`.
 To simplify everything, in the case of Nginx...
+
 - Ingress Controller is Nginx itself (this is `kind: Ingress`), Ingress Resources are services (ie. `kind: Service`).
 - Ingress Controller has different annotations (rules). You can use them inside `kind: Ingress` as a result such rules become "global" and inside `kind: Service` as a result such rules become "local" (service-specific).
 - Ingress Controller consists of a Pod and a Service. The Pod runs the Controller, which constantly polls the /ingresses endpoint on the API server of your cluster for updates to available Ingress Resources.
+
+#### 5. How to make autoscaling configure automatically IP routes to use a NAT server for new nodes?
+- You need to have a NAT server - as explained in this [Hetzner community tutorial](https://community.hetzner.com/tutorials/how-to-set-up-nat-for-cloud-networks#step-2---adding-the-route-to-the-network).
+- Use `post_create_commands` (multiple lines commands don't seem to be supported at the moment):
+```yaml
+additional_packages:
+  - ifupdown
+post_create_commands:
+  - apt update
+  - apt upgrade -y
+  - apt autoremove -y
+  - ip route add default via 10.0.0.1  # Adapt this to your gateway IP
+```
 
 ## Useful commands
 

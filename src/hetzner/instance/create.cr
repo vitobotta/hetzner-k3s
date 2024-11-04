@@ -145,7 +145,7 @@ class Hetzner::Instance::Create
   private def attach_instance_to_network(instance, attaching_to_network_count)
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { network: network.not_nil!.id })
+      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { :network => network.not_nil!.id })
       log_line "Waiting for instance to be attached to the network..."
     end
   end
@@ -154,38 +154,38 @@ class Hetzner::Instance::Create
     user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_post_create_commands)
 
     base_config = {
-      name: instance_name,
-      location: location,
-      image: image,
-      public_net: {
-        enable_ipv4: enable_public_net_ipv4,
-        enable_ipv6: enable_public_net_ipv6,
+      :name => instance_name,
+      :location => location,
+      :image => image,
+      :public_net => {
+        :enable_ipv4 => enable_public_net_ipv4,
+        :enable_ipv6 => enable_public_net_ipv6,
       },
-      server_type: instance_type,
-      ssh_keys: [
+      :server_type => instance_type,
+      :ssh_keys => [
         ssh_key.id
       ],
-      user_data: user_data,
-      labels: {
-        cluster: cluster_name,
-        role: (instance_name =~ /master/ ? "master" : "worker")
+      :user_data => user_data,
+      :labels => {
+        :cluster => cluster_name,
+        :role => (instance_name =~ /master/ ? "master" : "worker")
       },
-      start_after_create: true
+      :start_after_create => true
     }
 
     placement_group = @placement_group
     network = @network
 
-    base_config = base_config.merge({ placement_group: placement_group.id }) unless placement_group.nil?
-    base_config = base_config.merge({ networks: [network.id] }) unless network.nil?
+    base_config = base_config.merge({ :placement_group => placement_group.id }) unless placement_group.nil?
+    base_config = base_config.merge({ :networks => [network.id] }) unless network.nil?
 
     base_config
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, final_commands = [] of String)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands),
+      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
       growpart_str: growpart(snapshot_os),
       ssh_port: ssh_port
@@ -214,13 +214,12 @@ class Hetzner::Instance::Create
     [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "chmod +x /etc/configure-ssh.sh",
       "/etc/configure-ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
 
-  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, final_commands)
+  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
     post_create_commands = mandatory_post_create_commands
 
     if snapshot_os == "microos"
@@ -239,7 +238,7 @@ class Hetzner::Instance::Create
       end
     end
 
-    post_create_commands += additional_post_create_commands + final_commands
+    post_create_commands = post_create_commands + init_commands + additional_post_create_commands
 
     "- #{post_create_commands.join("\n- ")}"
   end
