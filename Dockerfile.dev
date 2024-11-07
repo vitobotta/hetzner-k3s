@@ -1,4 +1,4 @@
-FROM alpine:3.20.1
+FROM alpine:3.20.3
 
 RUN apk update \
   && apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
@@ -28,7 +28,7 @@ ENV GOPATH=/root/go
 
 RUN mkdir -p $GOPATH/bin
 
-RUN go install github.com/stern/stern@latest
+RUN go install github.com/stern/stern@v1.30.0
 
 SHELL ["/bin/zsh", "-c"]
 
