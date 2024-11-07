@@ -83,4 +83,15 @@ module Kubernetes::Util
 
     port_open?(ip_address, port, timeout = 1.0)
   end
+
+  private def present?(value : Object?)
+    case value
+    when String
+      !value.strip.empty?
+    when Int32
+      value != 0
+    else
+      !value.nil?
+    end
+  end
 end

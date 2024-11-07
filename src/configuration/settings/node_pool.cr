@@ -14,7 +14,7 @@ class Configuration::Settings::NodePool
   getter pool_name : String { masters? ? "masters" : pool.try(&.name) || "<unnamed-pool>" }
   getter pool_description : String { workers? ? "Worker mode pool '#{pool_name}'" : "Masters pool" }
 
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Datastore::Config
 
   def initialize(@errors, @pool, @pool_type, @masters_location, @instance_types, @locations, @datastore)
   end

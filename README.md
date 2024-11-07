@@ -57,6 +57,7 @@ See my public profile with links for connecting with me [here](https://vitobotta
 - [Load balancers](docs/Load_balancers.md)
 - [Storage](docs/Storage.md)
 - [Troubleshooting](docs/Troubleshooting.md)
+- [etcd S3 Backups](docs/etcd%20S3%20backups.md)
 - [Contributing and support](docs/Contributing_and_support.md)
 
 ___

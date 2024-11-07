@@ -116,6 +116,8 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
+    save_server_token()
+
     sleep 5
 
     command = "kubectl cluster-info 2> /dev/null"
@@ -153,6 +155,7 @@ class Kubernetes::Installer
     server = ""
     datastore_endpoint = ""
     etcd_arguments = ""
+    etcd_schedule_cron = ""
 
     if settings.datastore.mode == "etcd"
       server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
@@ -163,6 +166,8 @@ class Kubernetes::Installer
 
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
+
+    etcd_schedule_cron = settings.datastore.etcd.backups.schedule_cron if present?(settings.datastore.etcd.backups.schedule_cron)
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
@@ -183,6 +188,8 @@ class Kubernetes::Installer
       cluster_dns: settings.networking.cluster_dns,
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments,
+      etcd_backup_settings: etcd_backup_settings,
+      etcd_schedule_cron: etcd_schedule_cron,
       embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
     })
   end
@@ -316,6 +323,19 @@ class Kubernetes::Installer
     log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
   end
 
+  private def save_server_token()
+    return unless present?(settings.token_path)
+    token_path = settings.token_path.not_nil!
+
+    log_line "Generating the token file to #{token_path}...", "Control plane"
+
+    token = ssh.run(first_master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/token", settings.networking.ssh.use_agent, print_output: false)
+
+    File.write(token_path, token)
+
+    log_line "...token file generated as #{token_path}.", "Control plane"
+  end
+
   private def add_labels_and_taints_to_masters
     add_labels_or_taints(:label, masters, settings.masters_pool.labels, "masters_pool")
     add_labels_or_taints(:taint, masters, settings.masters_pool.taints, "masters_pool")
@@ -387,5 +407,37 @@ class Kubernetes::Installer
     else
       first_master.private_ip_address
     end
+  end
+
+  private def etcd_backup_settings
+    return "" unless settings.datastore.mode == "etcd"
+
+    unless settings.datastore.etcd.backups.enabled
+      return "--etcd-disable-snapshots"
+    end
+
+    opts = [] of String
+
+    backups = settings.datastore.etcd.backups
+    opts << "--etcd-snapshot-retention=#{backups.retention}" if present?(backups.retention)
+    opts << "--etcd-snapshot-dir=#{backups.dir}" if present?(backups.dir)
+    opts << "--etcd-snapshot-compress" if backups.compress
+
+    s3 = backups.s3
+    if s3.enabled
+      opts << "--etcd-s3"
+      opts << "--etcd-s3-endpoint=#{s3.endpoint}" if present?(s3.endpoint)
+      opts << "--etcd-s3-endpoint-ca=#{s3.endpoint_ca}" if present?(s3.endpoint_ca)
+      opts << "--etcd-s3-skip-ssl-verify" if s3.skip_ssl_verify
+      opts << "--etcd-s3-access-key=#{s3.access_key}" if present?(s3.access_key)
+      opts << "--etcd-s3-secret-key=#{s3.secret_key}" if present?(s3.secret_key)
+      opts << "--etcd-s3-bucket=#{s3.bucket}" if present?(s3.bucket)
+      opts << "--etcd-s3-region=#{s3.region}" if present?(s3.region)
+      opts << "--etcd-s3-folder=#{s3.folder}" if present?(s3.folder)
+      opts << "--etcd-s3-insecure" if s3.insecure
+      opts << "--etcd-s3-timeout=#{s3.timeout}" if present?(s3.timeout)
+    end
+
+    opts.uniq.sort.join(" ")
   end
 end

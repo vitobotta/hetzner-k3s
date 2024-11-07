@@ -5,7 +5,7 @@ class Configuration::Settings::NodePool::InstanceCount
   getter errors : Array(String)
   getter pool : Configuration::NodePool
   getter pool_type : Symbol
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Datastore::Config
 
   def initialize(@errors, @pool, @pool_type, @datastore)
   end
