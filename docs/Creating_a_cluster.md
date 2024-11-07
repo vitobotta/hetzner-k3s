@@ -24,7 +24,7 @@ networking:
     ipv4: true
     ipv6: true
   private_network:
-    enabled : true
+    enabled: true
     subnet: 10.0.0.0/16
     existing_network_name: ""
   cni:
