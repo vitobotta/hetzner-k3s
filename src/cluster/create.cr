@@ -128,9 +128,18 @@ class Cluster::Create
   end
 
   private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
+    legacy_instance_type = settings.masters_pool.legacy_instance_type
     instance_type = settings.masters_pool.instance_type
 
-    master_name = if settings.include_instance_type_in_instance_name
+    legacy_instance_type_name_part = legacy_instance_type.blank? ? "" : "#{legacy_instance_type}-"
+
+    legacy_instance_name = if settings.include_instance_type_in_instance_name
+      "#{settings.cluster_name}-#{legacy_instance_type_name_part}#{instance_type}-master#{index + 1}"
+    else
+      "#{settings.cluster_name}-#{legacy_instance_type_name_part}master#{index + 1}"
+    end
+
+    instance_name = if settings.include_instance_type_in_instance_name
       "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
     else
       "#{settings.cluster_name}-master#{index + 1}"
@@ -144,7 +153,8 @@ class Cluster::Create
       settings: settings,
       hetzner_client: hetzner_client,
       mutex: mutex,
-      instance_name: master_name,
+      legacy_instance_name: legacy_instance_name,
+      instance_name: instance_name,
       instance_type: instance_type,
       image: image,
       ssh_key: ssh_key,
@@ -225,9 +235,18 @@ class Cluster::Create
   end
 
   private def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
+    legacy_instance_type = node_pool.legacy_instance_type
     instance_type = node_pool.instance_type
 
-    node_name = if settings.include_instance_type_in_instance_name
+    legacy_instance_type_name_part = legacy_instance_type.blank? ? "" : "#{legacy_instance_type}-"
+
+    legacy_instance_name = if settings.include_instance_type_in_instance_name
+      "#{settings.cluster_name}-#{legacy_instance_type_name_part}#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
+    else
+      "#{settings.cluster_name}-#{legacy_instance_type_name_part}pool-#{node_pool.name}-worker#{index + 1}"
+    end
+
+    instance_name = if settings.include_instance_type_in_instance_name
       "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
     else
       "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{index + 1}"
@@ -241,7 +260,8 @@ class Cluster::Create
       settings: settings,
       hetzner_client: hetzner_client,
       mutex: mutex,
-      instance_name: node_name,
+      legacy_instance_name: legacy_instance_name,
+      instance_name: instance_name,
       instance_type: instance_type,
       image: image,
       location: node_pool.location,

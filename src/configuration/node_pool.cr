@@ -8,6 +8,7 @@ class Configuration::NodePool
   include YAML::Serializable
 
   property name : String?
+  property legacy_instance_type : String = ""
   property instance_type : String
   property location : String
   property image : String | Int64 | Nil
