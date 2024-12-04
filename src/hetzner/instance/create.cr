@@ -18,6 +18,7 @@ class Hetzner::Instance::Create
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
   private getter settings : Configuration::Main
+  private getter legacy_instance_name : String
   getter instance_name : String
   private getter hetzner_client : Hetzner::Client
   private getter cluster_name : String
@@ -30,7 +31,7 @@ class Hetzner::Instance::Create
   private getter enable_public_net_ipv6 : Bool
   private getter additional_packages : Array(String)
   private getter additional_post_create_commands : Array(String)
-  private getter instance_finder : Hetzner::Instance::Find
+  private getter instance_finder : Hetzner::Instance::Find?
   private getter snapshot_os : String
   private getter ssh : Configuration::NetworkingComponents::SSH
   private getter settings : Configuration::Main
@@ -46,6 +47,7 @@ class Hetzner::Instance::Create
       @settings,
       @hetzner_client,
       @mutex,
+      @legacy_instance_name,
       @instance_name,
       @instance_type,
       @image,
@@ -65,14 +67,13 @@ class Hetzner::Instance::Create
     @enable_public_net_ipv6 = settings.networking.public_network.ipv6
     @private_ssh_key_path = settings.networking.ssh.private_key_path
     @public_ssh_key_path = settings.networking.ssh.public_key_path
-
-    @instance_finder = Hetzner::Instance::Find.new(@settings, @hetzner_client, @instance_name)
   end
 
   def run
-    instance = find_instance_with_kubectl || instance_finder.run
+    instance = find_instance
 
     if instance
+      @instance_name = instance.name
       @instance_existed = true
       log_line "Instance #{instance_name} already exists, skipping create"
       ensure_instance_is_ready
@@ -109,7 +110,7 @@ class Hetzner::Instance::Create
         sleep 10
       end
 
-      instance = instance_finder.run
+      instance = find_instance(instance_name)
 
       next unless instance
 
@@ -268,7 +269,7 @@ class Hetzner::Instance::Create
     "Instance #{instance_name}"
   end
 
-  private def find_instance_with_kubectl
+  private def find_instance_with_kubectl(instance_name)
     return nil unless api_server_ready?(settings.kubeconfig_path)
 
     command = %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
@@ -296,5 +297,19 @@ class Hetzner::Instance::Create
         end
       end
     end
+  end
+
+  private def find_instance_via_api(instance_name)
+    instance_finder = Hetzner::Instance::Find.new(settings, hetzner_client, instance_name)
+    instance = instance_finder.run
+  end
+
+  private def find_instance
+    instance = find_instance_with_kubectl(legacy_instance_name) if legacy_instance_name != instance_name
+    instance ||= find_instance_with_kubectl(instance_name)
+    instance ||= find_instance_via_api(legacy_instance_name) if legacy_instance_name != instance_name
+    instance ||= find_instance_via_api(instance_name)
+
+    instance
   end
 end
