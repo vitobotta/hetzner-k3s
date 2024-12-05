@@ -335,11 +335,17 @@ class Hetzner::Instance::Create
     instance = instance_finder.run
   end
 
+  private def has_legacy_instance_name?
+    legacy_instance_name != instance_name
+  end
+
+  private def find_instance_by_name(name)
+    find_instance_with_kubectl(name) || find_instance_via_api(name)
+  end
+
   private def find_instance
-    instance = find_instance_with_kubectl(legacy_instance_name) if legacy_instance_name != instance_name
-    instance ||= find_instance_with_kubectl(instance_name)
-    instance ||= find_instance_via_api(legacy_instance_name) if legacy_instance_name != instance_name
-    instance ||= find_instance_via_api(instance_name)
+    instance = find_instance_by_name(legacy_instance_name) if has_legacy_instance_name?
+    instance ||= find_instance_by_name(instance_name)
 
     instance
   end
