@@ -201,24 +201,36 @@ class Cluster::Create
     end
   end
 
+  private def next_placement_group_index
+    all_placement_groups.size + 1
+  end
+
+  private def placement_group_exists?(placement_group_name)
+    all_placement_groups.any? { |pg| pg.name == placement_group_name }
+  end
+
+  private def create_and_track_placement_group(placement_group_name, placement_groups_channel)
+    placement_group = Hetzner::PlacementGroup::Create.new(
+      hetzner_client: hetzner_client,
+      placement_group_name: placement_group_name
+    ).run
+
+    track_placement_group(placement_group)
+    placement_groups_channel.send(placement_group)
+  end
+
   private def create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
     placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
     placement_groups_count = [placement_groups_count, remaining_placement_groups].min
     created_placement_groups = 0
 
-    ((all_placement_groups.size + 1)..(all_placement_groups.size + placement_groups_count)).each do |index|
+    (next_placement_group_index..(next_placement_group_index + placement_groups_count - 1)).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
 
-      next if all_placement_groups.any? { |pg| pg.name == placement_group_name }
+      next if placement_group_exists?(placement_group_name)
 
       spawn do
-        placement_group = Hetzner::PlacementGroup::Create.new(
-          hetzner_client: hetzner_client,
-          placement_group_name: placement_group_name
-        ).run
-
-        track_placement_group(placement_group)
-        placement_groups_channel.send(placement_group)
+        create_and_track_placement_group(placement_group_name, placement_groups_channel)
       end
 
       created_placement_groups += 1
