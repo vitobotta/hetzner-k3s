@@ -282,6 +282,24 @@ class Cluster::Create
     ).run
   end
 
+  private def create_instance_with_retry(instance_creator)
+    Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
+      Tasker.timeout(60.seconds) do
+        instance_creator.run
+      end
+    end
+  end
+
+  private def handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_creator, wait)
+    if created_instance
+      mutex.synchronize { instances << created_instance }
+      wait_channel.send(instance_creator) if wait
+      kubernetes_installation_queue_channel.send(created_instance)
+    else
+      puts "Instance creation for #{instance_creator.instance_name} failed. Try rerunning the create command."
+    end
+  end
+
   private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel, wait = false)
     wait_channel = Channel(Hetzner::Instance::Create).new
     semaphore = Channel(Nil).new(50)
@@ -291,34 +309,19 @@ class Cluster::Create
       spawn do
         instance = nil
         begin
-          Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
-            Tasker.timeout(60.seconds) do
-              instance = instance_creator.run
-            end
-          end
-
+          created_instance = create_instance_with_retry(instance_creator)
           semaphore.receive # release the semaphore immediately after instance creation
         rescue e : Exception
           puts "Error creating instance: #{e.message}"
         ensure
-          created_instance = instance
-
-          if created_instance
-            mutex.synchronize { instances << created_instance }
-            wait_channel = wait_channel.send(instance_creator) if wait
-            kubernetes_installation_queue_channel.send(created_instance)
-          else
-            puts "Instance creation for #{instance_creator.instance_name} failed. Try rerunning the create command."
-          end
+          handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_creator, wait)
         end
       end
     end
 
     return unless wait
 
-    instance_creators.size.times do |instance_creator|
-      wait_channel.receive
-    end
+    instance_creators.size.times { wait_channel.receive }
   end
 
   private def find_network
