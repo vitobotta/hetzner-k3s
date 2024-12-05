@@ -86,6 +86,92 @@ class Hetzner::Instance::Create
     instance.not_nil!
   end
 
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
+    Crinja.render(CLOUD_INIT_YAML, {
+      packages_str: generate_packages_str(snapshot_os, additional_packages),
+      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
+      eth1_str: eth1(snapshot_os),
+      growpart_str: growpart(snapshot_os),
+      ssh_port: ssh_port
+    })
+  end
+
+  def self.growpart(snapshot_os)
+    snapshot_os == "microos" ? <<-YAML
+    growpart:
+      devices: ["/var"]
+    YAML
+    : ""
+  end
+
+  def self.eth1(snapshot_os)
+    snapshot_os == "microos" ? <<-YAML
+    - content: |
+        BOOTPROTO='dhcp'
+        STARTMODE='auto'
+      path: /etc/sysconfig/network/ifcfg-eth1
+    YAML
+    : ""
+  end
+
+  def self.mandatory_post_create_commands
+    [
+      "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
+      "update-crypto-policies --set DEFAULT:SHA1 || true",
+      "/etc/configure-ssh.sh",
+      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
+    ]
+  end
+
+  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
+    post_create_commands = mandatory_post_create_commands.dup
+
+    add_microos_commands(post_create_commands) if snapshot_os == "microos"
+
+    formatted_additional_commands = format_additional_commands(additional_post_create_commands)
+
+    combined_commands = [post_create_commands, init_commands, formatted_additional_commands].flatten
+
+    "- #{combined_commands.join("\n- ")}"
+  end
+
+  def self.add_microos_commands(post_create_commands)
+    post_create_commands.concat(microos_commands)
+  end
+
+  def self.format_additional_commands(commands)
+    commands.map do |command|
+      command.include?("\n") ? format_multiline_command(command) : command
+    end
+  end
+
+  def self.format_multiline_command(command)
+    lines = ["|"]
+    command.split("\n").each { |line| lines << "  #{line}" }
+    lines.join("\n")
+  end
+
+  def self.generate_packages_str(snapshot_os, additional_packages)
+    packages = %w[fail2ban]
+    wireguard = snapshot_os == "microos" ? "wireguard-tools" : "wireguard"
+    packages << wireguard
+    packages += additional_packages
+    "'#{packages.join("', '")}'"
+  end
+
+  def self.microos_commands
+    [
+      "btrfs filesystem resize max /var",
+      "sed -i 's/NETCONFIG_DNS_STATIC_SERVERS=\"\"/NETCONFIG_DNS_STATIC_SERVERS=\"1.1.1.1 1.0.0.1\"/g' /etc/sysconfig/network/config",
+      "sed -i 's/#SystemMaxUse=/SystemMaxUse=3G/g' /etc/systemd/journald.conf",
+      "sed -i 's/#MaxRetentionSec=/MaxRetentionSec=1week/g' /etc/systemd/journald.conf",
+      "sed -i 's/NUMBER_LIMIT=\"2-10\"/NUMBER_LIMIT=\"4\"/g' /etc/snapper/configs/root",
+      "sed -i 's/NUMBER_LIMIT_IMPORTANT=\"4-10\"/NUMBER_LIMIT_IMPORTANT=\"3\"/g' /etc/snapper/configs/root",
+      "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
+      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
+    ]
+  end
+
   private def create_instance
     attempts = 0
 
@@ -113,23 +199,33 @@ class Hetzner::Instance::Create
 
       log_line "Instance status: #{instance.status}"
 
-      if needs_powering_on?(instance)
-        power_on_instance(instance, powering_on_count)
-        next
-      end
+      next unless powered_on?(instance)
 
       sleep 5
 
-      if needs_attaching_to_private_network?(instance)
-        attach_instance_to_network(instance, attaching_to_network_count)
-        next
-      end
+      next unless attached_to_network?(instance)
 
       ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
       ready = true
     end
 
     instance
+  end
+
+  private def powered_on?(instance)
+    return true unless needs_powering_on?(instance)
+
+    power_on_instance(instance, powering_on_count)
+
+    false
+  end
+
+  private def attached_to_network?(instance)
+    return true unless needs_attaching_to_private_network?(instance)
+
+    attach_instance_to_network(instance, attaching_to_network_count)
+
+    false
   end
 
   private def private_network_enabled?
@@ -194,87 +290,6 @@ class Hetzner::Instance::Create
     base_config
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
-    Crinja.render(CLOUD_INIT_YAML, {
-      packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
-      eth1_str: eth1(snapshot_os),
-      growpart_str: growpart(snapshot_os),
-      ssh_port: ssh_port
-    })
-  end
-
-  def self.growpart(snapshot_os)
-    snapshot_os == "microos" ? <<-YAML
-    growpart:
-      devices: ["/var"]
-    YAML
-    : ""
-  end
-
-  def self.eth1(snapshot_os)
-    snapshot_os == "microos" ? <<-YAML
-    - content: |
-        BOOTPROTO='dhcp'
-        STARTMODE='auto'
-      path: /etc/sysconfig/network/ifcfg-eth1
-    YAML
-    : ""
-  end
-
-  def self.mandatory_post_create_commands
-    [
-      "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
-      "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "/etc/configure-ssh.sh",
-      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
-    ]
-  end
-
-  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
-    post_create_commands = mandatory_post_create_commands
-
-    if snapshot_os == "microos"
-      post_create_commands += microos_commands
-    end
-
-    additional_post_create_commands = additional_post_create_commands.map do |command|
-      if command.includes?("\n")
-        lines = ["|"]
-        command.split("\n").each do |line|
-          lines << "  " + line
-        end
-        lines.join("\n")
-      else
-        command
-      end
-    end
-
-    post_create_commands = post_create_commands + init_commands + additional_post_create_commands
-
-    "- #{post_create_commands.join("\n- ")}"
-  end
-
-  def self.generate_packages_str(snapshot_os, additional_packages)
-    packages = %w[fail2ban]
-    wireguard = snapshot_os == "microos" ? "wireguard-tools" : "wireguard"
-    packages << wireguard
-    packages += additional_packages
-    "'#{packages.join("', '")}'"
-  end
-
-  def self.microos_commands
-    [
-      "btrfs filesystem resize max /var",
-      "sed -i 's/NETCONFIG_DNS_STATIC_SERVERS=\"\"/NETCONFIG_DNS_STATIC_SERVERS=\"1.1.1.1 1.0.0.1\"/g' /etc/sysconfig/network/config",
-      "sed -i 's/#SystemMaxUse=/SystemMaxUse=3G/g' /etc/systemd/journald.conf",
-      "sed -i 's/#MaxRetentionSec=/MaxRetentionSec=1week/g' /etc/systemd/journald.conf",
-      "sed -i 's/NUMBER_LIMIT=\"2-10\"/NUMBER_LIMIT=\"4\"/g' /etc/snapper/configs/root",
-      "sed -i 's/NUMBER_LIMIT_IMPORTANT=\"4-10\"/NUMBER_LIMIT_IMPORTANT=\"3\"/g' /etc/snapper/configs/root",
-      "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
-      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
-    ]
-  end
 
   private def default_log_prefix
     "Instance #{instance_name}"
