@@ -79,7 +79,6 @@ class Hetzner::Instance::Create
       ensure_instance_is_ready
     else
       instance = create_instance
-
       log_line "...instance #{instance_name} created"
     end
 
@@ -141,7 +140,7 @@ class Hetzner::Instance::Create
 
   def self.format_additional_commands(commands)
     commands.map do |command|
-      command.include?("\n") ? format_multiline_command(command) : command
+      command.includes?("\n") ? format_multiline_command(command) : command
     end
   end
 
@@ -152,11 +151,10 @@ class Hetzner::Instance::Create
   end
 
   def self.generate_packages_str(snapshot_os, additional_packages)
-    packages = %w[fail2ban]
-    wireguard = snapshot_os == "microos" ? "wireguard-tools" : "wireguard"
-    packages << wireguard
-    packages += additional_packages
-    "'#{packages.join("', '")}'"
+    base_packages = %w[fail2ban]
+    wireguard_package = snapshot_os == "microos" ? "wireguard-tools" : "wireguard"
+    all_packages = base_packages + [wireguard_package] + additional_packages
+    "'#{all_packages.join("', '")}'"
   end
 
   def self.microos_commands
@@ -194,16 +192,16 @@ class Hetzner::Instance::Create
     until ready
       sleep 10 if !instance_existed && private_network_enabled?
 
-      instance = find_instance(instance_name)
+      instance = find_instance
       next unless instance
 
       log_line "Instance status: #{instance.status}"
 
-      next unless powered_on?(instance)
+      next unless powered_on?(instance, powering_on_count)
 
       sleep 5
 
-      next unless attached_to_network?(instance)
+      next unless attached_to_network?(instance, attaching_to_network_count)
 
       ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
       ready = true
@@ -212,7 +210,7 @@ class Hetzner::Instance::Create
     instance
   end
 
-  private def powered_on?(instance)
+  private def powered_on?(instance, powering_on_count)
     return true unless needs_powering_on?(instance)
 
     power_on_instance(instance, powering_on_count)
@@ -220,7 +218,7 @@ class Hetzner::Instance::Create
     false
   end
 
-  private def attached_to_network?(instance)
+  private def attached_to_network?(instance, attaching_to_network_count)
     return true unless needs_attaching_to_private_network?(instance)
 
     attach_instance_to_network(instance, attaching_to_network_count)
@@ -295,34 +293,41 @@ class Hetzner::Instance::Create
     "Instance #{instance_name}"
   end
 
+  private def build_kubectl_command(instance_name)
+    %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
+  end
+
+  private def initialize_instance(instance_name, internal_ip, external_ip)
+    Hetzner::Instance.new(
+      id: Random::Secure.rand(Int32::MIN..Int32::MAX),
+      status: "running",
+      instance_name: instance_name,
+      internal_ip: internal_ip,
+      external_ip: external_ip
+    )
+  end
+
+  private def wait_for_ssh_response(instance)
+    result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready")
+    log_line("Instance was already a member of the cluster") if result == "ready"
+    result == "ready"
+  end
+
   private def find_instance_with_kubectl(instance_name)
     return nil unless api_server_ready?(settings.kubeconfig_path)
 
-    command = %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
-
+    command = build_kubectl_command(instance_name)
     result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
 
-    if result.success?
-      internal_ip, external_ip = result.output.split("\n")
-      external_ip = internal_ip if external_ip.blank? # before CCM is installed external IP is not available
+    return nil unless result.success?
 
-      unless internal_ip.blank? && external_ip.blank?
-        instance = Hetzner::Instance.new(
-          id: Random::Secure.rand(Int32::MIN..Int32::MAX),
-          status: "running",
-          instance_name: instance_name,
-          internal_ip: internal_ip,
-          external_ip: external_ip
-        )
+    internal_ip, external_ip = result.output.split("\n")
+    external_ip ||= internal_ip
 
-        result = ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+    return nil if internal_ip.blank? && external_ip.blank?
 
-        if result == "ready"
-          log_line "Instance was already a member of the cluster"
-          instance
-        end
-      end
-    end
+    instance = initialize_instance(instance_name, internal_ip, external_ip)
+    wait_for_ssh_response(instance) ? instance : nil
   end
 
   private def find_instance_via_api(instance_name)
