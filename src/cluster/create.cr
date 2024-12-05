@@ -127,23 +127,17 @@ class Cluster::Create
     end
   end
 
+  private def build_master_instance_name(instance_type, worker_index, include_instance_type) : String
+    instance_type_part = include_instance_type ? "#{instance_type}-" : ""
+    "#{settings.cluster_name}-#{instance_type_part}master#{worker_index}"
+  end
+
   private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     legacy_instance_type = settings.masters_pool.legacy_instance_type
     instance_type = settings.masters_pool.instance_type
 
-    legacy_instance_type_name_part = legacy_instance_type.blank? ? "" : "#{legacy_instance_type}-"
-
-    legacy_instance_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{legacy_instance_type_name_part}#{instance_type}-master#{index + 1}"
-    else
-      "#{settings.cluster_name}-#{legacy_instance_type_name_part}master#{index + 1}"
-    end
-
-    instance_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
-    else
-      "#{settings.cluster_name}-master#{index + 1}"
-    end
+    legacy_instance_name = build_master_instance_name(legacy_instance_type, index + 1, true)
+    instance_name = build_master_instance_name(instance_type, index + 1, settings.include_instance_type_in_instance_name)
 
     image = settings.masters_pool.image || settings.image
     additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
@@ -234,23 +228,17 @@ class Cluster::Create
     created_placement_groups
   end
 
+  private def build_worker_instance_name(instance_type, pool_name, worker_index, include_instance_type) : String
+    instance_type_part = include_instance_type ? "#{instance_type}-" : ""
+    "#{settings.cluster_name}-#{instance_type_part}pool-#{pool_name}-worker#{worker_index}"
+  end
+
   private def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     legacy_instance_type = node_pool.legacy_instance_type
     instance_type = node_pool.instance_type
 
-    legacy_instance_type_name_part = legacy_instance_type.blank? ? "" : "#{legacy_instance_type}-"
-
-    legacy_instance_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{legacy_instance_type_name_part}#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
-    else
-      "#{settings.cluster_name}-#{legacy_instance_type_name_part}pool-#{node_pool.name}-worker#{index + 1}"
-    end
-
-    instance_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
-    else
-      "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{index + 1}"
-    end
+    legacy_instance_name = build_worker_instance_name(legacy_instance_type, node_pool.name, index + 1, true)
+    instance_name = build_worker_instance_name(instance_type, node_pool.name, index + 1, settings.include_instance_type_in_instance_name)
 
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
