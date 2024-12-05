@@ -106,26 +106,21 @@ class Hetzner::Instance::Create
     attaching_to_network_count = 0
 
     until ready
-      if !instance_existed && settings.networking.private_network.enabled
-        sleep 10
-      end
+      sleep 10 if !instance_existed && private_network_enabled?
 
       instance = find_instance(instance_name)
-
       next unless instance
 
       log_line "Instance status: #{instance.status}"
 
-      if instance.status != "running" && settings.networking.private_network.enabled
-        powering_on_count += 1
+      if needs_powering_on?(instance)
         power_on_instance(instance, powering_on_count)
         next
       end
 
       sleep 5
 
-      if settings.networking.private_network.enabled && !instance.try(&.private_ip_address)
-        attaching_to_network_count += 1
+      if needs_attaching_to_private_network?(instance)
         attach_instance_to_network(instance, attaching_to_network_count)
         next
       end
@@ -137,13 +132,29 @@ class Hetzner::Instance::Create
     instance
   end
 
+  private def private_network_enabled?
+    settings.networking.private_network.enabled
+  end
+
+  private def needs_powering_on?(instance)
+    instance.status != "running" && private_network_enabled?
+  end
+
+  private def needs_attaching_to_private_network?(instance)
+    private_network_enabled? && !instance.try(&.private_ip_address)
+  end
+
   private def power_on_instance(instance, powering_on_count)
+    powering_on_count += 1
+
     log_line "Powering on instance (attempt #{powering_on_count})"
     hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
     log_line "Waiting for instance to be powered on..."
   end
 
   private def attach_instance_to_network(instance, attaching_to_network_count)
+    attaching_to_network_count += 1
+
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
       hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { :network => network.not_nil!.id })
