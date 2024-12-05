@@ -127,14 +127,17 @@ class Cluster::Create
     end
   end
 
+  private def build_master_instance_name(instance_type, worker_index, include_instance_type) : String
+    instance_type_part = include_instance_type ? "#{instance_type}-" : ""
+    "#{settings.cluster_name}-#{instance_type_part}master#{worker_index}"
+  end
+
   private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
+    legacy_instance_type = settings.masters_pool.legacy_instance_type
     instance_type = settings.masters_pool.instance_type
 
-    master_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{instance_type}-master#{index + 1}"
-    else
-      "#{settings.cluster_name}-master#{index + 1}"
-    end
+    legacy_instance_name = build_master_instance_name(legacy_instance_type, index + 1, true)
+    instance_name = build_master_instance_name(instance_type, index + 1, settings.include_instance_type_in_instance_name)
 
     image = settings.masters_pool.image || settings.image
     additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
@@ -144,7 +147,8 @@ class Cluster::Create
       settings: settings,
       hetzner_client: hetzner_client,
       mutex: mutex,
-      instance_name: master_name,
+      legacy_instance_name: legacy_instance_name,
+      instance_name: instance_name,
       instance_type: instance_type,
       image: image,
       ssh_key: ssh_key,
@@ -197,24 +201,36 @@ class Cluster::Create
     end
   end
 
+  private def next_placement_group_index
+    all_placement_groups.size + 1
+  end
+
+  private def placement_group_exists?(placement_group_name)
+    all_placement_groups.any? { |pg| pg.name == placement_group_name }
+  end
+
+  private def create_and_track_placement_group(placement_group_name, placement_groups_channel)
+    placement_group = Hetzner::PlacementGroup::Create.new(
+      hetzner_client: hetzner_client,
+      placement_group_name: placement_group_name
+    ).run
+
+    track_placement_group(placement_group)
+    placement_groups_channel.send(placement_group)
+  end
+
   private def create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
     placement_groups_count = (node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i
     placement_groups_count = [placement_groups_count, remaining_placement_groups].min
     created_placement_groups = 0
 
-    ((all_placement_groups.size + 1)..(all_placement_groups.size + placement_groups_count)).each do |index|
+    (next_placement_group_index..(next_placement_group_index + placement_groups_count - 1)).each do |index|
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
 
-      next if all_placement_groups.any? { |pg| pg.name == placement_group_name }
+      next if placement_group_exists?(placement_group_name)
 
       spawn do
-        placement_group = Hetzner::PlacementGroup::Create.new(
-          hetzner_client: hetzner_client,
-          placement_group_name: placement_group_name
-        ).run
-
-        track_placement_group(placement_group)
-        placement_groups_channel.send(placement_group)
+        create_and_track_placement_group(placement_group_name, placement_groups_channel)
       end
 
       created_placement_groups += 1
@@ -224,14 +240,17 @@ class Cluster::Create
     created_placement_groups
   end
 
+  private def build_worker_instance_name(instance_type, pool_name, worker_index, include_instance_type) : String
+    instance_type_part = include_instance_type ? "#{instance_type}-" : ""
+    "#{settings.cluster_name}-#{instance_type_part}pool-#{pool_name}-worker#{worker_index}"
+  end
+
   private def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
+    legacy_instance_type = node_pool.legacy_instance_type
     instance_type = node_pool.instance_type
 
-    node_name = if settings.include_instance_type_in_instance_name
-      "#{settings.cluster_name}-#{instance_type}-pool-#{node_pool.name}-worker#{index + 1}"
-    else
-      "#{settings.cluster_name}-pool-#{node_pool.name}-worker#{index + 1}"
-    end
+    legacy_instance_name = build_worker_instance_name(legacy_instance_type, node_pool.name, index + 1, true)
+    instance_name = build_worker_instance_name(instance_type, node_pool.name, index + 1, settings.include_instance_type_in_instance_name)
 
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
@@ -241,7 +260,8 @@ class Cluster::Create
       settings: settings,
       hetzner_client: hetzner_client,
       mutex: mutex,
-      instance_name: node_name,
+      legacy_instance_name: legacy_instance_name,
+      instance_name: instance_name,
       instance_type: instance_type,
       image: image,
       location: node_pool.location,
@@ -262,6 +282,24 @@ class Cluster::Create
     ).run
   end
 
+  private def create_instance_with_retry(instance_creator)
+    Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
+      Tasker.timeout(60.seconds) do
+        instance_creator.run
+      end
+    end
+  end
+
+  private def handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_creator, wait)
+    if created_instance
+      mutex.synchronize { instances << created_instance }
+      wait_channel.send(instance_creator) if wait
+      kubernetes_installation_queue_channel.send(created_instance)
+    else
+      puts "Instance creation for #{instance_creator.instance_name} failed. Try rerunning the create command."
+    end
+  end
+
   private def create_instances_concurrently(instance_creators, kubernetes_installation_queue_channel, wait = false)
     wait_channel = Channel(Hetzner::Instance::Create).new
     semaphore = Channel(Nil).new(50)
@@ -271,34 +309,19 @@ class Cluster::Create
       spawn do
         instance = nil
         begin
-          Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
-            Tasker.timeout(60.seconds) do
-              instance = instance_creator.run
-            end
-          end
-
+          created_instance = create_instance_with_retry(instance_creator)
           semaphore.receive # release the semaphore immediately after instance creation
         rescue e : Exception
           puts "Error creating instance: #{e.message}"
         ensure
-          created_instance = instance
-
-          if created_instance
-            mutex.synchronize { instances << created_instance }
-            wait_channel = wait_channel.send(instance_creator) if wait
-            kubernetes_installation_queue_channel.send(created_instance)
-          else
-            puts "Instance creation for #{instance_creator.instance_name} failed. Try rerunning the create command."
-          end
+          handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_creator, wait)
         end
       end
     end
 
     return unless wait
 
-    instance_creators.size.times do |instance_creator|
-      wait_channel.receive
-    end
+    instance_creators.size.times { wait_channel.receive }
   end
 
   private def find_network
