@@ -14,7 +14,7 @@
 
 # The easiest and fastest way to create production grade Kubernetes clusters in Hetzner Cloud
 
-
+<img src="logo.png" alt="hetzner-k3s logo" width="200" height="200">
 
 ## What is this?
 
