@@ -11,6 +11,7 @@
 .rspec_status
 /kubeconfig
 /cluster_config.yaml
+/token
 dist/hetzner-k3s.jar
 dist/hetzner-k3s
 

@@ -7,6 +7,7 @@ The tool requires a simple configuration file in order to create/upgrade/delete 
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
+# token_path: "./token" # optional, saves the server token file
 k3s_version: v1.30.3+k3s1
 
 networking:
@@ -47,6 +48,25 @@ networking:
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
+  # etcd: # optional
+  #   backups: # optional
+  #     enabled: true # optional
+  #     retention: 5 # optional
+  #     schedule_cron: "0 */12 * * *"  # optional
+  #     dir: ${data-dir}/db/snapshots # optional
+  #     compress: false # optional
+  #     s3: # optional - can only be enabled for etcd mode
+  #       enabled: true
+  #       endpoint: "s3.amazonaws.com" # optional
+  #       endpoint_ca: "" # optional
+  #       skip_ssl_verify: false # optional
+  #       access_key: ""
+  #       secret_key: ""
+  #       bucket: ""
+  #       region: "us-east-1" # optional
+  #       folder: "" # optional
+  #       insecure: false # optional
+  #       timeout: "5m0s" # optional
 
 schedule_workloads_on_masters: false
 

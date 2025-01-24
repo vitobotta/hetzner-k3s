@@ -11,6 +11,7 @@ class Configuration::Main
   getter hetzner_token : String = ENV.fetch("HCLOUD_TOKEN", "")
   getter cluster_name : String
   getter kubeconfig_path : String
+  getter token_path : String?
   getter k3s_version : String
   getter api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
@@ -28,7 +29,7 @@ class Configuration::Main
   getter autoscaling_image : String?
   getter snapshot_os : String = "default"
   getter networking : Configuration::Networking = Configuration::Networking.new
-  getter datastore : Configuration::Datastore = Configuration::Datastore.new
+  getter datastore : Configuration::Datastore::Config = Configuration::Datastore::Config.new
   getter manifests : Configuration::Manifests = Configuration::Manifests.new
   getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
   getter include_instance_type_in_instance_name : Bool = false
