@@ -10,7 +10,6 @@ require "../hetzner/instance/create"
 require "../hetzner/load_balancer/create"
 require "../util/ssh"
 require "../kubernetes/installer"
-require "../util/ssh"
 
 class Cluster::Create
   MAX_PLACEMENT_GROUPS = 50
