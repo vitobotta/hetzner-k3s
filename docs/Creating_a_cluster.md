@@ -38,7 +38,7 @@ networking:
 
 
 # manifests:
-#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm-networks.yaml"
+#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.23.0/ccm-networks.yaml"
 #   csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.12.0/deploy/kubernetes/hcloud-csi.yml"
 #   system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/system-upgrade-controller.yaml"
 #   system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/crd.yaml"
