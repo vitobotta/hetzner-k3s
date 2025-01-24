@@ -35,3 +35,4 @@ e2e-tests/sshkey*
 e2e-tests/test-*
 create.log
 delete.log
+/bitwarden-state/
