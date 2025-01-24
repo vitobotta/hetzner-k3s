@@ -30,12 +30,14 @@ class Configuration::Settings::NodePool::Location
       location == "ash"
     elsif masters_location == "hil"
       location == "hil"
+    elsif masters_location == "sin"
+      location == "sin"
     else
-      !%w(ash hil).includes?(location)
+      !%w(ash hil sin).includes?(location)
     end
 
     unless in_network_zone
-      errors << "#{pool_type} pool must be in the same network zone as the masters when using a private network. If the masters are located in Ashburn, then all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn. Same thing for Hillsboro. If the masters are located in Germany or Finland, then also the worker node pools must be located in either Germany or Finland since these locations belong to the same network zone."
+      errors << "#{pool_type} pool must be in the same network zone as the masters when using a private network. If the masters are located in Ashburn, then all the node pools must be located in Ashburn too, otherwise none of the node pools should be located in Ashburn. Same thing for Hillsboro and Singapore. If the masters are located in Germany or Finland, then also the worker node pools must be located in either Germany or Finland since these locations belong to the same network zone."
     end
   end
 end
