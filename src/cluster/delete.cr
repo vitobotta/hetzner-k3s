@@ -26,6 +26,14 @@ class Cluster::Delete
   end
 
   def run
+    print "Please enter the cluster name to confirm that you want to delete it: "
+    input = gets
+
+    if input.try(&.strip) != settings.cluster_name
+      puts "Cluster name '#{input.try(&.strip)}' does not match '#{settings.cluster_name}'. Aborting deletion."
+      exit 1
+    end
+
     delete_resources
     File.delete(settings.kubeconfig_path) if File.exists?(settings.kubeconfig_path)
   end
