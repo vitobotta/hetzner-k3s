@@ -14,7 +14,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   def install
     log_line "Installing Hetzner Cloud Controller Manager..."
 
-    apply_manifest_from_yaml(manifest)
+    apply_manifest_from_yaml(manifest, "Failed to install Hetzner Cloud Controller Manager")
 
     log_line "Hetzner Cloud Controller Manager installed"
   end

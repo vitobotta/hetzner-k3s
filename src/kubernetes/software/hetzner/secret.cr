@@ -28,7 +28,7 @@ class Kubernetes::Software::Hetzner::Secret
       token: settings.hetzner_token
     })
 
-    apply_manifest_from_yaml(secret_manifest)
+    apply_manifest_from_yaml(secret_manifest, "Failed to create Hetzner Cloud secret")
 
     log_line "...secret created"
   end
