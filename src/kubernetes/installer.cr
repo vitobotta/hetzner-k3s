@@ -58,8 +58,7 @@ class Kubernetes::Installer
 
     set_up_workers(workers_installation_queue_channel, worker_count, master_count)
 
-    add_labels_and_taints_to_masters
-    add_labels_and_taints_to_workers
+    add_labels_and_taints
 
     Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
 
