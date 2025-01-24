@@ -16,7 +16,7 @@ For testing we are going to use this "hello-world" app - https://gist.githubuser
 hetzner_token: ...
 cluster_name: hello-world
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
-k3s_version: v1.23.3+k3s1
+k3s_version: v1.32.0+k3s1
 
 networking:
   ssh:
@@ -118,6 +118,9 @@ controller:
 
       load-balancer.hetzner.cloud/http-redirect-https: 'false'
 ```
+- Do not forget to replace `yourDomain.com` with your actual domain.
+- Do not forget to replace `WORKERS_LOAD_BALANCER_NAME` with a name of your choice.
+
 
 9. Add ingress-nginx Helm repo: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
 10. Update information of available charts locally from chart repositories: `helm repo update`
@@ -127,7 +130,7 @@ controller:
 helm upgrade --install \
 ingress-nginx ingress-nginx/ingress-nginx \
 --set controller.ingressClassResource.default=true \
--f ~/.kube/ingress-nginx-annotations.yaml \
+-f ./ingress-nginx-annotations.yaml \
 --namespace ingress-nginx \
 --create-namespace
 ```
@@ -171,17 +174,17 @@ metadata:
     kubernetes.io/ingress.class: nginx     # <<<--- Add annotation
 spec:
   rules:
-  - host: hello-world.IP_FROM_STEP_13.nip.io # <<<--- ADD IP FROM THE STEP 16.
+  - host: hello-world.IP_FROM_STEP_12.nip.io # <<<--- ADD IP FROM THE STEP 16.
   ....
 ```
 
 19. Install hello-world app: `kubectl apply -f hello-world.yaml`
-20. Check http://hello-world.IP_FROM_STEP_13.nip.io
+20. Check http://hello-world.IP_FROM_STEP_12.nip.io
 You should see the RANCHER Hello world! page.
-"host.IP_FROM_STEP_13.nip.io" (the key part is ".nip.io") is just a quick way to test things without configuring DNS (a query to a hostname ending in nip.io simply returns the IP address it finds in the hostname itself). Also, if you enabled [proxy-protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt) as shown above, you should find your own current public IP address in the `X-Forwarded-For` header - i.e. the application can "see" it.
+"host.IP_FROM_STEP_12.nip.io" (the key part is ".nip.io") is just a quick way to test things without configuring DNS (a query to a hostname ending in nip.io simply returns the IP address it finds in the hostname itself). Also, if you enabled [proxy-protocol](https://www.haproxy.org/download/1.8/doc/proxy-protocol.txt) as shown above, you should find your own current public IP address in the `X-Forwarded-For` header - i.e. the application can "see" it.
 21. In order to connect yourDomain.com, you need to:
-  - assign IP address from the step 13 to your domain in DNS panel of your domain registrar
-  - change `- host: hello-world.IP_FROM_STEP_13.nip.io` to `- host: yourDomain.com`;
+  - assign IP address from the step 12 to your domain in DNS panel of your domain registrar
+  - change `- host: hello-world.IP_FROM_STEP_12.nip.io` to `- host: yourDomain.com`;
   - `kubectl apply -f hello-world.yaml`
   - wait  until DNS records are updated.
 
@@ -241,7 +244,7 @@ spec:
   ....
 ```
 
-TIP: if you chose not to configure Nginx as the default Ingress Class, you must add the `kubernetes.io/ingress.class: nginx` annotation.
+TIP: if you chose not to configure Nginx as the default Ingress Class, you must add the `spec.ingressClassName: nginx` annotation.
 
 28. Apply changes: `kubectl apply -f ./hello-world.yaml`
 
