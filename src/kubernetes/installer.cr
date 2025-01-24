@@ -192,6 +192,7 @@ class Kubernetes::Installer
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments,
       embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
+      local_path_storage_class_enabled: settings.local_path_storage_class.enabled.to_s
     })
   end
 
