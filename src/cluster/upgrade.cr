@@ -25,6 +25,14 @@ class Cluster::Upgrade
   end
 
   def run
+    print "Please enter the cluster name to confirm that you want to upgrade it: "
+    input = gets
+
+    if input.try(&.strip) != settings.cluster_name
+      puts "Cluster name '#{input.try(&.strip)}' does not match '#{settings.cluster_name}'. Aborting upgrade."
+      exit 1
+    end
+
     log_line "k3s version upgrade started"
 
     ensure_kubectl_is_installed!
