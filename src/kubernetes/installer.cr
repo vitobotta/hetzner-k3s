@@ -51,12 +51,18 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    install_software(master_count)
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
+    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
+    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
     set_up_workers(workers_installation_queue_channel, worker_count, master_count)
 
     add_labels_and_taints_to_masters
     add_labels_and_taints_to_workers
+
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
 
     completed_channel.send(nil)
   end
@@ -100,6 +106,28 @@ class Kubernetes::Installer
 
     worker_count.times do
       workers_ready_channel.receive
+    end
+
+    wait_for_one_worker_to_be_ready
+  end
+
+  private def wait_for_one_worker_to_be_ready
+    sleep 5
+
+    log_line "Waiting for at least one worker node to be ready...", log_prefix: "Cluster Autoscaler"
+
+    timeout = Time.monotonic + 5.minutes
+    loop do
+      output = ssh.run(first_master, settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes", settings.networking.ssh.use_agent, print_output: false)
+
+      ready_workers = output.lines.count do |line|
+        line.includes?("worker") && line.includes?("Ready")
+      end
+
+      break if ready_workers > 0
+      raise "Timeout waiting for worker nodes" if Time.monotonic > timeout
+
+      sleep 5
     end
   end
 
@@ -366,15 +394,6 @@ class Kubernetes::Installer
     end
 
     sans.uniq.sort.join(" ")
-  end
-
-  private def install_software(master_count)
-    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
-    Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
-    Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
-    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
   end
 
   private def default_log_prefix
