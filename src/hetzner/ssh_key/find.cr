@@ -20,17 +20,27 @@ class Hetzner::SSHKey::Find
   end
 
   private def fetch_ssh_keys
-    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-      success, response = hetzner_client.get("/ssh_keys")
+    all_ssh_keys = [] of SSHKey
+    page = 1
+    per_page = 25
+
+    loop do
+      success, response = hetzner_client.get("/ssh_keys", { :page => page, :per_page => per_page })
 
       if success
-        SSHKeysList.from_json(response).ssh_keys
+        ssh_keys = SSHKeysList.from_json(response).ssh_keys
+        all_ssh_keys.concat(ssh_keys)
+        break if ssh_keys.size < per_page
       else
         STDERR.puts "[#{default_log_prefix}] Failed to fetch ssh keys: #{response}"
         STDERR.puts "[#{default_log_prefix}] Retrying to fetch ssh keys in 5 seconds..."
         raise "Failed to fetch ssh keys"
       end
+
+      page += 1
     end
+
+    all_ssh_keys
   end
 
   private def calculate_fingerprint(public_ssh_key_path)
