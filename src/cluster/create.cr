@@ -243,10 +243,14 @@ class Cluster::Create
   end
 
   private def create_placement_groups_for_node_pool(node_pool, remaining_placement_groups, placement_groups_channel)
-    placement_groups_count = [(node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i, remaining_placement_groups].min
     created_placement_groups = 0
+    placement_groups_count = [(node_pool.instance_count / MAX_INSTANCES_PER_PLACEMENT_GROUP).ceil.to_i, remaining_placement_groups].min
+    pool_placement_groups = all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
+    new_placement_group_count = placement_groups_count - pool_placement_groups.size
 
-    (all_placement_groups.size..(all_placement_groups.size + placement_groups_count - 1)).each do |index|
+    (pool_placement_groups.size..(pool_placement_groups.size + new_placement_group_count)).each do |index|
+      next if index == 0
+
       placement_group_name = "#{settings.cluster_name}-#{node_pool.name}-#{index}"
 
       next if placement_group_exists?(placement_group_name)
