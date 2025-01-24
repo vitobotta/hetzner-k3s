@@ -53,19 +53,15 @@ class Kubernetes::Software::ClusterAutoscaler
   private def node_pool_args
     autoscaling_worker_node_pools.map do |pool|
       autoscaling = pool.autoscaling.not_nil!
-      "--nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{pool.name}"
+      node_pool_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
+      "--nodes=#{autoscaling.min_instances}:#{autoscaling.max_instances}:#{pool.instance_type.upcase}:#{pool.location.upcase}:#{node_pool_name}"
     end
   end
 
   private def patch_resources(resources)
     resources.map do |resource|
       resource = Kubernetes::Resources::Resource.from_yaml(resource.to_yaml)
-
-      if resource.kind == "Deployment"
-        patched_deployment(resource)
-      else
-        resource
-      end
+      resource.kind == "Deployment" ? patched_deployment(resource) : resource
     end
   end
 

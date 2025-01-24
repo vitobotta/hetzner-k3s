@@ -18,6 +18,7 @@ class Configuration::NodePool
   property autoscaling : ::Configuration::Autoscaling?
   property post_create_commands : Array(String) | Nil
   property additional_packages : Array(String) | Nil
+  property include_cluster_name_as_prefix : Bool = true
 
   getter autoscaling_enabled : Bool do
     autoscaling.try(&.enabled) || false
