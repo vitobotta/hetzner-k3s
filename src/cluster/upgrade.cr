@@ -61,7 +61,8 @@ class Cluster::Upgrade
   end
 
   private def workers_count
-    settings.worker_node_pools.sum { |pool| pool.instance_count }
+    result = run_shell_command("kubectl get nodes | grep -v master | tail -n +2", configuration.kubeconfig_path, settings.hetzner_token, print_output: false)
+    result.output.split("\n").size
   end
 
   private def create_upgrade_plan_for_controlplane
