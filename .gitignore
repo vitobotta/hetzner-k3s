@@ -36,3 +36,4 @@ e2e-tests/test-*
 create.log
 delete.log
 /.bws/
+/bitwarden-state/
