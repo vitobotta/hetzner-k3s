@@ -52,6 +52,7 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
+          echo "CRYSTAL_LIBRARY_PATH=$(crystal env CRYSTAL_LIBRARY_PATH)" >> $GITHUB_ENV
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
