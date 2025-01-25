@@ -53,6 +53,7 @@ jobs:
           tar -xzf crystal-1.14.1-1-darwin-universal.tar.gz
           cp crystal-1.14.1-1/embedded/bin/* /usr/local/bin/
           echo "CRYSTAL_LIBRARY_PATH=$(crystal env CRYSTAL_LIBRARY_PATH)" >> $GITHUB_ENV
+          export SHARDS_INSTALL_PATH="./lib"
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
