@@ -55,9 +55,9 @@ jobs:
         name: macos build step
         run: |
           brew install libssh2 openssl@3 pkg-config
-          brew link libssh2 openssl@3 pkg-config
-
-          pkg-config --libs libssh2
+          brew unlink libssh2 && brew link libssh2
+          brew unlink openssl@3 && brew link openssl@3
+          brew unlink pkg-config && brew link pkg-config
 
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release --progress --stats
