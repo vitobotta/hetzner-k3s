@@ -51,7 +51,7 @@ class Hetzner::LoadBalancer::Create
     loop do
       load_balancer = load_balancer_finder.run
       break load_balancer if load_balancer.try(&.public_ip_address)
-      sleep 1
+      sleep 1.seconds
     end
   end
 

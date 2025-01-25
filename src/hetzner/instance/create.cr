@@ -190,7 +190,7 @@ class Hetzner::Instance::Create
     attaching_to_network_count = 0
 
     until ready
-      sleep 10 if !instance_existed && private_network_enabled?
+      sleep 10.seconds if !instance_existed && private_network_enabled?
 
       instance = find_instance
       next unless instance
@@ -199,7 +199,7 @@ class Hetzner::Instance::Create
 
       next unless powered_on?(instance, powering_on_count)
 
-      sleep 5
+      sleep 5.seconds
 
       next unless attached_to_network?(instance, attaching_to_network_count)
 

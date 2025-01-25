@@ -26,7 +26,7 @@ class Util::SSH
     loop do
       log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
 
-      sleep 1
+      sleep 1.seconds
 
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.second) do

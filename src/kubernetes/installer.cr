@@ -111,7 +111,7 @@ class Kubernetes::Installer
       break if ready_workers > 0
       raise "Timeout waiting for worker nodes" if Time.monotonic > timeout
 
-      sleep 5
+      sleep 5.seconds
     end
   end
 
@@ -124,11 +124,11 @@ class Kubernetes::Installer
 
     log_line  "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
 
-    sleep 10 unless /No change detected/ =~ output
+    sleep 10.seconds unless /No change detected/ =~ output
 
     save_kubeconfig(master_count)
 
-    sleep 5
+    sleep 5.seconds
 
     command = "kubectl cluster-info 2> /dev/null"
 
@@ -137,7 +137,7 @@ class Kubernetes::Installer
         loop do
           result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false, print_output: false)
           break if result.output.includes?("running")
-          sleep 1
+          sleep 1.seconds
         end
       end
     end
