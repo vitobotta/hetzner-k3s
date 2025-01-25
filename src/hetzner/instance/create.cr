@@ -203,7 +203,7 @@ class Hetzner::Instance::Create
 
       next unless attached_to_network?(instance, attaching_to_network_count)
 
-      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo Instance ready", "Instance ready"
       ready = true
     end
 

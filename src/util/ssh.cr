@@ -5,6 +5,21 @@ require "retriable"
 require "tasker"
 require "./prefixed_io"
 
+class SSH2::Session
+  def self.open(host : String, port = 22, &)
+    TCPSocket.open(host, port) do |socket|
+      session = new(socket)
+      begin
+        yield session
+      rescue ex: SSH2::SSH2Error | SSH2::SessionError
+        puts "Failed to open SSH session to host #{host}: #{ex.message}"
+      ensure
+        session.disconnect
+      end
+    end
+  end
+end
+
 class Util::SSH
   include ::Util
 
@@ -30,7 +45,7 @@ class Util::SSH
 
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.second) do
-          result = run(instance, port, test_command, use_ssh_agent, false)
+          result = run(instance, port, test_command, use_ssh_agent, true)
           log_line result, log_prefix: "Instance #{instance.name}" if result != expected_result
         end
       end
@@ -64,7 +79,7 @@ class Util::SSH
       end
 
       session.open_session do |channel|
-        channel.command(command)
+        channel.command("#{command} 2>&1")
         IO.copy(channel, all_output)
       end
     end
