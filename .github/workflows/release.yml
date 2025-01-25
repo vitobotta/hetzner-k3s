@@ -52,7 +52,7 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
-          brew uninstall openssl
+          brew uninstall --ignore-dependencies openssl
           brew install openssl@3
           shards install --without-development
           CRYSTAL_LIBRARY_PATH=$(crystal env CRYSTAL_LIBRARY_PATH) crystal build src/hetzner-k3s.cr --release
