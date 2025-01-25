@@ -45,13 +45,16 @@ jobs:
         with:
           set-safe-directory: '/home/runner/work/hetzner-k3s/hetzner-k3s'
 
+
+      - if: matrix.binary_os_suffix == 'macos'
+        uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.14.1
+
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
           brew install libssh2 openssl@3
-          wget https://github.com/crystal-lang/crystal/releases/download/1.14.1/crystal-1.14.1-1-darwin-universal.tar.gz
-          tar -xzf crystal-1.14.1-1-darwin-universal.tar.gz
-          cp crystal-1.14.1-1/embedded/bin/* /usr/local/bin/
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
