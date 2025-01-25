@@ -56,7 +56,7 @@ jobs:
         run: |
           brew install libssh2 openssl@3 pkg-config
           brew unlink libssh2 && brew link libssh2
-          brew unlink openssl@1.1 && brew unlink openssl@3 && brew link openssl@3
+          brew unlink openssl@1.1 && brew unlink openssl@3 && brew link --overwrite openssl@3
           brew unlink pkg-config && brew link pkg-config
 
           shards install --without-development
