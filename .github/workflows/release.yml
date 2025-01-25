@@ -21,10 +21,10 @@ jobs:
           - runs_on_tag: macos-13
             binary_os_suffix: macos
             binary_arch_suffix: amd64
-          - runs_on_tag: macos-14
-            binary_os_suffix: macos
-            binary_arch_suffix: arm64
-            architecture: arm
+          # - runs_on_tag: macos-14
+          #   binary_os_suffix: macos
+          #   binary_arch_suffix: arm64
+          #   architecture: arm
           - runs_on_tag: ubuntu-22.04
             binary_os_suffix: linux
             binary_arch_suffix: arm64
@@ -49,7 +49,7 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.12.2
+          crystal: 1.14.1
 
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
