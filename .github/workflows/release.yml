@@ -52,7 +52,7 @@ jobs:
           wget https://github.com/crystal-lang/crystal/releases/download/1.14.1/crystal-1.14.1-1-darwin-universal.tar.gz
           tar -xzf crystal-1.14.1-1-darwin-universal.tar.gz
           cp crystal-1.14.1-1/embedded/bin/* /usr/local/bin/
-          export CRYSTAL_LIBRARY_PATH=$(crystal env CRYSTAL_LIBRARY_PATH)
+          echo "CRYSTAL_LIBRARY_PATH=$(crystal env CRYSTAL_LIBRARY_PATH)" >> $GITHUB_ENV
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
