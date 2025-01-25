@@ -54,8 +54,9 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
+          brew install libssh2 openssl@3 pkg-config
           shards install --without-development
-          crystal build src/hetzner-k3s.cr --release
+          crystal build src/hetzner-k3s.cr --release --progress --stats
           chmod +x hetzner-k3s
           cp hetzner-k3s ${{ env.FILENAME }}
 
