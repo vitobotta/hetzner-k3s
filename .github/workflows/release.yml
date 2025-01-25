@@ -49,16 +49,11 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         uses: crystal-lang/install-crystal@v1
         with:
-          crystal: 1.14.1
+          crystal: 1.12.2
 
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
-          brew install libssh2 openssl@3 pkg-config
-          brew unlink libssh2 && brew link libssh2
-          brew unlink openssl@1.1 && brew unlink openssl@3 && brew link --overwrite openssl@3
-          brew unlink pkg-config && brew link pkg-config
-
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release --progress --stats
           chmod +x hetzner-k3s
