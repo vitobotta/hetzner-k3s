@@ -55,6 +55,7 @@ jobs:
         name: macos build step
         run: |
           brew install libssh2 openssl@3 pkg-config
+          brew link libssh2 openssl@3 pkg-config
 
           pkg-config --libs libssh2
 
