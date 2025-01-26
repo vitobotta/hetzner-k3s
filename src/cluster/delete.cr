@@ -38,7 +38,7 @@ class Cluster::Delete
 
     if settings.protect_against_deletion
       puts
-      puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `true` in the config file. Aborting deletion.".colorize(:red)
+      puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
       puts
       exit 1
     end
