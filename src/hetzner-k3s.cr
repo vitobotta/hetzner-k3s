@@ -1,7 +1,3 @@
-@[Link("ssh2", pkg_config: "libssh2")]
-lib LibSSH2
-end
-
 require "admiral"
 require "colorize"
 
