@@ -23,9 +23,7 @@ class Hetzner::LoadBalancer::Create
   def run
     load_balancer = load_balancer_finder.run
 
-    if load_balancer
-      log_line "Load balancer for API server already exists, skipping create"
-    else
+    unless load_balancer
       log_line "Creating load balancer for API server..."
       create_load_balancer
       load_balancer = wait_for_load_balancer_public_ip

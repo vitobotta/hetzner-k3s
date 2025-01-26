@@ -75,7 +75,6 @@ class Hetzner::Instance::Create
     if instance
       @instance_name = instance.name
       @instance_existed = true
-      log_line "Instance #{instance_name} already exists, skipping create"
       ensure_instance_is_ready
     else
       instance = create_instance

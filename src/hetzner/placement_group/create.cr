@@ -16,9 +16,7 @@ class Hetzner::PlacementGroup::Create
   def run
     placement_group = placement_group_finder.run
 
-    if placement_group
-      log_line "Placement group #{placement_group_name} already exists, skipping create"
-    else
+    unless placement_group
       log_line "Creating placement group #{placement_group_name}..."
       create_placement_group
       placement_group = placement_group_finder.run
