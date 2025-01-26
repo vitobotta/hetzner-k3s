@@ -309,7 +309,6 @@ class Hetzner::Instance::Create
 
   private def wait_for_ssh_response(instance)
     result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready")
-    log_line("Instance was already a member of the cluster") if result == "ready"
     result == "ready"
   end
 

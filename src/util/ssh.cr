@@ -4,24 +4,11 @@ require "../util"
 require "retriable"
 require "tasker"
 require "./prefixed_io"
-
-class SSH2::Session
-  def self.open(host : String, port = 22, &)
-    TCPSocket.open(host, port) do |socket|
-      session = new(socket)
-      begin
-        yield session
-      rescue ex: SSH2::SSH2Error | SSH2::SessionError
-        puts "Failed to open SSH session to host #{host}: #{ex.message}"
-      ensure
-        session.disconnect
-      end
-    end
-  end
-end
+require "./shell"
 
 class Util::SSH
   include ::Util
+  include ::Util::Shell
 
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
@@ -39,13 +26,11 @@ class Util::SSH
     result = nil
 
     loop do
-      log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
-
-      sleep 1.seconds
+      sleep 5.seconds
 
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.second) do
-          result = run(instance, port, test_command, use_ssh_agent, true)
+          result = run(instance, port, test_command, use_ssh_agent, false)
           log_line result, log_prefix: "Instance #{instance.name}" if result != expected_result
         end
       end
@@ -53,38 +38,40 @@ class Util::SSH
       break result if result == expected_result
     end
 
-    log_line "...instance #{instance.name} is now up.", log_prefix: "Instance #{instance.name}"
-
     result
   end
 
   private def run_command(instance, port, command, use_ssh_agent, print_output = true)
     host_ip_address = instance.host_ip_address.not_nil!
 
-    result = IO::Memory.new
-    all_output = if print_output
-      IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDOUT), result)
+    cmd_file_path = "/tmp/cli_#{Random::Secure.hex(8)}.cmd"
+
+    File.write(cmd_file_path, <<-CONTENT
+    set -euo pipefail
+    #{command}
+    CONTENT
+    )
+
+    debug_args = if ENV.fetch("DEBUG", "false") == "true"
+      " 2>&1 "
     else
-      IO::MultiWriter.new(result)
+      " 2>/dev/null "
     end
 
-    SSH2::Session.open(host_ip_address, port) do |session|
-      session.timeout = 5000
-      session.knownhosts.delete_if { |h| h.name == instance.host_ip_address }
+    File.chmod(cmd_file_path, 0o700)
 
-      if use_ssh_agent
-        session.login_with_agent("root")
-      else
-        session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
-      end
+    ssh_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o BatchMode=yes -o PasswordAuthentication=no -o PreferredAuthentications=publickey -o PubkeyAuthentication=yes -o IdentitiesOnly=yes -i #{private_ssh_key_path}"
 
-      session.open_session do |channel|
-        channel.command("#{command} 2>&1")
-        IO.copy(channel, all_output)
-      end
-    end
+    result = run_shell_command("scp #{ssh_args} -P #{port} #{cmd_file_path} root@#{host_ip_address}:#{cmd_file_path}", "", "", "", false, "Instance #{instance.name}", print_output)
 
-    result.to_s.chomp
+    ssh_command = "ssh #{ssh_args} -p #{port} root@#{host_ip_address}"
+
+    result = run_shell_command("#{ssh_command} #{cmd_file_path} #{debug_args}", "", "", "", false, "Instance #{instance.name}", print_output)
+    run_shell_command("#{ssh_command} rm #{cmd_file_path}", "", "", "", false, "Instance #{instance.name}", print_output)
+
+    File.delete(cmd_file_path)
+
+    result.output.chomp
   end
 
   private def default_log_prefix

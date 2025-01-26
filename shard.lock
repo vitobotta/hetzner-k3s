@@ -36,10 +36,6 @@ shards:
     git: https://github.com/sija/retriable.cr.git
     version: 0.2.5
 
-  ssh2:
-    git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.7.0
-
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
     version: 2.1.4

@@ -52,6 +52,8 @@ module Util
         exit 1 if abort_on_error
       end
 
+      File.delete(cmd_file_path)
+
       result
     end
   end
