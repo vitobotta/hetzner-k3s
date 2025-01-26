@@ -24,7 +24,6 @@ brew install vitobotta/tap/hetzner_k3s
 #### Binary installation
 
 You need to install these dependencies first:
-- libssh2
 - libevent
 - bdw-gc
 - libyaml
