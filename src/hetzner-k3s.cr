@@ -3,6 +3,7 @@ lib LibSSH2
 end
 
 require "admiral"
+require "colorize"
 
 require "./configuration/loader"
 require "./k3s"
@@ -97,13 +98,13 @@ module Hetzner::K3s
   end
 end
 
-puts "_          _                            _    _____     "
-puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ "
-puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|"
-puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\"
-puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/"
+puts "_          _                            _    _____     ".colorize(:green)
+puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
+puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
+puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
+puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/".colorize(:green)
 puts
-puts "Version: #{Hetzner::K3s::CLI::VERSION}"
+puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
 puts
 
 Hetzner::K3s::CLI.run
