@@ -59,6 +59,12 @@ class Cluster::Create
     completed_channel.receive
 
     delete_unused_placement_groups
+
+    unless settings.protect_against_deletion
+      puts
+      puts "WARNING!!! The cluster is not protected against deletion. If you want to protect the cluster against deletion, set `protect_against_deletion: true` in the configuration file.".colorize(:yellow)
+      puts
+    end
   end
 
   private def initiate_k3s_setup
