@@ -63,6 +63,10 @@ class Util::SSH
 
     File.delete(cmd_file_path)
 
+    if ENV.fetch("DEBUG", "false") == "true"
+      puts "SSH command result: #{result.output.chomp}"
+    end
+
     result.output.chomp
   end
 
