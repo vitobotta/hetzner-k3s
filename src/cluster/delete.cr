@@ -30,7 +30,10 @@ class Cluster::Delete
     input = gets
 
     if input.try(&.strip) != settings.cluster_name
-      puts "Cluster name '#{input.try(&.strip)}' does not match '#{settings.cluster_name}'. Aborting deletion."
+      puts
+      puts "Cluster name '#{input.try(&.strip)}' does not match '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
+      exit 1
+    end
       exit 1
     end
 
