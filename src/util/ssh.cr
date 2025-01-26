@@ -32,7 +32,7 @@ class Util::SSH
         puts "SSH command expected: ===#{expected_result}==="
       end
 
-      break result if result == expected_result
+      break result if result.strip.gsub(/[\r\n]/, "") == expected_result
     end
 
     result
