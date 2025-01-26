@@ -1,4 +1,3 @@
-require "ssh2"
 require "io"
 require "../util"
 require "retriable"
