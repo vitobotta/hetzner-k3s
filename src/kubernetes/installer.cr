@@ -304,8 +304,8 @@ class Kubernetes::Installer
 
     paths = masters.map { |master| "#{kubeconfig_path}-#{master.name}" }.join(":")
 
-    system("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path} > /dev/null")
-    system("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{first_master.name} > /dev/null")
+    system("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}")
+    system("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{first_master.name}")
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")
