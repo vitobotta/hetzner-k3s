@@ -34,6 +34,7 @@ class Configuration::Main
   getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
   getter local_path_storage_class : Configuration::LocalPathStorageClass = Configuration::LocalPathStorageClass.new
   getter include_instance_type_in_instance_name : Bool = false
+  getter protect_against_deletion : Bool = true
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
