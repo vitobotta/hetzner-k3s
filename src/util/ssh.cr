@@ -28,13 +28,19 @@ class Util::SSH
       end
 
       result ||= ""
+      result = result.not_nil!.strip.gsub(/[\r\n]/, "")
 
       if ENV.fetch("DEBUG", "false") == "true"
         puts "SSH command result: ===#{result}==="
         puts "SSH command expected: ===#{expected_result}==="
+        puts "Matching?: ===#{ result == expected_result }==="
       end
 
-      break result if result.not_nil!.strip.gsub(/[\r\n]/, "") == expected_result
+      if result == expected_result
+        break result
+      else
+        log_line "Waiting for instance #{instance.name} to be ready...", log_prefix: "Instance #{instance.name}"
+      end
     end
 
     result
