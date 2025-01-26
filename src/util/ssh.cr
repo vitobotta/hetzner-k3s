@@ -15,12 +15,6 @@ class Util::SSH
   def initialize(@private_ssh_key_path, @public_ssh_key_path)
   end
 
-  def run(instance, port, command, use_ssh_agent, print_output = true)
-    Retriable.retry(max_attempts: 300, backoff: false, base_interval: 1.second, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
-      run_command(instance, port, command, use_ssh_agent, print_output)
-    end
-  end
-
   def wait_for_instance(instance, port, use_ssh_agent, test_command, expected_result, max_attempts : Int16 = 20)
     result = nil
 
@@ -40,7 +34,7 @@ class Util::SSH
     result
   end
 
-  private def run_command(instance, port, command, use_ssh_agent, print_output = true)
+  def run(instance, port, command, use_ssh_agent, print_output = true)
     host_ip_address = instance.host_ip_address.not_nil!
 
     cmd_file_path = "/tmp/cli_#{Random::Secure.hex(8)}.cmd"
