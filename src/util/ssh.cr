@@ -27,6 +27,11 @@ class Util::SSH
         end
       end
 
+      if ENV.fetch("DEBUG", "false") == "true"
+        puts "SSH command result: ===#{result}==="
+        puts "SSH command expected: ===#{expected_result}==="
+      end
+
       break result if result == expected_result
     end
 
@@ -62,10 +67,6 @@ class Util::SSH
     run_shell_command("#{ssh_command} rm #{cmd_file_path}", "", "", "", false, "Instance #{instance.name}", print_output)
 
     File.delete(cmd_file_path)
-
-    if ENV.fetch("DEBUG", "false") == "true"
-      puts "SSH command result: #{result.output.chomp}"
-    end
 
     result.output.chomp
   end
