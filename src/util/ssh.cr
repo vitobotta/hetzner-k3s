@@ -27,12 +27,14 @@ class Util::SSH
         end
       end
 
+      result ||= ""
+
       if ENV.fetch("DEBUG", "false") == "true"
         puts "SSH command result: ===#{result}==="
         puts "SSH command expected: ===#{expected_result}==="
       end
 
-      break result if result.strip.gsub(/[\r\n]/, "") == expected_result
+      break result if result.not_nil!.strip.gsub(/[\r\n]/, "") == expected_result
     end
 
     result
