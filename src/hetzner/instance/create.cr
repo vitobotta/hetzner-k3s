@@ -293,7 +293,7 @@ class Hetzner::Instance::Create
   end
 
   private def build_kubectl_command(instance_name)
-    %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
+    %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name} 2>/dev/null)
   end
 
   private def initialize_instance(instance_name, internal_ip, external_ip)
@@ -318,7 +318,7 @@ class Hetzner::Instance::Create
 
     debug = ENV.fetch("DEBUG", "false") == "true"
 
-    result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: debug, abort_on_error: false)
+    result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
 
     return nil unless result.success?
 
