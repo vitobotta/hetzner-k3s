@@ -4,16 +4,6 @@ require "random/secure"
 module Util
   module Shell
     def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error  = true, log_prefix = "", print_output : Bool = true) : CommandResult
-      cmd_file_path = "/tmp/cli_#{Random::Secure.hex(8)}.cmd"
-
-      File.write(cmd_file_path, <<-CONTENT
-      set -euo pipefail
-      #{command}
-      CONTENT
-      )
-
-      File.chmod(cmd_file_path, 0o700)
-
       stdout = IO::Memory.new
       stderr = IO::Memory.new
 
@@ -38,7 +28,7 @@ module Util
       }
 
       status = Process.run("bash",
-        args: ["-c", cmd_file_path],
+        args: ["-c", command],
         env: env,
         output: all_io_out,
         error: all_io_err
@@ -48,11 +38,9 @@ module Util
       result = CommandResult.new(output, status.exit_code)
 
       unless result.success?
-        log_line "#{error_message}: #{result.output}", log_prefix: log_prefix if print_output
+        log_line "#{error_message}: #{result.output}", log_prefix: log_prefix
         exit 1 if abort_on_error
       end
-
-      File.delete(cmd_file_path)
 
       result
     end
