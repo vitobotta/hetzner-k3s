@@ -49,7 +49,7 @@ class Util::SSH
   def run(instance, port, command, use_ssh_agent, print_output = true)
     host_ip_address = instance.host_ip_address.not_nil!
     debug = ENV.fetch("DEBUG", "false") == "true"
-    log_level = debug ? "DEBUG" : "INFO"
+    log_level = debug ? "DEBUG" : "ERROR"
 
     ssh_args = [
       "-o ConnectTimeout=10",
