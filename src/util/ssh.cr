@@ -48,35 +48,48 @@ class Util::SSH
 
   def run(instance, port, command, use_ssh_agent, print_output = true)
     host_ip_address = instance.host_ip_address.not_nil!
+    debug = ENV.fetch("DEBUG", "false") == "true"
+    log_level = debug ? "DEBUG" : "INFO"
 
-    cmd_file_path = "/tmp/cli_#{Random::Secure.hex(8)}.cmd"
+    ssh_args = [
+      "-o ConnectTimeout=10",
+      "-o StrictHostKeyChecking=no",
+      "-o UserKnownHostsFile=/dev/null",
+      "-o BatchMode=yes",
+      "-o LogLevel=#{log_level}",
+      "-o ServerAliveInterval=5",
+      "-o ServerAliveCountMax=3",
+      "-o PasswordAuthentication=no",
+      "-o PreferredAuthentications=publickey",
+      "-o PubkeyAuthentication=yes",
+      "-i", private_ssh_key_path,
+      "-p", port.to_s,
+      "root@#{host_ip_address}",
+      command
+    ]
 
-    File.write(cmd_file_path, <<-CONTENT
-    set -euo pipefail
-    #{command}
-    CONTENT
-    )
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
 
-    debug_args = if ENV.fetch("DEBUG", "false") == "true"
-      " 2>&1 "
+    if print_output || debug
+      all_io_out = IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDOUT), stdout)
+      all_io_err = IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDERR), stderr)
     else
-      " 2>/dev/null "
+      all_io_out = stdout
+      all_io_err = stderr
     end
 
-    File.chmod(cmd_file_path, 0o700)
+    status = Process.run("ssh",
+      args: ssh_args,
+      output: all_io_out,
+      error: all_io_err
+    )
 
-    ssh_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=3 -o BatchMode=yes -o PasswordAuthentication=no -o PreferredAuthentications=publickey -o PubkeyAuthentication=yes -o IdentitiesOnly=yes -i #{private_ssh_key_path}"
+    unless status.success?
+      log_line "SSH command failed: #{stderr.to_s}", log_prefix: "Instance #{instance.name}" if debug
+    end
 
-    result = run_shell_command("scp #{ssh_args} -P #{port} #{cmd_file_path} root@#{host_ip_address}:#{cmd_file_path}", "", "", "", false, "Instance #{instance.name}", print_output)
-
-    ssh_command = "ssh #{ssh_args} -p #{port} root@#{host_ip_address}"
-
-    result = run_shell_command("#{ssh_command} #{cmd_file_path} #{debug_args}", "", "", "", false, "Instance #{instance.name}", print_output)
-    run_shell_command("#{ssh_command} rm #{cmd_file_path}", "", "", "", false, "Instance #{instance.name}", print_output)
-
-    File.delete(cmd_file_path)
-
-    result.output.chomp
+    stdout.to_s.strip.chomp
   end
 
   private def default_log_prefix
