@@ -315,7 +315,10 @@ class Hetzner::Instance::Create
     return nil unless api_server_ready?(settings.kubeconfig_path)
 
     command = build_kubectl_command(instance_name)
-    result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
+
+    debug = ENV.fetch("DEBUG", "false") == "true"
+
+    result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: debug, abort_on_error: false)
 
     return nil unless result.success?
 
