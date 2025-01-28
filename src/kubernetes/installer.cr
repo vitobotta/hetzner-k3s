@@ -309,8 +309,10 @@ class Kubernetes::Installer
 
     paths = ([load_balancer_kubeconfig_path] + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
-    system("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}")
-    system("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{first_master.name}")
+    default_context = load_balancer.nil? ? first_master.name : settings.cluster_name
+
+    run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", settings.hetzner_token, log_prefix: "Control plane")
+    run_shell_command("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{default_context}", "", settings.hetzner_token, log_prefix: "Control plane")
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")
