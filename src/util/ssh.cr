@@ -19,8 +19,6 @@ class Util::SSH
     result = nil
 
     loop do
-      sleep 5.seconds
-
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.second) do
           result = run(instance, port, test_command, use_ssh_agent, false)
@@ -40,6 +38,7 @@ class Util::SSH
         break result
       else
         log_line "Waiting for instance #{instance.name} to be ready...", log_prefix: "Instance #{instance.name}"
+        sleep 5
       end
     end
 

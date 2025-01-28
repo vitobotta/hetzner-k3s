@@ -24,8 +24,8 @@ class Cluster::Create
   private getter ssh_key : Hetzner::SSHKey
   private getter load_balancer : Hetzner::LoadBalancer?
   private getter placement_groups : Hash(String, Hetzner::PlacementGroup?) = Hash(String, Hetzner::PlacementGroup?).new
-  private getter master_instance_instances : Array(Hetzner::Instance::Create)
-  private getter worker_instance_instances : Array(Hetzner::Instance::Create)
+  private getter master_instances : Array(Hetzner::Instance::Create)
+  private getter worker_instances : Array(Hetzner::Instance::Create)
   private getter instances : Array(Hetzner::Instance) = [] of Hetzner::Instance
 
   private property kubernetes_masters_installation_queue_channel do
@@ -42,19 +42,19 @@ class Cluster::Create
     @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
     @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
-    @master_instance_instances = initialize_master_instances
-    @worker_instance_instances = initialize_worker_instances
+    @master_instances = initialize_master_instances
+    @worker_instances = initialize_worker_instances
   end
 
   def run
-    create_instances_concurrently(master_instance_instances, kubernetes_masters_installation_queue_channel, wait: true)
+    create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
     configure_firewall
-    # create_load_balancer if master_instance_instances.size > 1
+    create_load_balancer if master_instances.size > 1
 
     initiate_k3s_setup
 
-    create_instances_concurrently(worker_instance_instances, kubernetes_workers_installation_queue_channel)
+    create_instances_concurrently(worker_instances, kubernetes_workers_installation_queue_channel)
 
     completed_channel.receive
 
@@ -70,7 +70,7 @@ class Cluster::Create
   private def initiate_k3s_setup
     kubernetes_installer = Kubernetes::Installer.new(
       configuration,
-      # load_balancer,
+      load_balancer,
       ssh_client,
       autoscaling_worker_node_pools
     )
@@ -80,8 +80,8 @@ class Cluster::Create
         masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
         workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
         completed_channel: completed_channel,
-        master_count: master_instance_instances.size,
-        worker_count: worker_instance_instances.size
+        master_count: master_instances.size,
+        worker_count: worker_instances.size
       )
     end
   end
@@ -301,14 +301,14 @@ class Cluster::Create
 
   ## Load balancer
 
-  # private def create_load_balancer
-  #   @load_balancer = Hetzner::LoadBalancer::Create.new(
-  #     settings: settings,
-  #     hetzner_client: hetzner_client,
-  #     location: configuration.masters_location,
-  #     network_id: network.try(&.id)
-  #   ).run
-  # end
+  private def create_load_balancer
+    @load_balancer = Hetzner::LoadBalancer::Create.new(
+      settings: settings,
+      hetzner_client: hetzner_client,
+      location: configuration.masters_location,
+      network_id: network.try(&.id)
+    ).run
+  end
 
   ## Private network
 

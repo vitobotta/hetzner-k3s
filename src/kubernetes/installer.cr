@@ -37,7 +37,7 @@ class Kubernetes::Installer
 
   def initialize(
       @configuration,
-      # @load_balancer,
+      @load_balancer,
       @ssh,
       @autoscaling_worker_node_pools
     )
@@ -289,6 +289,11 @@ class Kubernetes::Installer
 
     File.write(kubeconfig_path, kubeconfig)
 
+    load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{settings.cluster_name}"
+    load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address}:6443")
+
+    File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
+
     masters.each_with_index do |master, index|
       master_ip_address = settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
@@ -302,7 +307,7 @@ class Kubernetes::Installer
       File.write(master_kubeconfig_path, master_kubeconfig)
     end
 
-    paths = masters.map { |master| "#{kubeconfig_path}-#{master.name}" }.join(":")
+    paths = ([load_balancer_kubeconfig_path] + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
     system("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}")
     system("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{first_master.name}")
@@ -343,7 +348,7 @@ class Kubernetes::Installer
   end
 
   private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{api_server_ip_address}", "--tls-san=127.0.0.1"]
+    sans = ["--tls-san=#{load_balancer_ip_address}", "--tls-san=#{api_server_ip_address}", "--tls-san=127.0.0.1"]
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
 
     masters.each do |master|
@@ -360,5 +365,9 @@ class Kubernetes::Installer
 
   private def api_server_ip_address
     first_master.private_ip_address || first_master.public_ip_address
+  end
+
+  private def load_balancer_ip_address
+    load_balancer.not_nil!.public_ip_address
   end
 end

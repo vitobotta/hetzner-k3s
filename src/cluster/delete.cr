@@ -48,8 +48,8 @@ class Cluster::Delete
   end
 
   private def delete_resources
-    # delete_load_balancer
-    # sleep 5.seconds
+    delete_load_balancer
+    sleep 5.seconds
     delete_instances
     delete_placement_groups
     delete_network
