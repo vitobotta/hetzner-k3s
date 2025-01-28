@@ -289,10 +289,12 @@ class Kubernetes::Installer
 
     File.write(kubeconfig_path, kubeconfig)
 
-    load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{settings.cluster_name}"
-    load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address}:6443")
+    if settings.create_load_balancer_for_the_kubernetes_api
+      load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{settings.cluster_name}"
+      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address}:6443")
 
-    File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
+      File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
+    end
 
     masters.each_with_index do |master, index|
       master_ip_address = settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
@@ -307,7 +309,9 @@ class Kubernetes::Installer
       File.write(master_kubeconfig_path, master_kubeconfig)
     end
 
-    paths = ([load_balancer_kubeconfig_path] + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
+    paths = settings.create_load_balancer_for_the_kubernetes_api ? [load_balancer_kubeconfig_path] : [] of String
+
+    paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
     default_context = load_balancer.nil? ? first_master.name : settings.cluster_name
 
@@ -350,7 +354,8 @@ class Kubernetes::Installer
   end
 
   private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{load_balancer_ip_address}", "--tls-san=#{api_server_ip_address}", "--tls-san=127.0.0.1"]
+    sans = ["--tls-san=#{api_server_ip_address}", "--tls-san=127.0.0.1"]
+    sans << "--tls-san=#{load_balancer_ip_address}" if settings.create_load_balancer_for_the_kubernetes_api
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
 
     masters.each do |master|
@@ -370,6 +375,6 @@ class Kubernetes::Installer
   end
 
   private def load_balancer_ip_address
-    load_balancer.not_nil!.public_ip_address
+    load_balancer.try(&.public_ip_address)
   end
 end

@@ -50,7 +50,12 @@ class Cluster::Create
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
     configure_firewall
-    create_load_balancer if master_instances.size > 1
+
+    if settings.create_load_balancer_for_the_kubernetes_api && master_instances.size > 1
+      create_load_balancer
+    else
+      delete_load_balancer
+    end
 
     initiate_k3s_setup
 
@@ -307,6 +312,16 @@ class Cluster::Create
       hetzner_client: hetzner_client,
       location: configuration.masters_location,
       network_id: network.try(&.id)
+    ).run
+
+    sleep 5.seconds
+  end
+
+  private def delete_load_balancer
+    Hetzner::LoadBalancer::Delete.new(
+      hetzner_client: hetzner_client,
+      cluster_name: settings.cluster_name,
+      print_log: false
     ).run
   end
 

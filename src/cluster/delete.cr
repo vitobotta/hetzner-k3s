@@ -48,8 +48,11 @@ class Cluster::Delete
   end
 
   private def delete_resources
-    delete_load_balancer
-    sleep 5.seconds
+    if settings.create_load_balancer_for_the_kubernetes_api
+      delete_load_balancer
+      sleep 5.seconds
+    end
+
     delete_instances
     delete_placement_groups
     delete_network
@@ -60,7 +63,8 @@ class Cluster::Delete
   private def delete_load_balancer
     Hetzner::LoadBalancer::Delete.new(
       hetzner_client: hetzner_client,
-      cluster_name: settings.cluster_name
+      cluster_name: settings.cluster_name,
+      print_log: true
     ).run
   end
 

@@ -86,6 +86,8 @@ embedded_registry_mirror:
 
 protect_against_deletion: true
 
+create_load_balancer_for_the_kubernetes_api: false # NOTE: it is currently not possible to restrict access to the load balancer by IP in the firewall since this hasn't been implemented by Hetzner yet.
+
 # additional_packages:
 # - somepackage
 

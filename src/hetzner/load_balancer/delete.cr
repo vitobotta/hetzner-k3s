@@ -11,8 +11,9 @@ class Hetzner::LoadBalancer::Delete
     "#{cluster_name}-api"
   end
   getter load_balancer_finder : Hetzner::LoadBalancer::Find
+  getter print_log : Bool = true
 
-  def initialize(@hetzner_client, @cluster_name)
+  def initialize(@hetzner_client, @cluster_name, @print_log)
     @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, load_balancer_name)
   end
 
@@ -20,11 +21,9 @@ class Hetzner::LoadBalancer::Delete
     load_balancer = load_balancer_finder.run
 
     if load_balancer
-      log_line "Deleting load balancer for API server..."
+      log_line "Deleting load balancer for API server..." if print_log
       delete_load_balancer(load_balancer.id)
-      log_line "...load balancer for API server deleted"
-    else
-      log_line "Load balancer for API server does not exist, skipping delete"
+      log_line "...load balancer for API server deleted" if print_log
     end
 
     load_balancer_name
