@@ -20,9 +20,7 @@ class Hetzner::SSHKey::Create
   def run
     ssh_key = ssh_key_finder.run
 
-    if ssh_key
-      log_line "SSH key already exists, skipping create"
-    else
+    unless ssh_key
       log_line "Creating SSH key..."
 
       create_ssh_key

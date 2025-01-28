@@ -1,12 +1,13 @@
-require "ssh2"
 require "io"
 require "../util"
 require "retriable"
 require "tasker"
 require "./prefixed_io"
+require "./shell"
 
 class Util::SSH
   include ::Util
+  include ::Util::Shell
 
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
@@ -14,62 +15,80 @@ class Util::SSH
   def initialize(@private_ssh_key_path, @public_ssh_key_path)
   end
 
-  def run(instance, port, command, use_ssh_agent, print_output = true)
-    Retriable.retry(max_attempts: 300, backoff: false, base_interval: 1.second, on: {SSH2::SSH2Error, SSH2::SessionError, Socket::ConnectError}) do
-      run_command(instance, port, command, use_ssh_agent, print_output)
-    end
-  end
-
   def wait_for_instance(instance, port, use_ssh_agent, test_command, expected_result, max_attempts : Int16 = 20)
     result = nil
 
     loop do
-      log_line "Waiting for successful ssh connectivity with instance #{instance.name}...", log_prefix: "Instance #{instance.name}"
-
-      sleep 1
-
       Retriable.retry(max_attempts: max_attempts, on: Tasker::Timeout, backoff: false) do
         Tasker.timeout(5.second) do
           result = run(instance, port, test_command, use_ssh_agent, false)
-          log_line result, log_prefix: "Instance #{instance.name}" if result != expected_result
         end
       end
 
-      break result if result == expected_result
-    end
+      result ||= ""
+      result = result.not_nil!.strip.gsub(/[\r\n]/, "")
 
-    log_line "...instance #{instance.name} is now up.", log_prefix: "Instance #{instance.name}"
+      if ENV.fetch("DEBUG", "false") == "true"
+        puts "SSH command result: ===#{result}==="
+        puts "SSH command expected: ===#{expected_result}==="
+        puts "Matching?: ===#{ result == expected_result }==="
+      end
+
+      if result == expected_result
+        break result
+      else
+        log_line "Waiting for instance #{instance.name} to be ready...", log_prefix: "Instance #{instance.name}"
+        sleep 5.seconds
+      end
+    end
 
     result
   end
 
-  private def run_command(instance, port, command, use_ssh_agent, print_output = true)
+  def run(instance, port, command, use_ssh_agent, print_output = true)
     host_ip_address = instance.host_ip_address.not_nil!
+    debug = ENV.fetch("DEBUG", "false") == "true"
+    log_level = debug ? "DEBUG" : "ERROR"
 
-    result = IO::Memory.new
-    all_output = if print_output
-      IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDOUT), result)
+    ssh_args = [
+      "-o ConnectTimeout=10",
+      "-o StrictHostKeyChecking=no",
+      "-o UserKnownHostsFile=/dev/null",
+      "-o BatchMode=yes",
+      "-o LogLevel=#{log_level}",
+      "-o ServerAliveInterval=5",
+      "-o ServerAliveCountMax=3",
+      "-o PasswordAuthentication=no",
+      "-o PreferredAuthentications=publickey",
+      "-o PubkeyAuthentication=yes",
+      "-i", private_ssh_key_path,
+      "-p", port.to_s,
+      "root@#{host_ip_address}",
+      command
+    ]
+
+    stdout = IO::Memory.new
+    stderr = IO::Memory.new
+
+    if print_output || debug
+      all_io_out = IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDOUT), stdout)
+      all_io_err = IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance.name}] ", STDERR), stderr)
     else
-      IO::MultiWriter.new(result)
+      all_io_out = stdout
+      all_io_err = stderr
     end
 
-    SSH2::Session.open(host_ip_address, port) do |session|
-      session.timeout = 5000
-      session.knownhosts.delete_if { |h| h.name == instance.host_ip_address }
+    status = Process.run("ssh",
+      args: ssh_args,
+      output: all_io_out,
+      error: all_io_err
+    )
 
-      if use_ssh_agent
-        session.login_with_agent("root")
-      else
-        session.login_with_pubkey("root", private_ssh_key_path, public_ssh_key_path)
-      end
-
-      session.open_session do |channel|
-        channel.command(command)
-        IO.copy(channel, all_output)
-      end
+    unless status.success?
+      log_line "SSH command failed: #{stderr.to_s}", log_prefix: "Instance #{instance.name}" if debug
     end
 
-    result.to_s.chomp
+    stdout.to_s.strip.chomp
   end
 
   private def default_log_prefix

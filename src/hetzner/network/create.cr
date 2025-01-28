@@ -22,9 +22,7 @@ class Hetzner::Network::Create
   def run
     network = network_finder.run
 
-    if network
-      log_line "Private network already exists, skipping create"
-    else
+    unless network
       log_line "Creating private network..."
 
       Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do

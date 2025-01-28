@@ -41,7 +41,7 @@ class Kubernetes::Software::SystemUpgradeController
     patched_resources = patch_resources(resources)
     patched_manifest = patched_resources.map(&.to_yaml).join
 
-    apply_manifest_from_yaml(patched_manifest)
+    apply_manifest_from_yaml(patched_manifest, "Failed to install System Upgrade Controller")
   end
 
   private def deployment_with_added_toleration(resource)

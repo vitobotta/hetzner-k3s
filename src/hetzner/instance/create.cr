@@ -75,7 +75,6 @@ class Hetzner::Instance::Create
     if instance
       @instance_name = instance.name
       @instance_existed = true
-      log_line "Instance #{instance_name} already exists, skipping create"
       ensure_instance_is_ready
     else
       instance = create_instance
@@ -190,7 +189,7 @@ class Hetzner::Instance::Create
     attaching_to_network_count = 0
 
     until ready
-      sleep 10 if !instance_existed && private_network_enabled?
+      sleep 10.seconds if !instance_existed && private_network_enabled?
 
       instance = find_instance
       next unless instance
@@ -199,7 +198,7 @@ class Hetzner::Instance::Create
 
       next unless powered_on?(instance, powering_on_count)
 
-      sleep 5
+      sleep 5.seconds
 
       next unless attached_to_network?(instance, attaching_to_network_count)
 
@@ -294,7 +293,7 @@ class Hetzner::Instance::Create
   end
 
   private def build_kubectl_command(instance_name)
-    %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name})
+    %(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}{"\\n"}{.items[0].status.addresses[?(@.type=="ExternalIP")].address}' --field-selector metadata.name=#{instance_name} 2>/dev/null)
   end
 
   private def initialize_instance(instance_name, internal_ip, external_ip)
@@ -309,7 +308,6 @@ class Hetzner::Instance::Create
 
   private def wait_for_ssh_response(instance)
     result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready")
-    log_line("Instance was already a member of the cluster") if result == "ready"
     result == "ready"
   end
 
@@ -317,6 +315,9 @@ class Hetzner::Instance::Create
     return nil unless api_server_ready?(settings.kubeconfig_path)
 
     command = build_kubectl_command(instance_name)
+
+    debug = ENV.fetch("DEBUG", "false") == "true"
+
     result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
 
     return nil unless result.success?

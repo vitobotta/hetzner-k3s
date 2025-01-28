@@ -26,13 +26,33 @@ class Cluster::Delete
   end
 
   def run
+    print "Please enter the cluster name to confirm that you want to delete it: "
+    input = gets
+
+    if input.try(&.strip) != settings.cluster_name
+      puts
+      puts "Cluster name '#{input.try(&.strip)}' does not match expected '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
+      puts
+      exit 1
+    end
+
+    if settings.protect_against_deletion
+      puts
+      puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
+      puts
+      exit 1
+    end
+
     delete_resources
     File.delete(settings.kubeconfig_path) if File.exists?(settings.kubeconfig_path)
   end
 
   private def delete_resources
-    # delete_load_balancer
-    # sleep 5
+    if settings.create_load_balancer_for_the_kubernetes_api
+      delete_load_balancer
+      sleep 5.seconds
+    end
+
     delete_instances
     delete_placement_groups
     delete_network
@@ -43,7 +63,8 @@ class Cluster::Delete
   private def delete_load_balancer
     Hetzner::LoadBalancer::Delete.new(
       hetzner_client: hetzner_client,
-      cluster_name: settings.cluster_name
+      cluster_name: settings.cluster_name,
+      print_log: true
     ).run
   end
 

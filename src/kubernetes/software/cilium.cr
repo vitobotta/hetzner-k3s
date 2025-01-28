@@ -44,7 +44,12 @@ class Kubernetes::Software::Cilium
     kubectl -n kube-system rollout status ds cilium
     BASH
 
-    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
+    result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
+
+    unless result.success?
+      log_line "Failed to install Cilium CNI: #{result.output}"
+      exit 1
+    end
 
     log_line "...Cilium installed"
   end

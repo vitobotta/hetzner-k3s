@@ -1,11 +1,11 @@
-FROM alpine:3.20.3
+FROM alpine:3.21.2
 
 RUN apk update \
   && apk add --update --no-cache gcc gmp-dev libevent-static musl-dev pcre-dev pcre2-dev libxml2-dev \
     libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
     make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards \
     curl docker zsh bash openssl k9s shadow go envsubst util-linux \
-    gcc g++ libc-dev libxml2-dev openssl-dev yaml-dev zlib-dev crystal openssh-client
+    gcc g++ libc-dev libxml2-dev openssl-dev yaml-dev zlib-dev crystal openssh-client jq
 
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')/kubectl" && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 

@@ -38,11 +38,12 @@ networking:
 
 
 # manifests:
-#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.20.0/ccm-networks.yaml"
-#   csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.9.0/deploy/kubernetes/hcloud-csi.yml"
-#   system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/system-upgrade-controller.yaml"
-#   system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.13.4/crd.yaml"
+#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.23.0/ccm-networks.yaml"
+#   csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.12.0/deploy/kubernetes/hcloud-csi.yml"
+#   system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/system-upgrade-controller.yaml"
+#   system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/crd.yaml"
 #   cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+#   cluster_autoscaler_container_image_tag: "v1.32.0"
 
 datastore:
   mode: etcd # etcd (default) or external
@@ -82,6 +83,10 @@ worker_node_pools:
 
 embedded_registry_mirror:
   enabled: false # Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+
+protect_against_deletion: true
+
+create_load_balancer_for_the_kubernetes_api: false # NOTE: it is currently not possible to restrict access to the load balancer by IP in the firewall since this hasn't been implemented by Hetzner yet.
 
 # additional_packages:
 # - somepackage

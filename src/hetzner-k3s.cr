@@ -1,4 +1,5 @@
 require "admiral"
+require "colorize"
 
 require "./configuration/loader"
 require "./k3s"
@@ -8,7 +9,7 @@ require "./cluster/upgrade"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.1.0"
+    VERSION = "2.2.0"
 
     class Create < Admiral::Command
       define_help description: "create - Create a cluster"
@@ -92,5 +93,14 @@ module Hetzner::K3s
     end
   end
 end
+
+puts "_          _                            _    _____     ".colorize(:green)
+puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
+puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
+puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
+puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/".colorize(:green)
+puts
+puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
+puts
 
 Hetzner::K3s::CLI.run

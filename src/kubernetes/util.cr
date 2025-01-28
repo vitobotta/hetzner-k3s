@@ -13,7 +13,7 @@ module Kubernetes::Util
     exit 1
   end
 
-  def apply_manifest_from_yaml(yaml)
+  def apply_manifest_from_yaml(yaml, error_message = "Failed to apply manifest")
     command = <<-BASH
     kubectl apply -f  - <<-EOF
     #{yaml}
@@ -23,18 +23,18 @@ module Kubernetes::Util
     result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless result.success?
-      log_line "Failed to apply manifest: #{result.output}"
+      log_line "#{error_message}: #{result.output}"
       exit 1
     end
   end
 
-  def apply_manifest_from_url(url)
+  def apply_manifest_from_url(url, error_message = "Failed to apply manifest")
     command = "kubectl apply -f #{url}"
 
     result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
 
     unless result.success?
-      log_line "Failed to apply manifest: #{result.output}"
+      log_line "#{error_message}: #{result.output}"
       exit 1
     end
   end

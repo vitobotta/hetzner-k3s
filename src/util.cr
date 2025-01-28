@@ -6,7 +6,7 @@ module Util
     paths.each do |path|
       exts.each do |ext|
         exe = File.join(path, "#{command}#{ext}")
-        return exe if File.executable?(exe) && !File.directory?(exe)
+        return exe if File::Info.executable?(exe) && !File.directory?(exe)
       end
     end
 

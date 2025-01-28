@@ -117,7 +117,7 @@ class Hetzner::Client
       remaining_time = Time::Span.new(seconds: wait_time)
       puts "[Hetzner API] Rate Limit hit. Waiting for #{remaining_time.total_hours.floor}h#{remaining_time.minutes.floor}m#{remaining_time.seconds.floor}s until reset..."
       sleep_time = [wait_time, 5].min
-      sleep(sleep_time)
+      sleep(sleep_time.seconds)
       wait_time -= sleep_time
     end
   end

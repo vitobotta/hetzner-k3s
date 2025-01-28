@@ -1,8 +1,8 @@
-class Configuration::NetworkingComponents::Cilium
+class Configuration::LocalPathStorageClass
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 
-  getter chart_version : String = "v1.16.6"
+  getter enabled : Bool = false
 
   def initialize
   end

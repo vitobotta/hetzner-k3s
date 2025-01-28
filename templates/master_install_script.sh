@@ -45,6 +45,12 @@ else
   EMBEDDED_REGISTRY_MIRROR=" "
 fi
 
+if [ "{{ local_path_storage_class_enabled }}" = "true" ]; then
+  LOCAL_PATH_STORAGE_CLASS=" "
+else
+  LOCAL_PATH_STORAGE_CLASS=" --disable local-storage "
+fi
+
 mkdir -p /etc/rancher/k3s
 
 cat > /etc/rancher/k3s/registries.yaml <<EOF
@@ -65,7 +71,7 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
-{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR \
+{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR $LOCAL_PATH_STORAGE_CLASS \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \

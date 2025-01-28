@@ -26,7 +26,7 @@ shards:
 
   http_proxy:
     git: https://github.com/mamantoha/http_proxy.git
-    version: 0.12.0
+    version: 0.12.1
 
   ipaddress:
     git: https://github.com/sija/ipaddress.cr.git
@@ -35,10 +35,6 @@ shards:
   retriable:
     git: https://github.com/sija/retriable.cr.git
     version: 0.2.5
-
-  ssh2:
-    git: https://github.com/spider-gazelle/ssh2.cr.git
-    version: 1.6.1
 
   tasker:
     git: https://github.com/spider-gazelle/tasker.git
