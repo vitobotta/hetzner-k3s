@@ -45,8 +45,6 @@ Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for 
 
 Also see this [documentation page](https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Setting%20up%20a%20cluster.md) for a tutorial on how to set up a cluster with the most common setup to get you started.
 
-If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
-
 ___
 ## Who am I?
 
@@ -81,6 +79,7 @@ A huge thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this p
 
 Also thanks to [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@worldsayshi](https://github.com/worldsayshi), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) and the other sponsors. Your contributions are very much appreciated!
 
+If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta) too.
 ___
 ## Code of conduct
 
