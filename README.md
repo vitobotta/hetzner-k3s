@@ -69,6 +69,18 @@ See my public profile with links for connecting with me [here](https://vitobotta
 - [Troubleshooting](docs/Troubleshooting.md)
 - [Contributing and support](docs/Contributing_and_support.md)
 
+---
+
+## Sponsors
+
+<p align="center">
+  <img src="Alamos_black.svg" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
+</p>
+
+A huge thank you to **Alamos GmbH** for sponsoring this project! Many of the key features recently introduced in hetzner-k3s and available for everyone are here because of their support. Their important contribution has made it much easier for me to focus more time and effort on the project. Thank you so much!
+
+Also thanks to @magicpages, @jonasbadstuebner, @worldsayshi, @QuentinFAIDIDE and the other sponsors. Your contributions are very much appreciated!
+
 ___
 ## Code of conduct
 
