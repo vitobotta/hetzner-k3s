@@ -38,7 +38,7 @@ class Util::SSH
         break result
       else
         log_line "Waiting for instance #{instance.name} to be ready...", log_prefix: "Instance #{instance.name}"
-        sleep 5
+        sleep 5.seconds
       end
     end
 
