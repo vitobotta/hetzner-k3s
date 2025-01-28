@@ -84,6 +84,8 @@ worker_node_pools:
 embedded_registry_mirror:
   enabled: false # Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
+protect_against_deletion: true
+
 # additional_packages:
 # - somepackage
 
