@@ -62,6 +62,8 @@ class Kubernetes::Installer
 
     Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
 
+    switch_to_context(default_context)
+
     completed_channel.send(nil)
   end
 
@@ -313,10 +315,9 @@ class Kubernetes::Installer
 
     paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
-    default_context = load_balancer.nil? ? first_master.name : settings.cluster_name
-
     run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", settings.hetzner_token, log_prefix: "Control plane")
-    run_shell_command("KUBECONFIG=#{kubeconfig_path} kubectl config use-context #{default_context}", "", settings.hetzner_token, log_prefix: "Control plane")
+
+    switch_to_context(first_master.name)
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")
@@ -376,5 +377,13 @@ class Kubernetes::Installer
 
   private def load_balancer_ip_address
     load_balancer.try(&.public_ip_address)
+  end
+
+  private def default_context
+    load_balancer.nil? ? first_master.name : settings.cluster_name
+  end
+
+  private def switch_to_context(context)
+    run_shell_command("KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}", "", settings.hetzner_token, log_prefix: "Control plane")
   end
 end
