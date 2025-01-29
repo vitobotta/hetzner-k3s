@@ -56,7 +56,7 @@ class Kubernetes::Installer
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
-    if worker_count > 1
+    if worker_count > 0
       set_up_workers(workers_installation_queue_channel, worker_count, master_count)
       add_labels_and_taints
     end
@@ -106,13 +106,18 @@ class Kubernetes::Installer
     log_line "Waiting for at least one worker node to be ready...", log_prefix: "Cluster Autoscaler"
 
     timeout = Time.monotonic + 5.minutes
+
     loop do
       output = ssh.run(first_master, settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes", settings.networking.ssh.use_agent, print_output: false)
 
       ready_workers = output.lines.count { |line| line.includes?("worker") && line.includes?("Ready") }
 
       break if ready_workers > 0
-      raise "Timeout waiting for worker nodes" if Time.monotonic > timeout
+
+      if Time.monotonic > timeout
+        log_line "Timeout waiting for worker nodes, aborting" , log_prefix: "Cluster Autoscaler"
+        exit 1
+      end
 
       sleep 5.seconds
     end
