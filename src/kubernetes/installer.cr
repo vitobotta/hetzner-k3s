@@ -56,9 +56,10 @@ class Kubernetes::Installer
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
-    set_up_workers(workers_installation_queue_channel, worker_count, master_count)
-
-    add_labels_and_taints
+    if worker_count > 1
+      set_up_workers(workers_installation_queue_channel, worker_count, master_count)
+      add_labels_and_taints
+    end
 
     Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
 
