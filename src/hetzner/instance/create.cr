@@ -16,6 +16,8 @@ class Hetzner::Instance::Create
   include Kubernetes::Util
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
+  INITIAL_DELAY = 1     # 1 second
+  MAX_DELAY = 60
 
   private getter settings : Configuration::Main
   private getter legacy_instance_name : String
@@ -176,8 +178,15 @@ class Hetzner::Instance::Create
       attempts += 1
       log_line "Creating instance #{instance_name} (attempt #{attempts})..."
       success, response = hetzner_client.post("/servers", instance_config)
-      puts response unless success
-      break if success
+
+      if success
+        break
+      else
+        log_line "Creating instance #{instance_name} failed: #{response}"
+        delay = [INITIAL_DELAY * (2 ** (attempts - 1)), MAX_DELAY].min
+        log_line "Waiting #{delay} seconds before retry..."
+        sleep delay.seconds
+      end
     end
 
     ensure_instance_is_ready
