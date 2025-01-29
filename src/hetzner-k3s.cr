@@ -37,11 +37,17 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
+      define_flag force : Bool,
+                  description: "Force deletion of the cluster without any prompts",
+                  long: "force",
+                  required: false,
+                  default: false
+
       def run
         configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
         configuration.validate(:delete)
 
-        Cluster::Delete.new(configuration: configuration).run
+        Cluster::Delete.new(configuration: configuration, force: flags.force).run
       end
     end
 

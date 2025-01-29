@@ -20,27 +20,30 @@ class Cluster::Delete
   private getter settings : Configuration::Main do
     configuration.settings
   end
+  private getter force : Bool = false
   private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
-  def initialize(@configuration)
+  def initialize(@configuration, @force)
   end
 
   def run
-    print "Please enter the cluster name to confirm that you want to delete it: "
-    input = gets
+    unless force
+      print "Please enter the cluster name to confirm that you want to delete it: "
+      input = gets
 
-    if input.try(&.strip) != settings.cluster_name
-      puts
-      puts "Cluster name '#{input.try(&.strip)}' does not match expected '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
-      puts
-      exit 1
-    end
+      if input.try(&.strip) != settings.cluster_name
+        puts
+        puts "Cluster name '#{input.try(&.strip)}' does not match expected '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
+        puts
+        exit 1
+      end
 
-    if settings.protect_against_deletion
-      puts
-      puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
-      puts
-      exit 1
+      if settings.protect_against_deletion
+        puts
+        puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
+        puts
+        exit 1
+      end
     end
 
     delete_resources
