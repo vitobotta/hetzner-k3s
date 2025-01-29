@@ -75,7 +75,7 @@ See my public profile with links for connecting with me [here](https://vitobotta
   <img src="Alamos_black.svg" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
-A huge thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this project! Many of the key features recently introduced in hetzner-k3s and available for everyone are here because of their support. Their important contribution has made it much easier for me to focus more time and effort on the project. Thank you so much!
+I want to give a big thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this project! Their support has been incredibly helpful, giving me the chance to focus more time and effort on the work. Because of their contribution, I’ve been able to dedicate myself to creating a simpler migration strategy for moving clusters from v1.x to v2.x. I’m confident this collaboration will lead to even more improvements down the road. Thank you so much!
 
 Also thanks to [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@worldsayshi](https://github.com/worldsayshi), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) and the other sponsors. Your contributions are very much appreciated!
 
