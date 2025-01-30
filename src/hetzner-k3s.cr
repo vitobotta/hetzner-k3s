@@ -11,6 +11,17 @@ module Hetzner::K3s
   class CLI < Admiral::Command
     VERSION = "2.2.1"
 
+    def self.print_banner
+      puts "_          _                            _    _____     ".colorize(:green)
+      puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
+      puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
+      puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
+      puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/".colorize(:green)
+      puts
+      puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
+      puts
+    end
+
     class Create < Admiral::Command
       define_help description: "create - Create a cluster"
 
@@ -21,6 +32,8 @@ module Hetzner::K3s
                   required: true
 
       def run
+        ::Hetzner::K3s::CLI.print_banner
+
         configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
         configuration.validate(:create)
 
@@ -44,6 +57,8 @@ module Hetzner::K3s
                   default: false
 
       def run
+        ::Hetzner::K3s::CLI.print_banner
+
         configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
         configuration.validate(:delete)
 
@@ -66,6 +81,8 @@ module Hetzner::K3s
                   required: true
 
       def run
+        ::Hetzner::K3s::CLI.print_banner
+
         configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version)
         configuration.validate(:upgrade)
 
@@ -99,14 +116,5 @@ module Hetzner::K3s
     end
   end
 end
-
-puts "_          _                            _    _____     ".colorize(:green)
-puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
-puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
-puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
-puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/".colorize(:green)
-puts
-puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
-puts
 
 Hetzner::K3s::CLI.run
