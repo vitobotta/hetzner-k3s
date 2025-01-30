@@ -10,8 +10,8 @@ If you already have a cluster with a single master or three masters in the same 
 
 Before you begin, make sure to back up all your applications and data! This is crucial. While the migration process is relatively simple, there is always some level of risk involved.
 
-1. Set the `instance_type` for the masters pool to 3 if your cluster currently has only one master.
-2. Update the `locations` setting for the masters pool to include `fns1`, `hel1`, and `nbg1` like this:
+- [ ] Set the `instance_type` for the masters pool to 3 if your cluster currently has only one master.
+- [ ] Update the `locations` setting for the masters pool to include `fns1`, `hel1`, and `nbg1` like this:
 
 ```yaml
 locations:
@@ -22,8 +22,8 @@ locations:
 
 The locations are always processed in alphabetical order, regardless of how you list them in the `locations` property. This ensures consistency, especially when replacing a master due to node failure or other issues.
 
-3. If your cluster currently has a single master, run the `create` command with the updated configuration. This will create `master2` in Helsinki and `master3` in Nuremberg. Wait for the operation to complete and confirm that all three masters are in a ready state.
-4. If `master1` is not in Falkenstein (fns1):
+- [ ] If your cluster currently has a single master, run the `create` command with the updated configuration. This will create `master2` in Helsinki and `master3` in Nuremberg. Wait for the operation to complete and confirm that all three masters are in a ready state.
+- [ ] If `master1` is not in Falkenstein (fns1):
    - Drain `master1`.
    - Delete `master1` using the command `kubectl delete node {cluster-name}-master1`.
    - Remove the `master1` instance via the Hetzner Console or the `hcloud` utility (see: https://github.com/hetznercloud/cli).
@@ -51,8 +51,8 @@ aad3fac89b68bfb7, started, test-master1-5e550de0, https://10.0.0.4:2380, https:/
 c11852e25aef34e8, started, test-master3-0ed051a3, https://10.0.0.2:2380, https://10.0.0.2:2379, false
 ```
 
-5. If `master2` is not in Helsinki, follow the same steps as with `master1` but for `master2`. This will recreate `master2` in Helsinki.
-6. If `master3` is not in Nuremberg, repeat the process for `master3`. This will recreate `master3` in Nuremberg.
+- [ ] If `master2` is not in Helsinki, follow the same steps as with `master1` but for `master2`. This will recreate `master2` in Helsinki.
+- [ ] If `master3` is not in Nuremberg, repeat the process for `master3`. This will recreate `master3` in Nuremberg.
 
 That’s it! You now have a regional cluster, which ensures continued operation even if one of the Hetzner locations experiences a temporary failure. I also recommend enabling the `create_load_balancer_for_the_kubernetes_api` setting to `true` if you don’t already have a load balancer for the Kubernetes API.
 
