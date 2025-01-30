@@ -12,7 +12,7 @@ module Hetzner::K3s
     VERSION = "2.2.1"
 
     def self.print_banner
-      puts "_          _                            _    _____     ".colorize(:green)
+      puts " _          _                            _    _____     ".colorize(:green)
       puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
       puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
       puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
