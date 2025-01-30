@@ -10,12 +10,10 @@ class Hetzner::Network::Create
   getter hetzner_client : Hetzner::Client
   getter settings : Configuration::Main
   getter network_name : String
-  getter location : String
+  getter network_zone : String
   getter network_finder : Hetzner::Network::Find
-  getter locations : Array(Hetzner::Location)
 
-  def initialize(@settings, @hetzner_client, @network_name, @locations)
-    @location = settings.masters_pool.location
+  def initialize(@settings, @hetzner_client, @network_name, @network_zone)
     @network_finder = Hetzner::Network::Find.new(hetzner_client, network_name)
   end
 
@@ -44,8 +42,6 @@ class Hetzner::Network::Create
   end
 
   private def network_config
-    network_zone = locations.find { |l| l.name == location }.not_nil!.network_zone
-
     {
       :name => network_name,
       :ip_range => settings.networking.private_network.subnet,

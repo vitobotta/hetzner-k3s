@@ -28,7 +28,7 @@ class Kubernetes::Installer
   getter settings : Configuration::Main { configuration.settings }
   getter masters : Array(Hetzner::Instance) = [] of Hetzner::Instance
   getter workers : Array(Hetzner::Instance) = [] of Hetzner::Instance
-  getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
+  getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
 

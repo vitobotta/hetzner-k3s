@@ -57,8 +57,11 @@ schedule_workloads_on_masters: false
 
 masters_pool:
   instance_type: cpx21
-  instance_count: 3
-  location: nbg1
+  instance_count: 3 # for HA; you can also create a single master cluster for dev and testing (not recommended for production)
+  locations: # you can specify a single location as well for single masters clusters or if you want all masters in the same location. For regional clusters (only eu-central network zone), each master must be in a different location
+    - fsn1
+    - hel1
+    - nbg1
 
 worker_node_pools:
 - name: small-static

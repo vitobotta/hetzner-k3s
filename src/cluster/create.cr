@@ -18,7 +18,7 @@ class Cluster::Create
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client { configuration.hetzner_client }
   private getter settings : Configuration::Main { configuration.settings }
-  private getter autoscaling_worker_node_pools : Array(Configuration::NodePool) { settings.worker_node_pools.select(&.autoscaling_enabled) }
+  private getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool) { settings.worker_node_pools.select(&.autoscaling_enabled) }
   private getter ssh_client : Util::SSH { Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path) }
   private getter network : Hetzner::Network?
   private getter ssh_key : Hetzner::SSHKey
@@ -102,16 +102,16 @@ class Cluster::Create
     "#{settings.cluster_name}-#{instance_type_part}#{prefix}#{index + 1}"
   end
 
-  private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
-    legacy_instance_type = settings.masters_pool.legacy_instance_type
-    instance_type = settings.masters_pool.instance_type
+  private def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?, location : String) : Hetzner::Instance::Create
+    legacy_instance_type = masters_pool.legacy_instance_type
+    instance_type = masters_pool.instance_type
 
     legacy_instance_name = build_instance_name(legacy_instance_type, index, true)
     instance_name = build_instance_name(instance_type, index, settings.include_instance_type_in_instance_name)
 
-    image = settings.masters_pool.image || settings.image
-    additional_packages = settings.masters_pool.additional_packages || settings.additional_packages
-    additional_post_create_commands = settings.masters_pool.post_create_commands || settings.post_create_commands
+    image = masters_pool.image || settings.image
+    additional_packages = masters_pool.additional_packages || settings.additional_packages
+    additional_post_create_commands = masters_pool.post_create_commands || settings.post_create_commands
 
     Hetzner::Instance::Create.new(
       settings: settings,
@@ -125,16 +125,20 @@ class Cluster::Create
       network: network,
       placement_group: placement_group,
       additional_packages: additional_packages,
-      additional_post_create_commands: additional_post_create_commands
+      additional_post_create_commands: additional_post_create_commands,
+      location: location
     )
   end
 
   private def initialize_master_instances
-    masters_pool = settings.masters_pool
     placement_group = create_placement_group_for_masters
+    location_counts = Hash(String, Int32).new(0)
 
     Array(Hetzner::Instance::Create).new(masters_pool.instance_count) do |i|
-      create_master_instance(i, placement_group)
+      location = masters_locations.min_by { |loc| location_counts[loc] }
+      location_counts[location] += 1
+
+      create_master_instance(i, placement_group, location)
     end
   end
 
@@ -157,7 +161,7 @@ class Cluster::Create
       instance_name: instance_name,
       instance_type: instance_type,
       image: image,
-      location: node_pool.location,
+      location: node_pool.location || default_masters_Location,
       ssh_key: ssh_key,
       network: network,
       placement_group: placement_group,
@@ -304,7 +308,7 @@ class Cluster::Create
     @load_balancer = Hetzner::LoadBalancer::Create.new(
       settings: settings,
       hetzner_client: hetzner_client,
-      location: configuration.masters_location,
+      location: default_masters_Location,
       network_id: network.try(&.id)
     ).run
 
@@ -332,8 +336,16 @@ class Cluster::Create
       settings: settings,
       hetzner_client: hetzner_client,
       network_name: settings.cluster_name,
-      locations: configuration.locations
+      network_zone: ::Configuration::Settings::NodePool::Location.network_zone_by_location(default_masters_Location)
     ).run
+  end
+
+  private def masters_locations
+    masters_pool.locations.sort
+  end
+
+  private def default_masters_Location
+    masters_locations.first
   end
 
   private def find_or_create_network
@@ -358,5 +370,9 @@ class Cluster::Create
       hetzner_client: hetzner_client,
       settings: settings
     ).run
+  end
+
+  private def masters_pool
+    settings.masters_pool
   end
 end
