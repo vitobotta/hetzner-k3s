@@ -183,12 +183,6 @@ class Cluster::Create
     factories
   end
 
-  private def create_instance_with_retry(instance_factory)
-    Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
-      Tasker.timeout(60.seconds) { instance_factory.run }
-    end
-  end
-
   private def handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_factory, wait)
     if created_instance
       wait_channel.send(instance_factory) if wait
@@ -208,7 +202,7 @@ class Cluster::Create
       spawn do
         instance = nil
         begin
-          created_instance = create_instance_with_retry(instance_factory)
+          created_instance = instance_factory.run
           semaphore.receive # release the semaphore immediately after instance creation
         rescue e : Exception
           puts "Error creating instance: #{e.message}"
