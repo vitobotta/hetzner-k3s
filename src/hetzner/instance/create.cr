@@ -58,12 +58,11 @@ class Hetzner::Instance::Create
       @placement_group : Hetzner::PlacementGroup? = nil,
       @additional_packages = [] of String,
       @additional_post_create_commands = [] of String,
-      @location = ""
+      @location = "fsn1"
     )
 
     @cluster_name = settings.cluster_name
     @snapshot_os = settings.snapshot_os
-    @location = settings.masters_pool.location if location.empty?
     @ssh = settings.networking.ssh
     @enable_public_net_ipv4 = settings.networking.public_network.ipv4
     @enable_public_net_ipv6 = settings.networking.public_network.ipv6

@@ -3,7 +3,7 @@ require "../../datastore"
 
 class Configuration::Settings::NodePool::InstanceCount
   getter errors : Array(String)
-  getter pool : Configuration::NodePool
+  getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
   getter pool_type : Symbol
   getter datastore : Configuration::Datastore
 

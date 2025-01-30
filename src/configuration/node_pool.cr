@@ -4,13 +4,12 @@ require "./node_label"
 require "./node_taint"
 require "./autoscaling"
 
-class Configuration::NodePool
+abstract class Configuration::NodePool
   include YAML::Serializable
 
   property name : String?
   property legacy_instance_type : String = ""
   property instance_type : String
-  property location : String
   property image : String | Int64 | Nil
   property instance_count : Int32 = 1
   property labels : Array(::Configuration::NodeLabel) = [] of ::Configuration::NodeLabel

@@ -3,7 +3,7 @@ require "../../../hetzner/instance_type"
 
 class Configuration::Settings::NodePool::InstanceType
   getter errors : Array(String)
-  getter pool : Configuration::NodePool
+  getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
   getter instances_types : Array(Hetzner::InstanceType)
 
   def initialize(@errors, @pool, @instances_types)

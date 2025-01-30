@@ -18,7 +18,7 @@ class Kubernetes::Software::ClusterAutoscaler
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
-  getter autoscaling_worker_node_pools : Array(Configuration::NodePool)
+  getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
   getter worker_install_script : String
   getter first_master : ::Hetzner::Instance
   getter ssh : ::Util::SSH

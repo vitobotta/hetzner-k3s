@@ -1,6 +1,7 @@
 require "yaml"
 
-require "./node_pool"
+require "./master_node_pool"
+require "./worker_node_pool"
 require "./datastore"
 require "./manifests"
 require "./embedded_registry_mirror"
@@ -15,8 +16,8 @@ class Configuration::Main
   getter k3s_version : String
   getter api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
-  getter masters_pool : Configuration::NodePool
-  getter worker_node_pools : Array(Configuration::NodePool) = [] of Configuration::NodePool
+  getter masters_pool : Configuration::MasterNodePool
+  getter worker_node_pools : Array(Configuration::WorkerNodePool) = [] of Configuration::WorkerNodePool
   getter post_create_commands : Array(String) = [] of String
   getter additional_packages : Array(String) = [] of String
   getter kube_api_server_args : Array(String) = [] of String

@@ -46,15 +46,15 @@ class Configuration::Loader
     Path[settings.kubeconfig_path].expand(home: true).to_s
   end
 
-  getter masters_location : String | Nil do
-    settings.masters_pool.try &.location
+  getter masters_pool : Configuration::MasterNodePool do
+    settings.masters_pool
   end
 
   getter instance_types : Array(Hetzner::InstanceType) do
     hetzner_client.instance_types
   end
 
-  getter locations : Array(Hetzner::Location) do
+  getter all_locations : Array(Hetzner::Location) do
     hetzner_client.locations
   end
 
@@ -135,9 +135,9 @@ class Configuration::Loader
       errors: errors,
       pool: settings.masters_pool,
       pool_type: :masters,
-      masters_location: masters_location,
+      masters_pool: masters_pool,
       instance_types: instance_types,
-      locations: locations,
+      all_locations: all_locations,
       datastore: settings.datastore
     ).validate
   end
@@ -172,9 +172,9 @@ class Configuration::Loader
         errors: errors,
         pool: worker_node_pool,
         pool_type: :workers,
-        masters_location: masters_location,
+        masters_pool: masters_pool,
         instance_types: instance_types,
-        locations: locations,
+        all_locations: all_locations,
         datastore: settings.datastore
       ).validate
     end
