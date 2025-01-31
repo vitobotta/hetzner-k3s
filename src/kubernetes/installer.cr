@@ -386,8 +386,4 @@ class Kubernetes::Installer
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
   end
-
-  private def switch_to_context(context)
-    run_shell_command("KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}", "", settings.hetzner_token, log_prefix: "Control plane")
-  end
 end

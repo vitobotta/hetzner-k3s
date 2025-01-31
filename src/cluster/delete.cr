@@ -6,12 +6,14 @@ require "../hetzner/network/delete"
 require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
 require "../hetzner/placement_group/all"
+require "../kubernetes/util"
 require "../util/shell"
 require "../util"
 
 class Cluster::Delete
   include Util
   include Util::Shell
+  include Kubernetes::Util
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -53,8 +55,9 @@ class Cluster::Delete
   private def delete_resources
     if settings.create_load_balancer_for_the_kubernetes_api
       delete_load_balancer
-      sleep 5.seconds
     end
+
+    switch_to_context("#{settings.cluster_name}-master1")
 
     delete_instances
     delete_placement_groups
