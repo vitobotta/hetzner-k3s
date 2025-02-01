@@ -1,6 +1,6 @@
 # Masters in Different Locations
 
-You can set up a regional cluster for maximum availability by placing each master in a different European location. This means the first master will be in Falkenstein, the second in Helsinki, and the third in Nuremberd (listed in alphabetical order). This setup is only possible in network zones with multiple locations, and currently, the only such zone is `eu-central`, which includes these three European locations. For other regions, only zonal clusters are supported. Additionally, regional clusters are limited to 3 masters because we only have these three locations available.
+You can set up a regional cluster for maximum availability by placing each master in a different European location. This means the first master will be in Falkenstein, the second in Helsinki, and the third in Nuremberg (listed in alphabetical order). This setup is only possible in network zones with multiple locations, and currently, the only such zone is `eu-central`, which includes these three European locations. For other regions, only zonal clusters are supported. Additionally, regional clusters are limited to 3 masters because we only have these three locations available.
 
 To create a regional cluster, simply set the `instance_count` for the masters pool to 3 and specify the `locations` setting as `fsn1`, `hel1`, and `nbg1`.
 
