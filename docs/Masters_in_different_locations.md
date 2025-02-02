@@ -10,7 +10,7 @@ If you already have a cluster with a single master or three masters in the same 
 
 Before you begin, make sure to back up all your applications and data! This is crucial. While the migration process is relatively simple, there is always some level of risk involved.
 
-- [ ] Set the `instance_type` for the masters pool to 3 if your cluster currently has only one master.
+- [ ] Set the `instance_count` for the masters pool to 3 if your cluster currently has only one master.
 - [ ] Update the `locations` setting for the masters pool to include `fns1`, `hel1`, and `nbg1` like this:
 
 ```yaml
