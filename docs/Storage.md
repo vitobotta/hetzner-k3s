@@ -1,5 +1,5 @@
 # Storage
 
-Once the cluster is ready you can create persistent volumes out of the box with the default storage class `hcloud-volumes`, since the Hetzner CSI driver is installed automatically. This will use Hetzner's block storage (based on Ceph so it's replicated and highly available) for your persistent volumes. Note that the minimum size of a volume is 10Gi. If you specify a smaller size for a volume, the volume will be created with a capacity of 10Gi anyway.
+Once your cluster is set up, you can easily create persistent volumes using the default storage class `hcloud-volumes`. The Hetzner CSI driver is automatically installed, allowing you to use Hetzner's block storage for these volumes. This storage is based on Ceph, ensuring it’s both replicated and highly available. Keep in mind that the minimum size for a volume is 10Gi. If you try to create a smaller volume, it will still be created with a 10Gi capacity.
 
-For workloads like databases that benefit from max IOPS there's also the `local-path` storage class. It is disabled by default but you can enable it by setting `local_path_storage_class.enabled` to `true` in the config file. See [this page](https://docs.k3s.io/storage) for more details.
+For workloads that require maximum IOPS, such as databases, there’s also the `local-path` storage class. This is disabled by default, but you can enable it by setting `local_path_storage_class`.`enabled` to `true` in the configuration file. For more details, refer to [this page](https://docs.k3s.io/storage).

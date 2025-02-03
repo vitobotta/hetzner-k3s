@@ -1,58 +1,52 @@
 # Maintenance
 
-## Adding nodes
+## Adding Nodes
 
-To add one or more nodes to a node pool, just change the instance count in the configuration file for that node pool and re-run the create command.
+To add one or more nodes to a node pool, simply update the instance count in the configuration file for that node pool and run the create command again.
 
-**Important**: if you are increasing the size of a node pool created prior to v0.5.7, please see [this thread](https://github.com/vitobotta/hetzner-k3s/issues/80).
+## Scaling Down a Node Pool
 
-## Scaling down a node pool
+To reduce the size of a node pool:
 
-To make a node pool smaller:
+1. Lower the instance count in the configuration file to ensure the extra nodes are not recreated in the future.
+2. Drain and delete the additional nodes from Kubernetes. These are typically the last nodes when sorted alphabetically by name (`kubectl drain Node` followed by `kubectl delete node <name>`).
+3. Remove the corresponding instances from the cloud console if the Cloud Controller Manager doesn’t handle this automatically. Make sure you delete the correct ones!
 
-- decrease the instance count for the node pool in the configuration file so that those extra nodes are not recreated in the future
-- delete the nodes from Kubernetes (`kubectl delete node <name>`)
-- delete the instances from the cloud console if the Cloud Controller Manager doesn't delete it automatically (make sure you delete the correct ones 🤭)
+## Replacing a Problematic Node
 
-In a future release I will add some automation for the cleanup.
+1. Drain and delete the node from Kubernetes (`kubectl drain <name>` followed by `kubectl delete node <name>`).
+2. Delete the correct instance from the cloud console.
+3. Run the `create` command again. This will recreate the missing node and add it to the cluster.
 
-## Replacing a problematic node
+## Converting a Non-HA Cluster to HA
 
-- delete the node from Kubernetes (`kubectl delete node <name>`)
-- delete the correct instance from the cloud console
-- re-run the `create` command. This will re-create the missing node and have it join to the cluster
+Converting a single-master, non-HA cluster to a multi-master HA cluster is straightforward. Increase the masters instance count and rerun the `create` command. This will set up a load balancer for the API server (if enabled) and update the kubeconfig to direct API requests through the load balancer or one of the master contexts. For production clusters, it’s also a good idea to place the masters in different locations (refer to [this page](Masters_in_different_locations.md) for more details).
 
-## Converting a non-HA cluster to HA
+## Replacing the Seed Master
 
-It's easy to convert a non-HA with a single master cluster to HA with multiple masters. Just change the masters instance count and re-run the `create` command. This will create a load balancer for the API server and update the kubeconfig so that all the API requests go through the load balancer.
+In a new HA cluster, the seed master (or first master) is `master1`. If you delete `master1` due to issues and it gets recreated, the seed master will change. When this happens, restart k3s on the existing masters.
 
-## Replacing the seed master
+---
 
-When creating a new cluster, the seed master (or first master) in a HA configuration is `master1`. The seed master will change if you delete `master1` due to some issues with the node so it gets recreated. Whenever the seed master changes, k3s must be restarted on the existing masters.
+## Upgrading to a New Version of k3s
 
-___
-## Upgrading to a new version of k3s
-
-If it's the first time you upgrade the cluster, all you need to do to upgrade it to a newer version of k3s is run the following command:
+For the first upgrade of your cluster, simply run the following command to update to a newer version of k3s:
 
 ```bash
 hetzner-k3s upgrade --config cluster_config.yaml --new-k3s-version v1.27.1-rc2+k3s1
 ```
 
-So you just need to specify the new k3s version as an additional parameter and the configuration file will be updated with the new version automatically during the upgrade. To see the list of available k3s releases run the command `hetzner-k3s releases`.
+Specify the new k3s version as an additional parameter, and the configuration file will be updated automatically during the upgrade. To view available k3s releases, run the command `hetzner-k3s releases`.
 
-Note: (single master clusters only) the API server will briefly be unavailable during the upgrade of the controlplane.
+Note: For single-master clusters, the API server will be briefly unavailable during the control plane upgrade.
 
-To check the upgrade progress, run `watch kubectl get nodes -owide`. You will see the masters being upgraded one per time, followed by the worker nodes.
+To monitor the upgrade progress, use `watch kubectl get nodes -owide`. You will see the masters upgrading one at a time, followed by the worker nodes.
 
-NOTE: if you haven't used the tool in a while before upgrading, you may need to delete the file `cluster_config.yaml.example` in your temp folder to refresh the list of available k3s versions.
+### What to Do If the Upgrade Doesn’t Go Smoothly
 
+If the upgrade stalls or doesn’t complete for all nodes:
 
-### What to do if the upgrade doesn't go smoothly
-
-If the upgrade gets stuck for some reason, or it doesn't upgrade all the nodes:
-
-1. Clean up the existing upgrade plans and jobs, and restart the upgrade controller
+1. Clean up existing upgrade plans and jobs, then restart the upgrade controller:
 
 ```bash
 kubectl -n system-upgrade delete job --all
@@ -64,30 +58,30 @@ kubectl -n system-upgrade rollout restart deployment system-upgrade-controller
 kubectl -n system-upgrade rollout status deployment system-upgrade-controller
 ```
 
-You can also check the logs of the system upgrade controller's pod:
+You can also check the logs of the system upgrade controller’s pod:
 
 ```bash
 kubectl -n system-upgrade \
   logs -f $(kubectl -n system-upgrade get pod -l pod-template-hash -o jsonpath="{.items[0].metadata.name}")
 ```
 
-A final note about upgrades is that if for some reason the upgrade gets stuck after upgrading the masters and before upgrading the worker nodes, just cleaning up the resources as described above might not be enough. In that case also try running the following to tell the upgrade job for the workers that the masters have already been upgraded, so the upgrade can continue for the workers:
+If the upgrade stalls after upgrading the masters but before upgrading the worker nodes, simply cleaning up resources might not be enough. In this case, run the following to mark the masters as upgraded and allow the upgrade to continue for the workers:
 
 ```bash
 kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-server=upgraded
 ```
 
-___
-## Upgrading the OS on nodes
+---
 
-- consider adding a temporary node during the process if you don't have enough spare capacity in the cluster
-- drain one node
-- update etc
-- reboot
-- uncordon
-- proceed with the next node
+## Upgrading the OS on Nodes
 
-If you want to automate this process I recommend you install the [Kubernetes Reboot Daemon ](https://kured.dev/) ("Kured"). For this to work properly, make sure the OS you choose for the nodes has unattended upgrades enabled at least for security updates. For example if the image is Ubuntu, you can add this to the configuration file before running the `create` command:
+1. Consider adding a temporary node during the process if your cluster doesn’t have enough spare capacity.
+2. Drain one node.
+3. Update the OS and reboot the node.
+4. Uncordon the node.
+5. Repeat for the next node.
+
+To automate this process, you can install the [Kubernetes Reboot Daemon](https://kured.dev/) ("Kured"). For Kured to work effectively, ensure the OS on your nodes has unattended upgrades enabled, at least for security updates. For example, if the image is Ubuntu, add this to the configuration file before running the `create` command:
 
 ```yaml
 additional_packages:
@@ -98,5 +92,4 @@ post_create_commands:
 - sudo systemctl start unattended-upgrades
 ```
 
-Check the Kured documentation for configuration options like maintenance window etc.
-
+Refer to the Kured documentation for additional configuration options, such as maintenance windows.

@@ -1,6 +1,6 @@
 # Creating a cluster
 
-The tool requires a simple configuration file in order to create/upgrade/delete clusters, in the YAML format like in the example below (commented lines are for optional settings):
+The tool needs a basic configuration file, written in YAML format, to handle tasks like creating, upgrading, or deleting clusters. Below is an example where commented lines indicate optional settings:
 
 ```yaml
 ---
@@ -58,7 +58,7 @@ schedule_workloads_on_masters: false
 masters_pool:
   instance_type: cpx21
   instance_count: 3 # for HA; you can also create a single master cluster for dev and testing (not recommended for production)
-  locations: # you can specify a single location as well for single masters clusters or if you want all masters in the same location. For regional clusters (only eu-central network zone), each master must be in a different location
+  locations: # You can choose a single location for single master clusters or if you prefer to have all masters in the same location. For regional clusters (which are only available in the eu-central network zone), each master needs to be placed in a separate location.
     - fsn1
     - hel1
     - nbg1
@@ -84,11 +84,11 @@ worker_node_pools:
     max_instances: 3
 
 embedded_registry_mirror:
-  enabled: false # Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+  enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
 protect_against_deletion: true
 
-create_load_balancer_for_the_kubernetes_api: false # NOTE: it is currently not possible to restrict access to the load balancer by IP in the firewall since this hasn't been implemented by Hetzner yet.
+create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
 
 # additional_packages:
 # - somepackage
@@ -119,19 +119,19 @@ create_load_balancer_for_the_kubernetes_api: false # NOTE: it is currently not p
 # api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
 ```
 
-Most settings should be self explanatory; you can run `hetzner-k3s releases` to see a list of the available k3s releases.
+Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
 
-If you don't want to specify the Hetzner token in the config file (for example if you want to use the tool with CI or want to safely commit the config file to a repository), then you can use the `HCLOUD_TOKEN` environment variable instead, which has precedence.
+If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
 
-If you set `masters_pool.instance_count` to 1 then the tool will create a non highly available control plane; for production clusters you may want to set it to a number greater than 1. This number must be odd to avoid split brain issues with etcd and the recommended number is 3.
+When setting `masters_pool`.`instance_count`, keep in mind that if you set it to 1, the tool will create a control plane that is not highly available. For production clusters, it’s better to set this to a number greater than 1. To avoid split brain issues with etcd, this number should be odd, and 3 is the recommended value. Additionally, for production environments, it’s a good idea to configure masters in different locations using the `masters_pool`.`locations` setting.
 
-You can specify any number of worker node pools, static or autoscaled, and have mixed nodes with different specs for different workloads.
+You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads.
 
-Hetzner cloud init settings (`additional_packages` & `post_create_commands`) can be defined in the configuration file at root level as well as for each pool if different settings are needed for different pools. If these settings are configured for a pool, these override the settings at root level.
+Hetzner Cloud init settings, such as `additional_packages` and `post_create_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
 
-At the moment Hetzner Cloud has five locations: two in Germany (`nbg1`, Nuremberg and `fsn1`, Falkenstein), one in Finland (`hel1`, Helsinki) and two in the USA (`ash`, Ashburn, Virginia, and `hil`, Hillsboro, Oregon). Please keep in mind that US locations only offer instances with AMD CPUs at the moment, while the newly introduced ARM instances are only available in Falkenstein-fsn1 for now.
+Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
-For the available instance types and their specs, either check from inside a project when adding an instance manually or run the following with your Hetzner token:
+To explore the available instance types and their specifications, you can either check them manually when adding an instance within a project or run the following command with your Hetzner token:
 
 ```bash
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/server_types'
@@ -143,16 +143,19 @@ To create the cluster run:
 hetzner-k3s create --config cluster_config.yaml | tee create.log
 ```
 
-This will take a few minutes depending on the number of masters and worker nodes.
+This process will take a few minutes, depending on how many master and worker nodes you have.
 
 ### Disabling public IPs (IPv4 or IPv6 or both) on nodes
 
-With `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false` you can disable the public interface for all nodes for improved security and saving on ipv4 addresses costs. These settings are global and effects all master and worker nodes. If you disable public IPs be sure to run hetzer-k3s from a machine that has access to the same private network as the nodes either directly or via some VPN.
-Additional networking setup is required via cloud init, so it's important that the machine from which you run hetzner-k3s have internet access and DNS configured correctly, otherwise the cluster creation process will get stuck after creating the nodes. See [this discussion](https://github.com/vitobotta/hetzner-k3s/discussions/252) for additional information and instructions.
+To improve security and save on IPv4 address costs, you can disable the public interface for all nodes by setting `enable_public_net_ipv4: false` and `enable_public_net_ipv6: false`. These settings are global and will apply to all master and worker nodes. If you disable public IPs, make sure to run hetzner-k3s from a machine that has access to the same private network as the nodes, either directly or through a VPN.
+
+Additional networking setup is required via cloud-init, so it’s important that the machine you use to run hetzner-k3s has internet access and DNS configured correctly. Otherwise, the cluster creation process will get stuck after creating the nodes. For more details and instructions, you can refer to [this discussion](https://github.com/vitobotta/hetzner-k3s/discussions/252).
 
 ### Using alternative OS images
 
-By default, the image in use is `ubuntu-24.04` for all the nodes, but you can specify a different default image with the root level `image` config option or even different images for different static node pools by setting the `image` config option in each node pool. This way you can, for example, have some node pools with ARM instances use the correct OS image for ARM. To do this and use say Ubuntu 24.04 on ARM instances, set `image` to `103908130` with a specific image ID. With regard to autoscaling, due to a limitation in the Cluster Autoscaler for Hetzner it is not possible yet to specify a different image for each autoscaled pool, so for now you can specify the image for all autoscaled pools by setting the `autoscaling_image` setting if you want to use an image different from the one specified in `image`.
+By default, the image used for all nodes is `ubuntu-24.04`, but you can specify a different default image by using the root-level `image` config option. You can also set different images for different static node pools by using the `image` config option within each node pool. For example, if you have node pools with ARM instances, you can specify the correct OS image for ARM. To do this, set `image` to `103908130` with the specific image ID.
+
+However, for autoscaling, there’s a current limitation in the Cluster Autoscaler for Hetzner. You can’t specify different images for each autoscaled pool yet. For now, if you want to use a different image for all autoscaling pools, you can set the `autoscaling_image` option to override the default `image` setting.
 
 To see the list of available images, run the following:
 
@@ -162,49 +165,46 @@ export API_TOKEN=...
 curl -H "Authorization: Bearer $API_TOKEN" 'https://api.hetzner.cloud/v1/images?per_page=100'
 ```
 
-Besides the default OS images, It's also possible to use a snapshot that you have already created from an existing instance. Also with custom snapshots you'll need to specify the **ID** of the snapshot/image, not the description you gave when you created the template instance.
+Besides the default OS images, you can also use a snapshot created from an existing instance. When using custom snapshots, make sure to specify the **ID** of the snapshot or image, not the description you assigned when creating the template instance.
 
-I've tested snapshots for [openSUSE MicroOS](https://microos.opensuse.org/) but others might work too. You can easily create a snapshot for MicroOS using [this tool](https://github.com/kube-hetzner/packer-hcloud-microos). Creating the snapshot takes just a couple of minutes and then you can use it with hetzner-k3s by setting the config option `image` to the **ID** of the snapshot, and `snapshot_os` to `microos`.
+I’ve tested snapshots with [openSUSE MicroOS](https://microos.opensuse.org/), but other options might work as well. You can easily create a MicroOS snapshot using [this Terraform-based tool](https://github.com/kube-hetzner/terraform-hcloud-kube-hetzner/blob/master/packer-template/hcloud-microos-snapshots.pkr.hcl). The process only takes a few minutes. Once the snapshot is ready, you can use it with hetzner-k3s by setting the `image` configuration option to the **ID** of the snapshot and `snapshot_os` to `microos`.
 
+---
 
-### Keeping a project per cluster
+### Keeping a Project per Cluster
 
-If you want to create multiple clusters per project, see [Configuring Cluster-CIDR and Service-CIDR](#configuring-cluster-cidr-and-service-cidr). Make sure, that every cluster has its own dedicated Cluster- and Service-CIDR. If they overlap, it will cause problems. But I still recommend keeping clusters separated from each other. This way, if you want to delete a cluster with all the resources created for it, you can just delete the project.
+If you plan to create multiple clusters within the same project, refer to the section on [Configuring Cluster-CIDR and Service-CIDR](#configuring-cluster-cidr-and-service-cidr). Ensure that each cluster has its own unique Cluster-CIDR and Service-CIDR. Overlapping ranges will cause issues. However, I still recommend separating clusters into different projects. This makes it easier to clean up resources—if you want to delete a cluster, simply delete the entire project.
+
+---
 
 ### Configuring Cluster-CIDR and Service-CIDR
 
-Cluster-CIDR and Service-CIDR describe the IP-Ranges that are used for pods and services respectively. Under normal circumstances you should not need to change these values. However, advanced scenarios may require you to change them to avoid networking conflicts.
+Cluster-CIDR and Service-CIDR define the IP ranges used for pods and services, respectively. In most cases, you won’t need to change these values. However, advanced setups might require adjustments to avoid network conflicts.
 
-**Changing the Cluster-CIDR (Pod IP-Range):**
+**Changing the Cluster-CIDR (Pod IP Range):**
+To modify the Cluster-CIDR, uncomment or add the `cluster_cidr` option in your cluster configuration file and specify a valid CIDR notation for the network. Make sure this network is not a subnet of your private network.
 
-To change the Cluster-CIDR, uncomment/add the `cluster_cidr` option in your cluster configuration file and provide a valid CIDR notated network to use. The provided network must not be a subnet of your private network.
+**Changing the Service-CIDR (Service IP Range):**
+To adjust the Service-CIDR, uncomment or add the `service_cidr` option in your configuration file and provide a valid CIDR notation. Again, ensure this network is not a subnet of your private network. Also, uncomment the `cluster_dns` option and provide a single IP address from the `service_cidr` range. This sets the IP address for the coredns service.
 
-**Changing the Service-CIDR (Service IP-Range):**
+**Sizing the Networks:**
+The networks you choose should have enough space for your expected number of pods and services. By default, `/16` networks are used. Select an appropriate size, as changing the CIDR later is not supported.
 
-To change the Service-CIDR, uncomment/add the `service_cidr` option in your cluster configuration file and provide a valid CIDR notated network to use. The provided network must not be a subnet of your private network.
-
-Also uncomment the `cluster_dns` option and provide a single IP-Address from your `service_cidr` range. `cluster_dns` sets the IP-Address of the coredns service.
-
-**Sizing the Networks**
-
-The networks you provide should provide enough space for the expected amount of pods/services. By default `/16` networks are used. Please make sure you chose an adequate size, as changing the CIDR afterwards is not supported.
+---
 
 ### Idempotency
 
-The `create` command can be run any number of times with the same configuration without causing any issue, since the process is idempotent. This means that if for some reason the create process gets stuck or throws errors (for example if the Hetzner API is unavailable or there are timeouts etc), you can just stop the current command, and re-run it with the same configuration to continue from where it left.
+The `create` command can be run multiple times with the same configuration without causing issues, as the process is idempotent. If the process gets stuck or encounters errors (e.g., due to Hetzner API unavailability or timeouts), you can stop the command and rerun it with the same configuration to continue where it left off. Note that the kubeconfig will be overwritten each time you rerun the command.
 
-Note that the kubeconfig will be overwritten when you re-run the `create` command.
-
+---
 
 ### Limitations:
 
-- if possible, please use modern SSH keys since some operating systems have deprecated old crypto based on SHA1; therefore I recommend you use ECDSA keys instead of the old RSA type
-- if you use a snapshot instead of one of the default images, the creation of the instances will take longer than when using a regular image
-- the setting `networking`.`allowed_networks`.`api` allows specifying which networks can access the Kubernetes API, but this only works with single master clusters currently. Multi-master HA clusters can optionally be created with a load balancer for the API, but load balancers are not yet covered by Hetzner's firewalls
-- if you enable autoscaling for one or more nodepools, do not change that setting afterwards as it can cause problems to the autoscaler
-- autoscaling is only supported when using Ubuntu or one of the other default images, not snapshots
-- worker nodes created by the autoscaler must be deleted manually from the Hetzner Console when deleting the cluster (this will be addressed in a future update)
-- SSH keys with passphrases can only be used if you set `networking`.`ssh`.`use_ssh_agent` to `true` and use an SSH agent to access your key. To start and agent e.g. on macOS:
+- Using a snapshot instead of a default image will take longer to create instances compared to regular images.
+- The `networking`.`allowed_networks`.`api` setting specifies which networks can access the Kubernetes API, but this currently only works with single-master clusters. Multi-master HA clusters can optionally use a load balancer for the API, but Hetzner’s firewalls do not yet support load balancers.
+- If you enable autoscaling for a nodepool, avoid changing this setting later, as it can cause issues with the autoscaler.
+- Autoscaling is only supported with Ubuntu or other default images, not snapshots.
+- SSH keys with passphrases can only be used if you set `networking`.`ssh`.`use_ssh_agent` to `true` and use an SSH agent to access your key. For example, on macOS, you can start an agent like this:
 
 ```bash
 eval "$(ssh-agent -s)"

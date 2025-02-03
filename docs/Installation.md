@@ -1,55 +1,47 @@
 ## Prerequisites
 
-All that is needed to use this tool is
+To use this tool, you will need a few things:
 
-- an Hetzner Cloud account
+- A Hetzner Cloud account.
+- A Hetzner Cloud token: To get this, create a project in the cloud console, then generate an API token with **both read and write permissions** (go to the sidebar > Security > API Tokens). Remember, you’ll only see the token once, so make sure to save it somewhere secure.
+- kubectl and Helm installed, as these are necessary for installing components in the cluster and performing k3s upgrades.
 
-- an Hetzner Cloud token: for this you need to create a project from the cloud console, and then an API token with **both read and write permissions** (sidebar > Security > API Tokens); you will see the token only once, so be sure to take note of it somewhere safe
+---
 
-- kubectl and Helm installed
-
-___
-# Installation
-
-Before using the tool, be sure to have kubectl installed as it's required to install some components in the cluster and perform k3s upgrades.
+## Installation
 
 ### macOS
 
 #### With Homebrew
-
 ```bash
 brew install vitobotta/tap/hetzner_k3s
 ```
 
 #### Binary installation
-
-You need to install these dependencies first:
+First, install these dependencies:
 - libevent
 - bdw-gc
 - libyaml
 - pcre
 - gmp
 
-##### Intel / x86
-
-```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.4/hetzner-k3s-macos-amd64
-chmod +x hetzner-k3s-macos-amd64
-sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
-```
-
 ##### Apple Silicon / ARM
-
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.4/hetzner-k3s-macos-arm64
 chmod +x hetzner-k3s-macos-arm64
 sudo mv hetzner-k3s-macos-arm64 /usr/local/bin/hetzner-k3s
 ```
 
+##### Intel / x86
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.4/hetzner-k3s-macos-amd64
+chmod +x hetzner-k3s-macos-amd64
+sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
+```
+
 ### Linux
 
 #### amd64
-
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.4/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64
@@ -57,7 +49,6 @@ sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ```
 
 #### arm
-
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.4/hetzner-k3s-linux-arm64
 chmod +x hetzner-k3s-linux-arm64
@@ -66,5 +57,4 @@ sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
 
 ### Windows
 
-I recommend using the Linux binary under [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
-
+For Windows, I recommend using the Linux binary with [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).

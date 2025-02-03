@@ -1,3 +1,9 @@
 # Troubleshooting
 
-If the tool hangs forever after creating instances and you see timeouts, this may be caused by problems with your SSH key, for example if you use a key with a passphrase or an older key (due to the deprecation of some crypto stuff in newwer operating systems). In this case you may want to try setting `use_ssh_agent` to `true` to use the SSH agent. If you are not familiar with what an SSH agent is, take a look at [this page](https://smallstep.com/blog/ssh-agent-explained/) for an explanation.
+If the tool stops working after creating instances and you experience timeouts, the issue might be related to your SSH key. This can happen if you’re using a key with a passphrase or an older key, as newer operating systems may no longer support certain encryption methods.
+
+To fix this, you can try enabling `networking`.`ssh`.`use_agent` by setting it to `true`. This lets the SSH agent manage the key. If you’re not familiar with what an SSH agent does, you can refer to [this page](https://smallstep.com/blog/ssh-agent-explained/) for a straightforward explanation.
+
+You can also run `hetzner-k3s` with the `DEBUG` environment variable set to `true`. This will provide more detailed output, which can help you identify the root of the problem.
+
+In most cases, if you’re able to manually run `ssh` commands on the servers using a specific keypair, `hetzner-k3s` should work as well, since it relies on the `ssh` binary to function.

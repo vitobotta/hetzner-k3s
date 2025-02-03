@@ -1,13 +1,11 @@
-# Deleting a cluster
-
-To delete a cluster, running
+To delete a cluster, you need to run the following command:
 
 ```bash
 hetzner-k3s delete --config cluster_config.yaml
 ```
 
-This will delete all the resources in the Hetzner Cloud project created by `hetzner-k3s` directly.
+This command will remove all the resources in the Hetzner Cloud project that were created by `hetzner-k3s`.
 
-**NOTE:** the load balancers and persistent volumes created by deploying your applications must be deleted manually. This may be addressed in a future release.
+Keep in mind that the load balancers and persistent volumes created by your applications will not be deleted automatically. You’ll need to remove those manually. This might be improved in a future update.
 
-Also note that being able to delete a cluster requires setting `protect_against_deletion` to `false` and that you enter the name of the cluster when you run the `delete` command to confirm that you really want to delete it. These measures are to prevent accidental deletion of a cluster that is not meant to be deleted.
+Additionally, to delete a cluster, you must ensure that `protect_against_deletion` is set to `false`. When you execute the `delete` command, you’ll also need to enter the cluster’s name to confirm the deletion. These steps are in place to avoid accidentally deleting a cluster you intended to keep.

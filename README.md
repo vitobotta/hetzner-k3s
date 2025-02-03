@@ -20,7 +20,7 @@
 |_| |_|\___|\__/___|_| |_|\___|_|       |_|\_\____/|___/
 ```
 
-# The easiest and fastest way to create production grade Kubernetes clusters in Hetzner Cloud
+# The simplest and quickest way to set up production-ready Kubernetes clusters on Hetzner Cloud.
 
 <p align="center">
   <img src="logo.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
@@ -28,29 +28,31 @@
 
 ## What is this?
 
-This is a CLI tool to super quickly and super easily create and manage Kubernetes clusters in [Hetzner Cloud](https://www.hetzner.com/cloud) using the lightweight Kubernetes distribution [k3s](https://k3s.io/) from [Rancher](https://rancher.com/). In a recent test I created a 200 node HA cluster (3 masters, 197 worker nodes) in just **under 4 minutes** (when using only public network since private networks are limited to 100 instances per network). I believe this is a world record :)
+This is a CLI tool designed to make it incredibly fast and easy to create and manage Kubernetes clusters on [Hetzner Cloud](https://www.hetzner.com/cloud) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution from [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
 
-Hetzner Cloud is an awesome cloud provider which offers a truly great service with the best performance/cost ratio in the market and locations in both Europe and USA.
+Hetzner Cloud is an awesome cloud provider that offers excellent service with the best performance-to-cost ratio available. They have data centers in Europe, USA and Singapore, making it a versatile choice.
 
-k3s is my favorite Kubernetes distribution because it uses much less memory and CPU, leaving more resources to workloads. It is also super quick to deploy and upgrade because it's a single binary.
+k3s is my go-to Kubernetes distribution because it's lightweight, using far less memory and CPU, which leaves more resources for your workloads. It is also incredibly fast to deploy and upgrade because, thanks to being a single binary.
 
-Using `hetzner-k3s`, creating a highly available k3s cluster with 3 masters for the control plane and 3 worker nodes takes **2-3 minutes** only. This includes
+With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
 
-- creating all the infrastructure resources (instances, private network, firewall)
-- deploying k3s to the nodes
-- installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers right away
-- installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to provision persistent volumes using Hetzner's block storage
-- installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to make upgrades to a newer version of k3s easy and quick
-- installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to allow for autoscaling node pools
+- Creating all the necessary infrastructure resources (instances, placement groups, load balancer, private network, and firewall).
+- Deploying k3s to the nodes.
+- Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately.
+- installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.
+- Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
+- Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
 
-Also see this [documentation page](https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Setting%20up%20a%20cluster.md) for a tutorial on how to set up a cluster with the most common setup to get you started.
+For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Setting%20up%20a%20cluster.md).
 
 ___
 ## Who am I?
 
-I'm the Lead Platform Architect for event management platform [Brella](https://www.brella.io/), based in Finland. I am responsible for all the technical aspects of the platform including development, infrastructure and mentoring developers. In my free time I act as a bug bounty hunter to find and responsibly disclose vulnerabilities in web applications.
+Hey there! I’m the Lead Platform Architect at [Brella](https://www.brella.io/), an event management platform based in Finland. You could say I’m the person who ensures everything works smoothly. That includes handling coding, infrastructure, and supporting the rest of the development team.
 
-See my public profile with links for connecting with me [here](https://vitobotta.com/).
+Outside of my main job, I spend time looking for security bugs as a bug bounty hunter. My goal is to find vulnerabilities in web applications and report them responsibly so they can be fixed.
+
+If you’d like to connect or just have a chat, feel free to check out my public profile [here](https://vitobotta.com/). You’ll find all the necessary links there.
 
 ---
 
