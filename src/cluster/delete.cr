@@ -164,18 +164,17 @@ class Cluster::Delete
     "Cluster cleanup"
   end
 
+  private def instance_deletor_exists?(instance_name)
+    instance_deletors.any? { |deletor| deletor.instance_name == instance_name }
+  end
+
   private def detect_nodes_with_kubectl
     result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name | tail -n +2", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
     all_node_names = result.output.split("\n")
 
     all_node_names.each do |node_name|
-      unless instance_deletors.find { |deletor| deletor.instance_name == node_name }
-        instance_deletors << Hetzner::Instance::Delete.new(
-          settings: settings,
-          hetzner_client: hetzner_client,
-          instance_name: node_name
-        )
-      end
+      next if instance_deletor_exists?(node_name)
+      instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: node_name)
     end
   end
 end
