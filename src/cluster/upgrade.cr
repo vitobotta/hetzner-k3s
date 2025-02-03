@@ -75,13 +75,15 @@ class Cluster::Upgrade
     run_shell_command command, configuration.kubeconfig_path, settings.hetzner_token, error_message: "Failed to create upgrade plan for controlplane"
   end
 
-  private def create_upgrade_plan_for_workers
-    return if workers_count.zero?
-
-    workers_upgrade_manifest = Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_WORKERS, {
+  private def workers_upgrade_manifest
+    Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_WORKERS, {
       new_k3s_version: new_k3s_version,
       worker_upgrade_concurrency: worker_upgrade_concurrency,
     })
+  end
+
+  private def create_upgrade_plan_for_workers
+    return if workers_count.zero?
 
     command = String.build do |str|
       str << "kubectl apply -f - <<-EOF\n"
