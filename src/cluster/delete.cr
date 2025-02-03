@@ -30,8 +30,17 @@ class Cluster::Delete
 
   def run
     unless force
-      print "Please enter the cluster name to confirm that you want to delete it: "
-      input = gets
+      input = nil
+      loop do
+        print "Please enter the cluster name to confirm that you want to delete it: "
+        input = gets.try(&.strip)
+
+        if input.nil? || input.empty?
+          puts "\nError: Input cannot be empty. Please enter the cluster name.".colorize(:red)
+          next
+        end
+        break
+      end
 
       if input.try(&.strip) != settings.cluster_name
         puts
