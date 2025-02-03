@@ -6,7 +6,7 @@ To create a regional cluster, simply set the `instance_count` for the masters po
 
 ## Converting a Single Master or Zonal Cluster to a Regional One
 
-If you already have a cluster with a single master or three masters in the same European location, converting it to a regional cluster is straightforward. Just follow these steps carefully and be patient. Note that this requires hetzner-k3s version 2.2.3 or higher.
+If you already have a cluster with a single master or three masters in the same European location, converting it to a regional cluster is straightforward. Just follow these steps carefully and be patient. Note that this requires hetzner-k3s version 2.2.4 or higher.
 
 Before you begin, make sure to back up all your applications and data! This is crucial. While the migration process is relatively simple, there is always some level of risk involved.
 

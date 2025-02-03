@@ -2,7 +2,7 @@
 
 The v1 version of hetzner-k3s is quite old and hasn't been supported for a while, but I know that some people haven't upgraded to v2 because until now there wasn't a straightforward process to do this.
 
-This migration is now possible and straightforward provided you follow these instructions carefully and are patient. The migration also allows you to replace deprecated instance types (series `CX`) with new instance types. This migration requires hetzner-k3s v2.2.3 or higher.
+This migration is now possible and straightforward provided you follow these instructions carefully and are patient. The migration also allows you to replace deprecated instance types (series `CX`) with new instance types. This migration requires hetzner-k3s v2.2.4 or higher.
 
 ## Prerequisites
 
