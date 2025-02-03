@@ -30,35 +30,35 @@ class Cluster::Delete
 
   def run
     unless force
-      input = nil
-      loop do
-        print "Please enter the cluster name to confirm that you want to delete it: "
-        input = gets.try(&.strip)
-
-        if input.nil? || input.empty?
-          puts "\nError: Input cannot be empty. Please enter the cluster name.".colorize(:red)
-          next
-        end
-        break
-      end
-
-      if input.try(&.strip) != settings.cluster_name
-        puts
-        puts "Cluster name '#{input.try(&.strip)}' does not match expected '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
-        puts
-        exit 1
-      end
+      input = get_cluster_name_input
+      validate_cluster_name(input)
 
       if settings.protect_against_deletion
-        puts
-        puts "WARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
-        puts
+        puts "\nWARNING: Cluster cannot be deleted. If you are sure about this, disable the protection by setting `protect_against_deletion` to `false` in the config file. Aborting deletion.".colorize(:red)
         exit 1
       end
     end
 
     delete_resources
     File.delete(settings.kubeconfig_path) if File.exists?(settings.kubeconfig_path)
+  end
+
+  private def get_cluster_name_input
+    loop do
+      print "Please enter the cluster name to confirm that you want to delete it: "
+      input = gets.try(&.strip)
+
+      return input unless input.nil? || input.empty?
+
+      puts "\nError: Input cannot be empty. Please enter the cluster name.".colorize(:red)
+    end
+  end
+
+  private def validate_cluster_name(input)
+    if input != settings.cluster_name
+      puts "\nCluster name '#{input}' does not match expected '#{settings.cluster_name}'. Aborting deletion.".colorize(:red)
+      exit 1
+    end
   end
 
   private def delete_resources
