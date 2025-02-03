@@ -3,9 +3,10 @@ require "../placement_group"
 require "../placement_groups_list"
 
 class Hetzner::PlacementGroup::All
+  private getter settings : Configuration::Main
   getter hetzner_client : Hetzner::Client
 
-  def initialize(@hetzner_client)
+  def initialize(@settings, @hetzner_client)
   end
 
   def run : Array(Hetzner::PlacementGroup)
@@ -16,7 +17,7 @@ class Hetzner::PlacementGroup::All
     all_placement_groups = fetch_placement_groups
 
     all_placement_groups.reject! do |placement_group|
-      if placement_group.servers.size == 0
+      if placement_group.servers.size == 0 && placement_group.name.starts_with?(settings.cluster_name)
         Hetzner::PlacementGroup::Delete.new(hetzner_client, placement_group: placement_group ).run
         true
       else
@@ -29,6 +30,7 @@ class Hetzner::PlacementGroup::All
 
   def delete_all
     fetch_placement_groups.each do |placement_group|
+      next unless placement_group.name.starts_with?(settings.cluster_name)
       Hetzner::PlacementGroup::Delete.new(hetzner_client, placement_group: placement_group ).run
     end
   end

@@ -41,7 +41,7 @@ class Cluster::Create
   def initialize(@configuration)
     @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
-    @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+    @all_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_unused
     @master_instances = initialize_master_instances
     @worker_instances = initialize_worker_instances
   end
@@ -298,7 +298,7 @@ class Cluster::Create
 
   private def delete_unused_placement_groups
     mutex.synchronize do
-      @all_placement_groups = Hetzner::PlacementGroup::All.new(hetzner_client).delete_unused
+      @all_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_unused
     end
   end
 

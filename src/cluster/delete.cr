@@ -148,7 +148,7 @@ class Cluster::Delete
   end
 
   private def delete_placement_groups
-    Hetzner::PlacementGroup::All.new(hetzner_client).delete_all
+    Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_all
   end
 
   private def default_log_prefix
