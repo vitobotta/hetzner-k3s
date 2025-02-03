@@ -51,11 +51,7 @@ class Cluster::Create
 
     configure_firewall
 
-    if settings.create_load_balancer_for_the_kubernetes_api && master_instances.size > 1
-      create_load_balancer
-    else
-      delete_load_balancer
-    end
+    handle_load_balancer
 
     initiate_k3s_setup
 
@@ -65,6 +61,18 @@ class Cluster::Create
 
     delete_unused_placement_groups
 
+    warn_if_not_protected
+  end
+
+  private def handle_load_balancer
+    if settings.create_load_balancer_for_the_kubernetes_api && master_instances.size > 1
+      create_load_balancer
+    else
+      delete_load_balancer
+    end
+  end
+
+  private def warn_if_not_protected
     unless settings.protect_against_deletion
       puts
       puts "WARNING!!! The cluster is not protected against deletion. If you want to protect the cluster against deletion, set `protect_against_deletion: true` in the configuration file.".colorize(:yellow)
