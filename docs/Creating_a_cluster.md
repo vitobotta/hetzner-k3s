@@ -77,7 +77,6 @@ worker_node_pools:
   #     value: value1:NoSchedule
 - name: medium-autoscaled
   instance_type: cpx31
-  instance_count: 2
   location: fsn1
   autoscaling:
     enabled: true
