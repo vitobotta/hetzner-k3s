@@ -13,17 +13,15 @@ class Configuration::NetworkingComponents::AllowedNetworks
     validate_networks(errors, api, "API")
   end
 
-  private def current_ip
-    @current_ip ||= begin
-      Crest.get("https://ipinfo.io/ip").body
-    rescue Crest::RequestFailed
-      errors << "Unable to determine your current IP (necessary to validate allowed networks for SSH and API)"
-      nil
-    end
-  end
-
   private def validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
-    return if current_ip.nil?
+    current_ip = IPAddress.new("127.0.0.1")
+
+    begin
+      current_ip = IPAddress.new(Crest.get("https://ipinfo.io/ip").body)
+    rescue ex : Crest::RequestFailed
+      errors << "Unable to determine your current IP (necessary to validate allowed networks for SSH and API)"
+      return
+    end
 
     included = false
 
@@ -40,7 +38,7 @@ class Configuration::NetworkingComponents::AllowedNetworks
     begin
       network = IPAddress.new(cidr).network
 
-      included = true = network.includes?(current_ip)
+      included = network.includes?(current_ip)
     rescue ex: ArgumentError
       if ex.message =~ /Invalid netmask/
         errors << "#{network_type} allowed network #{cidr} has an invalid netmask"
