@@ -14,9 +14,9 @@ class Configuration::Settings::NodePool::Location
   def self.network_zone_by_location(location)
     case location
     when "ash"
-      "us-west"
-    when "hil"
       "us-east"
+    when "hil"
+      "us-west"
     when "sin"
       "ap-southeast"
     else
