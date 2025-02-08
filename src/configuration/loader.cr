@@ -185,7 +185,7 @@ class Configuration::Loader
 
     log_line "Some information in the configuration file requires your attention:"
 
-    errors.each do |error|
+    errors.uniq.each do |error|
       STDERR.puts "[#{default_log_prefix}]  - #{error}"
     end
 
