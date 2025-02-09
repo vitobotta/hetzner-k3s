@@ -76,9 +76,20 @@ class Hetzner::Firewall::Create
         :destination_ips => [] of String
       },
       {
-        :description => "Node port range",
+        :description => "Node port range TCP",
         :direction => "in",
         :protocol =>  "tcp",
+        :port => "30000-32767",
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        :destination_ips => [] of String
+      },
+      {
+        :description => "Node port range UDP",
+        :direction => "in",
+        :protocol =>  "udp",
         :port => "30000-32767",
         :source_ips => [
           "0.0.0.0/0",
