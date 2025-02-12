@@ -164,7 +164,7 @@ metadata:
     kubernetes.io/ingress.class: nginx  # <<<--- Add annotation
 spec:
   rules:
-  - host: hello-world.IP_FROM_STEP_12.nip.io # <<<--- Replace with the IP from step 16.
+  - host: hello-world.IP_FROM_STEP_12.nip.io # <<<--- Replace `IP_FROM_STEP_12` with the IP from step 16.
   ....
 ```
 
