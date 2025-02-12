@@ -4,7 +4,7 @@ By [TitanFighter](https://github.com/TitanFighter)
 
 ### Installation of a "hello-world" project
 
-For testing, we’ll use this "hello-world" app: [hello-world app](https://gist.githubusercontent.com/vitobotta/6e73f724c5b[REDACTED]ec21b9eee6f626f1/raw/3036d4c4283a08ab82b99fffea8df3dded1d1f78/deployment.yaml)
+For testing, we’ll use this "hello-world" app: [hello-world app](https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml)
 
 1. Install `kubectl` on your computer: [kubectl installation](https://kubernetes.io/docs/tasks/tools/#kubectl)
 2. Install `Helm` on your computer: [Helm installation](https://helm.sh/docs/intro/install/)
@@ -151,7 +151,7 @@ data:
 
 15. Apply the ConfigMap: `kubectl apply -f ./ingress-nginx-configmap.yaml`
 16. Open your Hetzner cloud console, go to "Your project -> Load Balancers," and find the PUBLIC IP of the load balancer with the name you used in the `load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME` annotation. Copy or note this IP.
-17. Download the hello-world app: `curl https://gist.githubusercontent.com/vitobotta/6e73f724c5b[REDACTED]ec21b9eee6f626f1/raw/3036d4c4283a08ab82b99fffea8df3dded1d1f78/deployment.yaml --output hello-world.yaml`
+17. Download the hello-world app: `curl https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml --output hello-world.yaml`
 18. Edit the file to add the annotation and set the hostname:
 
 ```yaml
