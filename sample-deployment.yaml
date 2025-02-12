@@ -31,7 +31,7 @@ metadata:
     load-balancer.hetzner.cloud/use-private-ip: "true"
     load-balancer.hetzner.cloud/type: lb11
 spec:
-  type: CluserIP
+  type: ClusterIP
   selector:
     app: hello-world
   ports:
