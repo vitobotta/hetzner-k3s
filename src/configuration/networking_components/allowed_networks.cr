@@ -23,10 +23,8 @@ class Configuration::NetworkingComponents::AllowedNetworks
       return
     end
 
-    included = false
-
-    networks.each do |cidr|
-      included = check_current_ip_in_network(errors, cidr, current_ip, included, network_type)
+    included = networks.any? do |cidr|
+      current_ip_in_network?(errors, cidr, current_ip, network_type)
     end
 
     unless included
@@ -34,7 +32,9 @@ class Configuration::NetworkingComponents::AllowedNetworks
     end
   end
 
-  private def check_current_ip_in_network(errors, cidr : String, current_ip : IPAddress, included : Bool, network_type) : Bool
+  private def current_ip_in_network?(errors, cidr : String, current_ip : IPAddress, network_type) : Bool
+    included = false
+
     begin
       network = IPAddress.new(cidr).network
 
