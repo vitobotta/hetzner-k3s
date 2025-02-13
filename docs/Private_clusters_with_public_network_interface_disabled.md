@@ -44,8 +44,8 @@ Replace `10.0.0.0/16` with your actual subnet if it's different. Also, make sure
 
 ```yaml
   public_network:
-    ipv4: true
-    ipv6: true
+    ipv4: false
+    ipv6: false
   private_network:
     enabled : true
     subnet: 10.0.0.0/16
