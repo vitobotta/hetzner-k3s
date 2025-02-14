@@ -78,6 +78,8 @@ post_create_commands:
 - apt update
 - apt upgrade -y
 - apt install ifupdown resolvconf -y
+- apt autoremove -y hc-utils
+- apt purge -y hc-utils
 - echo "auto enp7s0" > /etc/network/interfaces.d/60-private
 - echo "iface enp7s0 inet dhcp" >> /etc/network/interfaces.d/60-private
 - echo "    post-up ip route add default via 10.0.0.1"  >> /etc/network/interfaces.d/60-private
