@@ -52,7 +52,7 @@ Hey there! I’m the Lead Platform Architect at [Brella](https://www.brella.io/)
 
 Outside of my main job, I spend time looking for security bugs as a bug bounty hunter. My goal is to find vulnerabilities in web applications and report them responsibly so they can be fixed.
 
-If you’d like to connect or just have a chat, feel free to check out my public profile [here](https://vitobotta.com/). You’ll find all the necessary links there.
+If you’d like to connect or just have a chat, feel free to check out my public profile [here](https://vitobotta.com/). You’ll find all the necessary links there. I may also be available for consultancies around hetzner-k3s and related topics.
 
 ---
 
