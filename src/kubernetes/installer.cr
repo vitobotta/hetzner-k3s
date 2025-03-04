@@ -61,7 +61,7 @@ class Kubernetes::Installer
       add_labels_and_taints
     end
 
-    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script(master_count)).install
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script).install
 
     switch_to_context(default_context)
 
@@ -159,9 +159,9 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
-  private def deploy_k3s_to_worker(worker : Hetzner::Instance, master_count)
+  private def deploy_k3s_to_worker(worker : Hetzner::Instance)
     ssh.run(worker, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(worker, settings.networking.ssh.port, worker_install_script(master_count), settings.networking.ssh.use_agent)
+    ssh.run(worker, settings.networking.ssh.port, worker_install_script, settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
@@ -203,7 +203,7 @@ class Kubernetes::Installer
     })
   end
 
-  private def worker_install_script(master_count)
+  private def worker_install_script
     Crinja.render(WORKER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
       k3s_token: k3s_token,
