@@ -159,9 +159,9 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
-  private def deploy_k3s_to_worker(worker : Hetzner::Instance, worker_count)
+  private def deploy_k3s_to_worker(worker : Hetzner::Instance, master_count)
     ssh.run(worker, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(worker, settings.networking.ssh.port, worker_install_script(worker_count), settings.networking.ssh.use_agent)
+    ssh.run(worker, settings.networking.ssh.port, worker_install_script(master_count), settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
