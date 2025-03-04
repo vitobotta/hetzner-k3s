@@ -92,7 +92,7 @@ class Kubernetes::Installer
       spawn do
         worker = workers_installation_queue_channel.receive
         mutex.synchronize { workers << worker }
-        deploy_k3s_to_worker(worker, master_count)
+        deploy_k3s_to_worker(worker)
         workers_ready_channel.send(worker)
       end
     end
