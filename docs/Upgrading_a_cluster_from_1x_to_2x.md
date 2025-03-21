@@ -35,6 +35,7 @@ Replace one master at a time (unless your cluster has a load balancer for the Ku
 - [ ] Drain and delete the master using both kubectl and the Hetzner console (or the `hcloud` CLI) to remove the actual instance.
 - [ ] Rerun the `create` command to recreate the master with the new instance type. Wait for it to join the control plane and reach the "ready" status.
 - [ ] SSH into each master and verify that the etcd members are updated and in sync:
+
 ```bash
 sudo apt-get update
 sudo apt-get install etcd-client
