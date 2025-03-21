@@ -10,6 +10,7 @@ However, for larger clusters, the default setup—which uses Hetzner’s private
 2. Flannel performs well for smaller clusters, but its performance declines with clusters of several hundred or thousands of nodes. For better scalability, I recommend switching to Cilium as your CNI, as it handles large clusters efficiently.
 
 Additional notes:
+
 - If you disable the private network due to the node limit, encryption will be applied at the CNI level to secure communication between nodes over the public network.
 - If you prefer a CNI other than Cilium or Flannel (e.g., Calico), you can disable automatic CNI setup and install your preferred CNI manually. We may add support for more CNIs in future releases.
 - Starting with v2.0.0, you can use an external SQL datastore like Postgres instead of the built-in etcd for the Kubernetes API. This can also help with scaling larger clusters.
