@@ -3,7 +3,11 @@ name: Publish docs
 on:
   push:
     branches:
-      - "*"
+      - main
+    paths:
+      - ".github/workflows/publish-docs.yml"
+      - "docs/**/*"
+      - "mkdocs.yml"
 
 permissions:
   contents: write
