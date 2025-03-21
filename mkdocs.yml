@@ -1,0 +1,43 @@
+site_name: hetzner-k3s documentation
+repo_name: vitobotta/hetzner-k3s
+repo_url: https://github.com/vitobotta/hetzner-k3s
+theme:
+  name: material
+  features:
+    - content.tooltips
+    - content.code.annotate
+    - content.code.copy
+    - navigation.expand
+    - navigation.indexes
+    - navigation.sections
+    - search.highlight
+    - search.suggest
+  icon:
+    logo: material/book-open
+  palette: 
+    scheme: slate
+plugins:
+  - search
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+nav:
+  - Home: index.md
+  - Installation.md
+  - Creating_a_cluster.md
+  - Masters_in_different_locations.md
+  - Private_clusters_with_public_network_interface_disabled.md
+  - Upgrading_a_cluster_from_1x_to_2x.md
+  - Setting up a cluster.md
+  - Recommendations.md
+  - Maintenance.md
+  - Deleting_a_cluster.md
+  - Load_balancers.md
+  - Storage.md
+  - Troubleshooting.md
+  - Contributing_and_support.md
