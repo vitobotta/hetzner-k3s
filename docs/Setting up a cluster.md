@@ -246,11 +246,13 @@ Yes, you can use MetalLB with floating IPs in Hetzner Cloud, but I wouldn’t re
 ### 2. How do I create and push Docker images to a repository, and how can Kubernetes work with these images? (GitLab example)
 
 On the machine where you create the image:
+
 - Start by logging in to the Docker registry: `docker login registry.gitlab.com`.
 - Build the Docker image: `docker build -t registry.gitlab.com/COMPANY_NAME/REPO_NAME:IMAGE_NAME -f /some/path/to/Dockerfile .`.
 - Push the image to the registry: `docker push registry.gitlab.com/COMPANY_NAME/REPO_NAME:IMAGE_NAME`.
 
 On the machine running Kubernetes:
+
 - Generate a secret to allow Kubernetes to access the images: `kubectl create secret docker-registry gitlabcreds --docker-server=https://registry.gitlab.com --docker-username=MYUSER --docker-password=MYPWD --docker-email=MYEMAIL -n NAMESPACE_OF_YOUR_APP -o yaml > docker-secret.yaml`.
 - Apply the secret: `kubectl apply -f docker-secret.yaml -n NAMESPACE_OF_YOUR_APP`.
 
@@ -263,6 +265,7 @@ First, install the metrics-server from this GitHub repository: https://github.co
 There are two types of "ingress" to understand: `Ingress Controller` and `Ingress Resources`.
 
 In the case of Nginx:
+
 - The `Ingress Controller` is Nginx itself (defined as `kind: Ingress`), while `Ingress Resources` are services (defined as `kind: Service`).
 - The `Ingress Controller` has various annotations (rules). You can use these annotations in `kind: Ingress` to make them "global" or in `kind: Service` to make them "local" (specific to that service).
 - The `Ingress Controller` consists of a Pod and a Service. The Pod runs the Controller, which continuously monitors the /ingresses endpoint in your cluster’s API server for updates to available `Ingress Resources`.
@@ -301,5 +304,6 @@ kubectl get all -A` does not include "ingress", so use `kubectl get ing -A
 ```
 
 ## Useful Links
-Cheat Sheet - https://kubernetes.io/docs/reference/kubectl/cheatsheet/
-A visual guide on troubleshooting Kubernetes deployments - https://learnk8s.io/troubleshooting-deployments
+
+- [kubectl Cheat Sheet](https://kubernetes.io/docs/reference/kubectl/cheatsheet/)
+- [A visual guide on troubleshooting Kubernetes deployments](https://learnk8s.io/troubleshooting-deployments)
