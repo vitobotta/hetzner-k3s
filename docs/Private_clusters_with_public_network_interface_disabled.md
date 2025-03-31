@@ -30,7 +30,7 @@ The TL;DR is this:
 auto enp7s0
 iface enp7s0 inet dhcp
     post-up echo 1 > /proc/sys/net/ipv4/ip_forward
-    post-up iptables -t nat -A POSTROUTING -s '10.0.0.0/16' -o enp7s0 -j MASQUERADE
+    post-up iptables -t nat -A POSTROUTING -s '10.0.0.0/16' -o eth0 -j MASQUERADE
 ```
 
 Replace `10.0.0.0/16` with your actual subnet if it's different. Also, make sure to use the correct name for your private network interface if `enp7s0` isn't right—find this with the `ifconfig` command.
