@@ -24,7 +24,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   end
 
   private def manifest
-    manifest_url = if settings.networking.private_network.enabled
+    manifest_url = if settings.networking.private_network.enabled && settings.networking.private_network.mode == "hetzner"
       settings.manifests.cloud_controller_manager_manifest_url
     else
       settings.manifests.cloud_controller_manager_manifest_url.gsub("-networks", "")
