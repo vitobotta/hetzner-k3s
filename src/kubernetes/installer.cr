@@ -235,7 +235,7 @@ class Kubernetes::Installer
 
   private def flannel_backend
     if tailscale?
-      " --flannel-backend=host-gw "
+      " "
     elsif cni.flannel? && cni.encryption?
       available_releases = K3s.available_releases
       selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
