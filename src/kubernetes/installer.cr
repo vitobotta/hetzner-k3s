@@ -52,7 +52,13 @@ class Kubernetes::Installer
 
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
+
+    if tailscale?
+      puts "[Hetzner Cloud Controller] Skipping installation since we are using Tailscale for the network"
+    else
+      Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
+    end
+
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
