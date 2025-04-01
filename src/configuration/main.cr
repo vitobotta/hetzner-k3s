@@ -39,6 +39,8 @@ class Configuration::Main
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
 
   def all_kubelet_args
-    ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
+    args = ["resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
+    args << "cloud-provider=external" unless networking.private_network.mode == "tailscale"
+    args
   end
 end
