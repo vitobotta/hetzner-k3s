@@ -63,8 +63,9 @@ class Configuration::Loader
 
   private property instance_types_loaded : Bool = false
   private property locations_loaded : Bool = false
+  private property force : Bool = false
 
-  def initialize(@configuration_file_path, @new_k3s_version)
+  def initialize(@configuration_file_path, @new_k3s_version, @force)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
     Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
@@ -74,9 +75,24 @@ class Configuration::Loader
     warnings = [] of String
     warnings << "Subnet setting is ignored when using Tailscale" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale"
     warnings << "CNI is always Flannel when using Tailscale" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale" && settings.networking.cni.cilium?
-    warnings << "Encryption at CNI level is always disabled when using Tailscale, since Tailscale takes care of encryption" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale" && settings.encryption.enabled?
+    warnings << "Encryption at CNI level is always disabled when using Tailscale, since Tailscale takes care of encryption" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale" && settings.networking.cni.encryption?
 
-    print_warnings(warnings, "warnings") unless warnings.empty?
+    unless warnings.empty?
+      print_messages(warnings, "warnings")
+
+      return if force
+
+      puts
+      puts "Do you want to continue? (y/n) - To continue automatically without being prompted, use the --force flag."
+      input = gets.try(&.strip)
+
+      if input.nil? || input.empty? || input.downcase != "y"
+        puts "Aborting."
+        exit 1
+      end
+
+      exit 0
+    end
   end
 
   def validate(command)
