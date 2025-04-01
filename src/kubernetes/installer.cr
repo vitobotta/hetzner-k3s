@@ -86,13 +86,16 @@ class Kubernetes::Installer
 
   private def set_up_workers(workers_installation_queue_channel, worker_count, master_count)
     workers_ready_channel = Channel(Hetzner::Instance).new
+    semaphore = Channel(Nil).new(10)
     mutex = Mutex.new
 
     worker_count.times do
+      semaphore.send(nil)
       spawn do
         worker = workers_installation_queue_channel.receive
         mutex.synchronize { workers << worker }
         deploy_k3s_to_worker(worker)
+        semaphore.receive
         workers_ready_channel.send(worker)
       end
     end
