@@ -395,7 +395,12 @@ class Kubernetes::Installer
   end
 
   private def api_server_ip_address
-    first_master.private_ip_address || first_master.public_ip_address
+    if tailscale?
+      ssh_command = "ip addr show dev tailscale0 | grep tailscale0 | awk '{print $2}' | cut -d/ -f1 | grep -v tailscale0"
+      ssh.run(first_master, settings.networking.ssh.port, ssh_command, settings.networking.ssh.use_agent)
+    else
+      first_master.private_ip_address || first_master.public_ip_address
+    end
   end
 
   private def load_balancer_ip_address
