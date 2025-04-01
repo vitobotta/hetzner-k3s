@@ -53,7 +53,7 @@ else
   NETWORK_INTERFACE=" "
 fi
 
-if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]; then
+if ([ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]) || ([ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]); then
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 else
   FLANNEL_SETTINGS=" {{ flannel_backend }} "
