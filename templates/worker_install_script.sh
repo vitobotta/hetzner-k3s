@@ -67,8 +67,4 @@ curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_VERSION="
 --node-external-ip=$PUBLIC_IP \
 $FLANNEL_SETTINGS " sh -
 
-if [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]; then
-  ethtool -K vxlan0 rx-udp-gro-forwarding on rx-gro-list off
-fi
-
 echo true >/etc/initialized

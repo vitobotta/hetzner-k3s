@@ -101,8 +101,4 @@ $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --node-external-ip=$PUBLIC_IP \
 {{ server }} {{ tls_sans }}" sh -
 
-if [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]; then
-  ethtool -K vxlan0 rx-udp-gro-forwarding on rx-gro-list off
-fi
-
 echo true >/etc/initialized
