@@ -82,7 +82,7 @@ mirrors:
   "*":
 EOF
 
-if [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "hetzner" ]; then
+if [ "{{ private_network_enabled }}" = "true" ]; then
   CCM_AND_SERVICE_LOAD_BALANCER=" --disable-cloud-controller --disable servicelb "
 else
   CCM_AND_SERVICE_LOAD_BALANCER=" "
