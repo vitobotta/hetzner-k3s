@@ -224,6 +224,8 @@ class Kubernetes::Installer
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
+      cluster_cidr: settings.networking.cluster_cidr,
+      service_cidr: settings.networking.service_cidr,
       extra_args: kubelet_args_list
     })
   end
