@@ -50,12 +50,13 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
 
     if tailscale?
       puts "[Hetzner Cloud Controller] Skipping installation since we are using Tailscale for the network"
+      puts "[Cilium] Ignoring setting and skipping installation since we default to Flanne when using Tailscale for the network"
     else
+      Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
       Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     end
 
