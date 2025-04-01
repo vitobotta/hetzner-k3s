@@ -50,7 +50,7 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
 
     if tailscale?
