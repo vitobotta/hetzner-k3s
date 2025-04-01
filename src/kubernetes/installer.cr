@@ -222,6 +222,7 @@ class Kubernetes::Installer
       k3s_version: settings.k3s_version,
       api_server_ip_address: api_server_ip_address,
       private_network_enabled: settings.networking.private_network.enabled.to_s,
+      private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       extra_args: kubelet_args_list
     })
