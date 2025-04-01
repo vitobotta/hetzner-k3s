@@ -88,6 +88,13 @@ else
   CCM_AND_SERVICE_LOAD_BALANCER=" "
 fi
 
+if [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]; then
+  INSTANCE_ID=$(curl http://169.254.169.254/hetzner/v1/metadata/instance-id)
+  TAILSCALE_KUBELET_ARGS=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
+else
+  TAILSCALE_KUBELET_ARGS=" "
+fi
+
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_SKIP_START=false INSTALL_K3S_EXEC="server \
 $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --disable metrics-server \
@@ -99,7 +106,7 @@ $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
-{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR $LOCAL_PATH_STORAGE_CLASS \
+{{ taint }} {{ extra_args }} {{ etcd_arguments }} $TAILSCALE_KUBELET_ARGS $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR $LOCAL_PATH_STORAGE_CLASS \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \

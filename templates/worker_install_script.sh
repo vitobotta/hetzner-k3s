@@ -65,10 +65,18 @@ mirrors:
   "*":
 EOF
 
+if [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]; then
+  INSTANCE_ID=$(curl http://169.254.169.254/hetzner/v1/metadata/instance-id)
+  TAILSCALE_KUBELET_ARGS=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
+else
+  TAILSCALE_KUBELET_ARGS=" "
+fi
+
+
 curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_URL=https://{{ api_server_ip_address }}:6443 INSTALL_K3S_EXEC="agent \
 --node-name=$HOSTNAME {{ extra_args }} \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
-$FLANNEL_SETTINGS " sh -
+$TAILSCALE_KUBELET_ARGS $FLANNEL_SETTINGS " sh -
 
 echo true >/etc/initialized
