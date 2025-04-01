@@ -65,7 +65,7 @@ module Hetzner::K3s
       def run
         ::Hetzner::K3s::CLI.print_banner
 
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, false)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, true)
         configuration.validate(:delete)
 
         Cluster::Delete.new(configuration: configuration, force: flags.force).run
@@ -89,7 +89,7 @@ module Hetzner::K3s
       def run
         ::Hetzner::K3s::CLI.print_banner
 
-        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version, false)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version, true)
         configuration.validate(:upgrade)
 
         Cluster::Upgrade.new(configuration: configuration).run
