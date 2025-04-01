@@ -4,8 +4,16 @@ HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [ "{{ private_network_enabled }}" = "true" ]; then
-  echo "Using private network " >/var/log/hetzner-k3s.log
-  SUBNET="{{ private_network_subnet }}"
+  if [ "{{ private_network_mode }}" = "hetzner" ]; then
+    echo "Using Hetzner private network " >/var/log/hetzner-k3s.log
+    SUBNET="{{ private_network_subnet }}"
+  else
+    echo "Using Tailscale private network " >/var/log/hetzner-k3s.log
+    SUBNET="100.64.0.0/10"
+
+    curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }} --advertise-routes={{ cluster_cidr }},{{ service_cidr }}
+  fi
+
   MAX_ATTEMPTS=30
   DELAY=10
   UP="false"
@@ -13,7 +21,7 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
   for i in $(seq 1 $MAX_ATTEMPTS); do
     NETWORK_INTERFACE=$(
       ip -o link show |
-        grep -w 'mtu 1450' |
+        grep -E 'mtu (1450|1280)' |
         awk -F': ' '{print $2}' |
         grep -Ev 'cilium|br|flannel|docker|veth' |
         xargs -I {} bash -c 'ethtool {} &>/dev/null && echo {}' |
