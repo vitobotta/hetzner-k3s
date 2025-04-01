@@ -203,6 +203,8 @@ class Kubernetes::Installer
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
+      tailscale_auth_key: settings.networking.private_network.tailscale.auth_key,
+      tailscale_server_url: settings.networking.private_network.tailscale.server_url,
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
       cluster_dns: settings.networking.cluster_dns,
