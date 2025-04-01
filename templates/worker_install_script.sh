@@ -11,7 +11,7 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
     echo "Using Tailscale private network " >/var/log/hetzner-k3s.log
     SUBNET="100.64.0.0/10"
 
-    curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }} --advertise-routes={{ cluster_cidr }},{{ service_cidr }}
+    curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }}
   fi
 
   MAX_ATTEMPTS=30
