@@ -410,4 +410,8 @@ class Kubernetes::Installer
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
   end
+
+  private def tailscale?
+    settings.networking.private_network.enabled && settings.netwoking.private_network.mode == "tailscale"
+  end
 end
