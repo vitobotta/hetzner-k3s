@@ -412,6 +412,6 @@ class Kubernetes::Installer
   end
 
   private def tailscale?
-    settings.networking.private_network.enabled && settings.netwoking.private_network.mode == "tailscale"
+    settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale"
   end
 end
