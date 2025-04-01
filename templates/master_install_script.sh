@@ -13,7 +13,6 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
 
     curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }}
 
-    NETDEV=$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")
     printf '#!/bin/sh\n\nethtool -K %s tso off rx-udp-gro-forwarding off rx-gro-list off \n' "$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" | tee /etc/networkd-dispatcher/routable.d/50-tailscale
     chmod 755 /etc/networkd-dispatcher/routable.d/50-tailscale
     /etc/networkd-dispatcher/routable.d/50-tailscale
