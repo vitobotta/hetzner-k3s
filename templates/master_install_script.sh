@@ -21,11 +21,22 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 net.ipv6.conf.lo.disable_ipv6 = 1
-net.ipv4.tcp_congestion_control=bbr
-net.core.rmem_max=16777216
-net.core.wmem_max=16777216
+net.core.rmem_max=26214400
+net.core.wmem_max=26214400
+net.core.rmem_default=1048576
+net.core.wmem_default=1048576
 net.ipv4.tcp_rmem="4096 87380 16777216"
 net.ipv4.tcp_wmem="4096 65536 16777216"
+net.ipv4.tcp_congestion_control=bbr
+net.ipv4.tcp_mtu_probing=1
+net.core.somaxconn=65535
+net.ipv4.tcp_max_syn_backlog=65535
+net.ipv4.udp_mem="65536 131072 262144"
+net.ipv4.udp_rmem_min=16384
+net.ipv4.udp_wmem_min=16384
+net.ipv4.tcp_slow_start_after_idle=0
+net.core.netdev_max_backlog=65536
+net.ipv4.tcp_congestion_control=bbr
 EOF
     sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
   fi
