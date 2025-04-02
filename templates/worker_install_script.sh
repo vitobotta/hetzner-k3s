@@ -13,9 +13,21 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
 
     curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }}
 
-    printf '#!/bin/sh\n\nethtool -K %s tso off rx-udp-gro-forwarding off rx-gro-list off \n' "$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" | tee /etc/networkd-dispatcher/routable.d/50-tailscale
+    printf '#!/bin/sh\n\nethtool -K %s tso off gso off gro off ufo off rx-udp-gro-forwarding off rx-gro-list off \n' "$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" | tee /etc/networkd-dispatcher/routable.d/50-tailscale
     chmod 755 /etc/networkd-dispatcher/routable.d/50-tailscale
     /etc/networkd-dispatcher/routable.d/50-tailscale
+
+    cat > /etc/sysctl.d/99-disable-ipv6.conf << EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+net.ipv4.tcp_congestion_control=bbr
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem="4096 87380 16777216"
+net.ipv4.tcp_wmem="4096 65536 16777216"
+EOF
+    sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
   fi
 
   MAX_ATTEMPTS=30

@@ -234,8 +234,8 @@ class Kubernetes::Installer
   end
 
   private def flannel_backend
-    if tailscale?
-      " "
+    if settings.networking.private_network.enabled && tailscale?
+      "  "
     elsif cni.flannel? && cni.encryption?
       available_releases = K3s.available_releases
       selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
