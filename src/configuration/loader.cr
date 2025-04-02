@@ -90,8 +90,6 @@ class Configuration::Loader
         puts "Aborting."
         exit 1
       end
-
-      exit 0
     end
   end
 
