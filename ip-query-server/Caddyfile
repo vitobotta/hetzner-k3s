@@ -1,0 +1,14 @@
+example.com {
+    reverse_proxy app:8000
+
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+
+    encode gzip
+}
+
+www.example.com {
+    redir https://example.com{uri} permanent
+}

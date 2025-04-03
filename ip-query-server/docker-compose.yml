@@ -1,0 +1,18 @@
+services:
+  app:
+    image: vitobotta/hetzner-ip-query-server:v1
+    ports:
+      - "127.0.0.1:4567:4567"
+
+  caddy:
+    image: caddy:2.7.6
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:
