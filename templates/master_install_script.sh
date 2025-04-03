@@ -79,7 +79,7 @@ fi
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_SKIP_START=false INSTALL_K3S_EXEC="server \
 $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --disable-cloud-controller \
---disable--disable servicelb \
+--disable servicelb \
 --disable metrics-server \
 --write-kubeconfig-mode=644 \
 --node-name=$HOSTNAME \
