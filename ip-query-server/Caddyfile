@@ -1,5 +1,5 @@
 example.com {
-    reverse_proxy app:8000
+    reverse_proxy app:4567
 
     log {
         output file /var/log/caddy/access.log
@@ -9,6 +9,3 @@ example.com {
     encode gzip
 }
 
-www.example.com {
-    redir https://example.com{uri} permanent
-}
