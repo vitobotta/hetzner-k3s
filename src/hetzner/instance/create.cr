@@ -9,6 +9,7 @@ require "../../util/ssh"
 require "../../util/shell"
 require "../../kubernetes/util"
 
+require "compress/gzip"
 
 class Hetzner::Instance::Create
   include Util
@@ -16,7 +17,13 @@ class Hetzner::Instance::Create
   include Kubernetes::Util
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
-  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall_setup_script.sh") }}
+
+  CONFIGURE_FIREWALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/configure_firewall.sh") }}
+  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
+  FIREWALL_STATUS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
+  FIREWALL_UPDATER_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
+  SETUP_FIREWALL_SERVICE_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_service.sh") }}
+
   INITIAL_DELAY = 1     # 1 second
   MAX_DELAY = 60
 
@@ -89,9 +96,9 @@ class Hetzner::Instance::Create
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
+      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
-      firewall_setup_script: firewall_setup_script(settings),
+      firewall_scripts: firewall_scripts(settings),
       api_allowed_networks_config: api_allowed_networks_config(settings),
       ssh_allowed_networks_config: ssh_allowed_networks_config(settings),
       growpart_str: growpart(snapshot_os),
@@ -99,19 +106,61 @@ class Hetzner::Instance::Create
     })
   end
 
-  def self.firewall_setup_script(settings)
-    script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
+  def self.encode(content)
+    io = IO::Memory.new
+    Compress::Gzip::Writer.open(io) do |gzip|
+      gzip.write(content.to_slice)
+    end
+    Base64.strict_encode(io.to_s)
+  end
+
+  def self.firewall_scripts(settings)
+    return "" if settings.networking.private_network.enabled
+
+    firewall_setup_script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
       hetzner_token: settings.hetzner_token,
       ips_query_server_url: settings.networking.public_network.ips_query_server_url,
       ssh_port: settings.networking.ssh.port
     })
 
-    script = "|\n    #{script.gsub("\n", "\n    ")}"
+    firewall_setup_script = "|\n    #{encode(firewall_setup_script).gsub("\n", "\n    ")}"
+    configure_firewall_script = "|\n    #{encode(CONFIGURE_FIREWALL_SCRIPT).gsub("\n", "\n    ")}"
+    firewall_updater_script = "|\n    #{encode(FIREWALL_UPDATER_SCRIPT).gsub("\n", "\n    ")}"
+    firewall_status_script = "|\n    #{encode(FIREWALL_STATUS_SCRIPT).gsub("\n", "\n    ")}"
+    setup_firewall_service_script = Crinja.render(SETUP_FIREWALL_SERVICE_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      ips_query_server_url: settings.networking.public_network.ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    setup_firewall_service_script = "|\n    #{encode(setup_firewall_service_script).gsub("\n", "\n    ")}"
 
     <<-YAML
-    - content: #{script}
-      path: /etc/configure-firewall.sh
+    - path: /usr/local/lib/firewall/firewall_setup.sh
       permissions: '0755'
+      content: #{firewall_setup_script}
+      encoding: gzip+base64
+
+    - path: /usr/local/lib/firewall/configure_firewall.sh
+      permissions: '0755'
+      content: #{configure_firewall_script}
+      encoding: gzip+base64
+
+    - path: /usr/local/lib/firewall/firewall_updater.sh
+      permissions: '0755'
+      content: #{firewall_updater_script}
+      encoding: gzip+base64
+
+    - path: /usr/local/lib/firewall/firewall_status.sh
+      permissions: '0755'
+      content: #{firewall_status_script}
+      encoding: gzip+base64
+
+    - path: /usr/local/lib/firewall/setup_service.sh
+      permissions: '0755'
+      content: #{setup_firewall_service_script}
+      encoding: gzip+base64
+
     YAML
   end
 
@@ -151,18 +200,25 @@ class Hetzner::Instance::Create
     : ""
   end
 
-  def self.mandatory_post_create_commands
-    [
+  def self.mandatory_post_create_commands(settings)
+    commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
       "/etc/configure-ssh.sh",
-      "/etc/configure-firewall.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
+
+    unless settings.networking.private_network.enabled
+      commands += [
+        "/usr/local/lib/firewall/firewall_setup.sh",
+      ]
+    end
+
+    commands
   end
 
-  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
-    post_create_commands = mandatory_post_create_commands.dup
+  def self.generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands)
+    post_create_commands = mandatory_post_create_commands(settings).dup
 
     add_microos_commands(post_create_commands) if snapshot_os == "microos"
 

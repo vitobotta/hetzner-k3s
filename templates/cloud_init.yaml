@@ -6,7 +6,7 @@ preserve_hostname: true
 write_files:
 {{ eth1_str }}
 
-{{ firewall_setup_script }}
+{{ firewall_scripts }}
 
 {{ api_allowed_networks_config }}
 
