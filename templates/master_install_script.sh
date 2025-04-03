@@ -4,42 +4,8 @@ HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [ "{{ private_network_enabled }}" = "true" ]; then
-  if [ "{{ private_network_mode }}" = "hetzner" ]; then
-    echo "Using Hetzner private network " >/var/log/hetzner-k3s.log
-    SUBNET="{{ private_network_subnet }}"
-  else
-    echo "Using Tailscale private network " >/var/log/hetzner-k3s.log
-    SUBNET="100.64.0.0/10"
-
-    curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --login-server {{ tailscale_server_url }} --authkey={{ tailscale_auth_key }}
-
-    printf '#!/bin/sh\n\nethtool -K %s tso off gso off gro off ufo off rx-udp-gro-forwarding off rx-gro-list off \n' "$(ip -o route get 8.8.8.8 | cut -f 5 -d " ")" | tee /etc/networkd-dispatcher/routable.d/50-tailscale
-    chmod 755 /etc/networkd-dispatcher/routable.d/50-tailscale
-    /etc/networkd-dispatcher/routable.d/50-tailscale
-
-    cat > /etc/sysctl.d/99-disable-ipv6.conf << EOF
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1
-net.core.rmem_max=26214400
-net.core.wmem_max=26214400
-net.core.rmem_default=1048576
-net.core.wmem_default=1048576
-net.ipv4.tcp_rmem="4096 87380 16777216"
-net.ipv4.tcp_wmem="4096 65536 16777216"
-net.ipv4.tcp_congestion_control=bbr
-net.ipv4.tcp_mtu_probing=1
-net.core.somaxconn=65535
-net.ipv4.tcp_max_syn_backlog=65535
-net.ipv4.udp_mem="65536 131072 262144"
-net.ipv4.udp_rmem_min=16384
-net.ipv4.udp_wmem_min=16384
-net.ipv4.tcp_slow_start_after_idle=0
-net.core.netdev_max_backlog=65536
-net.ipv4.tcp_congestion_control=bbr
-EOF
-    sysctl -p /etc/sysctl.d/99-disable-ipv6.conf
-  fi
+  echo "Using Hetzner private network " >/var/log/hetzner-k3s.log
+  SUBNET="{{ private_network_subnet }}"
 
   MAX_ATTEMPTS=30
   DELAY=10
@@ -80,7 +46,7 @@ else
   NETWORK_INTERFACE=" "
 fi
 
-if ([ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]) || ([ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_mode }}" = "tailscale" ]); then
+if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ] && [ "{{ private_network_enabled }}" = "true" ]; then
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 else
   FLANNEL_SETTINGS=" {{ flannel_backend }} "
@@ -105,12 +71,6 @@ mirrors:
   "*":
 EOF
 
-if [ "{{ private_network_enabled }}" = "true" ]; then
-  CCM_AND_SERVICE_LOAD_BALANCER=" --disable-cloud-controller --disable servicelb "
-else
-  CCM_AND_SERVICE_LOAD_BALANCER=" "
-fi
-
 if [ "{{ private_network_enabled }}" = "false" ]; then
   INSTANCE_ID=$(curl http://169.254.169.254/hetzner/v1/metadata/instance-id)
   KUBELET_INSTANCE_ID=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
@@ -118,6 +78,8 @@ fi
 
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_SKIP_START=false INSTALL_K3S_EXEC="server \
 $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
+--disable-cloud-controller \
+--disable--disable servicelb \
 --disable metrics-server \
 --write-kubeconfig-mode=644 \
 --node-name=$HOSTNAME \

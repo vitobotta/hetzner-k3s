@@ -51,17 +51,12 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    if tailscale?
-      puts "[Cilium] Ignoring setting and skipping installation since we default to Flanne when using Tailscale for the network"
-    else
-      Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
-    end
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
     if worker_count > 0
@@ -227,8 +222,6 @@ class Kubernetes::Installer
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
-      tailscale_auth_key: settings.networking.private_network.tailscale.auth_key,
-      tailscale_server_url: settings.networking.private_network.tailscale.server_url,
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
       cluster_dns: settings.networking.cluster_dns,
@@ -250,16 +243,12 @@ class Kubernetes::Installer
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
-      tailscale_auth_key: settings.networking.private_network.tailscale.auth_key,
-      tailscale_server_url: settings.networking.private_network.tailscale.server_url,
       extra_args: kubelet_args_list
     })
   end
 
   private def flannel_backend
-    if settings.networking.private_network.enabled && tailscale?
-      "  "
-    elsif cni.flannel? && cni.encryption?
+    if cni.flannel? && cni.encryption?
       available_releases = K3s.available_releases
       selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
       k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
@@ -419,12 +408,7 @@ class Kubernetes::Installer
   end
 
   private def api_server_ip_address
-    if tailscale?
-      ssh_command = "ip addr show dev tailscale0 | grep tailscale0 | awk '{print $2}' | cut -d/ -f1 | grep -v tailscale0"
-      ssh.run(first_master, settings.networking.ssh.port, ssh_command, settings.networking.ssh.use_agent)
-    else
-      first_master.private_ip_address || first_master.public_ip_address
-    end
+    first_master.private_ip_address || first_master.public_ip_address
   end
 
   private def load_balancer_ip_address
@@ -433,9 +417,5 @@ class Kubernetes::Installer
 
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
-  end
-
-  private def tailscale?
-    settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale"
   end
 end
