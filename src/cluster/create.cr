@@ -39,7 +39,7 @@ class Cluster::Create
   private property all_placement_groups : Array(Hetzner::PlacementGroup) = Array(Hetzner::PlacementGroup).new
 
   def initialize(@configuration)
-    @network = find_or_create_network if settings.networking.private_network.enabled && settings.networking.private_network.mode == "hetzner"
+    @network = find_or_create_network if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
     @all_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_unused
     @master_instances = initialize_master_instances
