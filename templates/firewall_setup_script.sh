@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Token for API authentication
-TOKEN="fRDNDjOZNqCiPzyUfGMSFrUa1Pj2YA78D6z78kT5LVOxZaAIKZdzs2GE2RcrGlhe"
-API_URL="https://treo-finder-year-profit.trycloudflare.com/ips"
+TOKEN="{{ hetzner_token }}"
+API_URL="{{ ips_query_server_url }}/ips"
 IPSET_NAME="allowed_ips"
 NETWORKS_FILE="/root/allowed_networks.conf"
 MAX_RETRIES=3

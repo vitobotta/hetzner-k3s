@@ -23,10 +23,11 @@ module Configuration
     def initialize
     end
 
-    def validate(errors, hetzner_client, private_network)
+    def validate(errors, settings, hetzner_client, private_network)
       cni.validate(errors, private_network)
       allowed_networks.validate(errors)
       private_network.validate(errors, hetzner_client)
+      public_network.validate(errors, settings)
     end
   end
 end

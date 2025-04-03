@@ -143,7 +143,12 @@ class Kubernetes::Installer
       ssh.run(instance, settings.networking.ssh.port, "echo '#{network}' >> /root/allowed_networks.conf", settings.networking.ssh.use_agent)
     end
 
-    ssh.run(instance, settings.networking.ssh.port, FIREWALL_SETUP_SCRIPT, settings.networking.ssh.use_agent)
+    firewall_setup_script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      ips_query_server_url: settings.networking.public_network.ips_query_server_url
+    })
+
+    ssh.run(instance, settings.networking.ssh.port, firewall_setup_script, settings.networking.ssh.use_agent)
 
     sleep 5
   end
