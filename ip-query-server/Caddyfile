@@ -1,3 +1,8 @@
+{
+    acme_ca https://acme-v02.api.letsencrypt.org/directory
+    email   mail@example.com
+}
+
 example.com {
     reverse_proxy app:4567
 
