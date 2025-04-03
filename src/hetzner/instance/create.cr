@@ -226,7 +226,7 @@ class Hetzner::Instance::Create
   end
 
   private def attached_to_network?(instance, attaching_to_network_count)
-    return true unless needs_attaching_to_private_network?(instance) && settings.networking.private_network.mode == "hetzner"
+    return true unless needs_attaching_to_private_network?(instance)
 
     attach_instance_to_network(instance, attaching_to_network_count)
 
