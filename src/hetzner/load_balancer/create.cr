@@ -54,7 +54,7 @@ class Hetzner::LoadBalancer::Create
   end
 
   private def load_balancer_config
-    if settings.networking.private_network.enabled && settings.networking.private_network.mode == "hetzner"
+    if settings.networking.private_network.enabled
       {
         :algorithm => {
           :type => "round_robin"
