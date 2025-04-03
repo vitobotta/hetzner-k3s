@@ -98,14 +98,13 @@ setup_iptables() {
         fi
     done
 
-    # Add ipset rules to iptables if not already present
-    # For API access (port 6443)
-    if ! iptables -C INPUT -p tcp --dport 6443 -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null; then
-        echo "Adding API access rule to iptables..."
-        iptables -A INPUT -p tcp --dport 6443 -m set --match-set $IPSET_NAME_API src -j ACCEPT
+    # Allow all traffic from API networks
+    if ! iptables -C INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null; then
+        echo "Adding rule to allow all traffic from API networks..."
+        iptables -A INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT
     fi
 
-    # For SSH access
+    # For SSH access only from specific networks
     if ! iptables -C INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT 2>/dev/null; then
         echo "Adding SSH access rule to iptables..."
         iptables -A INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT
@@ -215,7 +214,7 @@ if command -v iptables &> /dev/null; then
     # Check for our ipset rules
     echo "Checking for ipset rules:"
     if iptables -L INPUT -v | grep -q "match-set \$IPSET_NAME_API"; then
-        echo "✓ FOUND: API networks rule is active"
+        echo "✓ FOUND: API networks rule is active (allowing all traffic)"
         iptables -L INPUT -v | grep "match-set \$IPSET_NAME_API"
     else
         echo "✗ NOT FOUND: API networks rule is missing from iptables"
@@ -590,8 +589,8 @@ ipset create $IPSET_NAME_SSH $IPSET_TYPE hashsize 4096 2>/dev/null || true
 # Allow ICMP (ping) from any host
 iptables -C INPUT -p icmp -j ACCEPT 2>/dev/null || iptables -A INPUT -p icmp -j ACCEPT
 
-# For API access (port 6443)
-iptables -C INPUT -p tcp --dport 6443 -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 6443 -m set --match-set $IPSET_NAME_API src -j ACCEPT
+# Allow all traffic from API networks
+iptables -C INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null || iptables -A INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT
 
 # For SSH access
 iptables -C INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT
