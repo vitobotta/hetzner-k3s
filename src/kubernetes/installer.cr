@@ -23,6 +23,7 @@ class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
   CLOUD_INIT_WAIT_SCRIPT = {{ read_file("#{__DIR__}/../../templates/cloud_init_wait_script.sh") }}
+  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../templates/firewall_setup_script.sh") }}
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -133,8 +134,24 @@ class Kubernetes::Installer
     end
   end
 
+  private def set_up_firewall(instance)
+    return if settings.networking.private_network.enabled
+
+    log_line  "Setting up fireall...", log_prefix: "Instance #{instance.name}"
+
+    settings.networking.allowed_networks.api.each do |network|
+      ssh.run(instance, settings.networking.ssh.port, "echo '#{network}' >> /root/allowed_networks.conf", settings.networking.ssh.use_agent)
+    end
+
+    ssh.run(instance, settings.networking.ssh.port, FIREWALL_SETUP_SCRIPT, settings.networking.ssh.use_agent)
+
+    sleep 5
+  end
+
   private def set_up_first_master(master_count : Int)
     ssh.run(first_master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
+
+    set_up_firewall(first_master)
 
     install_script = master_install_script(first_master, master_count)
 
@@ -165,6 +182,7 @@ class Kubernetes::Installer
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
     ssh.run(master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
+    set_up_firewall(master)
     ssh.run(master, settings.networking.ssh.port, master_install_script(master, master_count), settings.networking.ssh.use_agent)
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
