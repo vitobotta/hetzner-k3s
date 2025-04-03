@@ -13,7 +13,6 @@ class Configuration::NetworkingComponents::PrivateNetwork
 
   def validate(errors, hetzner_client)
     validate_existing_network_name(errors, hetzner_client)
-    validate_mode(errors)
 
     begin
       IPAddress.new(subnet).network?
