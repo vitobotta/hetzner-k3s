@@ -6,6 +6,12 @@ preserve_hostname: true
 write_files:
 {{ eth1_str }}
 
+{{ firewall_setup_script }}
+
+{{ api_allowed_networks_config }}
+
+{{ ssh_allowed_networks_config }}
+
 - path: /etc/systemd/system/ssh.socket.d/listen.conf
   content: |
     [Socket]

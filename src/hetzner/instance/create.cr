@@ -16,6 +16,7 @@ class Hetzner::Instance::Create
   include Kubernetes::Util
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
+  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall_setup_script.sh") }}
   INITIAL_DELAY = 1     # 1 second
   MAX_DELAY = 60
 
@@ -90,9 +91,46 @@ class Hetzner::Instance::Create
       packages_str: generate_packages_str(snapshot_os, additional_packages),
       post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
+      firewall_setup_script: firewall_setup_script(settings),
+      api_allowed_networks_config: api_allowed_networks_config(settings),
+      ssh_allowed_networks_config: ssh_allowed_networks_config(settings),
       growpart_str: growpart(snapshot_os),
       ssh_port: ssh_port
     })
+  end
+
+  def self.firewall_setup_script(settings)
+    script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      ips_query_server_url: settings.networking.public_network.ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    script = "|\n    #{script.gsub("\n", "\n    ")}"
+
+    <<-YAML
+    - content: #{script}
+      path: /etc/configure-firewall.sh
+      permissions: '0755'
+    YAML
+  end
+
+  def self.api_allowed_networks_config(settings)
+    content = "|\n    #{settings.networking.allowed_networks.api.join("\n").gsub("\n", "\n    ")}"
+
+    <<-YAML
+    - content: #{content}
+      path: /etc/allowed-networks-api.conf
+    YAML
+  end
+
+  def self.ssh_allowed_networks_config(settings)
+    content = "|\n    #{settings.networking.allowed_networks.ssh.join("\n").gsub("\n", "\n    ")}"
+
+    <<-YAML
+    - content: #{content}
+      path: /etc/allowed-networks-ssh.conf
+    YAML
   end
 
   def self.growpart(snapshot_os)
@@ -118,6 +156,7 @@ class Hetzner::Instance::Create
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
       "/etc/configure-ssh.sh",
+      "/etc/configure-firewall.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
   end
