@@ -36,6 +36,16 @@ setup_iptables() {
     iptables -A INPUT -p icmp -j ACCEPT
     echo "Allowing ICMP (ping) from any host"
 
+    # Allow nodeport
+    iptables -A INPUT -p tcp --match multiport --dports 30000:32767 -j ACCEPT
+
+    # Allow traffic from pod network
+    iptables -A INPUT -s {{ cluster_cidr }} -j ACCEPT
+
+    # Allow traffic from service network
+    iptables -A INPUT -s {{ service_cidr }} -j ACCEPT
+
+
     # Create ipsets for API, SSH, and K8S access if they don't exist
     for IPSET_NAME in $IPSET_NAME_API $IPSET_NAME_SSH $IPSET_NAME_K8S; do
         # Remove existing ipset if it exists with wrong type
@@ -94,8 +104,23 @@ ipset create $IPSET_NAME_API $IPSET_TYPE hashsize 4096 2>/dev/null || true
 ipset create $IPSET_NAME_SSH $IPSET_TYPE hashsize 4096 2>/dev/null || true
 ipset create $IPSET_NAME_K8S $IPSET_TYPE hashsize 4096 2>/dev/null || true
 
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT ACCEPT
+
+iptables -A INPUT -p tcp --match multiport --dports 30000:32767 -j ACCEPT
+
 # Allow ICMP (ping) from any host
 iptables -C INPUT -p icmp -j ACCEPT 2>/dev/null || iptables -A INPUT -p icmp -j ACCEPT
+
+# Allow nodeport
+iptables -A INPUT -p tcp --match multiport --dports 30000:32767 -j ACCEPT
+
+# Allow traffic from pod network
+iptables -A INPUT -s {{ cluster_cidr }} -j ACCEPT
+
+# Allow traffic from service network
+iptables -A INPUT -s {{ service_cidr }} -j ACCEPT
 
 # Allow all traffic from API networks (from API_URL)
 iptables -C INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null || iptables -A INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT

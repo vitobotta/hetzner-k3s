@@ -124,9 +124,17 @@ class Hetzner::Instance::Create
     })
 
     firewall_setup_script = "|\n    #{encode(firewall_setup_script).gsub("\n", "\n    ")}"
-    configure_firewall_script = "|\n    #{encode(CONFIGURE_FIREWALL_SCRIPT).gsub("\n", "\n    ")}"
+
+    configure_firewall_script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
+      cluster_cidr: settings.networking.cluster_cidr,
+      service_cidr: settings.networking.service_cidr
+    })
+
+    configure_firewall_script = "|\n    #{encode(configure_firewall_script).gsub("\n", "\n    ")}"
+
     firewall_updater_script = "|\n    #{encode(FIREWALL_UPDATER_SCRIPT).gsub("\n", "\n    ")}"
     firewall_status_script = "|\n    #{encode(FIREWALL_STATUS_SCRIPT).gsub("\n", "\n    ")}"
+
     setup_firewall_service_script = Crinja.render(SETUP_FIREWALL_SERVICE_SCRIPT, {
       hetzner_token: settings.hetzner_token,
       ips_query_server_url: settings.networking.public_network.ips_query_server_url,
