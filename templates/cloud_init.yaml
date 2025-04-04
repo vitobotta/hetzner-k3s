@@ -8,32 +8,7 @@ write_files:
 
 {{ firewall_files }}
 
-{{ api_allowed_networks_config }}
-
-{{ ssh_allowed_networks_config }}
-
-- path: /etc/systemd/system/ssh.socket.d/listen.conf
-  content: |
-    [Socket]
-    ListenStream=
-    ListenStream={{ ssh_port}}
-
-- path: /etc/configure-ssh.sh
-  permissions: '0755'
-  content: |
-    if systemctl is-active ssh.socket > /dev/null 2>&1
-    then
-      # OpenSSH is using socket activation
-      systemctl disable ssh
-      systemctl daemon-reload
-      systemctl restart ssh.socket
-      systemctl stop ssh
-    else
-      # OpenSSH is not using socket activation
-      sed -i 's/^#*Port .*/Port {{ ssh_port }}/' /etc/ssh/sshd_config
-    fi
-    systemctl restart ssh
-
+{{ ssh_files }}
 
 packages: [{{ packages_str }}]
 

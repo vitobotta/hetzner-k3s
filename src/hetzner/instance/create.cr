@@ -27,6 +27,9 @@ class Hetzner::Instance::Create
   IPSET_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
   FIREWALL_UPDATER_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
 
+  SSH_LISTEN_CONF = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
+  SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
+
   INITIAL_DELAY = 1     # 1 second
   MAX_DELAY = 60
 
@@ -102,6 +105,7 @@ class Hetzner::Instance::Create
       post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
       firewall_files: firewall_files(settings),
+      ssh_files: ssh_files(settings),
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config(settings),
       allowed_ssh_networks_config: allowed_ssh_networks_config(settings),
       growpart_str: growpart(snapshot_os),
@@ -230,6 +234,30 @@ class Hetzner::Instance::Create
     YAML
   end
 
+  def self.ssh_listen_conf(settings)
+    conf = Crinja.render(SSH_LISTEN_CONF, {
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(conf)
+  end
+
+  def self.ssh_configuration_script
+    format_file_content(SSH_CONFIGURATION_SCRIPT)
+  end
+
+  def self.ssh_files(settings)
+    <<-YAML
+    - content: #{ssh_listen_conf(settings)}
+      path: /etc/systemd/system/ssh.socket.d/listen.conf
+      encoding: gzip+base64
+    - content: #{ssh_configuration_script}
+      permissions: '0755'
+      path: /etc/configure_ssh.sh
+      encoding: gzip+base64
+    YAML
+  end
+
   def self.growpart(snapshot_os)
     snapshot_os == "microos" ? <<-YAML
     growpart:
@@ -252,14 +280,12 @@ class Hetzner::Instance::Create
     commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "/etc/configure-ssh.sh",
+      "/etc/configure_ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
 
     unless settings.networking.private_network.enabled
-      commands += [
-        "/usr/local/lib/firewall/firewall_setup.sh",
-      ]
+      commands << "/usr/local/lib/firewall/firewall_setup.sh"
     end
 
     commands
