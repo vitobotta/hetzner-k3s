@@ -46,8 +46,8 @@ setup_iptables() {
     iptables -A INPUT -s {{ service_cidr }} -j ACCEPT
 
 
-    # Create ipsets for API, SSH, and K8S access if they don't exist
-    for IPSET_NAME in $IPSET_NAME_API $IPSET_NAME_SSH $IPSET_NAME_K8S; do
+    # Create ipsets for FULL, SSH, and KUBERNETES API access if they don't exist
+    for IPSET_NAME in $IPSET_NAME_NODES $IPSET_NAME_SSH $IPSET_NAME_KUBERNETES_API; do
         # Remove existing ipset if it exists with wrong type
         if ipset list -n | grep -q "^$IPSET_NAME$"; then
             current_type=$(ipset list $IPSET_NAME | grep "Type:" | awk '{print $2}')
@@ -64,19 +64,19 @@ setup_iptables() {
         fi
     done
 
-    # Allow all traffic from API networks (from API_URL)
-    if ! iptables -C INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null; then
-        echo "Adding rule to allow all traffic from API networks..."
-        iptables -A INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT
+    # Allow all traffic between nodes
+    if ! iptables -C INPUT -m set --match-set $IPSET_NAME_NODES src -j ACCEPT 2>/dev/null; then
+        echo "Adding rule to allow all traffic between nodes..."
+        iptables -A INPUT -m set --match-set $IPSET_NAME_NODES src -j ACCEPT
     fi
 
-    # Allow only K8S API port (6443) from K8S networks (from API_NETWORKS_FILE)
-    if ! iptables -C INPUT -p tcp --dport $K8S_PORT -m set --match-set $IPSET_NAME_K8S src -j ACCEPT 2>/dev/null; then
-        echo "Adding rule to allow K8S API access (port $K8S_PORT) from K8S networks..."
-        iptables -A INPUT -p tcp --dport $K8S_PORT -m set --match-set $IPSET_NAME_K8S src -j ACCEPT
+    # Allow only KUBERNETES API port (6443) from networks in KUBERNETES_API_ALLOWED_NETWORKS_FILE
+    if ! iptables -C INPUT -p tcp --dport $KUBERNETES_API_PORT -m set --match-set $IPSET_NAME_KUBERNETES_API src -j ACCEPT 2>/dev/null; then
+        echo "Adding rule to allow K8S API access (port $KUBERNETES_API_PORT) from K8S networks..."
+        iptables -A INPUT -p tcp --dport $KUBERNETES_API_PORT -m set --match-set $IPSET_NAME_KUBERNETES_API src -j ACCEPT
     fi
 
-    # For SSH access only from specific networks
+    # Allow only SSH access from networks in SSH_ALLOWED_NETWORKS_FILE
     if ! iptables -C INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT 2>/dev/null; then
         echo "Adding SSH access rule to iptables..."
         iptables -A INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT
@@ -96,48 +96,17 @@ setup_iptables() {
     echo "Firewall configured successfully."
 }
 
-# Create a script to restore the ipset and iptables rule on boot
-create_boot_script() {
-    cat > /etc/network/if-pre-up.d/ipset-restore << EOF
-#!/bin/bash
-ipset create $IPSET_NAME_API $IPSET_TYPE hashsize 4096 2>/dev/null || true
-ipset create $IPSET_NAME_SSH $IPSET_TYPE hashsize 4096 2>/dev/null || true
-ipset create $IPSET_NAME_K8S $IPSET_TYPE hashsize 4096 2>/dev/null || true
-
-iptables -P INPUT DROP
-iptables -P FORWARD DROP
-iptables -P OUTPUT ACCEPT
-
-iptables -A INPUT -p tcp --match multiport --dports 30000:32767 -j ACCEPT
-
-# Allow ICMP (ping) from any host
-iptables -C INPUT -p icmp -j ACCEPT 2>/dev/null || iptables -A INPUT -p icmp -j ACCEPT
-
-# Allow nodeport
-iptables -A INPUT -p tcp --match multiport --dports 30000:32767 -j ACCEPT
-
-# Allow traffic from pod network
-iptables -A INPUT -s {{ cluster_cidr }} -j ACCEPT
-
-# Allow traffic from service network
-iptables -A INPUT -s {{ service_cidr }} -j ACCEPT
-
-# Allow all traffic from API networks (from API_URL)
-iptables -C INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT 2>/dev/null || iptables -A INPUT -m set --match-set $IPSET_NAME_API src -j ACCEPT
-
-# Allow only K8S API port (6443) from K8S networks (from API_NETWORKS_FILE)
-iptables -C INPUT -p tcp --dport $K8S_PORT -m set --match-set $IPSET_NAME_K8S src -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport $K8S_PORT -m set --match-set $IPSET_NAME_K8S src -j ACCEPT
-
-# For SSH access
-iptables -C INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport $SSH_PORT -m set --match-set $IPSET_NAME_SSH src -j ACCEPT
-
-exit 0
-EOF
-    chmod +x /etc/network/if-pre-up.d/ipset-restore
-    echo "Created boot script for ipset and iptables restoration"
+# Save iptables rules and ipsets
+save_rules() {
+    echo "Saving iptables rules and ipsets..."
+    # Save iptables rules
+    iptables-save > /etc/iptables/rules.v4
+    # Save ipsets
+    ipset save > /etc/iptables/ipsets.v4
+    echo "Rules and ipsets saved."
 }
 
 # Main execution
 handle_ufw
 setup_iptables
-create_boot_script
+save_rules

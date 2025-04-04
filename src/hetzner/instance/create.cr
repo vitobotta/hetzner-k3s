@@ -22,7 +22,10 @@ class Hetzner::Instance::Create
   FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
   FIREWALL_STATUS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
   FIREWALL_UPDATER_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
-  SETUP_FIREWALL_SERVICE_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_service.sh") }}
+  SETUP_FIREWALL_SERVICES_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_services.sh") }}
+  IPTABLES_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/iptables_restore.service") }}
+  IPSET_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
+  FIREWALL_UPDATER_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
 
   INITIAL_DELAY = 1     # 1 second
   MAX_DELAY = 60
@@ -98,9 +101,9 @@ class Hetzner::Instance::Create
       packages_str: generate_packages_str(snapshot_os, additional_packages),
       post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
-      firewall_scripts: firewall_scripts(settings),
-      api_allowed_networks_config: api_allowed_networks_config(settings),
-      ssh_allowed_networks_config: ssh_allowed_networks_config(settings),
+      firewall_files: firewall_files(settings),
+      allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config(settings),
+      allowed_ssh_networks_config: allowed_ssh_networks_config(settings),
       growpart_str: growpart(snapshot_os),
       ssh_port: ssh_port
     })
@@ -114,79 +117,116 @@ class Hetzner::Instance::Create
     Base64.strict_encode(io.to_s)
   end
 
-  def self.firewall_scripts(settings)
-    return "" if settings.networking.private_network.enabled
+  def self.format_file_content(content)
+    "|\n    #{encode(content).gsub("\n", "\n    ")}"
+  end
 
-    firewall_setup_script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
-      hetzner_token: settings.hetzner_token,
-      ips_query_server_url: settings.networking.public_network.ips_query_server_url,
-      ssh_port: settings.networking.ssh.port
-    })
+  def self.allowed_kubernetes_api_networks_config(settings)
+    format_file_content(settings.networking.allowed_networks.api.join("\n"))
+  end
 
-    firewall_setup_script = "|\n    #{encode(firewall_setup_script).gsub("\n", "\n    ")}"
+  def self.allowed_ssh_networks_config(settings)
+    format_file_content(settings.networking.allowed_networks.ssh.join("\n"))
+  end
 
-    configure_firewall_script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
+  def self.configure_firewall_script(settings)
+    script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr
     })
 
-    configure_firewall_script = "|\n    #{encode(configure_firewall_script).gsub("\n", "\n    ")}"
+    format_file_content(script)
+  end
 
-    firewall_updater_script = "|\n    #{encode(FIREWALL_UPDATER_SCRIPT).gsub("\n", "\n    ")}"
-    firewall_status_script = "|\n    #{encode(FIREWALL_STATUS_SCRIPT).gsub("\n", "\n    ")}"
-
-    setup_firewall_service_script = Crinja.render(SETUP_FIREWALL_SERVICE_SCRIPT, {
+  def self.firewall_setup_script(settings)
+    script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
       hetzner_token: settings.hetzner_token,
-      ips_query_server_url: settings.networking.public_network.ips_query_server_url,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
       ssh_port: settings.networking.ssh.port
     })
 
-    setup_firewall_service_script = "|\n    #{encode(setup_firewall_service_script).gsub("\n", "\n    ")}"
+    format_file_content(script)
+  end
+
+  def self.firewall_status_script
+    format_file_content(FIREWALL_STATUS_SCRIPT)
+  end
+
+  def self.firewall_updater_service(settings)
+    service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(service)
+  end
+
+  def self.firewall_updater_script
+    format_file_content(FIREWALL_UPDATER_SCRIPT)
+  end
+
+  def self.ipset_restore_service
+    format_file_content(IPSET_RESTORE_SERVICE)
+  end
+
+  def self.iptables_restore_service
+    format_file_content(IPTABLES_RESTORE_SERVICE)
+  end
+
+  def self.ipset_restore_service
+    format_file_content(IPSET_RESTORE_SERVICE)
+  end
+
+  def self.setup_firewall_services_script(settings)
+    script = Crinja.render(SETUP_FIREWALL_SERVICES_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(script)
+  end
+
+  def self.firewall_files(settings)
+    return "" if settings.networking.private_network.enabled
 
     <<-YAML
-    - path: /usr/local/lib/firewall/firewall_setup.sh
-      permissions: '0755'
-      content: #{firewall_setup_script}
+    - content: #{allowed_kubernetes_api_networks_config(settings)}
+      path: /etc/allowed-networks-kubernetes-api.conf
       encoding: gzip+base64
-
+    - content: #{allowed_ssh_networks_config(settings)}
+      path: /etc/allowed-networks-ssh.conf
+      encoding: gzip+base64
     - path: /usr/local/lib/firewall/configure_firewall.sh
       permissions: '0755'
-      content: #{configure_firewall_script}
+      content: #{configure_firewall_script(settings)}
       encoding: gzip+base64
-
-    - path: /usr/local/lib/firewall/firewall_updater.sh
+    - path: /usr/local/lib/firewall/firewall_setup.sh
       permissions: '0755'
-      content: #{firewall_updater_script}
+      content: #{firewall_setup_script(settings)}
       encoding: gzip+base64
-
     - path: /usr/local/lib/firewall/firewall_status.sh
       permissions: '0755'
       content: #{firewall_status_script}
       encoding: gzip+base64
-
+    - path: /etc/systemd/system/firewall_updater.service
+      content: #{firewall_updater_service((settings))}
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/firewall_updater.sh
+      permissions: '0755'
+      content: #{firewall_updater_script}
+      encoding: gzip+base64
+    - path: /etc/systemd/system/iptables_restore.service
+      content: #{iptables_restore_service}
+      encoding: gzip+base64
+    - path: /etc/systemd/system/ipset_restore.service
+      content: #{ipset_restore_service}
+      encoding: gzip+base64
     - path: /usr/local/lib/firewall/setup_service.sh
       permissions: '0755'
-      content: #{setup_firewall_service_script}
+      content: #{setup_firewall_services_script(settings)}
       encoding: gzip+base64
-
-    YAML
-  end
-
-  def self.api_allowed_networks_config(settings)
-    content = "|\n    #{settings.networking.allowed_networks.api.join("\n").gsub("\n", "\n    ")}"
-
-    <<-YAML
-    - content: #{content}
-      path: /etc/allowed-networks-api.conf
-    YAML
-  end
-
-  def self.ssh_allowed_networks_config(settings)
-    content = "|\n    #{settings.networking.allowed_networks.ssh.join("\n").gsub("\n", "\n    ")}"
-
-    <<-YAML
-    - content: #{content}
-      path: /etc/allowed-networks-ssh.conf
     YAML
   end
 

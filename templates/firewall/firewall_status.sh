@@ -1,146 +1,165 @@
 #!/bin/bash
 
-# Load environment variables
-IPSET_NAME_API="allowed_networks_api"
-IPSET_NAME_SSH="allowed_networks_ssh"
-IPSET_NAME_K8S="allowed_networks_k8s"
-API_NETWORKS_FILE="/etc/allowed-networks-api.conf"
-SSH_NETWORKS_FILE="/etc/allowed-networks-ssh.conf"
+# Configuration
+declare -A IPSETS=(
+    ["nodes"]="nodes"
+    ["allowed_networks_ssh"]="SSH access"
+    ["allowed_networks_k8s_api"]="port 6443 only"
+)
+
+NETWORK_FILES=(
+    "/etc/allowed-networks-kubernetes-api.conf"
+    "/etc/allowed-networks-ssh.conf"
+)
+
 SSH_PORT="{{ ssh_port }}"
-K8S_PORT=6443
+KUBERNETES_API_PORT=6443
 
-echo "===== Firewall Status Check ====="
-echo
+# Helper functions
+print_section() {
+    echo "===== $1 ====="
+    echo
+}
 
-# Check if UFW is installed and active
-if command -v ufw &> /dev/null; then
-    ufw_status=$(ufw status | grep "Status:")
-    echo "UFW Status: $ufw_status"
+check_command() {
+    command -v "$1" &> /dev/null
+}
 
-    if echo "$ufw_status" | grep -q "active"; then
-        echo "WARNING: UFW is active and may conflict with direct iptables rules"
-        echo "UFW Rules:"
-        ufw status numbered
-        echo
+print_limited_entries() {
+    local count=$1
+    local entries=$2
+    local limit=10
+
+    echo "$entries" | head -$limit
+    if [ "$count" -gt $limit ]; then
+        echo "... and $(($count - $limit)) more entries"
     fi
-fi
+}
 
-# Check for allowed networks files
-echo "===== Allowed Networks Files ====="
-for file in "$API_NETWORKS_FILE" "$SSH_NETWORKS_FILE"; do
-    if [ -f "$file" ]; then
-        network_count=$(grep -v "^#" "$file" | grep -v "^$" | wc -l)
-        echo "Found $(basename $file) with $network_count network ranges"
-        echo "Network ranges:"
-        grep -v "^#" "$file" | grep -v "^$" | head -10
+# Check UFW status
+check_ufw_status() {
+    print_section "UFW Status"
+    if check_command ufw; then
+        local status
+        status=$(ufw status | grep "Status:")
 
-        if [ "$network_count" -gt 10 ]; then
-            echo "... and $(($network_count - 10)) more networks"
+        if echo "$status" | grep -q "inactive"; then
+            echo "UFW Status: $status"
+        else
+            echo "WARNING: UFW is active and may conflict with direct iptables rules"
+            ufw status numbered
         fi
-    else
-        echo "No $(basename $file) file found"
     fi
     echo
-done
+}
+
+# Check network files
+check_network_files() {
+    print_section "Allowed Networks Files"
+    for file in "${NETWORK_FILES[@]}"; do
+        if [ -f "$file" ]; then
+            local count
+            count=$(grep -v "^#" "$file" | grep -v "^$" | wc -l)
+            echo "Found $(basename "$file") with $count network ranges"
+            echo "Network ranges:"
+            print_limited_entries "$count" "$(grep -v '^#' "$file" | grep -v '^$')"
+        else
+            echo "No $(basename "$file") file found"
+        fi
+        echo
+    done
+}
 
 # Check ipset status
-echo "===== IPSET Status ====="
-if command -v ipset &> /dev/null; then
-    for ipset_name in "$IPSET_NAME_API" "$IPSET_NAME_SSH" "$IPSET_NAME_K8S"; do
+check_ipset_status() {
+    print_section "IPSET Status"
+    if ! check_command ipset; then
+        echo "ipset command not found"
+        return
+    fi
+
+    for ipset_name in "${!IPSETS[@]}"; do
         if ipset list -n | grep -q "^$ipset_name$"; then
-            network_count=$(ipset list $ipset_name | grep "Number of entries:" | awk '{print $4}')
-            ipset_type=$(ipset list $ipset_name | grep "Type:" | awk '{print $2}')
+            local count type
+            count=$(ipset list "$ipset_name" | grep "Number of entries:" | awk '{print $4}')
+            type=$(ipset list "$ipset_name" | grep "Type:" | awk '{print $2}')
 
-            if [ "$ipset_name" = "$IPSET_NAME_API" ]; then
-                access_type="full access"
-            elif [ "$ipset_name" = "$IPSET_NAME_K8S" ]; then
-                access_type="port $K8S_PORT only"
-            else
-                access_type="SSH access"
-            fi
-
-            echo "Network Allowlist '$ipset_name' Status: Active with $network_count entries (Type: $ipset_type, $access_type)"
+            echo "Network Allowlist '$ipset_name' Status: Active with $count entries (Type: $type, ${IPSETS[$ipset_name]})"
             echo "First 10 allowed entries (sample):"
-            ipset list $ipset_name | grep -A 10 "Members:" | tail -10
-
-            if [ "$network_count" -gt 10 ]; then
-                echo "... and $(($network_count - 10)) more entries"
-            fi
+            print_limited_entries "$count" "$(ipset list "$ipset_name" | grep -A 10 "Members:" | tail -10)"
         else
             echo "Network Allowlist Status: Not found (ipset '$ipset_name' doesn't exist)"
         fi
         echo
     done
-else
-    echo "ipset command not found"
-fi
-echo
+}
 
 # Check iptables rules
-echo "===== IPTABLES Rules ====="
-if command -v iptables &> /dev/null; then
-    # Check default policies
+check_iptables_rules() {
+    print_section "IPTABLES Rules"
+    if ! check_command iptables; then
+        echo "iptables command not found"
+        return
+    fi
+
     echo "Default Policies:"
     iptables -L | grep "Chain" | head -3
     echo
 
-    # Check for ICMP rule
-    echo "Checking for ICMP (ping) rule:"
-    if iptables -L INPUT -v | grep -q "ACCEPT.*icmp"; then
-        echo "✓ FOUND: ICMP (ping) rule is active"
-        iptables -L INPUT -v | grep "ACCEPT.*icmp"
-    else
-        echo "✗ NOT FOUND: ICMP (ping) rule is missing from iptables"
-    fi
-    echo
+    # Check ICMP and ipset rules
+    local rules=(
+        "ICMP:ACCEPT.*icmp:✓ FOUND\: ICMP (ping) rule is active:✗ NOT FOUND\: ICMP (ping) rule is missing"
+        "nodes:match-set nodes:✓ FOUND\: API networks rule is active (allowing all traffic):✗ NOT FOUND\: API networks rule is missing"
+        "kubernetes_api:match-set allowed_networks_k8s_api:✓ FOUND\: K8S networks rule is active (port $KUBERNETES_API_PORT only):✗ NOT FOUND\: K8S networks rule is missing"
+        "ssh:match-set allowed_networks_ssh:✓ FOUND\: SSH networks rule is active (port $SSH_PORT):✗ NOT FOUND\: SSH networks rule is missing"
+    )
 
-    # Check for our ipset rules
-    echo "Checking for ipset rules:"
-    if iptables -L INPUT -v | grep -q "match-set $IPSET_NAME_API"; then
-        echo "✓ FOUND: API networks rule is active (allowing all traffic)"
-        iptables -L INPUT -v | grep "match-set $IPSET_NAME_API"
-    else
-        echo "✗ NOT FOUND: API networks rule is missing from iptables"
-    fi
+    for rule in "${rules[@]}"; do
+        IFS=':' read -r name pattern success_msg fail_msg <<< "$rule"
+        echo "Checking for $name rule:"
+        if iptables -L INPUT -v | grep -q "$pattern"; then
+            echo "$success_msg"
+            iptables -L INPUT -v | grep "$pattern"
+        else
+            echo "$fail_msg"
+        fi
+        echo
+    done
 
-    if iptables -L INPUT -v | grep -q "match-set $IPSET_NAME_K8S"; then
-        echo "✓ FOUND: K8S networks rule is active (port $K8S_PORT only)"
-        iptables -L INPUT -v | grep "match-set $IPSET_NAME_K8S"
-    else
-        echo "✗ NOT FOUND: K8S networks rule is missing from iptables"
-    fi
-
-    if iptables -L INPUT -v | grep -q "match-set $IPSET_NAME_SSH"; then
-        echo "✓ FOUND: SSH networks rule is active (port $SSH_PORT)"
-        iptables -L INPUT -v | grep "match-set $IPSET_NAME_SSH"
-    else
-        echo "✗ NOT FOUND: SSH networks rule is missing from iptables"
-    fi
-    echo
-
-    # Show all INPUT rules
     echo "All INPUT Chain Rules:"
     iptables -L INPUT -v --line-numbers
-else
-    echo "iptables command not found"
-fi
-echo
+}
 
-# Check if our service is running
-echo "===== Firewall Updater Service ====="
-if systemctl list-unit-files | grep -q "firewall-updater.service"; then
-    service_status=$(systemctl is-active firewall-updater.service)
-    echo "Service Status: $service_status"
+# Check firewall service
+check_firewall_service() {
+    print_section "Firewall Updater Service"
+    if systemctl list-unit-files | grep -q "firewall_updater.service"; then
+        local status
+        status=$(systemctl is-active firewall_updater.service)
+        echo "Service Status: $status"
 
-    if [ "$service_status" = "active" ]; then
-        echo "Service Uptime:"
-        systemctl status firewall-updater.service | grep "Active:"
-        echo
-        echo "Recent Logs:"
-        journalctl -u firewall-updater.service --no-pager -n 10
+        if [ "$status" = "active" ]; then
+            echo "Service Uptime:"
+            systemctl status firewall_updater.service | grep "Active:"
+            echo
+            echo "Recent Logs:"
+            journalctl -u firewall_updater.service --no-pager -n 10
+        else
+            echo "Service is not running!"
+        fi
     else
-        echo "Service is not running!"
+        echo "Firewall updater service not installed"
     fi
-else
-    echo "Firewall updater service not installed"
-fi
+}
+
+# Main execution
+main() {
+    print_section "Firewall Status Check"
+    check_ufw_status
+    check_network_files
+    check_ipset_status
+    check_iptables_rules
+    check_firewall_service
+}
+
+main
