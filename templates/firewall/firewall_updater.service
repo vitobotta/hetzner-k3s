@@ -1,0 +1,24 @@
+[Unit]
+Description=Firewall IP Updater Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/firewall/firewall_updater.sh
+Restart=always
+RestartSec=5
+Environment="TOKEN={{ hetzner_token }}"
+Environment="HETZNER_IP_QUERY_SERVER_URL={{ hetzner_ips_query_server_url }}/ips"
+Environment="SSH_PORT={{ ssh_port }}"
+Environment="IPSET_NAME_NODES=nodes"
+Environment="IPSET_NAME_SSH=allowed_networks_ssh"
+Environment="IPSET_NAME_KUBERNETES_API=allowed_networks_k8s_api"
+Environment="KUBERNETES_API_ALLOWED_NETWORKS_FILE=/etc/allowed-networks-kubernetes-api.conf"
+Environment="SSH_ALLOWED_NETWORKS_FILE=/etc/allowed-networks-ssh.conf"
+Environment="KUBERNETES_API_PORT=6443"
+Environment="MAX_RETRIES=3"
+Environment="RETRY_DELAY=5"
+Environment="IPSET_TYPE=hash:net"
+
+[Install]
+WantedBy=multi-user.target

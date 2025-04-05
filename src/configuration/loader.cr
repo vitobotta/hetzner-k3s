@@ -35,8 +35,7 @@ class Configuration::Loader
   getter hetzner_client : Hetzner::Client do
     if settings.hetzner_token.blank?
       errors << "Hetzner API token is missing, please set it in the configuration file or in the environment variable HCLOUD_TOKEN"
-      print_messages(errors)
-      exit 1
+      print_errors
     end
 
     Hetzner::Client.new(settings.hetzner_token)
@@ -70,27 +69,7 @@ class Configuration::Loader
 
     Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
 
-    print_messages(errors) unless errors.empty?
-
-    warnings = [] of String
-    warnings << "Subnet setting is ignored when using Tailscale" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale"
-    warnings << "CNI is always Flannel when using Tailscale" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale" && settings.networking.cni.cilium?
-    warnings << "Encryption at CNI level is always disabled when using Tailscale, since Tailscale takes care of encryption" if settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale" && settings.networking.cni.encryption?
-
-    unless warnings.empty?
-      print_messages(warnings, "warnings")
-
-      return if force
-
-      puts
-      puts "Do you want to continue? (y/n) - To continue automatically without being prompted, use the --force flag."
-      input = gets.try(&.strip)
-
-      if input.nil? || input.empty? || input.downcase != "y"
-        puts "Aborting."
-        exit 1
-      end
-    end
+    print_errors unless errors.empty?
   end
 
   def validate(command)
@@ -146,7 +125,7 @@ class Configuration::Loader
     if errors.empty?
       log_line "...configuration seems valid."
     else
-      print_messages(errors)
+      print_errors
       exit 1
     end
   end
@@ -201,24 +180,14 @@ class Configuration::Loader
     end
   end
 
-  private def print_messages(messages, type = "errors")
-    return if messages.empty?
+  private def print_errors
+    log_line "Some information in the configuration file requires your attention, aborting."
 
-    if type == "errors"
-      log_line "Some information in the configuration file requires your attention, aborting."
-
-      messages.uniq.each do |message|
-        STDERR.puts "[#{default_log_prefix}]  - #{message}"
-      end
-
-      exit 1
-    else
-      log_line "WARNING:"
-
-      messages.uniq.each do |message|
-        puts "[#{default_log_prefix}]  - #{message}"
-      end
+    errors.uniq.each do |error|
+      STDERR.puts "[#{default_log_prefix}]  - #{error}"
     end
+
+    exit 1
   end
 
   private def default_log_prefix

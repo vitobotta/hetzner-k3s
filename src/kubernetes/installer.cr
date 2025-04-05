@@ -23,7 +23,6 @@ class Kubernetes::Installer
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
   CLOUD_INIT_WAIT_SCRIPT = {{ read_file("#{__DIR__}/../../templates/cloud_init_wait_script.sh") }}
-  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../templates/firewall_setup_script.sh") }}
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -51,17 +50,12 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    if tailscale?
-      puts "[Cilium] Ignoring setting and skipping installation since we default to Flanne when using Tailscale for the network"
-    else
-      Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
-    end
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
     if worker_count > 0
@@ -134,29 +128,8 @@ class Kubernetes::Installer
     end
   end
 
-  private def set_up_firewall(instance)
-    return if settings.networking.private_network.enabled
-
-    log_line  "Setting up fireall...", log_prefix: "Instance #{instance.name}"
-
-    settings.networking.allowed_networks.api.each do |network|
-      ssh.run(instance, settings.networking.ssh.port, "echo '#{network}' >> /root/allowed_networks.conf", settings.networking.ssh.use_agent)
-    end
-
-    firewall_setup_script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
-      hetzner_token: settings.hetzner_token,
-      ips_query_server_url: settings.networking.public_network.ips_query_server_url
-    })
-
-    ssh.run(instance, settings.networking.ssh.port, firewall_setup_script, settings.networking.ssh.use_agent)
-
-    sleep 5
-  end
-
   private def set_up_first_master(master_count : Int)
     ssh.run(first_master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-
-    set_up_firewall(first_master)
 
     install_script = master_install_script(first_master, master_count)
 
@@ -187,7 +160,6 @@ class Kubernetes::Installer
 
   private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
     ssh.run(master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    set_up_firewall(master)
     ssh.run(master, settings.networking.ssh.port, master_install_script(master, master_count), settings.networking.ssh.use_agent)
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
@@ -225,10 +197,7 @@ class Kubernetes::Installer
       server: server,
       tls_sans: generate_tls_sans(master_count),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
-      private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
-      tailscale_auth_key: settings.networking.private_network.tailscale.auth_key,
-      tailscale_server_url: settings.networking.private_network.tailscale.server_url,
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
       cluster_dns: settings.networking.cluster_dns,
@@ -246,20 +215,15 @@ class Kubernetes::Installer
       k3s_version: settings.k3s_version,
       api_server_ip_address: api_server_ip_address,
       private_network_enabled: settings.networking.private_network.enabled.to_s,
-      private_network_mode: settings.networking.private_network.mode,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       cluster_cidr: settings.networking.cluster_cidr,
       service_cidr: settings.networking.service_cidr,
-      tailscale_auth_key: settings.networking.private_network.tailscale.auth_key,
-      tailscale_server_url: settings.networking.private_network.tailscale.server_url,
       extra_args: kubelet_args_list
     })
   end
 
   private def flannel_backend
-    if settings.networking.private_network.enabled && tailscale?
-      "  "
-    elsif cni.flannel? && cni.encryption?
+    if cni.flannel? && cni.encryption?
       available_releases = K3s.available_releases
       selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
       k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
@@ -419,12 +383,7 @@ class Kubernetes::Installer
   end
 
   private def api_server_ip_address
-    if tailscale?
-      ssh_command = "ip addr show dev tailscale0 | grep tailscale0 | awk '{print $2}' | cut -d/ -f1 | grep -v tailscale0"
-      ssh.run(first_master, settings.networking.ssh.port, ssh_command, settings.networking.ssh.use_agent)
-    else
-      first_master.private_ip_address || first_master.public_ip_address
-    end
+    first_master.private_ip_address || first_master.public_ip_address
   end
 
   private def load_balancer_ip_address
@@ -433,9 +392,5 @@ class Kubernetes::Installer
 
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
-  end
-
-  private def tailscale?
-    settings.networking.private_network.enabled && settings.networking.private_network.mode == "tailscale"
   end
 end
