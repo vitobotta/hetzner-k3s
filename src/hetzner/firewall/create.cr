@@ -124,14 +124,6 @@ class Hetzner::Firewall::Create
           :port => "any",
           :source_ips => [private_network.subnet],
           :destination_ips => [] of String
-        },
-        {
-          :description => "Allow port 6443 (Kubernetes API server)",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "6443",
-          :source_ips => allowed_networks.api,
-          :destination_ips => [] of String
         }
       ]
     else
