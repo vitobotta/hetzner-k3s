@@ -66,14 +66,6 @@ class Hetzner::Firewall::Create
         :destination_ips => [] of String
       },
       {
-        :description => "Allow Kubernetes API access to allowed networks",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => "6443",
-        :source_ips => allowed_networks.api,
-        :destination_ips => [] of String
-      },
-      {
         :description => "Allow ICMP (ping)",
         :direction => "in",
         :protocol =>  "icmp",
@@ -110,6 +102,14 @@ class Hetzner::Firewall::Create
     if private_network.try(&.enabled)
       rules += [
         {
+          :description => "Allow Kubernetes API access to allowed networks",
+          :direction => "in",
+          :protocol =>  "tcp",
+          :port => "6443",
+          :source_ips => allowed_networks.api,
+          :destination_ips => [] of String
+        },
+        {
           :description => "Allow all TCP traffic between nodes on the private network",
           :direction => "in",
           :protocol =>  "tcp",
@@ -144,7 +144,10 @@ class Hetzner::Firewall::Create
         :direction => "in",
         :protocol =>  "tcp",
         :port => "6443",
-        :source_ips => master_ips,
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
         :destination_ips => [] of String
       }
 

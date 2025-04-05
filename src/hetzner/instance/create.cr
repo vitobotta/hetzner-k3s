@@ -193,7 +193,7 @@ class Hetzner::Instance::Create
   end
 
   def self.firewall_files(settings)
-    return "" if settings.networking.private_network.enabled
+    return "" if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
 
     <<-YAML
     - content: #{allowed_kubernetes_api_networks_config(settings)}
@@ -284,7 +284,7 @@ class Hetzner::Instance::Create
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
 
-    unless settings.networking.private_network.enabled
+    if !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall
       commands << "/usr/local/lib/firewall/firewall_setup.sh"
     end
 

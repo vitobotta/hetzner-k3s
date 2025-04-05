@@ -49,7 +49,7 @@ class Cluster::Create
   def run
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
-    configure_firewall if settings.networking.private_network.enabled
+    configure_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
 
     handle_load_balancer
 
