@@ -127,10 +127,6 @@ class Hetzner::Firewall::Create
         }
       ]
     else
-      master_ips = masters.map do |master|
-        "#{master.public_ip_address}/32"
-      end
-
       rules << {
         :description => "Allow port 6443 (Kubernetes API server) between masters",
         :direction => "in",
@@ -143,37 +139,25 @@ class Hetzner::Firewall::Create
         :destination_ips => [] of String
       }
 
-      if settings.networking.cni.cilium?
-        rules += [
-          {
-            :description => "Allow wireguard traffic (Cilium)",
-            :direction => "in",
-            :protocol =>  "tcp",
-            :port => "51871",
-            :source_ips => [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            :destination_ips => [] of String
-          }
-        ]
-      else
-        rules += [
-          {
-            :description => "Allow wireguard traffic",
-            :direction => "in",
-            :protocol =>  "tcp",
-            :port => "51820",
-            :source_ips => [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            :destination_ips => [] of String
-          }
-        ]
-      end
+      wireguard_port = settings.networking.cni.cilium? ? "51871" : "51820"
+
+      rules << {
+        :description => "Allow wireguard traffic (Cilium)",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => wireguard_port,
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        :destination_ips => [] of String
+      }
 
       if masters.size > 0 && settings.datastore.mode == "etcd"
+        master_ips = masters.map do |master|
+          "#{master.public_ip_address}/32"
+        end
+
         rules << {
           :description => "Allow etcd traffic between masters",
           :direction => "in",
