@@ -10,6 +10,7 @@ class HetznerApp < Sinatra::Base
     set :cache_duration, 30 # seconds
     set :per_page, 50 # Number of servers to fetch per page
     set :host_authorization, { permitted_hosts: [] }
+    set :valid_roles, ['master', 'worker']
   end
 
   # Cache storage
@@ -24,17 +25,29 @@ class HetznerApp < Sinatra::Base
 
   # Routes
   get '/ips' do
-    if cache_valid?(token)
-      @@ip_cache[token].to_json
-    else
-      result = fetch_hetzner_ips(token)
+    role = params['role']
+    # Only use valid roles
+    role = nil unless settings.valid_roles.include?(role)
+
+    # Check if we need to refresh the cache
+    if !cache_valid?(token)
+      # Fetch all servers and cache filtered results
+      result = fetch_and_cache_all_ips(token)
       return error_response(result) if error?(result)
-      result.to_json
     end
+
+    # Return the appropriate IP set from cache
+    role_key = role || 'all'
+    cache_key = "#{token}:#{role_key}"
+    @@ip_cache[cache_key].to_json
   end
 
   delete '/cache' do
-    @@ip_cache.delete(token)
+    # Clear all cache entries for this token
+    token_prefix = "#{token}:"
+    @@ip_cache.keys.select { |k| k.start_with?(token_prefix) }.each do |key|
+      @@ip_cache.delete(key)
+    end
     @@last_fetch_time.delete(token)
     { message: 'Cache cleared for this token' }.to_json
   end
@@ -80,8 +93,11 @@ class HetznerApp < Sinatra::Base
     end
   end
 
-  def fetch_hetzner_ips(token)
+  def fetch_and_cache_all_ips(token)
+    # Initialize IP collections for all categories
     all_ips = []
+    master_ips = []
+    worker_ips = []
     page = 1
 
     # Fetch first page to get pagination info
@@ -89,7 +105,7 @@ class HetznerApp < Sinatra::Base
     return first_page_data if error?(first_page_data)
 
     # Extract IPs from first page
-    extract_ips(first_page_data, all_ips)
+    extract_and_categorize_ips(first_page_data, all_ips, master_ips, worker_ips)
 
     # Calculate total pages
     total_pages = calculate_total_pages(first_page_data)
@@ -98,18 +114,27 @@ class HetznerApp < Sinatra::Base
     (2..total_pages).each do |current_page|
       page_data = fetch_hetzner_page(token, current_page)
       return page_data if error?(page_data)
-      extract_ips(page_data, all_ips)
+      extract_and_categorize_ips(page_data, all_ips, master_ips, worker_ips)
     end
 
-    # Update cache for this specific token
-    update_cache(token, all_ips)
+    # Update cache for all three sets
+    update_cache(token, all_ips, master_ips, worker_ips)
 
+    # Return the complete set of IPs
     all_ips
   end
 
-  def extract_ips(page_data, all_ips)
+  def extract_and_categorize_ips(page_data, all_ips, master_ips, worker_ips)
     page_data['servers'].each do |server|
-      all_ips << server['public_net']['ipv4']['ip']
+      ip = server['public_net']['ipv4']['ip']
+      all_ips << ip
+
+      # Also add to role-specific collections
+      if server['labels'] && server['labels']['role'] == 'master'
+        master_ips << ip
+      elsif server['labels'] && server['labels']['role'] == 'worker'
+        worker_ips << ip
+      end
     end
   end
 
@@ -122,8 +147,13 @@ class HetznerApp < Sinatra::Base
     end
   end
 
-  def update_cache(token, ips)
-    @@ip_cache[token] = ips
+  def update_cache(token, all_ips, master_ips, worker_ips)
+    # Cache each set with its own key
+    @@ip_cache["#{token}:all"] = all_ips
+    @@ip_cache["#{token}:master"] = master_ips
+    @@ip_cache["#{token}:worker"] = worker_ips
+
+    # Use a single last fetch time for the token
     @@last_fetch_time[token] = Time.now
   end
 end
