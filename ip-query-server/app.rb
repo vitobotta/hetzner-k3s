@@ -20,6 +20,9 @@ class HetznerApp < Sinatra::Base
   # Before filter to check for token and set content type
   before do
     content_type :json
+
+    pass if request.path_info == "/health"
+
     halt 401, { error: 'Missing Hetzner API token' }.to_json unless token_present?
   end
 
@@ -40,6 +43,10 @@ class HetznerApp < Sinatra::Base
     role_key = role || 'all'
     cache_key = "#{token}:#{role_key}"
     @@ip_cache[cache_key].to_json
+  end
+
+  get "/health" do
+    "OK"
   end
 
   delete '/cache' do

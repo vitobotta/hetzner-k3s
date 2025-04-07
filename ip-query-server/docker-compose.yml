@@ -1,6 +1,6 @@
 services:
   app:
-    image: vitobotta/hetzner-ip-query-server:v2
+    image: vitobotta/hetzner-ip-query-server:v4
     ports:
       - "127.0.0.1:4567:4567"
 
