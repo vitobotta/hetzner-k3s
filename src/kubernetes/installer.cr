@@ -344,6 +344,8 @@ class Kubernetes::Installer
     add_labels_or_taints(:taint, masters, settings.masters_pool.taints, "masters_pool")
 
     settings.worker_node_pools.each do |node_pool|
+      next if node_pool.autoscaling
+
       nodes = workers.select { |worker| /#{settings.cluster_name}-pool-#{node_pool.name}-worker/ =~ worker.name }
       add_labels_or_taints(:label, nodes, node_pool.labels, node_pool.name)
       add_labels_or_taints(:taint, nodes, node_pool.taints, node_pool.name)
