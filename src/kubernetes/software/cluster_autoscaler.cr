@@ -81,8 +81,7 @@ class Kubernetes::Software::ClusterAutoscaler
     command = [
       "./cluster-autoscaler",
       "--cloud-provider=hetzner",
-      "--enforce-node-group-min-size",
-      "--v=4"
+      "--enforce-node-group-min-size"
     ]
 
     command += node_pool_args
@@ -97,8 +96,29 @@ class Kubernetes::Software::ClusterAutoscaler
       node_pool_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
       next if node_pool_name.nil?
 
+      labels = {} of String => String
+      pool.labels.each do |label|
+        next if label.key.nil? || label.value.nil?
+        labels[label.key.not_nil!] = label.value.not_nil!
+      end
+
+      taints = [] of Hash(String, String)
+      pool.taints.each do |taint|
+        next if taint.key.nil? || taint.value.nil?
+        value_parts = taint.value.not_nil!.split(":")
+        next if value_parts.size < 2
+
+        taints << {
+          "key" => taint.key.not_nil!,
+          "value" => value_parts[0],
+          "effect" => value_parts[1]
+        }
+      end
+
       node_config = {
-        "cloudInit" => cloud_init(pool)
+        "cloudInit" => cloud_init(pool),
+        "labels" => labels,
+        "taints" => taints
       }
 
       node_configs[node_pool_name] = JSON.parse(node_config.to_json)
