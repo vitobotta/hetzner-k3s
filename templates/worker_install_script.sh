@@ -59,10 +59,6 @@ if [ "{{ private_network_enabled }}" = "false" ]; then
   KUBELET_INSTANCE_ID=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
 fi
 
-for CPU in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
-  echo performance > $CPU
-done
-
 curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_URL=https://{{ api_server_ip_address }}:6443 INSTALL_K3S_EXEC="agent \
 --node-name=$HOSTNAME {{ extra_args }} \
 --node-ip=$PRIVATE_IP \

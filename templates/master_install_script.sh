@@ -76,10 +76,6 @@ if [ "{{ private_network_enabled }}" = "false" ]; then
   KUBELET_INSTANCE_ID=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
 fi
 
-for CPU in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
-  echo performance > $CPU
-done
-
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_SKIP_START=false INSTALL_K3S_EXEC="server \
 $CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --disable-cloud-controller \
