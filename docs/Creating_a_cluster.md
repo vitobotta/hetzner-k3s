@@ -90,6 +90,8 @@ protect_against_deletion: true
 
 create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
 
+k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
+
 # additional_packages:
 # - somepackage
 
