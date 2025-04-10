@@ -83,7 +83,8 @@ class Kubernetes::Software::ClusterAutoscaler
     command = [
       "./cluster-autoscaler",
       "--cloud-provider=hetzner",
-      "--enforce-node-group-min-size"
+      "--enforce-node-group-min-size",
+      "--v=4"
     ]
 
     command += node_pool_args
