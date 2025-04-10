@@ -90,12 +90,43 @@ class Kubernetes::Software::ClusterAutoscaler
     command += node_pool_args
   end
 
+  private def build_config_json
+    image = settings.autoscaling_image || settings.image
+
+    node_configs = {} of String => JSON::Any
+
+    autoscaling_worker_node_pools.each do |pool|
+      node_pool_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
+      next if node_pool_name.nil?
+
+      kubelet_labels_arg = "node-labels=#{pool.kubelet_labels.map { |label| "#{label.key}=#{label.value}" }.join(",")}"
+      kubelet_taints_arg = "node-taints=#{pool.kubelet_taints.map { |taint| "#{taint.key}=#{taint.value.split(":").first}:#{taint.value.split(":").last}" }.join(",")}"
+
+      node_config = {
+        "cloudInit" => cloud_init(pool)
+      }
+
+      node_configs[node_pool_name] = JSON.parse(node_config.to_json)
+    end
+
+    config = {
+      "imagesForArch" => {
+        "arm64" => image,
+        "amd64" => image
+      },
+      "nodeConfigs" => node_configs
+    }
+
+    config.to_json
+  end
+
   private def patch_autoscaler_container(autoscaler_container)
     autoscaler_container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:#{settings.manifests.cluster_autoscaler_container_image_tag}"
     autoscaler_container.command = container_command
 
-    set_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT", Base64.strict_encode(cloud_init))
-    set_container_environment_variable(autoscaler_container, "HCLOUD_IMAGE", settings.autoscaling_image || settings.image)
+    remove_container_environment_variable(autoscaler_container, "HCLOUD_CLOUD_INIT")
+
+    set_container_environment_variable(autoscaler_container, "HCLOUD_CLUSTER_CONFIG", Base64.strict_encode(build_config_json))
     set_container_environment_variable(autoscaler_container, "HCLOUD_FIREWALL", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_SSH_KEY", settings.cluster_name)
     set_container_environment_variable(autoscaler_container, "HCLOUD_NETWORK", (settings.networking.private_network.existing_network_name.blank? ? settings.cluster_name : settings.networking.private_network.existing_network_name))
@@ -103,6 +134,14 @@ class Kubernetes::Software::ClusterAutoscaler
     set_container_environment_variable(autoscaler_container, "HCLOUD_PUBLIC_IPV6", settings.networking.public_network.ipv6.to_s)
 
     set_certificate_path(autoscaler_container)
+  end
+
+  private def remove_container_environment_variable(autoscaler_container, variable_name)
+    env_variables = autoscaler_container.env
+
+    return if env_variables.nil?
+
+    env_variables.reject! { |env| env.name == variable_name }
   end
 
   private def set_container_environment_variable(autoscaler_container, variable_name, variable_value)
