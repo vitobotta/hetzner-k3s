@@ -19,11 +19,11 @@ class Kubernetes::Software::ClusterAutoscaler
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
   getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
-  getter worker_install_script : String
   getter first_master : ::Hetzner::Instance
   getter ssh : ::Util::SSH
+  getter masters : Array(::Hetzner::Instance)
 
-  def initialize(@configuration, @settings, @first_master, @ssh, @autoscaling_worker_node_pools, @worker_install_script)
+  def initialize(@configuration, @settings, @masters, @first_master, @ssh, @autoscaling_worker_node_pools)
   end
 
   def install
@@ -34,12 +34,10 @@ class Kubernetes::Software::ClusterAutoscaler
     log_line "...Cluster Autoscaler installed"
   end
 
-  private def cloud_init
-    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [k3s_join_script])
-  end
-
-  private def k3s_join_script
-    "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
+  private def cloud_init(pool)
+    worker_install_script = ::Kubernetes::Installer.worker_install_script(settings, masters, first_master, pool)
+    worker_install_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
+    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [worker_install_script])
   end
 
   private def certificate_path
@@ -98,9 +96,6 @@ class Kubernetes::Software::ClusterAutoscaler
     autoscaling_worker_node_pools.each do |pool|
       node_pool_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
       next if node_pool_name.nil?
-
-      kubelet_labels_arg = "node-labels=#{pool.kubelet_labels.map { |label| "#{label.key}=#{label.value}" }.join(",")}"
-      kubelet_taints_arg = "node-taints=#{pool.kubelet_taints.map { |taint| "#{taint.key}=#{taint.value.split(":").first}:#{taint.value.split(":").last}" }.join(",")}"
 
       node_config = {
         "cloudInit" => cloud_init(pool)

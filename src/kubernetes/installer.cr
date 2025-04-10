@@ -135,7 +135,7 @@ class Kubernetes::Installer
       set_up_workers(workers_installation_queue_channel, worker_count, master_count)
     end
 
-    # Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools).install
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, masters, first_master, ssh, autoscaling_worker_node_pools).install
 
     switch_to_context(default_context)
 
