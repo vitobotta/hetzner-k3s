@@ -27,14 +27,14 @@ First, install these dependencies:
 
 ##### Apple Silicon / ARM
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.7/hetzner-k3s-macos-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.8/hetzner-k3s-macos-arm64
 chmod +x hetzner-k3s-macos-arm64
 sudo mv hetzner-k3s-macos-arm64 /usr/local/bin/hetzner-k3s
 ```
 
 ##### Intel / x86
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.7/hetzner-k3s-macos-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.8/hetzner-k3s-macos-amd64
 chmod +x hetzner-k3s-macos-amd64
 sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -43,14 +43,14 @@ sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 
 #### amd64
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.7/hetzner-k3s-linux-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.8/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64
 sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ```
 
 #### arm
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.7/hetzner-k3s-linux-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.2.8/hetzner-k3s-linux-arm64
 chmod +x hetzner-k3s-linux-arm64
 sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
 ```
