@@ -23,6 +23,8 @@ networking:
   public_network:
     ipv4: true
     ipv6: true
+    # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+    # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
   private_network:
     enabled: true
     subnet: 10.0.0.0/16
