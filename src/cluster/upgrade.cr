@@ -56,10 +56,6 @@ class Cluster::Upgrade
     })
   end
 
-  private def worker_upgrade_concurrency
-    [(workers_count / 4).to_i, 1].max
-  end
-
   private def workers_count
     result = run_shell_command("kubectl get nodes | grep -v master | tail -n +2", configuration.kubeconfig_path, settings.hetzner_token, print_output: false)
     result.output.split("\n").size
@@ -78,7 +74,7 @@ class Cluster::Upgrade
   private def workers_upgrade_manifest
     Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_WORKERS, {
       new_k3s_version: new_k3s_version,
-      worker_upgrade_concurrency: worker_upgrade_concurrency,
+      worker_upgrade_concurrency: settings.k3s_upgrade_concurrency,
     })
   end
 

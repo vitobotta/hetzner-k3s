@@ -37,10 +37,9 @@ class Configuration::Main
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
+  getter k3s_upgrade_concurrency : Int64 = 1
 
   def all_kubelet_args
-    args = ["resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
-    args << "cloud-provider=external" unless networking.private_network.mode == "tailscale"
-    args
+    ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
   end
 end

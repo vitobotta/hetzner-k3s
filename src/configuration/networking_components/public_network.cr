@@ -4,14 +4,15 @@ class Configuration::NetworkingComponents::PublicNetwork
 
   getter ipv4 : Bool = true
   getter ipv6 : Bool = true
-  getter ips_query_server_url : String?
+  getter hetzner_ips_query_server_url : String?
+  getter use_local_firewall : Bool = false
 
   def initialize
   end
 
   def validate(errors, settings)
-    return unless !settings.networking.private_network.enabled && ips_query_server_url.nil?
+    return unless !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall && hetzner_ips_query_server_url.nil?
 
-    errors << "ips_query_server_url must be set when private network is disabled"
+    errors << "hetzner_ips_query_server_url must be set when private network is disabled and the local firewall is used"
   end
 end

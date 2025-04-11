@@ -66,14 +66,6 @@ class Hetzner::Firewall::Create
         :destination_ips => [] of String
       },
       {
-        :description => "Allow Kubernetes API access to allowed networks",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => "6443",
-        :source_ips => allowed_networks.api,
-        :destination_ips => [] of String
-      },
-      {
         :description => "Allow ICMP (ping)",
         :direction => "in",
         :protocol =>  "icmp",
@@ -110,6 +102,14 @@ class Hetzner::Firewall::Create
     if private_network.try(&.enabled)
       rules += [
         {
+          :description => "Allow Kubernetes API access to allowed networks",
+          :direction => "in",
+          :protocol =>  "tcp",
+          :port => "6443",
+          :source_ips => allowed_networks.api,
+          :destination_ips => [] of String
+        },
+        {
           :description => "Allow all TCP traffic between nodes on the private network",
           :direction => "in",
           :protocol =>  "tcp",
@@ -124,61 +124,40 @@ class Hetzner::Firewall::Create
           :port => "any",
           :source_ips => [private_network.subnet],
           :destination_ips => [] of String
-        },
-        {
-          :description => "Allow port 6443 (Kubernetes API server)",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "6443",
-          :source_ips => allowed_networks.api,
-          :destination_ips => [] of String
         }
       ]
     else
-      master_ips = masters.map do |master|
-        "#{master.public_ip_address}/32"
-      end
-
       rules << {
         :description => "Allow port 6443 (Kubernetes API server) between masters",
         :direction => "in",
         :protocol =>  "tcp",
         :port => "6443",
-        :source_ips => master_ips,
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
         :destination_ips => [] of String
       }
 
-      if settings.networking.cni.cilium?
-        rules += [
-          {
-            :description => "Allow wireguard traffic (Cilium)",
-            :direction => "in",
-            :protocol =>  "tcp",
-            :port => "51871",
-            :source_ips => [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            :destination_ips => [] of String
-          }
-        ]
-      else
-        rules += [
-          {
-            :description => "Allow wireguard traffic",
-            :direction => "in",
-            :protocol =>  "tcp",
-            :port => "51820",
-            :source_ips => [
-              "0.0.0.0/0",
-              "::/0"
-            ],
-            :destination_ips => [] of String
-          }
-        ]
-      end
+      wireguard_port = settings.networking.cni.cilium? ? "51871" : "51820"
+
+      rules << {
+        :description => "Allow wireguard traffic (Cilium)",
+        :direction => "in",
+        :protocol =>  "tcp",
+        :port => wireguard_port,
+        :source_ips => [
+          "0.0.0.0/0",
+          "::/0"
+        ],
+        :destination_ips => [] of String
+      }
 
       if masters.size > 0 && settings.datastore.mode == "etcd"
+        master_ips = masters.map do |master|
+          "#{master.public_ip_address}/32"
+        end
+
         rules << {
           :description => "Allow etcd traffic between masters",
           :direction => "in",
