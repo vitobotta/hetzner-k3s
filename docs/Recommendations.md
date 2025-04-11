@@ -1,6 +1,6 @@
 # Recommendations
 
-### Larger Clusters
+## Larger Clusters
 
 The default configuration works well for small to medium-sized clusters, so you don’t need to change much if you want a simple, reliable setup..
 
@@ -29,7 +29,7 @@ For a production setup, I recommend having two instances of the server behind a 
 - If you prefer a CNI other than Cilium or Flannel (e.g., Calico), you can disable automatic CNI setup and install your preferred CNI manually. We may add support for more CNIs in future releases.
 - Starting with v2.0.0, you can use an external SQL datastore like Postgres instead of the built-in etcd for the Kubernetes API. This can also help with scaling larger clusters.
 
-### Embedded Registry Mirror
+## Embedded Registry Mirror
 
 In v2.0.0, there’s a new option to enable the `embedded registry mirror` in k3s. You can find more details [here](https://docs.k3s.io/installation/registry-mirror). This feature uses [Spegel](https://github.com/spegel-org/spegel) to enable peer-to-peer distribution of container images across cluster nodes.
 
