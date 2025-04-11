@@ -23,6 +23,8 @@ networking:
   public_network:
     ipv4: true
     ipv6: true
+    # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+    # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
   private_network:
     enabled: true
     subnet: 10.0.0.0/16
@@ -89,6 +91,8 @@ embedded_registry_mirror:
 protect_against_deletion: true
 
 create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
+
+k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
 
 # additional_packages:
 # - somepackage

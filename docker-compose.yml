@@ -13,6 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     volumes:
+      - /etc/localtime:/etc/localtime:ro
       - ${PWD}:/home/app/hetzner-k3s:cached
       - ${HOME}/.ssh:/root/.ssh
       - /var/run/docker.sock:/var/run/docker.sock

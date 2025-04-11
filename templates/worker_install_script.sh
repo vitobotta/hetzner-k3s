@@ -4,8 +4,9 @@ HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [ "{{ private_network_enabled }}" = "true" ]; then
-  echo "Using private network " >/var/log/hetzner-k3s.log
+  echo "Using Hetzner private network " >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
+
   MAX_ATTEMPTS=30
   DELAY=10
   UP="false"
@@ -13,7 +14,7 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
   for i in $(seq 1 $MAX_ATTEMPTS); do
     NETWORK_INTERFACE=$(
       ip -o link show |
-        grep -w 'mtu 1450' |
+        grep -E 'mtu (1450|1280)' |
         awk -F': ' '{print $2}' |
         grep -Ev 'cilium|br|flannel|docker|veth' |
         xargs -I {} bash -c 'ethtool {} &>/dev/null && echo {}' |
@@ -53,10 +54,15 @@ mirrors:
   "*":
 EOF
 
+if [ "{{ private_network_enabled }}" = "false" ]; then
+  INSTANCE_ID=$(curl http://169.254.169.254/hetzner/v1/metadata/instance-id)
+  KUBELET_INSTANCE_ID=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
+fi
+
 curl -sfL https://get.k3s.io | K3S_TOKEN="{{ k3s_token }}" INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_URL=https://{{ api_server_ip_address }}:6443 INSTALL_K3S_EXEC="agent \
---node-name=$HOSTNAME {{ extra_args }} \
+--node-name=$HOSTNAME {{ extra_args }} {{ labels_and_taints }} \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
-$FLANNEL_SETTINGS " sh -
+$KUBELET_INSTANCE_ID $FLANNEL_SETTINGS " sh -
 
 echo true >/etc/initialized

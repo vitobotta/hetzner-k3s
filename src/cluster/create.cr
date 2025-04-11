@@ -49,7 +49,7 @@ class Cluster::Create
   def run
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
-    configure_firewall
+    configure_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
 
     handle_load_balancer
 
@@ -207,7 +207,7 @@ class Cluster::Create
 
   private def create_instances_concurrently(instance_factories, kubernetes_installation_queue_channel, wait = false)
     wait_channel = Channel(Hetzner::Instance::Create).new
-    semaphore = Channel(Nil).new(50)
+    semaphore = Channel(Nil).new(10)
 
     instance_factories.each do |instance_factory|
       semaphore.send(nil)

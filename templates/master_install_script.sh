@@ -4,8 +4,9 @@ HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 if [ "{{ private_network_enabled }}" = "true" ]; then
-  echo "Using private network " >/var/log/hetzner-k3s.log
+  echo "Using Hetzner private network " >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
+
   MAX_ATTEMPTS=30
   DELAY=10
   UP="false"
@@ -13,7 +14,7 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
   for i in $(seq 1 $MAX_ATTEMPTS); do
     NETWORK_INTERFACE=$(
       ip -o link show |
-        grep -w 'mtu 1450' |
+        grep -E 'mtu (1450|1280)' |
         awk -F': ' '{print $2}' |
         grep -Ev 'cilium|br|flannel|docker|veth' |
         xargs -I {} bash -c 'ethtool {} &>/dev/null && echo {}' |
@@ -45,7 +46,7 @@ else
   NETWORK_INTERFACE=" "
 fi
 
-if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]; then
+if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ] && [ "{{ private_network_enabled }}" = "true" ]; then
   FLANNEL_SETTINGS=" {{ flannel_backend }} --flannel-iface=$NETWORK_INTERFACE "
 else
   FLANNEL_SETTINGS=" {{ flannel_backend }} "
@@ -70,10 +71,15 @@ mirrors:
   "*":
 EOF
 
+if [ "{{ private_network_enabled }}" = "false" ]; then
+  INSTANCE_ID=$(curl http://169.254.169.254/hetzner/v1/metadata/instance-id)
+  KUBELET_INSTANCE_ID=" --kubelet-arg=provider-id=hcloud://$INSTANCE_ID "
+fi
+
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN="{{ k3s_token }}" {{ datastore_endpoint }} INSTALL_K3S_SKIP_START=false INSTALL_K3S_EXEC="server \
+$CCM_AND_SERVICE_LOAD_BALANCER --disable traefik \
 --disable-cloud-controller \
 --disable servicelb \
---disable traefik \
 --disable metrics-server \
 --write-kubeconfig-mode=644 \
 --node-name=$HOSTNAME \
@@ -83,7 +89,7 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" K3S_TOKEN
 --kube-controller-manager-arg="bind-address=0.0.0.0" \
 --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
 --kube-scheduler-arg="bind-address=0.0.0.0" \
-{{ taint }} {{ extra_args }} {{ etcd_arguments }} $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR $LOCAL_PATH_STORAGE_CLASS \
+{{ master_taint }} {{ labels_and_taints }} {{ extra_args }} {{ etcd_arguments }} $KUBELET_INSTANCE_ID $FLANNEL_SETTINGS $EMBEDDED_REGISTRY_MIRROR $LOCAL_PATH_STORAGE_CLASS \
 --advertise-address=$PRIVATE_IP \
 --node-ip=$PRIVATE_IP \
 --node-external-ip=$PUBLIC_IP \
