@@ -23,7 +23,7 @@ Once the server is up and running, change your hetzner-k3s configuration and set
 
 For a production setup, I recommend having two instances of the server behind a load balancer for better availability.
 
-#### Additional notes about large clusters
+### Additional notes about large clusters
 
 - If you disable the private network due to the node limit, encryption will be applied at the CNI level to secure communication between nodes over the public network.
 - If you prefer a CNI other than Cilium or Flannel (e.g., Calico), you can disable automatic CNI setup and install your preferred CNI manually. We may add support for more CNIs in future releases.
