@@ -5,9 +5,12 @@ require "crest"
 module K3s
   GITHUB_DELIM_LINKS = ","
   GITHUB_LINK_REGEX = /<(?<link>[^>]+)>; rel="(?<rel>[^"]+)"/
-  RELEASES_FILENAME = "/tmp/k3s-releases.yaml"
+  RELEASES_DIRECTORY = File.expand_path("#{ENV["HOME"]}/.hetzner-k3s")
+  RELEASES_FILENAME =  File.expand_path("#{ENV["HOME"]}/.hetzner-k3s/k3s-releases.yaml")
 
   def self.available_releases
+    Dir.mkdir(RELEASES_DIRECTORY) unless File.directory?(RELEASES_DIRECTORY)
+
     if File.exists?(RELEASES_FILENAME)
       if (Time.utc - File.info(RELEASES_FILENAME).modification_time) > 7.days
         File.delete(RELEASES_FILENAME)
