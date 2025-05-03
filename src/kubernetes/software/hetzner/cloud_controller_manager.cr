@@ -38,7 +38,6 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
 
     if settings.responds_to?(:robot_user) && settings.robot_user
       documents.each do |doc|
-        # Apply only to kind: Deployment with a specific name
         next unless doc["kind"]?.try(&.as_s) == "Deployment"
         next unless doc["metadata"]?.try(&.["name"]?.try(&.as_s)) == "hcloud-cloud-controller-manager"
 
