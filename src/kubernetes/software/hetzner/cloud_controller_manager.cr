@@ -55,6 +55,15 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
         })
 
         env_array << robot_enabled
+
+        if settings.networking.private_network.enabled
+          network_routes_enabled = YAML::Any.new({
+            YAML::Any.new("name")  => YAML::Any.new("HCLOUD_NETWORK_ROUTES_ENABLED"),
+            YAML::Any.new("value") => YAML::Any.new("false"),
+          })
+          env_array << network_routes_enabled
+        end
+
         container_hash[YAML::Any.new("env")] = YAML::Any.new(env_array)
 
         containers_array[0] = YAML::Any.new(container_hash)
