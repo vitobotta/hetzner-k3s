@@ -42,10 +42,10 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def certificate_path
     @certificate_path ||= if ssh.run(first_master, settings.networking.ssh.port, "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2", settings.networking.ssh.use_agent, false).chomp == "1"
-      "/etc/ssl/certs/ca-certificates.crt"
-    else
-      "/etc/ssl/certs/ca-bundle.crt"
-    end
+                            "/etc/ssl/certs/ca-certificates.crt"
+                          else
+                            "/etc/ssl/certs/ca-bundle.crt"
+                          end
   end
 
   private def node_pool_args
@@ -81,9 +81,10 @@ class Kubernetes::Software::ClusterAutoscaler
     command = [
       "./cluster-autoscaler",
       "--cloud-provider=hetzner",
-      "--enforce-node-group-min-size"
+      "--enforce-node-group-min-size",
     ]
 
+    command += settings.cluster_autoscaler_args
     command += node_pool_args
   end
 
@@ -109,16 +110,16 @@ class Kubernetes::Software::ClusterAutoscaler
         next if value_parts.size < 2
 
         taints << {
-          "key" => taint.key.not_nil!,
-          "value" => value_parts[0],
-          "effect" => value_parts[1]
+          "key"    => taint.key.not_nil!,
+          "value"  => value_parts[0],
+          "effect" => value_parts[1],
         }
       end
 
       node_config = {
         "cloudInit" => cloud_init(pool),
-        "labels" => labels,
-        "taints" => taints
+        "labels"    => labels,
+        "taints"    => taints,
       }
 
       node_configs[node_pool_name] = JSON.parse(node_config.to_json)
@@ -127,9 +128,9 @@ class Kubernetes::Software::ClusterAutoscaler
     config = {
       "imagesForArch" => {
         "arm64" => image,
-        "amd64" => image
+        "amd64" => image,
       },
-      "nodeConfigs" => node_configs
+      "nodeConfigs" => node_configs,
     }
 
     config.to_json
