@@ -4,11 +4,14 @@ https://docs.hetzner.com/cloud/networks/connect-dedi-vswitch/
 
 Follow the instructions and make sure cloud nodes & robot nodes can ping each other
 
-# Cilium settings
+# Cluster settings
 
 Encryption needs to be disabled. Cilium has been tested and works well.
 
 ```
+robot_user: "XXXX"
+robot_password: "YYYY"
+networking:
   cni:
     enabled: true
     encryption: false
