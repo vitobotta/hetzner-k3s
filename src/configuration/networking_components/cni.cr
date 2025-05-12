@@ -10,6 +10,7 @@ class Configuration::NetworkingComponents::CNI
   getter encryption : Bool = true
   getter cilium : Configuration::NetworkingComponents::Cilium = Configuration::NetworkingComponents::Cilium.new
   getter flannel : Configuration::NetworkingComponents::Flannel = Configuration::NetworkingComponents::Flannel.new
+  getter cilium_egress_gateway : Bool = false
 
   def initialize
   end
