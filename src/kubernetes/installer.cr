@@ -168,8 +168,13 @@ class Kubernetes::Installer
       spawn do
         worker = workers_installation_queue_channel.receive
         mutex.synchronize { workers << worker }
-        pool = settings.worker_node_pools.find { |pool| worker.name.split("-")[0..-2].join("-") == "#{settings.cluster_name}-pool-#{pool.name}" }
+
+        pool = settings.worker_node_pools.find do |pool|
+          worker.name.split("-")[0..-2].join("-") =~ /^#{settings.cluster_name.to_s}-.*pool-#{pool.name.to_s}$/
+        end
+
         deploy_k3s_to_worker(pool, worker)
+
         semaphore.receive
         workers_ready_channel.send(worker)
       end
