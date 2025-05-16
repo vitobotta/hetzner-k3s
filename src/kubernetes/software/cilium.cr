@@ -38,6 +38,8 @@ class Kubernetes::Software::Cilium
     --set operator.replicas=1 \
     --set operator.resources.requests.memory=128Mi \
     --set resources.requests.memory=512Mi \
+    --set egressGateway.enabled=#{settings.networking.cni.cilium_egress_gateway.to_s} \
+    --set bpf.masquerade=#{settings.networking.cni.cilium_egress_gateway.to_s} \
     cilium cilium/cilium
 
     echo "Waiting for Cilium to be ready..."
