@@ -243,7 +243,10 @@ class Hetzner::Instance::Create
   end
 
   def self.ssh_configuration_script
-    format_file_content(SSH_CONFIGURATION_SCRIPT)
+    script = Crinja.render(SSH_CONFIGURATION_SCRIPT, {
+      ssh_port: settings.networking.ssh.port
+    })
+    format_file_content(script)
   end
 
   def self.ssh_files(settings)
