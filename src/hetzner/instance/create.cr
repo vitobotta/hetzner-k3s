@@ -242,7 +242,7 @@ class Hetzner::Instance::Create
     format_file_content(conf)
   end
 
-  def self.ssh_configuration_script
+  def self.ssh_configuration_script(settings)
     script = Crinja.render(SSH_CONFIGURATION_SCRIPT, {
       ssh_port: settings.networking.ssh.port
     })
@@ -254,7 +254,7 @@ class Hetzner::Instance::Create
     - content: #{ssh_listen_conf(settings)}
       path: /etc/systemd/system/ssh.socket.d/listen.conf
       encoding: gzip+base64
-    - content: #{ssh_configuration_script}
+    - content: #{ssh_configuration_script(settings)}
       permissions: '0755'
       path: /etc/configure_ssh.sh
       encoding: gzip+base64
