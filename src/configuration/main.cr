@@ -24,6 +24,7 @@ class Configuration::Main
   getter kube_scheduler_args : Array(String) = [] of String
   getter kube_controller_manager_args : Array(String) = [] of String
   getter kube_cloud_controller_manager_args : Array(String) = [] of String
+  getter cluster_autoscaler_args : Array(String) = [] of String
   getter kubelet_args : Array(String) = [] of String
   getter kube_proxy_args : Array(String) = [] of String
   getter image : String = "ubuntu-24.04"
