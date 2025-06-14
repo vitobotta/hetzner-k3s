@@ -58,19 +58,7 @@ If you’d like to connect or just have a chat, feel free to check out my public
 
 ## Docs
 
-- [Installation](docs/Installation.md)
-- [Creating a cluster](docs/Creating_a_cluster.md)
-- [Masters in different locations](docs/Masters_in_different_locations.md)
-- [Private clusters with public network interface disabled](docs/Private_clusters_with_public_network_interface_disabled.md)
-- [Upgrading a 1.x cluster to 2.x](docs/Upgrading_a_cluster_from_1x_to_2x.md)
-- [Setting up a cluster](docs/Setting%20up%20a%20cluster.md)
-- [Recommendations](docs/Recommendations.md)
-- [Maintenance](docs/Maintenance.md)
-- [Deleting a cluster](docs/Deleting_a_cluster.md)
-- [Load balancers](docs/Load_balancers.md)
-- [Storage](docs/Storage.md)
-- [Troubleshooting](docs/Troubleshooting.md)
-- [Contributing and support](docs/Contributing_and_support.md)
+All the documentation is available [here](https://vitobotta.github.io/hetzner-k3s/).
 
 ---
 
