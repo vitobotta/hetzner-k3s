@@ -41,6 +41,13 @@ sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 
 ### Linux
 
+NOTE: If you're using certain distributions like Fedora, you might run into a little issue when you try to run hetzner-k3s because of a different version of OpenSSL. The easiest way to fix this, for now, is to run these commands before starting hetzner-k3s:
+
+```bash
+export OPENSSL_CONF=/dev/null
+export OPENSSL_MODULES=/dev/null
+```
+
 #### amd64
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.3.1/hetzner-k3s-linux-amd64
