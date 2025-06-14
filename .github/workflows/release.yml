@@ -29,13 +29,13 @@ jobs:
             binary_os_suffix: linux
             binary_arch_suffix: arm64
             arch: aarch64
-            # distro: alpine_latest
+            distro: alpine_latest
           - runs_on_tag: ubuntu-24.04
             binary_os_suffix: linux
             binary_arch_suffix: amd64
             arch: none
-            # distro: none
-            # base_image: amd64/alpine
+            distro: none
+            base_image: amd64/alpine
 
     runs-on: ${{ matrix.runs_on_tag }}
 
@@ -66,46 +66,58 @@ jobs:
           chmod +x hetzner-k3s
           cp hetzner-k3s ${{ env.FILENAME }}
 
-      # - if: matrix.binary_os_suffix == 'linux'
-      #   # uses: uraimo/run-on-arch-action@v2
-      #   name: linux build step
-      #   with:
-      #     arch: ${{ matrix.arch }}
-      #     distro: ${{ matrix.distro }}
-      #     # base_image:  ${{ matrix.base_image }}
-
-      #     shell: /bin/sh
-
-      #     install: |
-      #       apk update
-      #       apk add --update --no-cache gcc gmp-dev libevent-dev musl-dev pcre-dev pcre2-dev libxml2-dev \
-      #         openssl-dev tzdata yaml-dev zlib-dev xz-dev \
-      #         make git autoconf automake libtool patch libssh2-dev crystal shards gc-dev
-
-      #     run: |
-      #       shards install --without-development
-
-      #       # Build without full static linking - this creates a binary that only depends on common system libs
-      #       crystal build src/hetzner-k3s.cr --release \
-      #         --link-flags="-static-libgcc -static-libstdc++"
-
-      #       # Check dependencies (for debugging)
-      #       ldd hetzner-k3s || true
-
-      #       cp hetzner-k3s ${{ env.FILENAME }}
-
-
       - if: matrix.binary_os_suffix == 'linux'
+        uses: uraimo/run-on-arch-action@v2
         name: linux build step
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libssl-dev libxml2-dev libgmp-dev \
-            libyaml-dev libpcre3-dev libevent-dev
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          base_image:  ${{ matrix.base_image }}
 
-          shards install --without-development
-          crystal build src/hetzner-k3s.cr --release \
-            --link-flags="-static-libgcc -static-libstdc++"
-          cp hetzner-k3s ${{ env.FILENAME }}
+          shell: /bin/sh
+
+          install: |
+            apk update
+            apk add --update --no-cache \
+              crystal shards gcc musl-dev make git \
+              libevent-static gmp-static gc-static pcre2-static \
+              yaml-static zlib-static xz-static libxml2-static \
+              openssl-dev openssl-libs-static \
+              gmp-dev libevent-dev gc-dev pcre-dev pcre2-dev \
+              yaml-dev libxml2-dev
+
+          run: |
+            shards install --without-development
+
+            # Build fully static first
+            crystal build src/hetzner-k3s.cr --release --static -o hetzner-k3s-static
+
+            # Then create a version with dynamic OpenSSL only
+            # This uses a trick: we build static but exclude OpenSSL libs
+            crystal build src/hetzner-k3s.cr --release -o hetzner-k3s \
+              --link-flags="-static" \
+              --link-flags="-Wl,--as-needed" \
+              --link-flags="-Wl,-Bdynamic -lssl -lcrypto -Wl,-Bstatic"
+
+            # If the above fails, try this approach:
+            crystal build src/hetzner-k3s.cr --release -o hetzner-k3s \
+              -D skip_openssl_validation \
+              --static \
+              --link-flags="$(pkg-config --libs openssl)"
+
+            cp hetzner-k3s ${{ env.FILENAME }}
+
+      # - if: matrix.binary_os_suffix == 'linux'
+      #   name: linux build step
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y libssl-dev libxml2-dev libgmp-dev \
+      #       libyaml-dev libpcre3-dev libevent-dev
+
+      #     shards install --without-development
+      #     crystal build src/hetzner-k3s.cr --release \
+      #       --link-flags="-static-libgcc -static-libstdc++"
+      #     cp hetzner-k3s ${{ env.FILENAME }}
 
       - name: Publish new version
         uses: svenstaro/upload-release-action@v2
