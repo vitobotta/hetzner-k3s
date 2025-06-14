@@ -25,17 +25,17 @@ jobs:
             binary_os_suffix: macos
             binary_arch_suffix: arm64
             architecture: arm
-          - runs_on_tag: ubuntu-22.04
+          - runs_on_tag: ubuntu-24.04
             binary_os_suffix: linux
             binary_arch_suffix: arm64
             arch: aarch64
-            distro: alpine_latest
+            # distro: alpine_latest
           - runs_on_tag: ubuntu-24.04
             binary_os_suffix: linux
             binary_arch_suffix: amd64
             arch: none
-            distro: none
-            base_image: amd64/alpine
+            # distro: none
+            # base_image: amd64/alpine
 
     runs-on: ${{ matrix.runs_on_tag }}
 
@@ -66,33 +66,46 @@ jobs:
           chmod +x hetzner-k3s
           cp hetzner-k3s ${{ env.FILENAME }}
 
+      # - if: matrix.binary_os_suffix == 'linux'
+      #   # uses: uraimo/run-on-arch-action@v2
+      #   name: linux build step
+      #   with:
+      #     arch: ${{ matrix.arch }}
+      #     distro: ${{ matrix.distro }}
+      #     # base_image:  ${{ matrix.base_image }}
+
+      #     shell: /bin/sh
+
+      #     install: |
+      #       apk update
+      #       apk add --update --no-cache gcc gmp-dev libevent-dev musl-dev pcre-dev pcre2-dev libxml2-dev \
+      #         openssl-dev tzdata yaml-dev zlib-dev xz-dev \
+      #         make git autoconf automake libtool patch libssh2-dev crystal shards gc-dev
+
+      #     run: |
+      #       shards install --without-development
+
+      #       # Build without full static linking - this creates a binary that only depends on common system libs
+      #       crystal build src/hetzner-k3s.cr --release \
+      #         --link-flags="-static-libgcc -static-libstdc++"
+
+      #       # Check dependencies (for debugging)
+      #       ldd hetzner-k3s || true
+
+      #       cp hetzner-k3s ${{ env.FILENAME }}
+
+
       - if: matrix.binary_os_suffix == 'linux'
-        uses: uraimo/run-on-arch-action@v2
         name: linux build step
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ matrix.distro }}
-          base_image:  ${{ matrix.base_image }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libxml2-dev libgmp-dev \
+            libyaml-dev libpcre3-dev libevent-dev
 
-          shell: /bin/sh
-
-          install: |
-            apk update
-            apk add --update --no-cache gcc gmp-dev libevent-dev musl-dev pcre-dev pcre2-dev libxml2-dev \
-              openssl-dev tzdata yaml-dev zlib-dev xz-dev \
-              make git autoconf automake libtool patch libssh2-dev crystal shards gc-dev
-
-          run: |
-            shards install --without-development
-
-            # Build without full static linking - this creates a binary that only depends on common system libs
-            crystal build src/hetzner-k3s.cr --release \
-              --link-flags="-static-libgcc -static-libstdc++"
-
-            # Check dependencies (for debugging)
-            ldd hetzner-k3s || true
-
-            cp hetzner-k3s ${{ env.FILENAME }}
+          shards install --without-development
+          crystal build src/hetzner-k3s.cr --release \
+            --link-flags="-static-libgcc -static-libstdc++"
+          cp hetzner-k3s ${{ env.FILENAME }}
 
       - name: Publish new version
         uses: svenstaro/upload-release-action@v2
