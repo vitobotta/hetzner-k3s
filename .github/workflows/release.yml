@@ -79,12 +79,13 @@ jobs:
           install: |
             apk update
             apk add --update --no-cache gcc gmp-dev gmp-static libevent-static musl-dev pcre-dev pcre2-dev pcre2-static libxml2-dev \
-              libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
+              libxml2-static openssl-dev tzdata yaml-static zlib-static xz-static \
               make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards gc-dev gc-static
 
           run: |
             shards install --without-development
-            crystal build src/hetzner-k3s.cr --release --static
+            crystal build src/hetzner-k3s.cr --release \
+              --link-flags="-static -Wl,-Bdynamic -lssl -lcrypto -Wl,-Bstatic"
             cp hetzner-k3s ${{ env.FILENAME }}
 
       - name: Publish new version
