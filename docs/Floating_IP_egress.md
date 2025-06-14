@@ -1,5 +1,3 @@
-## Floating IP for egress
-
 To allow for a unique IP for every call getting from your Cluster, enable Cilim egress
 
 ```
