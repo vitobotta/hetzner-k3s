@@ -1,0 +1,32 @@
+name: Publish docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-docs.yml"
+      - "docs/**/*"
+      - "mkdocs.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - run: pip install mkdocs-material
+
+      - run: mkdocs gh-deploy --force
