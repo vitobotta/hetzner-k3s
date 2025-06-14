@@ -39,6 +39,8 @@ class Configuration::Main
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
+  getter robot_user : String?
+  getter robot_password : String?
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
