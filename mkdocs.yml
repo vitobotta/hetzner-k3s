@@ -3,6 +3,7 @@ repo_name: vitobotta/hetzner-k3s
 repo_url: https://github.com/vitobotta/hetzner-k3s
 theme:
   name: material
+  color_mode: light
   features:
     - content.tooltips
     - content.code.annotate
