@@ -16,7 +16,7 @@ theme:
   icon:
     logo: material/book-open
   palette:
-    scheme: slate
+    scheme: default
 plugins:
   - search
 markdown_extensions:
