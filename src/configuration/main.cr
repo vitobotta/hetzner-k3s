@@ -24,6 +24,7 @@ class Configuration::Main
   getter kube_scheduler_args : Array(String) = [] of String
   getter kube_controller_manager_args : Array(String) = [] of String
   getter kube_cloud_controller_manager_args : Array(String) = [] of String
+  getter cluster_autoscaler_args : Array(String) = [] of String
   getter kubelet_args : Array(String) = [] of String
   getter kube_proxy_args : Array(String) = [] of String
   getter image : String = "ubuntu-24.04"
@@ -37,6 +38,7 @@ class Configuration::Main
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
+  getter k3s_upgrade_concurrency : Int64 = 1
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args

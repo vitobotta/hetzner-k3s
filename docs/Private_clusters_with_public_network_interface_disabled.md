@@ -71,7 +71,20 @@ image: debian-12
 autoscaling_image: debian-12
 ```
 
-- [ ] Next, you need to set up the `post_create_commands` section with a series of important steps. These steps will ensure that the nodes in your clusters use the NAT gateway to access the Internet.:
+- [ ] Next, you need to set up the `post_create_commands` section with a series of important steps. These steps will ensure that the nodes in your clusters use the NAT gateway to access the Internet.
+
+For `ubuntu-24.04` (this should be equivalent to the steps in the hetzner guide):
+
+```yaml
+post_create_commands:
+- printf "[Match]\nName=enp7s0\n\n[Network]\nDHCP=yes\nGateway=10.0.0.1\n" > /etc/systemd/network/10-enp7s0.network
+- printf "[Resolve]\nDNS=185.12.64.2 185.12.64.1" > /etc/systemd/resolved.conf
+- systemctl restart systemd-networkd
+- systemctl restart systemd-resolved
+# add more steps here if you want to update the instance via apt etc. 
+```
+
+For `debian-12`:
 
 ```yaml
 post_create_commands:

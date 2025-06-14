@@ -36,7 +36,6 @@ class Configuration::Loader
     if settings.hetzner_token.blank?
       errors << "Hetzner API token is missing, please set it in the configuration file or in the environment variable HCLOUD_TOKEN"
       print_errors
-      exit 1
     end
 
     Hetzner::Client.new(settings.hetzner_token)
@@ -63,8 +62,9 @@ class Configuration::Loader
 
   private property instance_types_loaded : Bool = false
   private property locations_loaded : Bool = false
+  private property force : Bool = false
 
-  def initialize(@configuration_file_path, @new_k3s_version)
+  def initialize(@configuration_file_path, @new_k3s_version, @force)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
     Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
@@ -97,7 +97,7 @@ class Configuration::Loader
     Settings::K3sVersion.new(errors, settings.k3s_version).validate
     Settings::Datastore.new(errors, settings.datastore).validate
 
-    settings.networking.validate(errors, hetzner_client, settings.networking.private_network)
+    settings.networking.validate(errors, settings, hetzner_client, settings.networking.private_network)
 
     validate_masters_pool
     validate_worker_node_pools
@@ -181,9 +181,7 @@ class Configuration::Loader
   end
 
   private def print_errors
-    return if errors.empty?
-
-    log_line "Some information in the configuration file requires your attention:"
+    log_line "Some information in the configuration file requires your attention, aborting."
 
     errors.uniq.each do |error|
       STDERR.puts "[#{default_log_prefix}]  - #{error}"

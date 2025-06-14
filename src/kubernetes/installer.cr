@@ -43,6 +43,79 @@ class Kubernetes::Installer
     )
   end
 
+  def self.worker_install_script(settings, masters, first_master, worker_pool)
+    labels_and_taints = ::Kubernetes::Installer.labels_and_tains(settings, worker_pool)
+
+    Crinja.render(WORKER_INSTALL_SCRIPT, {
+      cluster_name: settings.cluster_name,
+      k3s_token: k3s_token(settings, masters),
+      k3s_version: settings.k3s_version,
+      api_server_ip_address: api_server_ip_address(first_master),
+      private_network_enabled: settings.networking.private_network.enabled.to_s,
+      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
+      cluster_cidr: settings.networking.cluster_cidr,
+      service_cidr: settings.networking.service_cidr,
+      extra_args: kubelet_args_list(settings),
+      labels_and_taints: labels_and_taints
+    })
+  end
+
+  def self.kubelet_args_list(settings)
+    ::Kubernetes::Util.kubernetes_component_args_list("kubelet", settings.all_kubelet_args)
+  end
+
+  def self.labels_and_tains(settings, pool)
+    pool = pool.not_nil!
+    args = /^master-/ =~ pool.name ? settings.all_kubelet_args : [] of String
+
+    labels = [] of String
+     pool.labels.each do |label|
+      next if  label.key.nil? || label.value.nil?
+      labels << "--node-label #{label.key}=#{label.value}"
+    end
+
+    labels_args = " #{labels.join(" ")} " unless labels.empty?
+
+    taints = [] of String
+    pool.taints.each do |taint|
+      next if taint.key.nil? || taint.value.nil?
+      parts = taint.value.not_nil!.split(":")
+      value = parts[0]
+      effect = parts.size > 1 ? parts[1] : "NoSchedule"
+      taints << "--node-taint #{taint.key.not_nil!}=#{value}:#{effect}"
+    end
+
+    taint_args = " #{taints.join(" ")} " unless taints.empty?
+
+    " #{labels_args} #{taint_args} "
+  end
+
+  def self.k3s_token(settings, masters)
+    @@k3s_token ||= begin
+      tokens = masters.map { |master| ::Kubernetes::Installer.token_by_master(settings, master) }.reject(&.empty?)
+
+      if tokens.empty?
+        Random::Secure.hex
+      else
+        tokens = tokens.tally
+        max_quorum = tokens.max_of { |_, count| count }
+        token = tokens.key_for(max_quorum)
+        token.empty? ? Random::Secure.hex : token.split(':').last
+      end
+    end
+  end
+
+  def self.token_by_master(settings, master : Hetzner::Instance)
+    ::Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
+      .run(master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false).split(':').last
+  rescue
+    ""
+  end
+
+  def self.api_server_ip_address(first_master)
+    first_master.private_ip_address || first_master.public_ip_address
+  end
+
   def run(masters_installation_queue_channel, workers_installation_queue_channel, completed_channel, master_count, worker_count)
     ensure_kubectl_is_installed!
 
@@ -50,18 +123,19 @@ class Kubernetes::Installer
 
     save_kubeconfig(master_count)
 
-    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.cilium?
+    Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
+
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
     Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
     if worker_count > 0
       set_up_workers(workers_installation_queue_channel, worker_count, master_count)
-      add_labels_and_taints
     end
 
-    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, first_master, ssh, autoscaling_worker_node_pools, worker_install_script).install
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, masters, first_master, ssh, autoscaling_worker_node_pools).install
 
     switch_to_context(default_context)
 
@@ -86,13 +160,22 @@ class Kubernetes::Installer
 
   private def set_up_workers(workers_installation_queue_channel, worker_count, master_count)
     workers_ready_channel = Channel(Hetzner::Instance).new
+    semaphore = Channel(Nil).new(10)
     mutex = Mutex.new
 
     worker_count.times do
+      semaphore.send(nil)
       spawn do
         worker = workers_installation_queue_channel.receive
         mutex.synchronize { workers << worker }
-        deploy_k3s_to_worker(worker)
+
+        pool = settings.worker_node_pools.find do |pool|
+          worker.name.split("-")[0..-2].join("-") =~ /^#{settings.cluster_name.to_s}-.*pool-#{pool.name.to_s}$/
+        end
+
+        deploy_k3s_to_worker(pool, worker)
+
+        semaphore.receive
         workers_ready_channel.send(worker)
       end
     end
@@ -159,9 +242,9 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
   end
 
-  private def deploy_k3s_to_worker(worker : Hetzner::Instance)
+  private def deploy_k3s_to_worker(pool, worker : Hetzner::Instance)
     ssh.run(worker, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(worker, settings.networking.ssh.port, worker_install_script, settings.networking.ssh.use_agent)
+    ssh.run(worker, settings.networking.ssh.port, ::Kubernetes::Installer.worker_install_script(settings, masters, first_master, pool), settings.networking.ssh.use_agent)
     log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
@@ -171,23 +254,24 @@ class Kubernetes::Installer
     etcd_arguments = ""
 
     if settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address}:6443 "
+      server = master == first_master ? " --cluster-init " : " --server https://#{::Kubernetes::Installer.api_server_ip_address(first_master)}:6443 "
       etcd_arguments = " --etcd-expose-metrics=true "
     else
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{settings.datastore.external_datastore_endpoint}' "
     end
 
-    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
-    taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
+    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{::Kubernetes::Installer.kubelet_args_list(settings)} #{kube_proxy_args_list}"
+    master_taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
+    labels_and_taints = ::Kubernetes::Installer.labels_and_tains(settings, settings.masters_pool)
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
       k3s_version: settings.k3s_version,
-      k3s_token: k3s_token,
+      k3s_token: ::Kubernetes::Installer.k3s_token(settings, masters),
       cni: cni.enabled.to_s,
       cni_mode: cni.mode,
       flannel_backend: flannel_backend,
-      taint: taint,
+      master_taint: master_taint,
       extra_args: extra_args,
       server: server,
       tls_sans: generate_tls_sans(master_count),
@@ -199,19 +283,8 @@ class Kubernetes::Installer
       datastore_endpoint: datastore_endpoint,
       etcd_arguments: etcd_arguments,
       embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
-      local_path_storage_class_enabled: settings.local_path_storage_class.enabled.to_s
-    })
-  end
-
-  private def worker_install_script
-    Crinja.render(WORKER_INSTALL_SCRIPT, {
-      cluster_name: settings.cluster_name,
-      k3s_token: k3s_token,
-      k3s_version: settings.k3s_version,
-      api_server_ip_address: api_server_ip_address,
-      private_network_enabled: settings.networking.private_network.enabled.to_s,
-      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
-      extra_args: kubelet_args_list
+      local_path_storage_class_enabled: settings.local_path_storage_class.enabled.to_s,
+      labels_and_taints: labels_and_taints
     })
   end
 
@@ -247,42 +320,18 @@ class Kubernetes::Installer
     kubernetes_component_args_list("kube-cloud-controller-manager", settings.kube_cloud_controller_manager_args)
   end
 
-  private def kubelet_args_list
-    kubernetes_component_args_list("kubelet", settings.all_kubelet_args)
-  end
-
   private def kube_proxy_args_list
     kubernetes_component_args_list("kube-proxy", settings.kube_proxy_args)
   end
 
-  private def k3s_token : String
-    @k3s_token ||= begin
-      tokens = masters.map { |master| token_by_master(master) }.reject(&.empty?)
-
-      if tokens.empty?
-        Random::Secure.hex
-      else
-        tokens = tokens.tally
-        max_quorum = tokens.max_of { |_, count| count }
-        token = tokens.key_for(max_quorum)
-        token.empty? ? Random::Secure.hex : token.split(':').last
-      end
-    end
-  end
-
   private def first_master : Hetzner::Instance
     @first_master ||= begin
-      return masters[0] if k3s_token.empty?
+      token = ::Kubernetes::Installer.k3s_token(settings, masters)
+      return masters[0] if token.empty?
 
-      bootstrapped_master = masters.sort_by(&.name).find { |master| token_by_master(master) == k3s_token }
+      bootstrapped_master = masters.sort_by(&.name).find { |master| ::Kubernetes::Installer.token_by_master(settings, master) == token }
       bootstrapped_master || masters[0]
     end
-  end
-
-  private def token_by_master(master : Hetzner::Instance)
-    ssh.run(master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false).split(':').last
-  rescue
-    ""
   end
 
   private def save_kubeconfig(master_count)
@@ -332,34 +381,8 @@ class Kubernetes::Installer
     log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
   end
 
-  private def add_labels_and_taints
-    add_labels_or_taints(:label, masters, settings.masters_pool.labels, "masters_pool")
-    add_labels_or_taints(:taint, masters, settings.masters_pool.taints, "masters_pool")
-
-    settings.worker_node_pools.each do |node_pool|
-      nodes = workers.select { |worker| /#{settings.cluster_name}-pool-#{node_pool.name}-worker/ =~ worker.name }
-      add_labels_or_taints(:label, nodes, node_pool.labels, node_pool.name)
-      add_labels_or_taints(:taint, nodes, node_pool.taints, node_pool.name)
-    end
-  end
-
-  private def add_labels_or_taints(mark_type, instances, marks, node_pool_name)
-    return unless marks.any?
-
-    node_names = instances.map(&.name).join(" ")
-
-    log_line "\nAdding #{mark_type}s to #{node_pool_name} pool workers...", log_prefix: "Node labels"
-
-    all_marks = marks.map { |mark| "#{mark.key}=#{mark.value}" }.join(" ")
-    command = "kubectl #{mark_type} --overwrite nodes #{node_names} #{all_marks}"
-
-    run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token, log_prefix: "Node labels")
-
-    log_line "...node labels applied", log_prefix: "Node labels"
-  end
-
   private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{api_server_ip_address}", "--tls-san=127.0.0.1"]
+    sans = ["--tls-san=#{::Kubernetes::Installer.api_server_ip_address(first_master)}", "--tls-san=127.0.0.1"]
     sans << "--tls-san=#{load_balancer_ip_address}" if settings.create_load_balancer_for_the_kubernetes_api
     sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
 
@@ -373,10 +396,6 @@ class Kubernetes::Installer
 
   private def default_log_prefix
     "Kubernetes software"
-  end
-
-  private def api_server_ip_address
-    first_master.private_ip_address || first_master.public_ip_address
   end
 
   private def load_balancer_ip_address

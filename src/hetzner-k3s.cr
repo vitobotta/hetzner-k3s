@@ -9,7 +9,7 @@ require "./cluster/upgrade"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.2.7"
+    VERSION = "2.3.1.rc1"
 
     def self.print_banner
       puts " _          _                            _    _____     ".colorize(:green)
@@ -31,10 +31,16 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
+      define_flag force : Bool,
+                  description: "Force creation of the cluster without any prompts for warnings",
+                  long: "force",
+                  required: false,
+                  default: false
+
       def run
         ::Hetzner::K3s::CLI.print_banner
 
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, flags.force)
         configuration.validate(:create)
 
         Cluster::Create.new(configuration: configuration).run
@@ -59,7 +65,7 @@ module Hetzner::K3s
       def run
         ::Hetzner::K3s::CLI.print_banner
 
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, true)
         configuration.validate(:delete)
 
         Cluster::Delete.new(configuration: configuration, force: flags.force).run
@@ -83,7 +89,7 @@ module Hetzner::K3s
       def run
         ::Hetzner::K3s::CLI.print_banner
 
-        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version)
+        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version, true)
         configuration.validate(:upgrade)
 
         Cluster::Upgrade.new(configuration: configuration).run

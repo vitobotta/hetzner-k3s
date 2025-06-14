@@ -9,6 +9,7 @@ require "../../util/ssh"
 require "../../util/shell"
 require "../../kubernetes/util"
 
+require "compress/gzip"
 
 class Hetzner::Instance::Create
   include Util
@@ -16,6 +17,19 @@ class Hetzner::Instance::Create
   include Kubernetes::Util
 
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
+
+  CONFIGURE_FIREWALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/configure_firewall.sh") }}
+  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
+  FIREWALL_STATUS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
+  FIREWALL_UPDATER_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
+  SETUP_FIREWALL_SERVICES_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_services.sh") }}
+  IPTABLES_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/iptables_restore.service") }}
+  IPSET_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
+  FIREWALL_UPDATER_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
+
+  SSH_LISTEN_CONF = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
+  SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
+
   INITIAL_DELAY = 1     # 1 second
   MAX_DELAY = 60
 
@@ -88,11 +102,163 @@ class Hetzner::Instance::Create
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands),
+      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands),
       eth1_str: eth1(snapshot_os),
+      firewall_files: firewall_files(settings),
+      ssh_files: ssh_files(settings),
+      allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config(settings),
+      allowed_ssh_networks_config: allowed_ssh_networks_config(settings),
       growpart_str: growpart(snapshot_os),
       ssh_port: ssh_port
     })
+  end
+
+  def self.encode(content)
+    io = IO::Memory.new
+    Compress::Gzip::Writer.open(io) do |gzip|
+      gzip.write(content.to_slice)
+    end
+    Base64.strict_encode(io.to_s)
+  end
+
+  def self.format_file_content(content)
+    "|\n    #{encode(content).gsub("\n", "\n    ")}"
+  end
+
+  def self.allowed_kubernetes_api_networks_config(settings)
+    format_file_content(settings.networking.allowed_networks.api.join("\n"))
+  end
+
+  def self.allowed_ssh_networks_config(settings)
+    format_file_content(settings.networking.allowed_networks.ssh.join("\n"))
+  end
+
+  def self.configure_firewall_script(settings)
+    script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
+      cluster_cidr: settings.networking.cluster_cidr,
+      service_cidr: settings.networking.service_cidr
+    })
+
+    format_file_content(script)
+  end
+
+  def self.firewall_setup_script(settings)
+    script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(script)
+  end
+
+  def self.firewall_status_script
+    format_file_content(FIREWALL_STATUS_SCRIPT)
+  end
+
+  def self.firewall_updater_service(settings)
+    service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(service)
+  end
+
+  def self.firewall_updater_script
+    format_file_content(FIREWALL_UPDATER_SCRIPT)
+  end
+
+  def self.ipset_restore_service
+    format_file_content(IPSET_RESTORE_SERVICE)
+  end
+
+  def self.iptables_restore_service
+    format_file_content(IPTABLES_RESTORE_SERVICE)
+  end
+
+  def self.ipset_restore_service
+    format_file_content(IPSET_RESTORE_SERVICE)
+  end
+
+  def self.setup_firewall_services_script(settings)
+    script = Crinja.render(SETUP_FIREWALL_SERVICES_SCRIPT, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(script)
+  end
+
+  def self.firewall_files(settings)
+    return "" if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
+
+    <<-YAML
+    - content: #{allowed_kubernetes_api_networks_config(settings)}
+      path: /etc/allowed-networks-kubernetes-api.conf
+      encoding: gzip+base64
+    - content: #{allowed_ssh_networks_config(settings)}
+      path: /etc/allowed-networks-ssh.conf
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/configure_firewall.sh
+      permissions: '0755'
+      content: #{configure_firewall_script(settings)}
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/firewall_setup.sh
+      permissions: '0755'
+      content: #{firewall_setup_script(settings)}
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/firewall_status.sh
+      permissions: '0755'
+      content: #{firewall_status_script}
+      encoding: gzip+base64
+    - path: /etc/systemd/system/firewall_updater.service
+      content: #{firewall_updater_service((settings))}
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/firewall_updater.sh
+      permissions: '0755'
+      content: #{firewall_updater_script}
+      encoding: gzip+base64
+    - path: /etc/systemd/system/iptables_restore.service
+      content: #{iptables_restore_service}
+      encoding: gzip+base64
+    - path: /etc/systemd/system/ipset_restore.service
+      content: #{ipset_restore_service}
+      encoding: gzip+base64
+    - path: /usr/local/lib/firewall/setup_service.sh
+      permissions: '0755'
+      content: #{setup_firewall_services_script(settings)}
+      encoding: gzip+base64
+    YAML
+  end
+
+  def self.ssh_listen_conf(settings)
+    conf = Crinja.render(SSH_LISTEN_CONF, {
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(conf)
+  end
+
+  def self.ssh_configuration_script(settings)
+    script = Crinja.render(SSH_CONFIGURATION_SCRIPT, {
+      ssh_port: settings.networking.ssh.port
+    })
+    format_file_content(script)
+  end
+
+  def self.ssh_files(settings)
+    <<-YAML
+    - content: #{ssh_listen_conf(settings)}
+      path: /etc/systemd/system/ssh.socket.d/listen.conf
+      encoding: gzip+base64
+    - content: #{ssh_configuration_script(settings)}
+      permissions: '0755'
+      path: /etc/configure_ssh.sh
+      encoding: gzip+base64
+    YAML
   end
 
   def self.growpart(snapshot_os)
@@ -113,17 +279,23 @@ class Hetzner::Instance::Create
     : ""
   end
 
-  def self.mandatory_post_create_commands
-    [
+  def self.mandatory_post_create_commands(settings)
+    commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "/etc/configure-ssh.sh",
+      "/etc/configure_ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
     ]
+
+    if !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall
+      commands << "/usr/local/lib/firewall/firewall_setup.sh"
+    end
+
+    commands
   end
 
-  def self.generate_post_create_commands_str(snapshot_os, additional_post_create_commands, init_commands)
-    post_create_commands = mandatory_post_create_commands.dup
+  def self.generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands)
+    post_create_commands = mandatory_post_create_commands(settings).dup
 
     add_microos_commands(post_create_commands) if snapshot_os == "microos"
 

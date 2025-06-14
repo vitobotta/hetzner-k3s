@@ -10,6 +10,7 @@ class Configuration::NetworkingComponents::CNI
   getter encryption : Bool = true
   getter cilium : Configuration::NetworkingComponents::Cilium = Configuration::NetworkingComponents::Cilium.new
   getter flannel : Configuration::NetworkingComponents::Flannel = Configuration::NetworkingComponents::Flannel.new
+  getter cilium_egress_gateway : Bool = false
 
   def initialize
   end
@@ -18,7 +19,7 @@ class Configuration::NetworkingComponents::CNI
     return unless enabled
 
     if !encryption && !private_network.enabled
-      errors << "CNI encryption must be enabled when private networking is enabled"
+      errors << "CNI encryption must be enabled when private networking is disabled"
     end
 
     unless ["flannel", "cilium"].includes?(mode)

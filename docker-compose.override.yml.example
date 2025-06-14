@@ -7,4 +7,5 @@ volumes:
 services:
   hetzner-k3s:
     volumes:
+      -/etc/localtime:/etc/localtime:ro
       - ...
