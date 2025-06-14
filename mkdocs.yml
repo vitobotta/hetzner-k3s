@@ -34,7 +34,7 @@ nav:
   - Masters_in_different_locations.md
   - Private_clusters_with_public_network_interface_disabled.md
   - Upgrading_a_cluster_from_1x_to_2x.md
-  - Setting up a cluster.md
+  - Setting_up_a_cluster.md
   - Recommendations.md
   - Maintenance.md
   - Deleting_a_cluster.md
