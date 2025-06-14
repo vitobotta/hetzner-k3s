@@ -94,16 +94,16 @@ jobs:
 
             # Then create a version with dynamic OpenSSL only
             # This uses a trick: we build static but exclude OpenSSL libs
-            crystal build src/hetzner-k3s.cr --release -o hetzner-k3s \
-              --link-flags="-static" \
-              --link-flags="-Wl,--as-needed" \
-              --link-flags="-Wl,-Bdynamic -lssl -lcrypto -Wl,-Bstatic"
-
-            # # If the above fails, try this approach:
             # crystal build src/hetzner-k3s.cr --release -o hetzner-k3s \
-            #   -D skip_openssl_validation \
-            #   --static \
-            #   --link-flags="$(pkg-config --libs openssl)"
+            #   --link-flags="-static" \
+            #   --link-flags="-Wl,--as-needed" \
+            #   --link-flags="-Wl,-Bdynamic -lssl -lcrypto -Wl,-Bstatic"
+
+            # If the above fails, try this approach:
+            crystal build src/hetzner-k3s.cr --release -o hetzner-k3s \
+              -D skip_openssl_validation \
+              --static \
+              --link-flags="$(pkg-config --libs openssl)"
 
             cp hetzner-k3s ${{ env.FILENAME }}
 
