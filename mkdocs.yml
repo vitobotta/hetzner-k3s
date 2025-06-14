@@ -14,7 +14,7 @@ theme:
     - search.suggest
   icon:
     logo: material/book-open
-  palette: 
+  palette:
     scheme: slate
 plugins:
   - search
@@ -40,5 +40,6 @@ nav:
   - Deleting_a_cluster.md
   - Load_balancers.md
   - Storage.md
+  - Floating_IP_egress.md
   - Troubleshooting.md
   - Contributing_and_support.md
