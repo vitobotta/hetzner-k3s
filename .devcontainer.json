@@ -48,6 +48,8 @@
 				"JeroenV.github-copilot-with-context"
 			],
       "settings": {
+				"remote.autoForwardPorts": false,
+
 				"editor.tabSize": 2,
 				"editor.wordWrapColumn": 200,
 				"editor.renderWhitespace": "all",
