@@ -6,7 +6,7 @@ Follow the instructions and make sure cloud nodes & robot nodes can ping each ot
 
 # Cluster settings
 
-Encryption needs to be disabled. Cilium has been tested and works well.
+Encryption needs to be disabled. Cilium has been tested and works well. Other CNIs might work but haven't been tested thoroughly.
 
 ```
 robot_user: "XXXX"
@@ -24,12 +24,11 @@ networking:
 
 `cat /var/lib/rancher/k3s/server/token`
 
-2. Start the agent on the dedicated node (change MASTER_IP & TOKEN)
+2. Start the agent on the dedicated node (change MASTER_IP & TOKEN).
 
 ```
 curl -sfL https://get.k3s.io | \
       K3S_URL=https://MASTER_IP:6443 \
       K3S_TOKEN=TOKEN \
-      K3S_CONTAINERD_SNAPSHOTTER='fuse-overlayfs' \
       sh -s - --node-label dedicated=true
 ```
