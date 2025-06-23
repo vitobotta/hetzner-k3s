@@ -69,9 +69,13 @@ class Kubernetes::Installer
     args = /^master-/ =~ pool.name ? settings.all_kubelet_args : [] of String
 
     labels = [] of String
-     pool.labels.each do |label|
-      next if  label.key.nil? || label.value.nil?
-      labels << "--node-label #{label.key}=#{label.value}"
+    pool.labels.each do |label|
+      next if label.key.nil? || label.value.nil?
+      key = label.key.not_nil!
+      value = label.value.not_nil!
+      escaped_key = key.gsub("\"", "\\\"")
+      escaped_value = value.gsub("\"", "\\\"")
+      labels << "--node-label \"#{escaped_key}=#{escaped_value}\""
     end
 
     labels_args = " #{labels.join(" ")} " unless labels.empty?
@@ -82,7 +86,10 @@ class Kubernetes::Installer
       parts = taint.value.not_nil!.split(":")
       value = parts[0]
       effect = parts.size > 1 ? parts[1] : "NoSchedule"
-      taints << "--node-taint #{taint.key.not_nil!}=#{value}:#{effect}"
+      key = taint.key.not_nil!
+      escaped_key = key.gsub("\"", "\\\"")
+      escaped_value = value.gsub("\"", "\\\"")
+      taints << "--node-taint \"#{escaped_key}=#{escaped_value}:#{effect}\""
     end
 
     taint_args = " #{taints.join(" ")} " unless taints.empty?
