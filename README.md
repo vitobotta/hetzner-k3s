@@ -43,7 +43,7 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 - Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
 
-For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Setting%20up%20a%20cluster.md).
+For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Setting_up_a_cluster.md).
 
 ___
 ## Who am I?
