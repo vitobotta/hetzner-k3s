@@ -301,7 +301,7 @@ class Hetzner::Instance::Create
 
     formatted_additional_commands = format_additional_commands(additional_post_create_commands)
 
-    combined_commands = [post_create_commands, init_commands, formatted_additional_commands].flatten
+    combined_commands = [formatted_additional_commands, post_create_commands, init_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
   end
