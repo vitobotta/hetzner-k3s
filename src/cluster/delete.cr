@@ -66,6 +66,8 @@ class Cluster::Delete
       delete_load_balancer
     end
 
+    switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false)
+
     delete_instances
     delete_placement_groups
     delete_network
