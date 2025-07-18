@@ -84,6 +84,12 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
+    # Optional autoscaler timing configuration:
+    # scan_interval: "2m"                        # How often cluster is reevaluated for scale up or down
+    # scale_down_delay_after_add: "10m"          # How long after scale up that scale down evaluation resumes
+    # scale_down_delay_after_delete: "10s"       # How long after node deletion that scale down evaluation resumes
+    # scale_down_delay_after_failure: "15m"      # How long after scale down failure that scale down evaluation resumes
+    # max_node_provision_time: "15m"             # Maximum time CA waits for node to be provisioned
 
 embedded_registry_mirror:
   enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
@@ -193,6 +199,67 @@ To adjust the Service-CIDR, uncomment or add the `service_cidr` option in your c
 
 **Sizing the Networks:**
 The networks you choose should have enough space for your expected number of pods and services. By default, `/16` networks are used. Select an appropriate size, as changing the CIDR later is not supported.
+
+---
+
+### Autoscaler Configuration
+
+The cluster autoscaler automatically manages the number of worker nodes in your cluster based on resource demands. When you enable autoscaling for a worker node pool, you can also configure various timing parameters to fine-tune its behavior.
+
+#### Basic Autoscaling Configuration
+
+```yaml
+worker_node_pools:
+- name: autoscaled-pool
+  instance_type: cpx31
+  location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 1
+    max_instances: 10
+```
+
+#### Advanced Timing Configuration
+
+You can customize the autoscaler's behavior with these optional parameters:
+
+```yaml
+worker_node_pools:
+- name: autoscaled-pool
+  instance_type: cpx31
+  location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 1
+    max_instances: 10
+    # Timing configuration (all optional):
+    scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
+    scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
+    scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
+    scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
+    max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
+```
+
+#### Parameter Descriptions
+
+- **`scan_interval`**: Controls how frequently the cluster autoscaler evaluates whether scaling is needed. Shorter intervals mean faster response to load changes but more API calls.
+  - *Default*: `10s`
+
+- **`scale_down_delay_after_add`**: Prevents the autoscaler from immediately scaling down after adding nodes. This helps avoid thrashing when workloads are still starting up.
+  - *Default*: `10m`
+
+- **`scale_down_delay_after_delete`**: Adds a delay before considering more scale-down operations after a node deletion. This ensures the cluster stabilizes before further changes.
+  - *Default*: `10s` (scan interval)
+
+- **`scale_down_delay_after_failure`**: When a scale-down operation fails, this parameter controls how long to wait before attempting another scale-down.
+  - *Default*: `3m`
+
+- **`max_node_provision_time`**: Sets the maximum time the autoscaler will wait for a new node to become ready. This is particularly useful for clusters with private networks where provisioning might take longer.
+  - *Default*: `15m`
+
+#### Multi-Pool Behavior
+
+If you have multiple autoscaling worker node pools, the autoscaler will use the configuration from the first pool that defines each parameter. This prevents conflicting settings across pools.
 
 ---
 
