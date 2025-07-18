@@ -59,13 +59,8 @@ class Kubernetes::Software::ClusterAutoscaler
   private def autoscaler_config_args
     args = [] of String
     
-    # Collect configuration from all autoscaling pools (use first value found)
-    autoscaling_configs = autoscaling_worker_node_pools.map(&.autoscaling.not_nil!).compact
-    
-    return args if autoscaling_configs.empty?
-    
-    # Use configuration from the first autoscaling pool
-    config = autoscaling_configs.first
+    # Use top-level cluster autoscaler configuration
+    config = settings.cluster_autoscaler
     
     args << "--scan-interval=#{config.scan_interval}"
     args << "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}"
