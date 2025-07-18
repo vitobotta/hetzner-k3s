@@ -93,7 +93,14 @@ class Kubernetes::Software::ClusterAutoscaler
   private def patch_resources(resources)
     resources.map do |resource|
       resource = Kubernetes::Resources::Resource.from_yaml(resource.to_yaml)
-      resource.kind == "Deployment" ? patched_deployment(resource) : resource
+      case resource.kind
+      when "Deployment"
+        patched_deployment(resource)
+      when "ClusterRole"
+        patched_cluster_role(resource)
+      else
+        resource
+      end
     end
   end
 
@@ -105,6 +112,29 @@ class Kubernetes::Software::ClusterAutoscaler
     patch_volumes(deployment.spec.template.spec.volumes)
 
     deployment
+  end
+
+  private def patched_cluster_role(resource)
+    # Parse the ClusterRole resource
+    cluster_role = YAML.parse(resource.to_yaml)
+    
+    # Find the storage.k8s.io rule and add volumeattachments
+    if rules = cluster_role["rules"]?.try(&.as_a)
+      rules.each do |rule|
+        if rule["apiGroups"]?.try(&.as_a.includes?("storage.k8s.io"))
+          if resources = rule["resources"]?.try(&.as_a)
+            # Add volumeattachments if not already present
+            unless resources.any? { |r| r.as_s == "volumeattachments" }
+              resources << YAML::Any.new("volumeattachments")
+              log_line "Added volumeattachments permission to cluster autoscaler ClusterRole"
+            end
+          end
+        end
+      end
+    end
+    
+    # Convert back to Resource
+    Kubernetes::Resources::Resource.from_yaml(cluster_role.to_yaml)
   end
 
   private def patch_tolerations(pod_spec)
