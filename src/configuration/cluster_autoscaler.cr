@@ -12,4 +12,8 @@ class Configuration::ClusterAutoscaler
 
   def initialize
   end
+
+  def initialize(pull : YAML::PullParser)
+    previous_def(pull)
+  end
 end

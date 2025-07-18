@@ -16,7 +16,11 @@ module Util
           IO::MultiWriter.new(PrefixedIO.new("[#{log_prefix}] ", STDOUT), stdout)
         end
 
-        all_io_err = IO::MultiWriter.new(STDERR, stderr)
+        all_io_err = if log_prefix.blank?
+          IO::MultiWriter.new(STDERR, stderr)
+        else
+          IO::MultiWriter.new(PrefixedIO.new("[#{log_prefix}] ", STDERR), stderr)
+        end
       else
         all_io_out = stdout
         all_io_err = stderr
@@ -35,7 +39,7 @@ module Util
       )
 
       output = status.success? ? stdout.to_s : stderr.to_s
-      result = CommandResult.new(output, status.exit_code)
+      result = CommandResult.new(output, status.exit_status)
 
       unless result.success?
         log_line "#{error_message}: #{result.output}", log_prefix: log_prefix
