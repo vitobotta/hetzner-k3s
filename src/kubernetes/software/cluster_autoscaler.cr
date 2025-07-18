@@ -59,33 +59,19 @@ class Kubernetes::Software::ClusterAutoscaler
   private def autoscaler_config_args
     args = [] of String
     
-    # Collect configuration from all autoscaling pools (use first non-nil value found)
+    # Collect configuration from all autoscaling pools (use first value found)
     autoscaling_configs = autoscaling_worker_node_pools.map(&.autoscaling.not_nil!).compact
     
     return args if autoscaling_configs.empty?
     
-    # Find the first non-nil configuration for each parameter
-    autoscaling_configs.each do |config|
-      if config.scan_interval && args.none?(&.starts_with?("--scan-interval="))
-        args << "--scan-interval=#{config.scan_interval}"
-      end
-      
-      if config.scale_down_delay_after_add && args.none?(&.starts_with?("--scale-down-delay-after-add="))
-        args << "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}"
-      end
-      
-      if config.scale_down_delay_after_delete && args.none?(&.starts_with?("--scale-down-delay-after-delete="))
-        args << "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}"
-      end
-      
-      if config.scale_down_delay_after_failure && args.none?(&.starts_with?("--scale-down-delay-after-failure="))
-        args << "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}"
-      end
-      
-      if config.max_node_provision_time && args.none?(&.starts_with?("--max-node-provision-time="))
-        args << "--max-node-provision-time=#{config.max_node_provision_time}"
-      end
-    end
+    # Use configuration from the first autoscaling pool
+    config = autoscaling_configs.first
+    
+    args << "--scan-interval=#{config.scan_interval}"
+    args << "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}"
+    args << "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}"
+    args << "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}"
+    args << "--max-node-provision-time=#{config.max_node_provision_time}"
     
     args
   end
