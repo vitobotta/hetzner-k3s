@@ -66,9 +66,6 @@ class Cluster::Delete
       delete_load_balancer
     end
 
-    # Try to switch to kubectl context, but continue even if it fails
-    context_switch_result = switch_to_context("#{settings.cluster_name}-master1")
-    
     delete_instances
     delete_placement_groups
     delete_network
