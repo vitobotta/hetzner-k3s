@@ -89,6 +89,6 @@ module Kubernetes::Util
   end
 
   def switch_to_context(context)
-    run_shell_command("KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}", "", settings.hetzner_token, log_prefix: "Control plane")
+    run_shell_command("KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}", "", settings.hetzner_token, log_prefix: "Control plane", abort_on_error: false)
   end
 end

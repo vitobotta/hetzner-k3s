@@ -66,8 +66,9 @@ class Cluster::Delete
       delete_load_balancer
     end
 
-    switch_to_context("#{settings.cluster_name}-master1")
-
+    # Try to switch to kubectl context, but continue even if it fails
+    context_switch_result = switch_to_context("#{settings.cluster_name}-master1")
+    
     delete_instances
     delete_placement_groups
     delete_network
@@ -170,11 +171,17 @@ class Cluster::Delete
 
   private def detect_nodes_with_kubectl
     result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name | tail -n +2", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
-    all_node_names = result.output.split("\n")
+    
+    # Only process kubectl output if the command was successful
+    if result.success?
+      all_node_names = result.output.split("\n").reject(&.empty?)
 
-    all_node_names.each do |node_name|
-      next if instance_deletor_exists?(node_name)
-      instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: node_name)
+      all_node_names.each do |node_name|
+        next if instance_deletor_exists?(node_name)
+        instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: node_name)
+      end
+    else
+      log_line "kubectl command failed, skipping node detection via kubectl. Will delete instances based on configuration only."
     end
   end
 end
