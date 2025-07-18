@@ -99,10 +99,10 @@ class Hetzner::Instance::Create
     instance.not_nil!
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String, for_cluster_autoscaler = false)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands),
+      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands, for_cluster_autoscaler),
       eth1_str: eth1(snapshot_os),
       firewall_files: firewall_files(settings),
       ssh_files: ssh_files(settings),
@@ -294,14 +294,20 @@ class Hetzner::Instance::Create
     commands
   end
 
-  def self.generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands)
+  def self.generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands, for_cluster_autoscaler = false)
     post_create_commands = mandatory_post_create_commands(settings).dup
 
     add_microos_commands(post_create_commands) if snapshot_os == "microos"
 
     formatted_additional_commands = format_additional_commands(additional_post_create_commands)
 
-    combined_commands = [formatted_additional_commands, post_create_commands, init_commands].flatten
+    # For cluster autoscaler (HCLOUD_CLOUD_INIT), run additional commands first to ensure network setup
+    # happens before other initialization commands
+    combined_commands = if for_cluster_autoscaler
+                          [formatted_additional_commands, post_create_commands, init_commands].flatten
+                        else
+                          [post_create_commands, init_commands, formatted_additional_commands].flatten
+                        end
 
     "- #{combined_commands.join("\n- ")}"
   end
