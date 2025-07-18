@@ -115,26 +115,25 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patched_cluster_role(resource)
-    # Parse the ClusterRole resource
     cluster_role = YAML.parse(resource.to_yaml)
-    
-    # Find the storage.k8s.io rule and add volumeattachments
-    if rules = cluster_role["rules"]?.try(&.as_a)
-      rules.each do |rule|
-        if rule["apiGroups"]?.try(&.as_a.includes?("storage.k8s.io"))
-          if resources = rule["resources"]?.try(&.as_a)
-            # Add volumeattachments if not already present
-            unless resources.any? { |r| r.as_s == "volumeattachments" }
-              resources << YAML::Any.new("volumeattachments")
-              log_line "Added volumeattachments permission to cluster autoscaler ClusterRole"
-            end
-          end
-        end
-      end
-    end
-    
-    # Convert back to Resource
+    add_volumeattachments_permission(cluster_role)
     Kubernetes::Resources::Resource.from_yaml(cluster_role.to_yaml)
+  end
+
+  private def add_volumeattachments_permission(cluster_role)
+    rules = cluster_role["rules"]?.try(&.as_a)
+    return unless rules
+
+    rules.each do |rule|
+      next unless rule["apiGroups"]?.try(&.as_a.includes?("storage.k8s.io"))
+      resources = rule["resources"]?.try(&.as_a)
+      next unless resources
+
+      next if resources.any? { |r| r.as_s == "volumeattachments" }
+
+      resources << YAML::Any.new("volumeattachments")
+      log_line "Added volumeattachments permission to cluster autoscaler ClusterRole"
+    end
   end
 
   private def patch_tolerations(pod_spec)
