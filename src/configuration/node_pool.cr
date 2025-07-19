@@ -15,7 +15,8 @@ abstract class Configuration::NodePool
   property labels : Array(::Configuration::NodeLabel) = [] of ::Configuration::NodeLabel
   property taints : Array(::Configuration::NodeTaint) = [] of ::Configuration::NodeTaint
   property autoscaling : ::Configuration::Autoscaling?
-  property post_create_commands : Array(String) | Nil
+  property additional_pre_k3s_commands : Array(String) | Nil
+  property additional_post_k3s_commands : Array(String) | Nil
   property additional_packages : Array(String) | Nil
   property include_cluster_name_as_prefix : Bool = true
 

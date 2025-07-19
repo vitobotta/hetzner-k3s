@@ -46,7 +46,8 @@ class Hetzner::Instance::Create
   private getter enable_public_net_ipv4 : Bool
   private getter enable_public_net_ipv6 : Bool
   private getter additional_packages : Array(String)
-  private getter additional_post_create_commands : Array(String)
+  private getter additional_pre_k3s_commands : Array(String)
+  private getter additional_post_k3s_commands : Array(String)
   private getter instance_finder : Hetzner::Instance::Find?
   private getter snapshot_os : String
   private getter ssh : Configuration::NetworkingComponents::SSH
@@ -71,7 +72,8 @@ class Hetzner::Instance::Create
       @network,
       @placement_group : Hetzner::PlacementGroup? = nil,
       @additional_packages = [] of String,
-      @additional_post_create_commands = [] of String,
+      @additional_pre_k3s_commands = [] of String,
+      @additional_post_k3s_commands = [] of String,
       @location = "fsn1"
     )
 
@@ -99,10 +101,10 @@ class Hetzner::Instance::Create
     instance.not_nil!
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_post_create_commands = [] of String, init_commands = [] of String, for_cluster_autoscaler = false)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String)
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
-      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands, for_cluster_autoscaler),
+      post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_pre_k3s_commands, additional_post_k3s_commands, init_commands),
       eth1_str: eth1(snapshot_os),
       firewall_files: firewall_files(settings),
       ssh_files: ssh_files(settings),
@@ -294,20 +296,16 @@ class Hetzner::Instance::Create
     commands
   end
 
-  def self.generate_post_create_commands_str(settings, snapshot_os, additional_post_create_commands, init_commands, for_cluster_autoscaler = false)
-    post_create_commands = mandatory_post_create_commands(settings).dup
+  def self.generate_post_create_commands_str(settings, snapshot_os, additional_pre_k3s_commands, additional_post_k3s_commands, init_commands)
+    mandatory_commands = mandatory_post_create_commands(settings).dup
 
-    add_microos_commands(post_create_commands) if snapshot_os == "microos"
+    add_microos_commands(mandatory_commands) if snapshot_os == "microos"
 
-    formatted_additional_commands = format_additional_commands(additional_post_create_commands)
+    formatted_pre_commands = format_additional_commands(additional_pre_k3s_commands)
+    formatted_post_commands = format_additional_commands(additional_post_k3s_commands)
 
-    # For cluster autoscaler (HCLOUD_CLOUD_INIT), run additional commands first to ensure network setup
-    # happens before other initialization commands
-    combined_commands = if for_cluster_autoscaler
-                          [formatted_additional_commands, post_create_commands, init_commands].flatten
-                        else
-                          [post_create_commands, init_commands, formatted_additional_commands].flatten
-                        end
+    # New unified command order: additional_pre_k3s_commands, mandatory_commands, init_commands, additional_post_k3s_commands
+    combined_commands = [formatted_pre_commands, mandatory_commands, init_commands, formatted_post_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
   end
@@ -442,7 +440,7 @@ class Hetzner::Instance::Create
   end
 
   private def instance_config
-    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_post_create_commands)
+    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands)
 
     base_config = {
       :name => instance_name,

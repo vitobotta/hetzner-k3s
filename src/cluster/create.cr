@@ -119,7 +119,8 @@ class Cluster::Create
 
     image = masters_pool.image || settings.image
     additional_packages = masters_pool.additional_packages || settings.additional_packages
-    additional_post_create_commands = masters_pool.post_create_commands || settings.post_create_commands
+    additional_pre_k3s_commands = masters_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
+    additional_post_k3s_commands = masters_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
 
     Hetzner::Instance::Create.new(
       settings: settings,
@@ -133,7 +134,8 @@ class Cluster::Create
       network: network,
       placement_group: placement_group,
       additional_packages: additional_packages,
-      additional_post_create_commands: additional_post_create_commands,
+      additional_pre_k3s_commands: additional_pre_k3s_commands,
+      additional_post_k3s_commands: additional_post_k3s_commands,
       location: location
     )
   end
@@ -159,7 +161,8 @@ class Cluster::Create
 
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
-    additional_post_create_commands = node_pool.post_create_commands || settings.post_create_commands
+    additional_pre_k3s_commands = node_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
+    additional_post_k3s_commands = node_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
 
     Hetzner::Instance::Create.new(
       settings: settings,
@@ -174,7 +177,8 @@ class Cluster::Create
       network: network,
       placement_group: placement_group,
       additional_packages: additional_packages,
-      additional_post_create_commands: additional_post_create_commands
+      additional_pre_k3s_commands: additional_pre_k3s_commands,
+      additional_post_k3s_commands: additional_post_k3s_commands
     )
   end
 

@@ -19,7 +19,8 @@ class Configuration::Main
   getter schedule_workloads_on_masters : Bool = false
   getter masters_pool : Configuration::MasterNodePool
   getter worker_node_pools : Array(Configuration::WorkerNodePool) = [] of Configuration::WorkerNodePool
-  getter post_create_commands : Array(String) = [] of String
+  getter additional_pre_k3s_commands : Array(String) = [] of String
+  getter additional_post_k3s_commands : Array(String) = [] of String
   getter additional_packages : Array(String) = [] of String
   getter kube_api_server_args : Array(String) = [] of String
   getter kube_scheduler_args : Array(String) = [] of String

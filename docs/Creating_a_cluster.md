@@ -103,9 +103,11 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
 # additional_packages:
 # - somepackage
 
-# post_create_commands:
+# additional_pre_k3s_commands:
 # - apt update
 # - apt upgrade -y
+
+# additional_post_k3s_commands:
 # - apt autoremove -y
 
 # kube_api_server_args:
@@ -137,7 +139,9 @@ When setting `masters_pool`.`instance_count`, keep in mind that if you set it to
 
 You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads.
 
-Hetzner Cloud init settings, such as `additional_packages` and `post_create_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
+Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
+
+The `additional_pre_k3s_commands` are executed before k3s installation, while `additional_post_k3s_commands` run after k3s is installed and configured.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
