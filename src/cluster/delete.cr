@@ -169,7 +169,7 @@ class Cluster::Delete
   end
 
   private def detect_nodes_with_kubectl
-    result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --request-timeout=10s", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
+    result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
     
     # If kubectl succeeded, process the output (remove header)
     if result.success?
