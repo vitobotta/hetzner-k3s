@@ -194,42 +194,29 @@ class Cluster::Delete
   end
 
   private def detect_nodes_with_hetzner_api
-    # First search: instances with cluster label (masters and regular workers)
-    success, response = hetzner_client.get("/servers", {
-      :label_selector => "cluster=#{settings.cluster_name}"
-    })
-    
-    if success
-      instances_data = JSON.parse(response)["servers"].as_a
-      
-      instances_data.each do |instance_data|
-        instance_name = instance_data["name"].as_s
-        next if instance_deletor_exists?(instance_name)
-        
-        instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: instance_name)
-      end
-    end
-    
-    # Second search: autoscaler instances with hcloud/node-group labels for each worker pool
+    find_instances_to_delete_by_label("cluster=#{settings.cluster_name}")
+
     settings.worker_node_pools.each do |pool|
       next unless pool.autoscaling_enabled
-      
+
       node_group_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
-      
-      success2, response2 = hetzner_client.get("/servers", {
-        :label_selector => "hcloud/node-group=#{node_group_name}"
-      })
-      
-      if success2
-        autoscaler_instances = JSON.parse(response2)["servers"].as_a
-        
-        autoscaler_instances.each do |instance_data|
-          instance_name = instance_data["name"].as_s
-          next if instance_deletor_exists?(instance_name)
-          
-          instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: instance_name)
-        end
-      end
+      find_instances_to_delete_by_label("hcloud/node-group=#{node_group_name}")
+    end
+  end
+
+  private def find_instances_to_delete_by_label(label_selector)
+    success, response = hetzner_client.get("/servers", {label_selector: label_selector})
+    return unless success
+
+    JSON.parse(response)["servers"].as_a.each do |instance_data|
+      instance_name = instance_data["name"].as_s
+      next if instance_deletor_exists?(instance_name)
+
+      instance_deletors << Hetzner::Instance::Delete.new(
+        settings: settings,
+        hetzner_client: hetzner_client,
+        instance_name: instance_name
+      )
     end
   end
 end
