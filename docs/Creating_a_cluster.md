@@ -84,12 +84,13 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
-    # Optional autoscaler timing configuration:
-    # scan_interval: "2m"                        # How often cluster is reevaluated for scale up or down
-    # scale_down_delay_after_add: "10m"          # How long after scale up that scale down evaluation resumes
-    # scale_down_delay_after_delete: "10s"       # How long after node deletion that scale down evaluation resumes
-    # scale_down_delay_after_failure: "15m"      # How long after scale down failure that scale down evaluation resumes
-    # max_node_provision_time: "15m"             # Maximum time CA waits for node to be provisioned
+
+# cluster_autoscaler:
+#   scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
+#   scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
+#   scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
+#   scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
+#   max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 
 embedded_registry_mirror:
   enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
@@ -225,9 +226,16 @@ worker_node_pools:
 
 #### Advanced Timing Configuration
 
-You can customize the autoscaler's behavior with these optional parameters:
+You can customize the autoscaler's behavior with these optional parameters at the root level of your configuration:
 
 ```yaml
+cluster_autoscaler:
+  scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
+  scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
+  scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
+  scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
+  max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
+
 worker_node_pools:
 - name: autoscaled-pool
   instance_type: cpx31
@@ -236,12 +244,6 @@ worker_node_pools:
     enabled: true
     min_instances: 1
     max_instances: 10
-    # Timing configuration (all optional):
-    scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
-    scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
-    scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
-    scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
-    max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
 ```
 
 #### Parameter Descriptions
@@ -253,7 +255,7 @@ worker_node_pools:
   - *Default*: `10m`
 
 - **`scale_down_delay_after_delete`**: Adds a delay before considering more scale-down operations after a node deletion. This ensures the cluster stabilizes before further changes.
-  - *Default*: `10s` (scan interval)
+  - *Default*: `10s`
 
 - **`scale_down_delay_after_failure`**: When a scale-down operation fails, this parameter controls how long to wait before attempting another scale-down.
   - *Default*: `3m`
@@ -261,9 +263,7 @@ worker_node_pools:
 - **`max_node_provision_time`**: Sets the maximum time the autoscaler will wait for a new node to become ready. This is particularly useful for clusters with private networks where provisioning might take longer.
   - *Default*: `15m`
 
-#### Multi-Pool Behavior
-
-If you have multiple autoscaling worker node pools, the autoscaler will use the configuration from the first pool that defines each parameter. This prevents conflicting settings across pools.
+These settings apply globally to all autoscaling worker node pools in your cluster.
 
 ---
 
