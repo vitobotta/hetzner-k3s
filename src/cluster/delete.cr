@@ -66,7 +66,7 @@ class Cluster::Delete
       delete_load_balancer
     end
 
-    switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: "10s", print_output: false)
+    switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
     delete_instances
     delete_placement_groups
