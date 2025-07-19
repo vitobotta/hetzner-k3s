@@ -205,7 +205,7 @@ class Cluster::Delete
   end
 
   private def find_instances_to_delete_by_label(label_selector)
-    success, response = hetzner_client.get("/servers", {label_selector: label_selector})
+    success, response = hetzner_client.get("/servers", {:label_selector => label_selector})
     return unless success
 
     JSON.parse(response)["servers"].as_a.each do |instance_data|
