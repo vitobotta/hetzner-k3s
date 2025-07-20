@@ -419,6 +419,6 @@ class Kubernetes::Installer
   end
 
   private def self.escape(str)
-    str.gsub("\"", "\\\"")
+    str.gsub(/["\/\.]/, {"\"" => "\\\"", "/" => "\\/", "." => "\\."})
   end
 end
