@@ -41,10 +41,8 @@ class Configuration::Settings::NodePool::Location
   end
 
   private def validate_masters_pool_locations
-    if masters_pool.locations.size > masters_pool.instance_count
-      errors << "The number of locations specified for masters cannot exceed the total number of masters"
-    elsif masters_pool.locations.size == 0
-      errors << "At least one location must be specified for masters"
+    if masters_pool.locations.size != masters_pool.instance_count
+      errors << "The number of locations specified for masters must equal the total number of masters"
     else
       validate_masters_locations_and_network_zone
     end
