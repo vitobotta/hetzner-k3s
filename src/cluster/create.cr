@@ -349,7 +349,7 @@ class Cluster::Create
   end
 
   private def masters_locations
-    masters_pool.locations.sort
+    masters_pool.locations
   end
 
   private def default_masters_Location
