@@ -71,6 +71,8 @@ If the upgrade stalls after upgrading the masters but before upgrading the worke
 kubectl label node <master1> <master2> <master2> plan.upgrade.cattle.io/k3s-server=upgraded
 ```
 
+Once all the nodes have been upgraded, remember to re-run the `hetzner-k3s create` command. This way, new nodes will be created with the new version right away. If you don’t, they will first be created with the old version and then upgraded by the system upgrade controller.
+
 ---
 
 ## Upgrading the OS on Nodes
