@@ -37,7 +37,7 @@ class Kubernetes::Software::ClusterAutoscaler
   private def cloud_init(pool)
     worker_install_script = ::Kubernetes::Installer.worker_install_script(settings, masters, first_master, pool)
     worker_install_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
-    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.post_create_commands, [worker_install_script])
+    ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.additional_pre_k3s_commands, settings.additional_post_k3s_commands, [worker_install_script])
   end
 
   private def certificate_path
@@ -56,10 +56,32 @@ class Kubernetes::Software::ClusterAutoscaler
     end
   end
 
+  private def autoscaler_config_args
+    args = [] of String
+    
+    # Use top-level cluster autoscaler configuration
+    config = settings.cluster_autoscaler
+    
+    args << "--scan-interval=#{config.scan_interval}"
+    args << "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}"
+    args << "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}"
+    args << "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}"
+    args << "--max-node-provision-time=#{config.max_node_provision_time}"
+    
+    args
+  end
+
   private def patch_resources(resources)
     resources.map do |resource|
       resource = Kubernetes::Resources::Resource.from_yaml(resource.to_yaml)
-      resource.kind == "Deployment" ? patched_deployment(resource) : resource
+      case resource.kind
+      when "Deployment"
+        patched_deployment(resource)
+      when "ClusterRole"
+        patched_cluster_role(resource)
+      else
+        resource
+      end
     end
   end
 
@@ -71,6 +93,28 @@ class Kubernetes::Software::ClusterAutoscaler
     patch_volumes(deployment.spec.template.spec.volumes)
 
     deployment
+  end
+
+  private def patched_cluster_role(resource)
+    cluster_role = YAML.parse(resource.to_yaml)
+    add_volumeattachments_permission(cluster_role)
+    Kubernetes::Resources::Resource.from_yaml(cluster_role.to_yaml)
+  end
+
+  private def add_volumeattachments_permission(cluster_role)
+    rules = cluster_role["rules"]?.try(&.as_a)
+    return unless rules
+
+    rules.each do |rule|
+      next unless rule["apiGroups"]?.try(&.as_a.includes?("storage.k8s.io"))
+      resources = rule["resources"]?.try(&.as_a)
+      next unless resources
+
+      next if resources.any? { |r| r.as_s == "volumeattachments" }
+
+      resources << YAML::Any.new("volumeattachments")
+      log_line "Added volumeattachments permission to cluster autoscaler ClusterRole"
+    end
   end
 
   private def patch_tolerations(pod_spec)
@@ -86,6 +130,7 @@ class Kubernetes::Software::ClusterAutoscaler
 
     command += settings.cluster_autoscaler_args
     command += node_pool_args
+    command += autoscaler_config_args
   end
 
   private def build_config_json

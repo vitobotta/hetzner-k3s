@@ -85,6 +85,13 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 
+# cluster_autoscaler:
+#   scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
+#   scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
+#   scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
+#   scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
+#   max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
+
 embedded_registry_mirror:
   enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
@@ -97,9 +104,11 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
 # additional_packages:
 # - somepackage
 
-# post_create_commands:
+# additional_pre_k3s_commands:
 # - apt update
 # - apt upgrade -y
+
+# additional_post_k3s_commands:
 # - apt autoremove -y
 
 # kube_api_server_args:
@@ -131,7 +140,9 @@ When setting `masters_pool`.`instance_count`, keep in mind that if you set it to
 
 You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads.
 
-Hetzner Cloud init settings, such as `additional_packages` and `post_create_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
+Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
+
+The `additional_pre_k3s_commands` are executed before k3s installation, while `additional_post_k3s_commands` run after k3s is installed and configured.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
@@ -193,6 +204,66 @@ To adjust the Service-CIDR, uncomment or add the `service_cidr` option in your c
 
 **Sizing the Networks:**
 The networks you choose should have enough space for your expected number of pods and services. By default, `/16` networks are used. Select an appropriate size, as changing the CIDR later is not supported.
+
+---
+
+### Autoscaler Configuration
+
+The cluster autoscaler automatically manages the number of worker nodes in your cluster based on resource demands. When you enable autoscaling for a worker node pool, you can also configure various timing parameters to fine-tune its behavior.
+
+#### Basic Autoscaling Configuration
+
+```yaml
+worker_node_pools:
+- name: autoscaled-pool
+  instance_type: cpx31
+  location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 1
+    max_instances: 10
+```
+
+#### Advanced Timing Configuration
+
+You can customize the autoscaler's behavior with these optional parameters at the root level of your configuration:
+
+```yaml
+cluster_autoscaler:
+  scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
+  scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
+  scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
+  scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
+  max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
+
+worker_node_pools:
+- name: autoscaled-pool
+  instance_type: cpx31
+  location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 1
+    max_instances: 10
+```
+
+#### Parameter Descriptions
+
+- **`scan_interval`**: Controls how frequently the cluster autoscaler evaluates whether scaling is needed. Shorter intervals mean faster response to load changes but more API calls.
+  - *Default*: `10s`
+
+- **`scale_down_delay_after_add`**: Prevents the autoscaler from immediately scaling down after adding nodes. This helps avoid thrashing when workloads are still starting up.
+  - *Default*: `10m`
+
+- **`scale_down_delay_after_delete`**: Adds a delay before considering more scale-down operations after a node deletion. This ensures the cluster stabilizes before further changes.
+  - *Default*: `10s`
+
+- **`scale_down_delay_after_failure`**: When a scale-down operation fails, this parameter controls how long to wait before attempting another scale-down.
+  - *Default*: `3m`
+
+- **`max_node_provision_time`**: Sets the maximum time the autoscaler will wait for a new node to become ready. This is particularly useful for clusters with private networks where provisioning might take longer.
+  - *Default*: `15m`
+
+These settings apply globally to all autoscaling worker node pools in your cluster.
 
 ---
 

@@ -88,7 +88,13 @@ module Kubernetes::Util
     port_open?(ip_address, port, timeout = 1.0)
   end
 
-  def switch_to_context(context)
-    run_shell_command("KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}", "", settings.hetzner_token, log_prefix: "Control plane")
+  def switch_to_context(context, abort_on_error = true, request_timeout : Int32? = nil, print_output = true)
+    base = "KUBECONFIG=#{configuration.kubeconfig_path} kubectl config use-context #{context}"
+    command = request_timeout ? "#{base} --request-timeout=#{request_timeout}s" : base
+    command = "#{command} 2>/dev/null" unless print_output
+    run_shell_command(command, "", settings.hetzner_token,
+                      log_prefix: "Control plane",
+                      abort_on_error: abort_on_error,
+                      print_output: print_output)
   end
 end

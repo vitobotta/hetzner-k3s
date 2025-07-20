@@ -87,7 +87,7 @@ To automate this process, you can install the [Kubernetes Reboot Daemon](https:/
 additional_packages:
 - unattended-upgrades
 - update-notifier-common
-post_create_commands:
+additional_post_k3s_commands:
 - sudo systemctl enable unattended-upgrades
 - sudo systemctl start unattended-upgrades
 ```

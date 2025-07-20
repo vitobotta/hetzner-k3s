@@ -274,16 +274,18 @@ In the case of Nginx:
 
 First, you’ll need a NAT server, as described in this [Hetzner community tutorial](https://community.hetzner.com/tutorials/how-to-set-up-nat-for-cloud-networks#step-2---adding-the-route-to-the-network).
 
-Then, use `post_create_commands` (note that multi-line commands aren’t supported at the moment):
+Then, use `additional_post_k3s_commands` to run commands after k3s installation:
 ```yaml
 additional_packages:
   - ifupdown
-post_create_commands:
+additional_post_k3s_commands:
   - apt update
   - apt upgrade -y
   - apt autoremove -y
   - ip route add default via [REDACTED]  # Replace this with your gateway IP
 ```
+
+You can also use `additional_pre_k3s_commands` to run commands before k3s installation if needed.
 
 ## Useful Commands
 
