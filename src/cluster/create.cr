@@ -140,13 +140,9 @@ class Cluster::Create
 
   private def initialize_master_instances
     placement_group = create_placement_group_for_masters
-    location_counts = Hash(String, Int32).new(0)
 
     Array(Hetzner::Instance::Create).new(masters_pool.instance_count) do |i|
-      location = masters_locations.min_by { |loc| location_counts[loc] }
-      location_counts[location] += 1
-
-      create_master_instance(i, placement_group, location)
+      create_master_instance(i, placement_group, masters_locations[i])
     end
   end
 
@@ -349,7 +345,7 @@ class Cluster::Create
   end
 
   private def masters_locations
-    masters_pool.locations.sort
+    masters_pool.locations
   end
 
   private def default_masters_Location

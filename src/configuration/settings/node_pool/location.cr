@@ -41,8 +41,8 @@ class Configuration::Settings::NodePool::Location
   end
 
   private def validate_masters_pool_locations
-    if masters_pool.locations.uniq.size != masters_pool.instance_count && masters_pool.locations.uniq.size != 1
-      errors << "The number of unique locations specified for masters does not match the number of instances"
+    if masters_pool.locations.size != masters_pool.instance_count
+      errors << "The number of locations specified for masters must equal the total number of masters"
     else
       validate_masters_locations_and_network_zone
     end
