@@ -8,7 +8,7 @@ module Configuration
     getter system_upgrade_controller_deployment_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.15.2/system-upgrade-controller.yaml"
     getter system_upgrade_controller_crd_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.15.2/crd.yaml"
     getter cluster_autoscaler_manifest_url : String = "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
-    getter cluster_autoscaler_container_image_tag : String = "v1.32.1"
+    getter cluster_autoscaler_container_image_tag : String = "v1.33.0"
 
     def initialize
     end
