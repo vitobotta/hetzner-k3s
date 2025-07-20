@@ -171,10 +171,8 @@ class Cluster::Delete
   private def detect_nodes_with_kubectl
     result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
     
-    # If kubectl succeeded, process the output (remove header)
     if result.success?
       lines = result.output.split("\n")
-      # Remove header line if present
       lines = lines[1..] if lines.size > 1 && lines[0].includes?("NAME")
       all_node_names = lines.reject(&.empty?)
 
@@ -183,8 +181,6 @@ class Cluster::Delete
         instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: node_name)
       end
       
-      # If kubectl succeeded but found no nodes, also check Hetzner API as fallback
-      # This handles cases where kubectl connects to wrong cluster or cluster is empty
       if all_node_names.empty?
         detect_nodes_with_hetzner_api
       end

@@ -49,11 +49,6 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
-    # Optional timing configuration:
-    scan_interval: "2m"
-    scale_down_delay_after_add: "10m"
-    scale_down_delay_after_failure: "15m"
-    max_node_provision_time: "15m"
 ```
 
 For more details on all the available settings, refer to the full config example in [Creating a cluster](Creating_a_cluster.md).

@@ -304,7 +304,6 @@ class Hetzner::Instance::Create
     formatted_pre_commands = format_additional_commands(additional_pre_k3s_commands)
     formatted_post_commands = format_additional_commands(additional_post_k3s_commands)
 
-    # New unified command order: additional_pre_k3s_commands, mandatory_commands, init_commands, additional_post_k3s_commands
     combined_commands = [formatted_pre_commands, mandatory_commands, init_commands, formatted_post_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
