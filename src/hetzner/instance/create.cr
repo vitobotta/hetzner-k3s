@@ -351,6 +351,9 @@ class Hetzner::Instance::Create
     loop do
       attempts += 1
       log_line "Creating instance #{instance_name} (attempt #{attempts})..."
+
+      sleep rand(3001).milliseconds
+
       success, response = hetzner_client.post("/servers", instance_config)
 
       if success
