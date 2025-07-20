@@ -44,7 +44,7 @@ class Kubernetes::Installer
   end
 
   def self.worker_install_script(settings, masters, first_master, worker_pool)
-    labels_and_taints = ::Kubernetes::Installer.labels_and_tains(settings, worker_pool)
+    labels_and_taints = ::Kubernetes::Installer.labels_and_taints(settings, worker_pool)
 
     Crinja.render(WORKER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
@@ -64,30 +64,15 @@ class Kubernetes::Installer
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", settings.all_kubelet_args)
   end
 
-  def self.labels_and_tains(settings, pool)
+  def self.labels_and_taints(settings, pool)
     pool = pool.not_nil!
+
     args = /^master-/ =~ pool.name ? settings.all_kubelet_args : [] of String
 
-    labels = [] of String
-     pool.labels.each do |label|
-      next if  label.key.nil? || label.value.nil?
-      labels << "--node-label #{label.key}=#{label.value}"
-    end
+    labels = build_labels(pool.labels)
+    taints = build_taints(pool.taints)
 
-    labels_args = " #{labels.join(" ")} " unless labels.empty?
-
-    taints = [] of String
-    pool.taints.each do |taint|
-      next if taint.key.nil? || taint.value.nil?
-      parts = taint.value.not_nil!.split(":")
-      value = parts[0]
-      effect = parts.size > 1 ? parts[1] : "NoSchedule"
-      taints << "--node-taint #{taint.key.not_nil!}=#{value}:#{effect}"
-    end
-
-    taint_args = " #{taints.join(" ")} " unless taints.empty?
-
-    " #{labels_args} #{taint_args} "
+    " #{labels} #{taints} "
   end
 
   def self.k3s_token(settings, masters)
@@ -262,7 +247,7 @@ class Kubernetes::Installer
 
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{::Kubernetes::Installer.kubelet_args_list(settings)} #{kube_proxy_args_list}"
     master_taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
-    labels_and_taints = ::Kubernetes::Installer.labels_and_tains(settings, settings.masters_pool)
+    labels_and_taints = ::Kubernetes::Installer.labels_and_taints(settings, settings.masters_pool)
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
       cluster_name: settings.cluster_name,
@@ -404,5 +389,36 @@ class Kubernetes::Installer
 
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
+  end
+
+  private def self.build_labels(label_collection)
+    labels = label_collection.compact_map do |label|
+      next if label.key.nil? || label.value.nil?
+      key   = escape(label.key.not_nil!)
+      value = escape(label.value.not_nil!)
+      "--node-label \"#{key}=#{value}\""
+    end
+    labels.empty? ? "" : " #{labels.join(" ")} "
+  end
+
+  private def self.build_taints(taint_collection)
+    taints = taint_collection.compact_map do |taint|
+      next if taint.key.nil? || taint.value.nil?
+      key, value, effect = parse_taint(taint)
+      "--node-taint \"#{key}=#{value}:#{effect}\""
+    end
+    taints.empty? ? "" : " #{taints.join(" ")} "
+  end
+
+  private def self.parse_taint(taint)
+    key = escape(taint.key.not_nil!)
+    parts = taint.value.not_nil!.split(":")
+    value = escape(parts[0])
+    effect = parts.size > 1 ? parts[1] : "NoSchedule"
+    {key, value, effect}
+  end
+
+  private def self.escape(str)
+    str.gsub(/["\/\.]/, {"\"" => "\\\"", "/" => "\\/", "." => "\\."})
   end
 end
