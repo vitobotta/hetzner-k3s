@@ -15,6 +15,7 @@ require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
 require "./software/cluster_autoscaler"
+require "./kubeconfig_manager"
 
 class Kubernetes::Installer
   include Util
@@ -31,6 +32,7 @@ class Kubernetes::Installer
   getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
+  getter kubeconfig_manager : Kubernetes::KubeconfigManager
 
   private getter first_master : Hetzner::Instance?
   private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
@@ -41,6 +43,7 @@ class Kubernetes::Installer
       @ssh,
       @autoscaling_worker_node_pools
     )
+    @kubeconfig_manager = Kubernetes::KubeconfigManager.new(@configuration, settings, @ssh)
   end
 
   def self.worker_install_script(settings, masters, first_master, worker_pool)
@@ -106,7 +109,8 @@ class Kubernetes::Installer
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
 
-    save_kubeconfig(master_count)
+    # Save kubeconfig using the new manager
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
 
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
@@ -202,7 +206,8 @@ class Kubernetes::Installer
 
     sleep 10.seconds unless /No change detected/ =~ output
 
-    save_kubeconfig(master_count)
+    # Save kubeconfig using the new manager
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
 
     sleep 5.seconds
 
@@ -259,7 +264,7 @@ class Kubernetes::Installer
       master_taint: master_taint,
       extra_args: extra_args,
       server: server,
-      tls_sans: generate_tls_sans(master_count),
+      tls_sans: kubeconfig_manager.generate_tls_sans(masters, first_master, load_balancer),
       private_network_enabled: settings.networking.private_network.enabled.to_s,
       private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
       cluster_cidr: settings.networking.cluster_cidr,
@@ -319,73 +324,13 @@ class Kubernetes::Installer
     end
   end
 
-  private def save_kubeconfig(master_count)
-    kubeconfig_path = configuration.kubeconfig_path
 
-    log_line "Generating the kubeconfig file to #{kubeconfig_path}...", "Control plane"
-
-    kubeconfig = ssh.run(first_master, settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", settings.networking.ssh.use_agent, print_output: false).
-      gsub("default", settings.cluster_name)
-
-    File.write(kubeconfig_path, kubeconfig)
-
-    if settings.create_load_balancer_for_the_kubernetes_api
-      load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{settings.cluster_name}"
-      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address}:6443")
-
-      File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
-    end
-
-    masters.each_with_index do |master, index|
-      master_ip_address = settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
-      master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
-      master_kubeconfig = kubeconfig
-        .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
-        .gsub("name: #{settings.cluster_name}", "name: #{master.name}")
-        .gsub("cluster: #{settings.cluster_name}", "cluster: #{master.name}")
-        .gsub("user: #{settings.cluster_name}", "user: #{master.name}")
-        .gsub("current-context: #{settings.cluster_name}", "current-context: #{master.name}")
-
-      File.write(master_kubeconfig_path, master_kubeconfig)
-    end
-
-    paths = settings.create_load_balancer_for_the_kubernetes_api ? [load_balancer_kubeconfig_path] : [] of String
-
-    paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
-
-    run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", settings.hetzner_token, log_prefix: "Control plane")
-
-    switch_to_context(first_master.name)
-
-    masters.each do |master|
-      FileUtils.rm("#{kubeconfig_path}-#{master.name}")
-    end
-
-    File.chmod kubeconfig_path, 0o600
-
-    log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
-  end
-
-  private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{::Kubernetes::Installer.api_server_ip_address(first_master)}", "--tls-san=127.0.0.1"]
-    sans << "--tls-san=#{load_balancer_ip_address}" if settings.create_load_balancer_for_the_kubernetes_api
-    sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
-
-    masters.each do |master|
-      sans << "--tls-san=#{master.private_ip_address}"
-      sans << "--tls-san=#{master.public_ip_address}"
-    end
-
-    sans.uniq.sort.join(" ")
-  end
 
   private def default_log_prefix
     "Kubernetes software"
   end
 
-  private def load_balancer_ip_address
-    load_balancer.try(&.public_ip_address)
-  end
+
 
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
