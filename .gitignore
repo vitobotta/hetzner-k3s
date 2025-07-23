@@ -37,3 +37,4 @@ create.log
 delete.log
 /.bws/
 /bitwarden-state/
+.env
