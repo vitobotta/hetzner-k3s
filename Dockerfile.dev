@@ -6,7 +6,7 @@ RUN apk update \
     make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards \
     curl docker zsh bash openssl k9s shadow go envsubst util-linux \
     gcc g++ libc-dev libxml2-dev openssl-dev yaml-dev zlib-dev crystal openssh-client jq \
-    python3 py3-pip
+    python3 py3-pip nodejs npm
 
 RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/$(uname -m | sed -e 's/x86_64/amd64/' -e 's/aarch64/arm64/')/kubectl" && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 
@@ -19,7 +19,7 @@ RUN set -x; cd "$(mktemp -d)" \
   && KREW="krew-${OS}_${ARCH}" \
   && curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/${KREW}.tar.gz" \
   && tar zxvf "${KREW}.tar.gz" \
-  && ./"${KREW}" install krew \
+  && ./${KREW} install krew \
   && PATH="$HOME/.krew/bin:$PATH" kubectl krew install ctx \
   && PATH="$HOME/.krew/bin:$PATH" kubectl krew install ns
 
@@ -32,6 +32,8 @@ RUN mkdir -p $GOPATH/bin
 RUN go install github.com/stern/stern@v1.30.0
 
 RUN pip install mkdocs-material --break-system-packages
+
+RUN npm install -g @qwen-code/qwen-code
 
 SHELL ["/bin/zsh", "-c"]
 
