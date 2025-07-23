@@ -1,13 +1,37 @@
+#!/bin/bash
+
 fn_cloud="/var/lib/cloud/instance/boot-finished"
-function await_cloud_init {
+
+function await_cloud_init() {
   echo "🕒 Awaiting cloud config (may take a minute...)"
-  while true; do
-    for _ in $(seq 1 10); do
-      test -f $fn_cloud && return
-      sleep 1
-    done
-    echo -n "."
+
+  # Wait for up to 5 minutes (300 seconds)
+  MAX_WAIT=300
+  COUNT=0
+
+  while [ $COUNT -lt $MAX_WAIT ]; do
+    if [ -f "$fn_cloud" ]; then
+      echo "Cloud init finished: $(cat "$fn_cloud")"
+      return 0
+    fi
+
+    sleep 1
+    COUNT=$((COUNT + 1))
+
+    # Print a dot every 10 seconds to show we're still waiting
+    if [ $((COUNT % 10)) -eq 0 ]; then
+      echo -n "."
+    fi
   done
+
+  echo ""
+  echo "ERROR: Timeout waiting for cloud-init to finish"
+  return 1
 }
-test -f $fn_cloud || await_cloud_init
-echo "Cloud init finished: $(cat $fn_cloud)"
+
+# Check if cloud-init has already finished
+if [ -f "$fn_cloud" ]; then
+  echo "Cloud init already finished: $(cat "$fn_cloud")"
+else
+  await_cloud_init
+fi
