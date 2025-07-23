@@ -24,7 +24,8 @@ fetch_ips_from_api() {
     fi
 
     while [ $retry_count -lt $max_retries ]; do
-        local response=$(curl -s -m 10 -H "Hetzner-Token: $TOKEN" "$HETZNER_IP_QUERY_SERVER_URL")
+        local response
+        response=$(curl -s -m 10 -H "Hetzner-Token: $TOKEN" "$HETZNER_IP_QUERY_SERVER_URL")
 
         # Validate JSON response and check for entries
         if echo "$response" | jq -e . >/dev/null 2>&1 && [ "$(echo "$response" | jq 'length')" -gt 0 ]; then
@@ -34,7 +35,10 @@ fetch_ips_from_api() {
         fi
 
         ((retry_count++))
-        [ $retry_count -lt $max_retries ] && sleep $delay
+        if [ $retry_count -lt $max_retries ]; then
+            echo "API request failed, retrying in $delay seconds... (attempt $retry_count/$max_retries)"
+            sleep $delay
+        fi
     done
 
     echo "API request failed after $max_retries attempts."
@@ -72,19 +76,24 @@ manage_ipset() {
         sort
     }
 
-    local new_networks_clean=$(echo "$networks" | standardize_networks)
-    local current_networks_clean=$(echo "$current_networks" | standardize_networks)
+    local new_networks_clean
+    new_networks_clean=$(echo "$networks" | standardize_networks)
+    local current_networks_clean
+    current_networks_clean=$(echo "$current_networks" | standardize_networks)
 
     # Store standardized networks in files for debugging
     echo "$new_networks_clean" > "/tmp/${name}_new.txt"
     echo "$current_networks_clean" > "/tmp/${name}_current.txt"
 
     # Calculate hash with explicit removal of all newlines
-    local new_hash=$(echo "$new_networks_clean" | tr -d '\n' | sha256sum | cut -d' ' -f1)
-    local current_hash=$(echo "$current_networks_clean" | tr -d '\n' | sha256sum | cut -d' ' -f1)
+    local new_hash
+    new_hash=$(echo "$new_networks_clean" | tr -d '\n' | sha256sum | cut -d' ' -f1)
+    local current_hash
+    current_hash=$(echo "$current_networks_clean" | tr -d '\n' | sha256sum | cut -d' ' -f1)
 
     # Do a direct content comparison
-    local direct_diff=$(diff <(echo "$new_networks_clean") <(echo "$current_networks_clean") 2>/dev/null)
+    local direct_diff
+    direct_diff=$(diff <(echo "$new_networks_clean") <(echo "$current_networks_clean") 2>/dev/null)
 
     # Check if both network lists are empty - if so, no changes needed
     if [ -z "$new_networks_clean" ] && [ -z "$current_networks_clean" ]; then
@@ -109,7 +118,11 @@ manage_ipset() {
         local new_count=0
         while IFS= read -r network; do
             if [ -n "$network" ] && validate_ip_network "$network"; then
-                ipset add "$temp_name" "$network" 2>/dev/null && ((new_count++))
+                if ipset add "$temp_name" "$network" 2>/dev/null; then
+                    ((new_count++))
+                else
+                    echo "Warning: Failed to add network $network to ipset $temp_name"
+                fi
             fi
         done <<< "$new_networks_clean"
 
@@ -127,7 +140,11 @@ manage_ipset() {
         echo "[$name] Updated $name networks. Current count: $new_count"
         if [ $old_count -ne $new_count ]; then
             local diff=$((new_count - old_count))
-            [ $diff -gt 0 ] && echo "[$name] Added $diff new networks" || echo "[$name] Removed $((diff * -1)) networks"
+            if [ $diff -gt 0 ]; then
+                echo "[$name] Added $diff new networks"
+            else
+                echo "[$name] Removed $((diff * -1)) networks"
+            fi
         fi
     fi
 }
@@ -158,7 +175,8 @@ update_allowed_networks() {
     local SSH_ALLOWED_NETWORKS_FILE=${SSH_ALLOWED_NETWORKS_FILE:-"/etc/allowed-networks-ssh.conf"}
 
     # Fetch networks from API
-    local api_networks=$(fetch_ips_from_api)
+    local api_networks
+    api_networks=$(fetch_ips_from_api)
     if [ $? -eq 0 ]; then
         api_networks=$(echo "$api_networks" | jq -r '.[]' | tr -d '\r' | sort)
     else
@@ -166,8 +184,10 @@ update_allowed_networks() {
     fi
 
     # Read networks from files
-    local ssh_networks=$(read_networks_from_file "$SSH_ALLOWED_NETWORKS_FILE")
-    local k8s_api_networks=$(read_networks_from_file "$KUBERNETES_API_ALLOWED_NETWORKS_FILE")
+    local ssh_networks
+    ssh_networks=$(read_networks_from_file "$SSH_ALLOWED_NETWORKS_FILE")
+    local k8s_api_networks
+    k8s_api_networks=$(read_networks_from_file "$KUBERNETES_API_ALLOWED_NETWORKS_FILE")
 
     # Update ipsets
     manage_ipset "$IPSET_NAME_NODES" "$api_networks"
@@ -176,10 +196,17 @@ update_allowed_networks() {
 }
 
 # Main loop
-echo "Starting continuous firewall rule updates..."
-while true; do
-    echo "===== $(date '+%Y-%m-%d %H:%M:%S') ====="
-    update_allowed_networks
-    echo "-------------------------------"
-    sleep 5
-done
+main() {
+    echo "Starting continuous firewall rule updates..."
+    while true; do
+        echo "===== $(date '+%Y-%m-%d %H:%M:%S') ====="
+        update_allowed_networks
+        echo "-------------------------------"
+        sleep 5
+    done
+}
+
+# Run main function if script is executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main
+fi
