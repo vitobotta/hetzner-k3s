@@ -44,7 +44,7 @@ class Kubernetes::KubeconfigManager
       File.write(master_kubeconfig_path, master_kubeconfig)
     end
 
-    paths = @settings.create_load_balancer_for_the_kubernetes_api ? ["#{kubeconfig_path}-#{@settings.cluster_name}"] : [] of String
+    paths = @settings.create_load_balancer_for_the_kubernetes_api ? [load_balancer_kubeconfig_path] : [] of String
 
     paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
