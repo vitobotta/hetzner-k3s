@@ -52,4 +52,31 @@ module K3s
 
     nil
   end
+
+  def self.k3s_token(settings, masters : Array(Hetzner::Instance))
+    token_by_master(settings, masters) do |settings, master|
+      begin
+        ::Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
+          .run(master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false)
+          .split(":").last
+      rescue
+        ""
+      end
+    end
+  end
+
+  def self.token_by_master(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
+    @@k3s_token ||= begin
+      tokens = masters.map { |master| yield settings, master }.reject(&.empty?)
+
+      if tokens.empty?
+        Random::Secure.hex
+      else
+        tokens = tokens.tally
+        max_quorum = tokens.max_of { |_, count| count }
+        token = tokens.key_for(max_quorum)
+        token.empty? ? Random::Secure.hex : token.split(':').last
+      end
+    end
+  end
 end
