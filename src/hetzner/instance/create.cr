@@ -102,12 +102,15 @@ class Hetzner::Instance::Create
   end
 
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String)
+    script_files = build_script_files(init_commands)
+
     Crinja.render(CLOUD_INIT_YAML, {
       packages_str: generate_packages_str(snapshot_os, additional_packages),
       post_create_commands_str: generate_post_create_commands_str(settings, snapshot_os, additional_pre_k3s_commands, additional_post_k3s_commands, init_commands),
       eth1_str: eth1(snapshot_os),
       firewall_files: firewall_files(settings),
       ssh_files: ssh_files(settings),
+      init_files: init_file_content(script_files),
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config(settings),
       allowed_ssh_networks_config: allowed_ssh_networks_config(settings),
       growpart_str: growpart(snapshot_os),
@@ -296,7 +299,7 @@ class Hetzner::Instance::Create
     commands
   end
 
-  def self.generate_post_create_commands_str(settings, snapshot_os, additional_pre_k3s_commands, additional_post_k3s_commands, init_commands)
+  def self.generate_post_create_commands_str(settings, snapshot_os, additional_pre_k3s_commands, additional_post_k3s_commands, final_commands)
     mandatory_commands = mandatory_post_create_commands(settings).dup
 
     add_microos_commands(mandatory_commands) if snapshot_os == "microos"
@@ -304,9 +307,41 @@ class Hetzner::Instance::Create
     formatted_pre_commands = format_additional_commands(additional_pre_k3s_commands)
     formatted_post_commands = format_additional_commands(additional_post_k3s_commands)
 
-    combined_commands = [formatted_pre_commands, mandatory_commands, init_commands, formatted_post_commands].flatten
+    script_commands = Array(String).new
+    final_commands.each_with_index do |cmd, index|
+      script_commands << "/etc/init-#{index}.sh"
+    end
+
+    combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
+  end
+
+  def self.init_file_content(script_files)
+    return "" if script_files.empty?
+
+    scripts = [] of String
+    script_files.each do |filename, content|
+      script = <<-YAML
+      - content: #{format_file_content(content)}
+        path: #{filename}
+        encoding: gzip+base64
+        permissions: '0755'
+      YAML
+
+      scripts << script
+    end
+
+    scripts.join("\n")
+  end
+
+  def self.build_script_files(commands)
+    script_files = {} of String => String
+    commands.each_with_index do |cmd, index|
+      filename = "/etc/init-#{index}.sh"
+      script_files[filename] = cmd
+    end
+    script_files
   end
 
   def self.add_microos_commands(post_create_commands)

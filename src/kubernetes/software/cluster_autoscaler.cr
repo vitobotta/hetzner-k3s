@@ -37,7 +37,6 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def cloud_init(pool)
     worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(configuration, settings).generate_script(masters, first_master, pool)
-    worker_install_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
     ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.additional_pre_k3s_commands, settings.additional_post_k3s_commands, [worker_install_script])
   end
 
