@@ -118,6 +118,7 @@ class Hetzner::Instance::Create
     })
   end
 
+  # Encoding and formatting utilities
   def self.encode(content)
     io = IO::Memory.new
     Compress::Gzip::Writer.open(io) do |gzip|
@@ -130,6 +131,7 @@ class Hetzner::Instance::Create
     "|\n    #{encode(content).gsub("\n", "\n    ")}"
   end
 
+  # Network configuration
   def self.allowed_kubernetes_api_networks_config(settings)
     format_file_content(settings.networking.allowed_networks.api.join("\n"))
   end
@@ -138,6 +140,7 @@ class Hetzner::Instance::Create
     format_file_content(settings.networking.allowed_networks.ssh.join("\n"))
   end
 
+  # Firewall scripts
   def self.configure_firewall_script(settings)
     script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
       cluster_cidr: settings.networking.cluster_cidr,
@@ -161,30 +164,8 @@ class Hetzner::Instance::Create
     format_file_content(FIREWALL_STATUS_SCRIPT)
   end
 
-  def self.firewall_updater_service(settings)
-    service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
-      hetzner_token: settings.hetzner_token,
-      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port: settings.networking.ssh.port
-    })
-
-    format_file_content(service)
-  end
-
   def self.firewall_updater_script
     format_file_content(FIREWALL_UPDATER_SCRIPT)
-  end
-
-  def self.ipset_restore_service
-    format_file_content(IPSET_RESTORE_SERVICE)
-  end
-
-  def self.iptables_restore_service
-    format_file_content(IPTABLES_RESTORE_SERVICE)
-  end
-
-  def self.ipset_restore_service
-    format_file_content(IPSET_RESTORE_SERVICE)
   end
 
   def self.setup_firewall_services_script(settings)
@@ -195,6 +176,25 @@ class Hetzner::Instance::Create
     })
 
     format_file_content(script)
+  end
+
+  # Firewall services
+  def self.firewall_updater_service(settings)
+    service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
+      hetzner_token: settings.hetzner_token,
+      hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port: settings.networking.ssh.port
+    })
+
+    format_file_content(service)
+  end
+
+  def self.ipset_restore_service
+    format_file_content(IPSET_RESTORE_SERVICE)
+  end
+
+  def self.iptables_restore_service
+    format_file_content(IPTABLES_RESTORE_SERVICE)
   end
 
   def self.firewall_files(settings)
@@ -239,6 +239,7 @@ class Hetzner::Instance::Create
     YAML
   end
 
+  # SSH configuration
   def self.ssh_listen_conf(settings)
     conf = Crinja.render(SSH_LISTEN_CONF, {
       ssh_port: settings.networking.ssh.port
@@ -266,6 +267,7 @@ class Hetzner::Instance::Create
     YAML
   end
 
+  # Cloud initialization helpers
   def self.growpart(snapshot_os)
     snapshot_os == "microos" ? <<-YAML
     growpart:
@@ -284,6 +286,7 @@ class Hetzner::Instance::Create
     : ""
   end
 
+  # Command generation helpers
   def self.mandatory_post_create_commands(settings)
     commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
@@ -317,6 +320,7 @@ class Hetzner::Instance::Create
     "- #{combined_commands.join("\n- ")}"
   end
 
+  # Initialization and file management
   def self.init_file_content(script_files)
     return "" if script_files.empty?
 
@@ -344,10 +348,25 @@ class Hetzner::Instance::Create
     script_files
   end
 
+  # MicroOS utilities
+  def self.microos_commands
+    [
+      "btrfs filesystem resize max /var",
+      "sed -i 's/NETCONFIG_DNS_STATIC_SERVERS=\"\"/NETCONFIG_DNS_STATIC_SERVERS=\"1.1.1.1 1.0.0.1\"/g' /etc/sysconfig/network/config",
+      "sed -i 's/#SystemMaxUse=/SystemMaxUse=3G/g' /etc/systemd/journald.conf",
+      "sed -i 's/#MaxRetentionSec=/MaxRetentionSec=1week/g' /etc/systemd/journald.conf",
+      "sed -i 's/NUMBER_LIMIT=\"2-10\"/NUMBER_LIMIT=\"4\"/g' /etc/snapper/configs/root",
+      "sed -i 's/NUMBER_LIMIT_IMPORTANT=\"4-10\"/NUMBER_LIMIT_IMPORTANT=\"3\"/g' /etc/snapper/configs/root",
+      "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
+      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
+    ]
+  end
+
   def self.add_microos_commands(post_create_commands)
     post_create_commands.concat(microos_commands)
   end
 
+  # Utility methods
   def self.format_additional_commands(commands)
     commands.map do |command|
       command.includes?("\n") ? format_multiline_command(command) : command
@@ -365,19 +384,6 @@ class Hetzner::Instance::Create
     wireguard_package = snapshot_os == "microos" ? "wireguard-tools" : "wireguard"
     all_packages = base_packages + [wireguard_package] + additional_packages
     "'#{all_packages.join("', '")}'"
-  end
-
-  def self.microos_commands
-    [
-      "btrfs filesystem resize max /var",
-      "sed -i 's/NETCONFIG_DNS_STATIC_SERVERS=\"\"/NETCONFIG_DNS_STATIC_SERVERS=\"1.1.1.1 1.0.0.1\"/g' /etc/sysconfig/network/config",
-      "sed -i 's/#SystemMaxUse=/SystemMaxUse=3G/g' /etc/systemd/journald.conf",
-      "sed -i 's/#MaxRetentionSec=/MaxRetentionSec=1week/g' /etc/systemd/journald.conf",
-      "sed -i 's/NUMBER_LIMIT=\"2-10\"/NUMBER_LIMIT=\"4\"/g' /etc/snapper/configs/root",
-      "sed -i 's/NUMBER_LIMIT_IMPORTANT=\"4-10\"/NUMBER_LIMIT_IMPORTANT=\"3\"/g' /etc/snapper/configs/root",
-      "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
-      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
-    ]
   end
 
   private def create_instance
