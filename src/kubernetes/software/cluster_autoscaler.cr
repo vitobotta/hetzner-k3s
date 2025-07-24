@@ -11,6 +11,7 @@ require "../resources/pod/spec/toleration"
 require "../resources/pod/spec/container"
 require "../../util"
 require "../util"
+require "../script/worker_generator"
 
 class Kubernetes::Software::ClusterAutoscaler
   include Util
@@ -35,7 +36,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def cloud_init(pool)
-    worker_install_script = ::Kubernetes::Installer.worker_install_script(settings, masters, first_master, pool)
+    worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(configuration, settings).generate_script(masters, first_master, pool)
     worker_install_script = "|\n    #{worker_install_script.gsub("\n", "\n    ")}"
     ::Hetzner::Instance::Create.cloud_init(settings, settings.networking.ssh.port, settings.snapshot_os, settings.additional_packages, settings.additional_pre_k3s_commands, settings.additional_post_k3s_commands, [worker_install_script])
   end
@@ -58,16 +59,16 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def autoscaler_config_args
     args = [] of String
-    
+
     # Use top-level cluster autoscaler configuration
     config = settings.cluster_autoscaler
-    
+
     args << "--scan-interval=#{config.scan_interval}"
     args << "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}"
     args << "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}"
     args << "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}"
     args << "--max-node-provision-time=#{config.max_node_provision_time}"
-    
+
     args
   end
 
