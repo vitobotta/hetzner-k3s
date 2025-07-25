@@ -85,7 +85,7 @@ class Kubernetes::Installer
 
     (masters - [first_master]).each do |master|
       spawn do
-        deploy_k3s_to_master(master, master_count)
+        deploy_to_master(master)
         masters_ready_channel.send(master)
       end
     end
@@ -108,7 +108,7 @@ class Kubernetes::Installer
           worker.name.split("-")[0..-2].join("-") =~ /^#{settings.cluster_name.to_s}-.*pool-#{pool.name.to_s}$/
         end
 
-        deploy_k3s_to_worker(pool, worker)
+        deploy_to_worker(worker, pool)
 
         semaphore.receive
         workers_ready_channel.send(worker)
@@ -156,13 +156,6 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
   end
 
-  private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
-    deploy_to_master(master)
-  end
-
-  private def deploy_k3s_to_worker(pool, worker : Hetzner::Instance)
-    deploy_to_worker(worker, pool)
-  end
 
   private def deploy_to_master(instance : Hetzner::Instance)
     wait_for_cloud_init(instance)
