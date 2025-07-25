@@ -1,5 +1,6 @@
 require "./shell/command_result"
 require "random/secure"
+require "file_utils"
 
 module Util
   module Shell
@@ -31,12 +32,22 @@ module Util
         "HCLOUD_TOKEN" => hetzner_token
       }
 
-      status = Process.run("bash",
-        args: ["-c", command],
-        env: env,
-        output: all_io_out,
-        error: all_io_err
-      )
+      # Always use a temporary file to avoid argument length limitations
+      tmp_file = File.tempname("hetzner_k3s_", ".sh")
+      begin
+        File.write(tmp_file, command)
+        File.chmod(tmp_file, 0o755)
+
+        status = Process.run("bash",
+          args: [tmp_file],
+          env: env,
+          output: all_io_out,
+          error: all_io_err
+        )
+      ensure
+        # Clean up the temporary file
+        FileUtils.rm_r(tmp_file) if File.exists?(tmp_file)
+      end
 
       output = status.success? ? stdout.to_s : stderr.to_s
       result = CommandResult.new(output, status.exit_status)

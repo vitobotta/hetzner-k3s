@@ -49,6 +49,8 @@ check_ufw_status() {
             echo "WARNING: UFW is active and may conflict with direct iptables rules"
             ufw status numbered
         fi
+    else
+        echo "UFW not installed"
     fi
     echo
 }
@@ -108,10 +110,10 @@ check_iptables_rules() {
 
     # Check ICMP and ipset rules
     local rules=(
-        "ICMP:ACCEPT.*icmp:✓ FOUND\: ICMP (ping) rule is active:✗ NOT FOUND\: ICMP (ping) rule is missing"
-        "nodes:match-set nodes:✓ FOUND\: API networks rule is active (allowing all traffic):✗ NOT FOUND\: API networks rule is missing"
-        "kubernetes_api:match-set allowed_networks_k8s_api:✓ FOUND\: K8S networks rule is active (port $KUBERNETES_API_PORT only):✗ NOT FOUND\: K8S networks rule is missing"
-        "ssh:match-set allowed_networks_ssh:✓ FOUND\: SSH networks rule is active (port $SSH_PORT):✗ NOT FOUND\: SSH networks rule is missing"
+        "ICMP:ACCEPT.*icmp:✓ FOUND: ICMP (ping) rule is active:✗ NOT FOUND: ICMP (ping) rule is missing"
+        "nodes:match-set nodes:✓ FOUND: API networks rule is active (allowing all traffic):✗ NOT FOUND: API networks rule is missing"
+        "kubernetes_api:match-set allowed_networks_k8s_api:✓ FOUND: K8S networks rule is active (port $KUBERNETES_API_PORT only):✗ NOT FOUND: K8S networks rule is missing"
+        "ssh:match-set allowed_networks_ssh:✓ FOUND: SSH networks rule is active (port $SSH_PORT):✗ NOT FOUND: SSH networks rule is missing"
     )
 
     for rule in "${rules[@]}"; do

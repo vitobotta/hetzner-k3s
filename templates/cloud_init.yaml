@@ -10,6 +10,8 @@ write_files:
 
 {{ ssh_files }}
 
+{{ init_files }}
+
 packages: [{{ packages_str }}]
 
 runcmd:
