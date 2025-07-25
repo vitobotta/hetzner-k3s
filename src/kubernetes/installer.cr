@@ -175,7 +175,7 @@ class Kubernetes::Installer
     wait_for_cloud_init(instance)
     script = worker_generator.generate_script(masters, first_master, pool)
     deploy_to_instance(instance, script)
-    log_line "...k3s has been deployed to worker #{instance.name}.", log_prefix: "Instance #{instance.name}"
+    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
   end
 
   private def wait_for_cloud_init(instance : Hetzner::Instance)
