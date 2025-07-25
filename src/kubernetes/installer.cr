@@ -142,23 +142,52 @@ class Kubernetes::Installer
   end
 
   private def set_up_first_master(master_count : Int)
-    ssh.run(first_master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-
+    wait_for_cloud_init(first_master)
     install_script = master_generator.generate_script(first_master, masters, first_master, load_balancer, kubeconfig_manager)
+    output = deploy_to_instance(first_master, install_script)
 
-    output = ssh.run(first_master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
-
-    log_line  "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
-
+    log_line "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
     sleep 10.seconds unless /No change detected/ =~ output
 
-    # Save kubeconfig using the new manager
     kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
-
     sleep 5.seconds
 
-    command = "kubectl cluster-info 2> /dev/null"
+    wait_for_control_plane
+    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
+  end
 
+  private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
+    deploy_to_master(master)
+  end
+
+  private def deploy_k3s_to_worker(pool, worker : Hetzner::Instance)
+    deploy_to_worker(worker, pool)
+  end
+
+  private def deploy_to_master(instance : Hetzner::Instance)
+    wait_for_cloud_init(instance)
+    script = master_generator.generate_script(instance, masters, first_master, load_balancer, kubeconfig_manager)
+    deploy_to_instance(instance, script)
+    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
+  end
+
+  private def deploy_to_worker(instance : Hetzner::Instance, pool)
+    wait_for_cloud_init(instance)
+    script = worker_generator.generate_script(masters, first_master, pool)
+    deploy_to_instance(instance, script)
+    log_line "...k3s has been deployed to worker #{instance.name}.", log_prefix: "Instance #{instance.name}"
+  end
+
+  private def wait_for_cloud_init(instance : Hetzner::Instance)
+    ssh.run(instance, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
+  end
+
+  private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
+    ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
+  end
+
+  private def wait_for_control_plane
+    command = "kubectl cluster-info 2> /dev/null"
     Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
       Tasker.timeout(30.seconds) do
         loop do
@@ -168,20 +197,6 @@ class Kubernetes::Installer
         end
       end
     end
-
-    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
-  end
-
-  private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
-    ssh.run(master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(master, settings.networking.ssh.port, master_generator.generate_script(master, masters, first_master, load_balancer, kubeconfig_manager), settings.networking.ssh.use_agent)
-    log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
-  end
-
-  private def deploy_k3s_to_worker(pool, worker : Hetzner::Instance)
-    ssh.run(worker, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(worker, settings.networking.ssh.port, worker_generator.generate_script(masters, first_master, pool), settings.networking.ssh.use_agent)
-    log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
   end
 
   private def first_master : Hetzner::Instance
