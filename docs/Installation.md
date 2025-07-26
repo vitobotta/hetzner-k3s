@@ -48,6 +48,14 @@ export OPENSSL_CONF=/dev/null
 export OPENSSL_MODULES=/dev/null
 ```
 
+For example, you can define a function replacing `hetzner-k3s` in your `.bashrc` or `.zshrc`:
+
+```bash
+hetzner-k3s() {
+    OPENSSL_CONF=/dev/null OPENSSL_MODULES=/dev/null command hetzner-k3s "$@"
+}
+```
+
 #### amd64
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.3.2/hetzner-k3s-linux-amd64
