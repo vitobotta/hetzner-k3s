@@ -18,11 +18,10 @@ class Hetzner::SSHKey::Delete
   def run
     ssh_key = ssh_key_finder.run
 
-    return handle_no_ssh_key if ssh_key.nil?
+    return handle_no_ssh_key unless ssh_key
     return handle_existing_ssh_key(ssh_key) if ssh_key.name == ssh_key_name
 
     log_line "An SSH key with the expected fingerprint existed before creating the cluster, so I won't delete it"
-
     ssh_key_name
   end
 
