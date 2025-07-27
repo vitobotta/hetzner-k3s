@@ -10,8 +10,7 @@ class Hetzner::PlacementGroup::Delete
 
   def initialize(@hetzner_client, @placement_group_name : String? = nil, @placement_group : Hetzner::PlacementGroup? = nil)
     if placement_group_name = @placement_group_name
-      placement_group_finder = Hetzner::PlacementGroup::Find.new(@hetzner_client, placement_group_name)
-      placement_group = placement_group_finder.run
+      @placement_group = Hetzner::PlacementGroup::Find.new(@hetzner_client, placement_group_name).run
     elsif placement_group = @placement_group
       @placement_group_name = placement_group.name
     end
@@ -23,29 +22,32 @@ class Hetzner::PlacementGroup::Delete
     placement_group = @placement_group
     placement_group_name = @placement_group_name
 
-    if placement_group
-      if deleting_unused
-        log_line "Deleting unused placement group #{placement_group_name}..."
+    return handle_missing_placement_group(placement_group_name) unless placement_group
+
+    log_line deletion_message(placement_group_name)
+
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.delete("/placement_groups", placement_group.id)
+
+      if success
+        log_line "...placement group #{placement_group_name} deleted"
       else
-        log_line "Deleting placement group #{placement_group_name}..."
+        STDERR.puts "[#{default_log_prefix}] Failed to delete placement group #{placement_group_name}: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete placement group #{placement_group_name} in 5 seconds..."
+        raise "Failed to delete placement group"
       end
-
-      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-        success, response = hetzner_client.delete("/placement_groups", placement_group.id)
-
-        if success
-          log_line "...placement group #{placement_group_name} deleted"
-        else
-          STDERR.puts "[#{default_log_prefix}] Failed to delete placement group #{placement_group_name}: #{response}"
-          STDERR.puts "[#{default_log_prefix}] Retrying to delete placement group #{placement_group_name} in 5 seconds..."
-          raise "Failed to delete placement group"
-        end
-      end
-    else
-      log_line "Placement group #{placement_group_name} does not exist, skipping delete"
     end
 
     placement_group_name
+  end
+
+  private def handle_missing_placement_group(placement_group_name)
+    log_line "Placement group #{placement_group_name} does not exist, skipping delete"
+    placement_group_name
+  end
+
+  private def deletion_message(placement_group_name)
+    deleting_unused ? "Deleting unused placement group #{placement_group_name}..." : "Deleting placement group #{placement_group_name}..."
   end
 
   private def default_log_prefix
