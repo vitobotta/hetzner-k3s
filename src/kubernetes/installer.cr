@@ -153,21 +153,18 @@ class Kubernetes::Installer
     sleep 5.seconds
 
     wait_for_control_plane
-    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
   end
 
   private def deploy_to_master(instance : Hetzner::Instance)
     wait_for_cloud_init(instance)
     script = master_generator.generate_script(instance, masters, first_master, load_balancer, kubeconfig_manager)
     deploy_to_instance(instance, script)
-    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
   end
 
   private def deploy_to_worker(instance : Hetzner::Instance, pool)
     wait_for_cloud_init(instance)
     script = worker_generator.generate_script(masters, first_master, pool)
     deploy_to_instance(instance, script)
-    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
   end
 
   private def wait_for_cloud_init(instance : Hetzner::Instance)
@@ -175,7 +172,9 @@ class Kubernetes::Installer
   end
 
   private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
-    ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
+    output = ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
+    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
+    output
   end
 
   private def wait_for_control_plane
