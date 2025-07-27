@@ -18,13 +18,8 @@ class Configuration::NetworkingComponents::CNI
   def validate(errors, private_network)
     return unless enabled
 
-    if !encryption && !private_network.enabled
-      errors << "CNI encryption must be enabled when private networking is disabled"
-    end
-
-    unless ["flannel", "cilium"].includes?(mode)
-      errors << "CNI mode must be either 'flannel' or 'cilium' when CNI is enabled"
-    end
+    errors << "CNI encryption must be enabled when private networking is disabled" unless encryption || private_network.enabled
+    errors << "CNI mode must be either 'flannel' or 'cilium' when CNI is enabled" unless {"flannel", "cilium"}.includes?(mode)
   end
 
   def flannel?
