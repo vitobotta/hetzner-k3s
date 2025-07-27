@@ -11,25 +11,16 @@ class Hetzner::Instance
   getter public_net : PublicNet?
   getter private_net : Array(Hetzner::NetworkInterface)?
 
-  def public_ip_address
+  def public_ip_address : String?
     public_net.try(&.ipv4).try(&.ip)
   end
 
-  def private_ip_address
-    net = private_net
-
-    return public_ip_address unless net
-    return if net.try(&.empty?)
-
-    net[0].ip
+  def private_ip_address : String?
+    private_net.try(&.first?).try(&.ip) || public_ip_address
   end
 
-  def host_ip_address
-    if public_ip_address.nil?
-      private_ip_address
-    else
-      public_ip_address
-    end
+  def host_ip_address : String?
+    public_ip_address || private_ip_address
   end
 
   def master?
