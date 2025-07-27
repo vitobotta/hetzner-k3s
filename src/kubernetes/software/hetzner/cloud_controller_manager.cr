@@ -8,29 +8,40 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
 
-  def initialize(@configuration, @settings)
+  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
   end
 
-  def install
-    log_line "Installing Hetzner Cloud Controller Manager..."
+  def install : Nil
+    log_line "Installing Hetzner Cloud Controller Manager...", log_prefix: default_log_prefix
 
-    apply_manifest_from_yaml(manifest, "Failed to install Hetzner Cloud Controller Manager")
+    manifest_content = build_manifest_content
+    apply_manifest_from_yaml(manifest_content, "Failed to install Hetzner Cloud Controller Manager")
 
-    log_line "Hetzner Cloud Controller Manager installed"
+    log_line "Hetzner Cloud Controller Manager installed", log_prefix: default_log_prefix
   end
 
-  private def default_log_prefix
-    "Hetzner Cloud Controller"
+  private def build_manifest_content : String
+    manifest_url = resolve_manifest_url
+    raw_manifest = fetch_manifest(manifest_url)
+    patch_cluster_cidr(raw_manifest)
   end
 
-  private def manifest
-    manifest_url = if settings.networking.private_network.enabled
-      settings.manifests.cloud_controller_manager_manifest_url
+  private def resolve_manifest_url : String
+    base_url = settings.manifests.cloud_controller_manager_manifest_url
+
+    if settings.networking.private_network.enabled
+      base_url
     else
-      settings.manifests.cloud_controller_manager_manifest_url.gsub("-networks", "")
+      base_url.gsub("-networks", "")
     end
+  end
 
-    manifest = fetch_manifest(manifest_url)
-    manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{settings.networking.cluster_cidr}")
+  private def patch_cluster_cidr(manifest : String) : String
+    cluster_cidr = settings.networking.cluster_cidr
+    manifest.gsub(/--cluster-cidr=[^"]+/, "--cluster-cidr=#{cluster_cidr}")
+  end
+
+  private def default_log_prefix : String
+    "Hetzner Cloud Controller Manager"
   end
 end
