@@ -25,11 +25,7 @@ class Configuration::Settings::NodePool::Location
   end
 
   def validate
-    if masters_pool?
-      validate_masters_pool_locations
-    else
-      validate_worker_pool_location
-    end
+    masters_pool? ? validate_masters_pool_locations : validate_worker_pool_location
   end
 
   private def masters_pool?
@@ -49,7 +45,12 @@ class Configuration::Settings::NodePool::Location
   end
 
   private def validate_masters_locations_and_network_zone
-    return if masters_pool.locations.size > 0 && masters_pool.locations.all? { |loc| location_exists?(loc) } && masters_pool.locations.map { |loc| network_zone_by_location(loc) }.uniq.size == 1
+    return if masters_pool.locations.empty?
+    
+    valid_locations = masters_pool.locations.all? { |loc| location_exists?(loc) }
+    same_network_zone = masters_pool.locations.map { |loc| network_zone_by_location(loc) }.uniq.size == 1
+    
+    return if valid_locations && same_network_zone
     errors << "All must be in valid locations and in the same same network zone when using a private network"
   end
 
