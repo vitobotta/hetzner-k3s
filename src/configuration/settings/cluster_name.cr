@@ -6,12 +6,8 @@ class Configuration::Settings::ClusterName
   end
 
   def validate
-    if cluster_name.empty?
-      errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)"
-    elsif ! /\A[a-z\d-]+\z/.match(cluster_name)
-      errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)"
-    elsif ! /\A[a-z]+.*([a-z]|\d)+\z/.match(cluster_name)
-      errors << "Ensure that cluster_name starts and ends with a normal letter"
-    end
+    return errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)" if cluster_name.empty?
+    return errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)" unless /\A[a-z\d-]+\z/.match(cluster_name)
+    return errors << "Ensure that cluster_name starts and ends with a normal letter" unless /\A[a-z]+.*([a-z]|\d)+\z/.match(cluster_name)
   end
 end
