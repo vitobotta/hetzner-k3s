@@ -76,16 +76,11 @@ class Hetzner::Instance::Create
   def run
     instance = find_instance
 
-    if instance
-      @instance_name = instance.name
-      @instance_existed = true
-      ensure_instance_is_ready
-    else
-      instance = create_instance
-      log_line "...instance #{instance_name} created"
-    end
+    return handle_existing_instance(instance) if instance
 
-    instance.not_nil!
+    instance = create_instance
+    log_line "...instance #{instance_name} created"
+    instance
   end
 
   def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String)
@@ -121,6 +116,12 @@ class Hetzner::Instance::Create
       end
     end
 
+    ensure_instance_is_ready
+  end
+
+  private def handle_existing_instance(instance)
+    @instance_name = instance.name
+    @instance_existed = true
     ensure_instance_is_ready
   end
 
