@@ -10,9 +10,7 @@ class Hetzner::Network::Find
   end
 
   def run
-    networks = fetch_networks
-
-    networks.find { |network| network.name == network_name }
+    fetch_networks.find { |network| network.name == network_name }
   end
 
   private def fetch_networks
