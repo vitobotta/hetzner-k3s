@@ -62,12 +62,8 @@ class Util::SSH
           raise IO::Error.new("Result mismatch")
         end
       rescue ex : Tasker::Timeout
-        log_line "SSH command timed out for instance #{instance.name}",
-                 log_prefix: "Instance #{instance.name}"
         raise ex
       rescue ex
-        log_line "SSH connection failed for instance #{instance.name}: #{ex.message}",
-                 log_prefix: "Instance #{instance.name}"
         raise ex
       end
     end
