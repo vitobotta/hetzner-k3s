@@ -24,16 +24,12 @@ class Configuration::NetworkingComponents::SSH
   end
 
   private def validate_path(errors, path, key_type)
-    if ! File.exists?(path)
-      errors << "#{key_type}_key_path does not exist"
-    elsif File.directory?(path)
-      errors << "#{key_type}_key_path is a directory, while we expect a public key file"
-    end
+    return errors << "#{key_type}_key_path does not exist" unless File.exists?(path)
+    errors << "#{key_type}_key_path is a directory, while we expect a public key file" if File.directory?(path)
   end
 
   private def absolute_path(path)
     home_dir = ENV["HOME"]? || raise "HOME environment variable not set"
-    relative_path = path.sub("~/", "#{home_dir}/")
-    absolute_path = File.expand_path(relative_path)
+    File.expand_path(path.sub("~/", "#{home_dir}/"))
   end
 end
