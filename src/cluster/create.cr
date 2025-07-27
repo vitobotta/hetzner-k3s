@@ -10,7 +10,6 @@ require "./network_manager"
 require "./load_balancer_manager"
 
 class Cluster::Create
-  MAX_INSTANCES_PER_PLACEMENT_GROUP = 10
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client { configuration.hetzner_client }
   private getter settings : Configuration::Main { configuration.settings }
@@ -38,7 +37,8 @@ class Cluster::Create
   private getter load_balancer_manager : LoadBalancerManager
 
   def initialize(@configuration)
-    @placement_group_manager = PlacementGroupManager.new(settings, hetzner_client, mutex, Array(Hetzner::PlacementGroup).new)
+    existing_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).run
+    @placement_group_manager = PlacementGroupManager.new(settings, hetzner_client, mutex, existing_placement_groups)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
 
@@ -112,27 +112,18 @@ class Cluster::Create
 
     node_pools.each do |node_pool|
       node_pool_placement_groups = placement_group_manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
-      
+
       # Ensure we have placement groups for this pool
       if node_pool_placement_groups.empty?
         static_worker_node_pools = [node_pool]
         placement_group_manager.create_for_worker_node_pools(static_worker_node_pools)
         node_pool_placement_groups = placement_group_manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
       end
-      
-      # Fill placement groups sequentially instead of round-robin
-      current_group_index = 0
-      current_group_count = 0
-      
+
+      # Use synchronized placement group assignment with round-robin
       node_pool.instance_count.times do |i|
-        placement_group = node_pool_placement_groups[current_group_index]
+        placement_group = placement_group_manager.assign_placement_group(node_pool_placement_groups, i)
         factories << instance_builder.create_worker_instance(i, node_pool, placement_group)
-        
-        current_group_count += 1
-        if current_group_count >= Cluster::PlacementGroupManager::MAX_INSTANCES_PER_PLACEMENT_GROUP
-          current_group_index += 1
-          current_group_count = 0
-        end
       end
     end
 

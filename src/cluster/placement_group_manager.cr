@@ -1,5 +1,7 @@
 require "../hetzner/placement_group/create"
 require "../hetzner/placement_group/all"
+require "../hetzner/placement_groups_list"
+require "json"
 
 class Cluster::PlacementGroupManager
   MAX_PLACEMENT_GROUPS = 50
@@ -11,6 +13,7 @@ class Cluster::PlacementGroupManager
   getter all_placement_groups : Array(Hetzner::PlacementGroup)
 
   def initialize(@settings, @hetzner_client, @mutex, @all_placement_groups)
+    @placement_group_usage = Hash(String, Int32).new(0)
   end
 
   def find_by_name(placement_group_name)
@@ -82,6 +85,19 @@ class Cluster::PlacementGroupManager
 
   def delete_unused
     mutex.synchronize { @all_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_unused }
+  end
+
+  def assign_placement_group(placement_groups, instance_index)
+    mutex.synchronize do
+      placement_groups.each { |pg| @placement_group_usage[pg.name] ||= 0 }
+
+      available_groups = placement_groups.select { |pg| @placement_group_usage[pg.name] < MAX_INSTANCES_PER_PLACEMENT_GROUP }
+      available_groups = placement_groups if available_groups.empty?
+
+      target_group = available_groups.min_by { |pg| @placement_group_usage[pg.name] }
+      @placement_group_usage[target_group.name] += 1
+      target_group
+    end
   end
 
   private def track(placement_group)
