@@ -8,7 +8,6 @@ module K3s
   private RELEASES_DIRECTORY = File.expand_path("#{ENV["HOME"]}/.hetzner-k3s")
   private RELEASES_FILENAME  = File.expand_path("#{ENV["HOME"]}/.hetzner-k3s/k3s-releases.yaml")
 
-  # Returns available K3s releases, cached for 7 days
   def self.available_releases
     Dir.mkdir(RELEASES_DIRECTORY) unless File.directory?(RELEASES_DIRECTORY)
 
@@ -22,12 +21,9 @@ module K3s
 
     releases = fetch_all_releases_from_github
     File.open(RELEASES_FILENAME, "w") { |f| YAML.dump(releases, f) }
-
-    # Parse and return the cached file to ensure consistent return type
-    YAML.parse(File.read(RELEASES_FILENAME)).as_a
+    releases
   end
 
-  # Fetches all K3s releases from GitHub API
   private def self.fetch_all_releases_from_github : Array(String)
     releases = [] of String
     next_page_url = "https://api.github.com/repos/k3s-io/k3s/tags?per_page=100"
@@ -43,7 +39,6 @@ module K3s
     releases.reverse
   end
 
-  # Extracts the next page URL from GitHub's Link header
   private def self.extract_next_github_page_url(link_header : (Array(String) | String | Nil)) : String?
     return nil unless link_header
 
@@ -58,46 +53,44 @@ module K3s
     nil
   end
 
-  # Retrieves the K3s token from master nodes
-  def self.k3s_token(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
-    token_by_master(settings, masters) do |settings, master|
-      begin
-        ssh_client = ::Util::SSH.new(
-          settings.networking.ssh.private_key_path,
-          settings.networking.ssh.public_key_path
-        )
+  private def self.get_token_from_master(settings : Configuration::Main, master : Hetzner::Instance) : String?
+    begin
+      ssh_client = ::Util::SSH.new(
+        settings.networking.ssh.private_key_path,
+        settings.networking.ssh.public_key_path
+      )
 
-        result = ssh_client.run(
-          master,
-          settings.networking.ssh.port,
-          "cat /var/lib/rancher/k3s/server/node-token",
-          settings.networking.ssh.use_agent,
-          print_output: false
-        )
+      result = ssh_client.run(
+        master,
+        settings.networking.ssh.port,
+        "cat /var/lib/rancher/k3s/server/node-token",
+        settings.networking.ssh.use_agent,
+        print_output: false
+      )
 
-        result.split(":").last
-      rescue ex
-        "" # Return empty string on any SSH error
-      end
+      # Extract token part (after the last colon)
+      result.split(":").last
+    rescue ex
+      nil # Return nil if we can't connect to the master
     end
   end
 
-  # Gets token from master nodes, using quorum to determine the correct one
-  def self.token_by_master(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
+  def self.k3s_token(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
     @@k3s_token ||= begin
-      tokens = masters.map { |master| yield settings, master }.reject(&.empty?)
+      # Try to get token from each master node
+      tokens = masters.compact_map { |master| get_token_from_master(settings, master) }
 
-      if tokens.empty?
-        Random::Secure.hex
-      else
-        # Find the most common token (quorum approach)
+      # If we got tokens, return the most common one (quorum approach)
+      unless tokens.empty?
+        # Group tokens by value and count occurrences
         token_counts = tokens.tally
-        max_count = token_counts.max_of { |_, count| count }
-        most_common_token = token_counts.key_for(max_count)
-
-        # Return the token part after the last colon, or a new random token if empty
-        most_common_token.empty? ? Random::Secure.hex : most_common_token.split(':').last
+        # Find the token with the highest count
+        most_frequent_token, _ = token_counts.max_by { |_, count| count }
+        return most_frequent_token
       end
+
+      # If no tokens found, generate a random one as fallback
+      Random::Secure.hex
     end
   end
 end
