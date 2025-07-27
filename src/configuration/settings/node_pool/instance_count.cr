@@ -11,14 +11,7 @@ class Configuration::Settings::NodePool::InstanceCount
   end
 
   def validate
-    validate_master_count if pool_type == :masters
-  end
-
-  private def validate_master_count
-    if pool.instance_count > 0 && (pool.instance_count.odd? || datastore.mode == "external")
-      return
-    else
-      errors << "Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster"
-    end
+    return unless pool_type == :masters
+    return errors << "Masters count must equal to 1 for non-HA clusters or an odd number (recommended 3) for an HA cluster" unless pool.instance_count > 0 && (pool.instance_count.odd? || datastore.mode == "external")
   end
 end
