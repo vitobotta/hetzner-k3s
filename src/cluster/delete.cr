@@ -70,8 +70,8 @@ class Cluster::Delete
 
     delete_instances
     delete_placement_groups
-    delete_network
-    delete_firewall
+    delete_network if settings.networking.private_network.enabled
+    delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
   end
 
@@ -170,7 +170,7 @@ class Cluster::Delete
 
   private def detect_nodes_with_kubectl
     result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
-    
+
     if result.success?
       lines = result.output.split("\n")
       lines = lines[1..] if lines.size > 1 && lines[0].includes?("NAME")
@@ -180,7 +180,7 @@ class Cluster::Delete
         next if instance_deletor_exists?(node_name)
         instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: node_name)
       end
-      
+
       if all_node_names.empty?
         detect_nodes_with_hetzner_api
       end
