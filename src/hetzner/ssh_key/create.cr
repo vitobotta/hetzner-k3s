@@ -20,16 +20,12 @@ class Hetzner::SSHKey::Create
   def run
     ssh_key = ssh_key_finder.run
 
-    unless ssh_key
-      log_line "Creating SSH key..."
+    return ssh_key if ssh_key
 
-      create_ssh_key
-      ssh_key = ssh_key_finder.run
-
-      log_line "...SSH key created"
-    end
-
-    ssh_key.not_nil!
+    log_line "Creating SSH key..."
+    create_ssh_key
+    log_line "...SSH key created"
+    ssh_key_finder.run.not_nil!
   end
 
   private def create_ssh_key
