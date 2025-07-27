@@ -13,6 +13,6 @@ class Configuration::Settings::NodePool::PoolName
   end
 
   private def valid_pool_name?(name : String) : Bool
-    (name =~ /\A([A-Za-z0-9\-_]+)\Z/) != nil
+    name.matches?(/\A[A-Za-z0-9\-_]+\Z/)
   end
 end
