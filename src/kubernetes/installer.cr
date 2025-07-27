@@ -172,9 +172,7 @@ class Kubernetes::Installer
   end
 
   private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
-    output = ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
-    log_line "...k3s deployed", log_prefix: "Instance #{instance.name}"
-    output
+    ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
   end
 
   private def wait_for_control_plane
