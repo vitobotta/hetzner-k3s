@@ -6,12 +6,9 @@ class Configuration::Settings::Datastore
   end
 
   def validate
-    case datastore.mode
-    when "etcd"
-    when "external"
-      errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
-    else
-      errors << "datastore mode is invalid - allowed values are 'etcd' and 'external'"
-    end
+    return errors << "datastore mode is invalid - allowed values are 'etcd' and 'external'" unless {"etcd", "external"}.includes?(datastore.mode)
+    return unless datastore.mode == "external"
+    
+    errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
   end
 end
