@@ -29,30 +29,44 @@ class Hetzner::Firewall::Create
 
   def run
     firewall = firewall_finder.run
-    action = firewall ? :update : :create
+    
+    return handle_firewall_update(firewall) if firewall
+    
+    log_line "Creating firewall..."
+    create_firewall
+    log_line "...firewall created"
+    firewall_finder.run.not_nil!
+  end
 
-    if firewall
-      log_line "Updating firewall..."
-      action_path = "/firewalls/#{firewall.id}/actions/set_rules"
-    else
-      log_line "Creating firewall..."
-      action_path = "/firewalls"
-    end
+  private def handle_firewall_update(firewall)
+    log_line "Updating firewall..."
+    update_firewall(firewall.id)
+    log_line "...firewall updated"
+    firewall
+  end
 
+  private def create_firewall
     Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-      success, response = hetzner_client.post(action_path, firewall_config)
+      success, response = hetzner_client.post("/firewalls", firewall_config)
 
-      if success
-        log_line action == :update ? "...firewall updated" : "...firewall created"
-      else
-        STDERR.puts "[#{default_log_prefix}] Failed to create or update firewall: #{response}"
-        STDERR.puts "[#{default_log_prefix}] Retrying to create or update firewall in 5 seconds..."
-        raise "Failed to create or update firewall"
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to create firewall: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to create firewall in 5 seconds..."
+        raise "Failed to create firewall"
       end
     end
+  end
 
-    firewall = firewall_finder.run
-    firewall.not_nil!
+  private def update_firewall(firewall_id)
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post("/firewalls/#{firewall_id}/actions/set_rules", firewall_config)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to update firewall: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to update firewall in 5 seconds..."
+        raise "Failed to update firewall"
+      end
+    end
   end
 
   private def firewall_config
