@@ -10,14 +10,12 @@ class Hetzner::PlacementGroup::Find
   end
 
   def run
-    placement_groups = fetch_placement_groups
-
-    placement_groups.find { |placement_group| placement_group.name == placement_group_name }
+    fetch_placement_groups.find { |placement_group| placement_group.name == placement_group_name }
   end
 
   private def fetch_placement_groups
     Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-      success, response = hetzner_client.get("/placement_groups", { :name => placement_group_name })
+      success, response = hetzner_client.get("/placement_groups", {:name => placement_group_name})
 
       if success
         PlacementGroupsList.from_json(response).placement_groups
