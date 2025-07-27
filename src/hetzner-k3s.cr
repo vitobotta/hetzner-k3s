@@ -31,14 +31,8 @@ module Hetzner::K3s
                   short: "c",
                   required: true
 
-      define_flag force : Bool,
-                  description: "Force creation of the cluster without any prompts for warnings",
-                  long: "force",
-                  required: false,
-                  default: false
-
       def run
-        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, flags.force, :create)
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :create)
         Cluster::Create.new(configuration: configuration).run
       end
     end
@@ -59,7 +53,7 @@ module Hetzner::K3s
                   default: false
 
       def run
-        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :delete)
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, flags.force, :delete)
         Cluster::Delete.new(configuration: configuration, force: flags.force).run
       end
     end
@@ -78,8 +72,14 @@ module Hetzner::K3s
                   long: "--new-k3s-version",
                   required: true
 
+      define_flag force : Bool,
+                  description: "Force upgrade of the cluster without any prompts",
+                  long: "force",
+                  required: false,
+                  default: false
+
       def run
-        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, flags.new_k3s_version, true, :upgrade)
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, flags.new_k3s_version, flags.force, :upgrade)
         Cluster::Upgrade.new(configuration: configuration).run
       end
     end
