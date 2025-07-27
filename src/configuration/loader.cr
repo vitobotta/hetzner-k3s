@@ -143,34 +143,20 @@ class Configuration::Loader
   end
 
   private def validate_worker_node_pools
-    if settings.worker_node_pools.nil?
-      errors << "`worker_node_pools` is required if workloads cannot be scheduled on masters" unless settings.schedule_workloads_on_masters
+    node_pools = settings.worker_node_pools || [] of Configuration::WorkerNodePool
+    
+    if node_pools.empty? && !settings.schedule_workloads_on_masters
+      errors << "At least one worker node pool is required in order to schedule workloads"
       return
     end
 
-    node_pools = settings.worker_node_pools
-    validate_node_pools_configuration(node_pools)
-  end
+    names = node_pools.map(&.name)
+    errors << "Each worker node pool must have a unique name" if names.uniq.size != names.size
 
-  private def validate_node_pools_configuration(node_pools)
-    if node_pools.empty?
-      errors << "At least one worker node pool is required in order to schedule workloads" unless settings.schedule_workloads_on_masters
-    else
-      validate_unique_node_pool_names(node_pools)
-      validate_each_node_pool(node_pools)
-    end
-  end
-
-  private def validate_unique_node_pool_names(node_pools)
-    worker_node_pool_names = node_pools.map(&.name)
-    errors << "Each worker node pool must have a unique name" if worker_node_pool_names.uniq.size != node_pools.size
-  end
-
-  private def validate_each_node_pool(node_pools)
-    node_pools.each do |worker_node_pool|
+    node_pools.each do |pool|
       Settings::NodePool.new(
         errors: errors,
-        pool: worker_node_pool,
+        pool: pool,
         pool_type: :workers,
         masters_pool: masters_pool,
         instance_types: instance_types,
