@@ -16,14 +16,12 @@ class Hetzner::PlacementGroup::Create
   def run
     placement_group = placement_group_finder.run
 
-    unless placement_group
-      log_line "Creating placement group #{placement_group_name}..."
-      create_placement_group
-      placement_group = placement_group_finder.run
-      log_line "...placement group #{placement_group_name} created"
-    end
+    return placement_group if placement_group
 
-    placement_group.not_nil!
+    log_line "Creating placement group #{placement_group_name}..."
+    create_placement_group
+    log_line "...placement group #{placement_group_name} created"
+    placement_group_finder.run.not_nil!
   end
 
   private def create_placement_group
