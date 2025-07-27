@@ -156,7 +156,6 @@ class Kubernetes::Installer
     log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
   end
 
-
   private def deploy_to_master(instance : Hetzner::Instance)
     wait_for_cloud_init(instance)
     script = master_generator.generate_script(instance, masters, first_master, load_balancer, kubeconfig_manager)
