@@ -16,14 +16,17 @@ class Hetzner::Firewall::Delete
   def run
     firewall = firewall_finder.run
 
-    if firewall
-      log_line "Deleting firewall..."
-      delete_firewall(firewall.id)
-      log_line "...firewall deleted."
-    else
-      log_line "Firewall does not exist, skipping delete"
-    end
+    return handle_missing_firewall unless firewall
 
+    log_line "Deleting firewall..."
+    delete_firewall(firewall.id)
+    log_line "...firewall deleted."
+
+    firewall_name
+  end
+
+  private def handle_missing_firewall
+    log_line "Firewall does not exist, skipping delete"
     firewall_name
   end
 
