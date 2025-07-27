@@ -28,13 +28,12 @@ class Cluster::Upgrade
     print "Please enter the cluster name to confirm that you want to upgrade it: "
     input = gets
 
-    if input.try(&.strip) != settings.cluster_name
+    unless input.try(&.strip) == settings.cluster_name
       puts "Cluster name '#{input.try(&.strip)}' does not match '#{settings.cluster_name}'. Aborting upgrade."
       exit 1
     end
 
     log_line "k3s version upgrade started"
-
     ensure_kubectl_is_installed!
 
     create_upgrade_plan_for_controlplane
@@ -62,12 +61,7 @@ class Cluster::Upgrade
   end
 
   private def create_upgrade_plan_for_controlplane
-    command = String.build do |str|
-      str << "kubectl apply -f - <<-EOF\n"
-      str << masters_upgrade_manifest.strip
-      str << "\nEOF"
-    end
-
+    command = "kubectl apply -f - <<-EOF\n#{masters_upgrade_manifest.strip}\nEOF"
     run_shell_command command, configuration.kubeconfig_path, settings.hetzner_token, error_message: "Failed to create upgrade plan for controlplane"
   end
 
@@ -81,19 +75,11 @@ class Cluster::Upgrade
   private def create_upgrade_plan_for_workers
     return if workers_count.zero?
 
-    command = String.build do |str|
-      str << "kubectl apply -f - <<-EOF\n"
-      str << workers_upgrade_manifest.strip
-      str << "\nEOF"
-    end
-
+    command = "kubectl apply -f - <<-EOF\n#{workers_upgrade_manifest.strip}\nEOF"
     run_shell_command command, configuration.kubeconfig_path, settings.hetzner_token, error_message: "Failed to create upgrade plan for workers"
   end
 
   private def update_k3s_version_in_configuration_file
-    current_configuration = File.read(configuration.configuration_file_path)
-    new_configuration = current_configuration.gsub(/k3s_version: .*/, "k3s_version: #{new_k3s_version}")
-
-    File.write(configuration.configuration_file_path, new_configuration)
+    File.write(configuration.configuration_file_path, File.read(configuration.configuration_file_path).gsub(/k3s_version: .*/, "k3s_version: #{new_k3s_version}"))
   end
 end
