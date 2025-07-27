@@ -23,7 +23,7 @@ module Hetzner::K3s
     end
 
     class Create < Admiral::Command
-      define_help description: "create - Create a cluster"
+      define_help description: "Create a cluster"
 
       define_flag configuration_file_path : String,
                   description: "The path of the YAML configuration file",
@@ -38,17 +38,13 @@ module Hetzner::K3s
                   default: false
 
       def run
-        ::Hetzner::K3s::CLI.print_banner
-
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, flags.force)
-        configuration.validate(:create)
-
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, flags.force, :create)
         Cluster::Create.new(configuration: configuration).run
       end
     end
 
     class Delete < Admiral::Command
-      define_help description: "delete - Delete a cluster"
+      define_help description: "Delete a cluster"
 
       define_flag configuration_file_path : String,
                   description: "The path of the YAML configuration file",
@@ -63,17 +59,13 @@ module Hetzner::K3s
                   default: false
 
       def run
-        ::Hetzner::K3s::CLI.print_banner
-
-        configuration = Configuration::Loader.new(flags.configuration_file_path, nil, true)
-        configuration.validate(:delete)
-
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :delete)
         Cluster::Delete.new(configuration: configuration, force: flags.force).run
       end
     end
 
     class Upgrade < Admiral::Command
-      define_help description: "upgrade - Upgrade a cluster to a newer version of k3s"
+      define_help description: "Upgrade a cluster to a newer version of k3s"
 
       define_flag configuration_file_path : String,
                   description: "The path of the YAML configuration file",
@@ -87,19 +79,17 @@ module Hetzner::K3s
                   required: true
 
       def run
-        ::Hetzner::K3s::CLI.print_banner
-
-        configuration = Configuration::Loader.new(flags.configuration_file_path, flags.new_k3s_version, true)
-        configuration.validate(:upgrade)
-
+        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, flags.new_k3s_version, true, :upgrade)
         Cluster::Upgrade.new(configuration: configuration).run
       end
     end
 
     class Releases < Admiral::Command
-      define_help description: "releases - List the available k3s releases"
+      define_help description: "List the available k3s releases"
 
       def run
+        ::Hetzner::K3s::CLI.print_banner
+
         puts "Available k3s releases:"
 
         ::K3s.available_releases.each do |release|
@@ -119,6 +109,13 @@ module Hetzner::K3s
 
     def run
       puts help
+    end
+
+    def self.load_configuration(file_path, new_k3s_version = nil, force = true, action = nil)
+      ::Hetzner::K3s::CLI.print_banner
+      configuration = Configuration::Loader.new(file_path, new_k3s_version, force)
+      configuration.validate(action) if action
+      configuration
     end
   end
 end
