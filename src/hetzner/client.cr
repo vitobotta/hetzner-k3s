@@ -12,34 +12,40 @@ class Hetzner::Client
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
   private getter mutex : Mutex = Mutex.new
+  @locations : Array(Location)?
+  @instance_types : Array(InstanceType)?
 
   def initialize(token)
     @token = token
   end
 
   def locations : Array(Location)
-    @locations ||= begin
-      success, response = get("/locations")
-
-      if success
-        Hetzner::LocationsList.from_json(response).locations
-      else
-        puts "[Preflight checks] Unable to fetch locations via Hetzner API"
-        exit 1
-      end
-    end
+    @locations ||= fetch_locations
   end
 
   def instance_types : Array(InstanceType)
-    @instance_types ||= begin
-      success, response = get("/server_types")
+    @instance_types ||= fetch_instance_types
+  end
 
-      if success
-        Hetzner::InstanceTypesList.from_json(response).server_types
-      else
-        puts "[Preflight checks] Unable to fetch instance types via Hetzner API"
-        exit 1
-      end
+  private def fetch_locations : Array(Location)
+    success, response = get("/locations")
+
+    if success
+      Hetzner::LocationsList.from_json(response).locations
+    else
+      puts "[Preflight checks] Unable to fetch locations via Hetzner API"
+      exit 1
+    end
+  end
+
+  private def fetch_instance_types : Array(InstanceType)
+    success, response = get("/server_types")
+
+    if success
+      Hetzner::InstanceTypesList.from_json(response).server_types
+    else
+      puts "[Preflight checks] Unable to fetch instance types via Hetzner API"
+      exit 1
     end
   end
 
@@ -111,9 +117,8 @@ class Hetzner::Client
     wait_time = 3600
 
     while wait_time > 0
-      reset_time = Time.utc.to_unix + wait_time
-      remaining_time = Time::Span.new(seconds: wait_time)
-      puts "[Hetzner API] Waiting for #{remaining_time.total_hours.floor}h#{remaining_time.minutes.floor}m#{remaining_time.seconds.floor}s until rate limit reset..."
+      remaining = Time::Span.new(seconds: wait_time)
+      puts "[Hetzner API] Waiting for #{remaining.total_hours.floor}h#{remaining.minutes.floor}m#{remaining.seconds.floor}s until rate limit reset..."
       sleep_time = [wait_time, 5].min
       sleep(sleep_time.seconds)
       wait_time -= sleep_time
@@ -135,8 +140,6 @@ class Hetzner::Client
   end
 
   private def handle_response(response) : Tuple(Bool, String)
-    success = response.status_code >= 200 && response.status_code < 300
-
-    {success, response.body.to_s}
+    {response.success?, response.body.to_s}
   end
 end
