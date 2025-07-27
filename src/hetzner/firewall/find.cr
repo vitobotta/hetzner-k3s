@@ -10,9 +10,7 @@ class Hetzner::Firewall::Find
   end
 
   def run
-    firewalls = fetch_firewalls
-
-    firewalls.find { |firewall| firewall.name == firewall_name }
+    fetch_firewalls.find { |firewall| firewall.name == firewall_name }
   end
 
   private def fetch_firewalls
