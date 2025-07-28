@@ -114,6 +114,9 @@ worker_node_pools:
 embedded_registry_mirror:
   enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
+# csi_driver:
+#   enabled: true   # install the Hetzner CSI driver (default). Set to false to skip installation if you don't need persistent volumes backed by Hetzner block storage.
+
 protect_against_deletion: true
 
 create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
