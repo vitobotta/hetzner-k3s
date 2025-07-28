@@ -78,6 +78,27 @@ else
   LOCAL_PATH_STORAGE_CLASS="--disable local-storage"
 fi
 
+# Traefik ingress controller
+if [ "{{ traefik_enabled }}" = "true" ]; then
+  TRAEFIK_PLUGIN=""
+else
+  TRAEFIK_PLUGIN="--disable traefik"
+fi
+
+# ServiceLB load balancer
+if [ "{{ servicelb_enabled }}" = "true" ]; then
+  SERVICELB_PLUGIN=""
+else
+  SERVICELB_PLUGIN="--disable servicelb"
+fi
+
+# Metrics Server
+if [ "{{ metrics_server_enabled }}" = "true" ]; then
+  METRICS_SERVER_PLUGIN=""
+else
+  METRICS_SERVER_PLUGIN="--disable metrics-server"
+fi
+
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
 
@@ -107,10 +128,10 @@ curl -sfL https://get.k3s.io | \
   {{ datastore_endpoint }} \
   INSTALL_K3S_SKIP_START=false \
   INSTALL_K3S_EXEC="server \
-    --disable traefik \
+    $TRAEFIK_PLUGIN \
     --disable-cloud-controller \
-    --disable servicelb \
-    --disable metrics-server \
+    $SERVICELB_PLUGIN \
+    $METRICS_SERVER_PLUGIN \
     --write-kubeconfig-mode=644 \
     --node-name=$HOSTNAME \
     --cluster-cidr={{ cluster_cidr }} \
