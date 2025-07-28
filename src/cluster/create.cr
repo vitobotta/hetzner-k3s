@@ -4,7 +4,6 @@ require "../hetzner/client"
 require "../hetzner/ssh_key/create"
 require "../util/ssh"
 require "../kubernetes/installer"
-require "./placement_group_manager"
 require "./instance_builder"
 require "./network_manager"
 require "./load_balancer_manager"
@@ -31,26 +30,21 @@ class Cluster::Create
   private property completed_channel : Channel(Nil) = Channel(Nil).new
   private property mutex : Mutex = Mutex.new
 
-  private getter placement_group_manager : PlacementGroupManager
   private getter instance_builder : InstanceBuilder
   private getter network_manager : NetworkManager
   private getter load_balancer_manager : LoadBalancerManager
 
   def initialize(@configuration)
-    existing_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).run
-    @placement_group_manager = PlacementGroupManager.new(settings, hetzner_client, mutex, existing_placement_groups)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
 
     @network = network_manager.find_or_create if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
     @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network)
-    placement_group_manager.delete_unused
-    @master_instances = instance_builder.initialize_master_instances(masters_locations, placement_group_manager.create_for_masters)
+    @master_instances = instance_builder.initialize_master_instances(masters_locations)
 
     static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
-    placement_group_manager.create_for_worker_node_pools(static_worker_node_pools)
-    @worker_instances = create_worker_instances_with_placement_groups(static_worker_node_pools)
+    @worker_instances = create_worker_instances(static_worker_node_pools)
   end
 
   def run
@@ -63,8 +57,6 @@ class Cluster::Create
     create_instances_concurrently(worker_instances, kubernetes_workers_installation_queue_channel)
 
     completed_channel.receive
-
-    placement_group_manager.delete_unused
 
     warn_if_not_protected
   end
@@ -107,23 +99,12 @@ class Cluster::Create
     settings.masters_pool.locations
   end
 
-  private def create_worker_instances_with_placement_groups(node_pools) : Array(Hetzner::Instance::Create)
+  private def create_worker_instances(node_pools) : Array(Hetzner::Instance::Create)
     factories = Array(Hetzner::Instance::Create).new
 
     node_pools.each do |node_pool|
-      node_pool_placement_groups = placement_group_manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
-
-      # Ensure we have placement groups for this pool
-      if node_pool_placement_groups.empty?
-        static_worker_node_pools = [node_pool]
-        placement_group_manager.create_for_worker_node_pools(static_worker_node_pools)
-        node_pool_placement_groups = placement_group_manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool.name}-") }
-      end
-
-      # Use synchronized placement group assignment with round-robin
       node_pool.instance_count.times do |i|
-        placement_group = placement_group_manager.assign_placement_group(node_pool_placement_groups, i)
-        factories << instance_builder.create_worker_instance(i, node_pool, placement_group)
+        factories << instance_builder.create_worker_instance(i, node_pool)
       end
     end
 

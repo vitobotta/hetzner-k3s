@@ -1,11 +1,9 @@
 require "../configuration/loader"
-require "../hetzner/placement_group/delete"
 require "../hetzner/ssh_key/delete"
 require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
 require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
-require "../hetzner/placement_group/all"
 require "../kubernetes/util"
 require "../util/shell"
 require "../util"
@@ -65,7 +63,6 @@ class Cluster::Delete
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
     delete_instances
-    delete_placement_groups
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
@@ -152,9 +149,6 @@ class Cluster::Delete
     end
   end
 
-  private def delete_placement_groups
-    Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_all
-  end
 
   private def default_log_prefix
     "Cluster cleanup"

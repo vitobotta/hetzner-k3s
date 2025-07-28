@@ -2,7 +2,6 @@ require "crinja"
 require "../client"
 require "../ssh_key"
 require "../network"
-require "../placement_group"
 require "./find"
 require "./cloud_init_generator"
 require "../../util"
@@ -57,7 +56,6 @@ class Hetzner::Instance::Create
       @image,
       @ssh_key,
       @network,
-      @placement_group : Hetzner::PlacementGroup? = nil,
       @additional_packages = [] of String,
       @additional_pre_k3s_commands = [] of String,
       @additional_post_k3s_commands = [] of String,
@@ -220,10 +218,8 @@ class Hetzner::Instance::Create
       :start_after_create => true
     }
 
-    placement_group = @placement_group
     network = @network
 
-    base_config = base_config.merge({ :placement_group => placement_group.id }) unless placement_group.nil?
     base_config = base_config.merge({ :networks => [network.id] }) unless network.nil?
 
     base_config
