@@ -20,11 +20,11 @@ class Hetzner::LoadBalancer::Delete
   def run
     load_balancer = load_balancer_finder.run
 
-    if load_balancer
-      log_line "Deleting load balancer for API server..." if print_log
-      delete_load_balancer(load_balancer.id)
-      log_line "...load balancer for API server deleted" if print_log
-    end
+    return handle_missing_load_balancer unless load_balancer
+
+    log_line "Deleting load balancer for API server..." if print_log
+    delete_load_balancer(load_balancer.id)
+    log_line "...load balancer for API server deleted" if print_log
 
     load_balancer_name
   end
@@ -56,6 +56,10 @@ class Hetzner::LoadBalancer::Delete
       },
       :type => "label_selector"
     }
+  end
+
+  private def handle_missing_load_balancer
+    load_balancer_name
   end
 
   private def default_log_prefix

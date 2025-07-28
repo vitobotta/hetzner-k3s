@@ -10,13 +10,10 @@ class Hetzner::LoadBalancer::Find
   end
 
   def run
-    load_balancers = fetch_load_balancers
-
-    load_balancers.find { |load_balancer| load_balancer.name == load_balancer_name }
+    fetch_load_balancers.find { |load_balancer| load_balancer.name == load_balancer_name }
   end
 
   private def fetch_load_balancers
-
     Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
       success, response = hetzner_client.get("/load_balancers")
 

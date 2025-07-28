@@ -61,6 +61,7 @@
 				"editor.fontFamily": "Source Code Pro",
 				"editor.linkedEditing": true,
 				"editor.stickyScroll.enabled": true,
+				"editor.lineNumbers": "on",
 
 				"diffEditor.codeLens": true,
 

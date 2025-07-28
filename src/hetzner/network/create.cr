@@ -20,25 +20,12 @@ class Hetzner::Network::Create
   def run
     network = network_finder.run
 
-    unless network
-      log_line "Creating private network..."
+    return network if network
 
-      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-        success, response = hetzner_client.post("/networks", network_config)
-
-        unless success
-          STDERR.puts "[#{default_log_prefix}] Failed to create private network: #{response}"
-          STDERR.puts "[#{default_log_prefix}] Retrying to create private network in 5 seconds..."
-          raise "Failed to create private network"
-        end
-      end
-
-      network = network_finder.run
-
-      log_line "...private network created"
-    end
-
-    network.not_nil!
+    log_line "Creating private network..."
+    create_network
+    log_line "...private network created"
+    network_finder.run.not_nil!
   end
 
   private def network_config
@@ -53,6 +40,18 @@ class Hetzner::Network::Create
         }
       ]
     }
+  end
+
+  private def create_network
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.post("/networks", network_config)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to create private network: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to create private network in 5 seconds..."
+        raise "Failed to create private network"
+      end
+    end
   end
 
   private def default_log_prefix

@@ -14,9 +14,8 @@ class Hetzner::SSHKey::Find
     ssh_keys = fetch_ssh_keys
     fingerprint = calculate_fingerprint(public_ssh_key_path)
 
-    key = ssh_keys.find { |ssh_key| ssh_key.fingerprint == fingerprint }
-    key ||= ssh_keys.find { |ssh_key| ssh_key.name == ssh_key_name }
-    key
+    ssh_keys.find { |ssh_key| ssh_key.fingerprint == fingerprint } ||
+      ssh_keys.find { |ssh_key| ssh_key.name == ssh_key_name }
   end
 
   private def fetch_ssh_keys
@@ -25,7 +24,7 @@ class Hetzner::SSHKey::Find
     per_page = 25
 
     loop do
-      success, response = hetzner_client.get("/ssh_keys", { :page => page, :per_page => per_page })
+      success, response = hetzner_client.get("/ssh_keys", {:page => page.to_s, :per_page => per_page.to_s})
 
       if success
         ssh_keys = SSHKeysList.from_json(response).ssh_keys

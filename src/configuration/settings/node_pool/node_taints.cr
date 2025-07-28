@@ -12,10 +12,10 @@ class Configuration::Settings::NodePool::NodeTaints
     return unless taints
 
     taints.try &.each do |taint|
-      if taint.key.nil? || taint.value.nil?
-        errors << "#{pool_type} has invalid taints"
-        break
-      end
+      next unless taint.key.nil? || taint.value.nil?
+      
+      errors << "#{pool_type} has invalid taints"
+      break
     end
   end
 end

@@ -17,16 +17,14 @@ class Configuration::Settings::NewK3sVersion
 
   private def validate_release_number
     return if releases.includes?(new_version)
-
     errors << "New k3s version is not valid, run `hetzner-k3s releases` to see available versions"
   end
 
   private def validate_new_version_must_be_more_recent
-    current_version_index = releases.index(current_k3s_version) || -1
-    new_version_index = releases.index(new_version) || -1
+    current_index = releases.index(current_k3s_version) || -1
+    new_index = releases.index(new_version) || -1
 
-    return if new_version_index > current_version_index
-
+    return if new_index > current_index
     errors << "New k3s version must be more recent than current version"
   end
 end

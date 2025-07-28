@@ -23,25 +23,32 @@ class Hetzner::Instance::Delete
   end
 
   def run
-    if instance = instance_finder.run
-      log_line "Deleting instance #{instance_name}..."
+    instance = instance_finder.run
 
-      Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
-        success, response = hetzner_client.delete("/servers", instance.id)
+    return handle_missing_instance unless instance
 
-        if success
-          log_line "...instance #{instance_name} deleted"
-        else
-          STDERR.puts "[#{default_log_prefix}] Failed to delete instance #{instance_name}: #{response}"
-          STDERR.puts "[#{default_log_prefix}] Retrying to delete instance #{instance_name} in 5 seconds..."
-          raise "Failed to delete instance"
-        end
-      end
-    else
-      log_line "Instance #{instance_name} does not exist, skipping delete"
-    end
+    log_line "Deleting instance #{instance_name}..."
+    delete_instance(instance.id)
+    log_line "...instance #{instance_name} deleted"
 
     instance_name
+  end
+
+  private def handle_missing_instance
+    log_line "Instance #{instance_name} does not exist, skipping delete"
+    instance_name
+  end
+
+  private def delete_instance(instance_id)
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do
+      success, response = hetzner_client.delete("/servers", instance_id)
+
+      unless success
+        STDERR.puts "[#{default_log_prefix}] Failed to delete instance #{instance_name}: #{response}"
+        STDERR.puts "[#{default_log_prefix}] Retrying to delete instance #{instance_name} in 5 seconds..."
+        raise "Failed to delete instance"
+      end
+    end
   end
 
   private def default_log_prefix

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(crystal tool format:*)",
+      "Bash(grep:*)",
+      "Bash(crystal build:*)"
+    ],
+    "deny": []
+  }
+}

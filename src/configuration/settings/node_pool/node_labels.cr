@@ -12,10 +12,10 @@ class Configuration::Settings::NodePool::NodeLabels
     return unless labels
 
     labels.try &.each do |label|
-      if label.key.nil? || label.value.nil?
-        errors << "#{pool_type} has invalid labels"
-        break
-      end
+      next unless label.key.nil? || label.value.nil?
+      
+      errors << "#{pool_type} has invalid labels"
+      break
     end
   end
 end

@@ -9,15 +9,11 @@ class Hetzner::LoadBalancer
   property private_net : Array(Hetzner::Ipv4)
   getter public_net : PublicNet?
 
-  def public_ip_address
+  def public_ip_address : String?
     public_net.try(&.ipv4).try(&.ip)
   end
 
-  def private_ip_address
-    if private_net.any?
-      private_net[0].try(&.ip)
-    else
-      public_ip_address
-    end
+  def private_ip_address : String?
+    private_net.first?.try(&.ip) || public_ip_address
   end
 end

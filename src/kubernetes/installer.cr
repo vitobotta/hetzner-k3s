@@ -15,13 +15,14 @@ require "./software/hetzner/secret"
 require "./software/hetzner/cloud_controller_manager"
 require "./software/hetzner/csi_driver"
 require "./software/cluster_autoscaler"
+require "./kubeconfig_manager"
+require "./script/master_generator"
+require "./script/worker_generator"
 
 class Kubernetes::Installer
   include Util
   include Util::Shell
 
-  MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/master_install_script.sh") }}
-  WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../templates/worker_install_script.sh") }}
   CLOUD_INIT_WAIT_SCRIPT = {{ read_file("#{__DIR__}/../../templates/cloud_init_wait_script.sh") }}
 
   getter configuration : Configuration::Loader
@@ -31,6 +32,9 @@ class Kubernetes::Installer
   getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
+  getter kubeconfig_manager : Kubernetes::KubeconfigManager
+  getter master_generator : Kubernetes::Script::MasterGenerator
+  getter worker_generator : Kubernetes::Script::WorkerGenerator
 
   private getter first_master : Hetzner::Instance?
   private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
@@ -41,64 +45,9 @@ class Kubernetes::Installer
       @ssh,
       @autoscaling_worker_node_pools
     )
-  end
-
-  def self.worker_install_script(settings, masters, first_master, worker_pool)
-    labels_and_taints = ::Kubernetes::Installer.labels_and_taints(settings, worker_pool)
-
-    Crinja.render(WORKER_INSTALL_SCRIPT, {
-      cluster_name: settings.cluster_name,
-      k3s_token: k3s_token(settings, masters),
-      k3s_version: settings.k3s_version,
-      api_server_ip_address: api_server_ip_address(first_master),
-      private_network_enabled: settings.networking.private_network.enabled.to_s,
-      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
-      cluster_cidr: settings.networking.cluster_cidr,
-      service_cidr: settings.networking.service_cidr,
-      extra_args: kubelet_args_list(settings),
-      labels_and_taints: labels_and_taints
-    })
-  end
-
-  def self.kubelet_args_list(settings)
-    ::Kubernetes::Util.kubernetes_component_args_list("kubelet", settings.all_kubelet_args)
-  end
-
-  def self.labels_and_taints(settings, pool)
-    pool = pool.not_nil!
-
-    args = /^master-/ =~ pool.name ? settings.all_kubelet_args : [] of String
-
-    labels = build_labels(pool.labels)
-    taints = build_taints(pool.taints)
-
-    " #{labels} #{taints} "
-  end
-
-  def self.k3s_token(settings, masters)
-    @@k3s_token ||= begin
-      tokens = masters.map { |master| ::Kubernetes::Installer.token_by_master(settings, master) }.reject(&.empty?)
-
-      if tokens.empty?
-        Random::Secure.hex
-      else
-        tokens = tokens.tally
-        max_quorum = tokens.max_of { |_, count| count }
-        token = tokens.key_for(max_quorum)
-        token.empty? ? Random::Secure.hex : token.split(':').last
-      end
-    end
-  end
-
-  def self.token_by_master(settings, master : Hetzner::Instance)
-    ::Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path)
-      .run(master, settings.networking.ssh.port, "cat /var/lib/rancher/k3s/server/node-token", settings.networking.ssh.use_agent, print_output: false).split(':').last
-  rescue
-    ""
-  end
-
-  def self.api_server_ip_address(first_master)
-    first_master.private_ip_address || first_master.public_ip_address
+    @kubeconfig_manager = Kubernetes::KubeconfigManager.new(@configuration, settings, @ssh)
+    @master_generator = Kubernetes::Script::MasterGenerator.new(@configuration, settings)
+    @worker_generator = Kubernetes::Script::WorkerGenerator.new(@configuration, settings)
   end
 
   def run(masters_installation_queue_channel, workers_installation_queue_channel, completed_channel, master_count, worker_count)
@@ -106,7 +55,8 @@ class Kubernetes::Installer
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
 
-    save_kubeconfig(master_count)
+    # Save kubeconfig using the new manager
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
 
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
@@ -135,7 +85,7 @@ class Kubernetes::Installer
 
     (masters - [first_master]).each do |master|
       spawn do
-        deploy_k3s_to_master(master, master_count)
+        deploy_to_master(master)
         masters_ready_channel.send(master)
       end
     end
@@ -158,7 +108,7 @@ class Kubernetes::Installer
           worker.name.split("-")[0..-2].join("-") =~ /^#{settings.cluster_name.to_s}-.*pool-#{pool.name.to_s}$/
         end
 
-        deploy_k3s_to_worker(pool, worker)
+        deploy_to_worker(worker, pool)
 
         semaphore.receive
         workers_ready_channel.send(worker)
@@ -192,22 +142,41 @@ class Kubernetes::Installer
   end
 
   private def set_up_first_master(master_count : Int)
-    ssh.run(first_master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
+    wait_for_cloud_init(first_master)
+    install_script = master_generator.generate_script(first_master, masters, first_master, load_balancer, kubeconfig_manager)
+    output = deploy_to_instance(first_master, install_script)
 
-    install_script = master_install_script(first_master, master_count)
-
-    output = ssh.run(first_master, settings.networking.ssh.port, install_script, settings.networking.ssh.use_agent)
-
-    log_line  "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
-
+    log_line "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
     sleep 10.seconds unless /No change detected/ =~ output
 
-    save_kubeconfig(master_count)
-
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
     sleep 5.seconds
 
-    command = "kubectl cluster-info 2> /dev/null"
+    wait_for_control_plane
+  end
 
+  private def deploy_to_master(instance : Hetzner::Instance)
+    wait_for_cloud_init(instance)
+    script = master_generator.generate_script(instance, masters, first_master, load_balancer, kubeconfig_manager)
+    deploy_to_instance(instance, script)
+  end
+
+  private def deploy_to_worker(instance : Hetzner::Instance, pool)
+    wait_for_cloud_init(instance)
+    script = worker_generator.generate_script(masters, first_master, pool)
+    deploy_to_instance(instance, script)
+  end
+
+  private def wait_for_cloud_init(instance : Hetzner::Instance)
+    ssh.run(instance, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
+  end
+
+  private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
+    ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
+  end
+
+  private def wait_for_control_plane
+    command = "kubectl cluster-info 2> /dev/null"
     Retriable.retry(max_attempts: 3, on: Tasker::Timeout, backoff: false) do
       Tasker.timeout(30.seconds) do
         loop do
@@ -217,208 +186,23 @@ class Kubernetes::Installer
         end
       end
     end
-
-    log_line "...k3s deployed", log_prefix: "Instance #{first_master.name}"
-  end
-
-  private def deploy_k3s_to_master(master : Hetzner::Instance, master_count)
-    ssh.run(master, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(master, settings.networking.ssh.port, master_install_script(master, master_count), settings.networking.ssh.use_agent)
-    log_line "...k3s deployed", log_prefix: "Instance #{master.name}"
-  end
-
-  private def deploy_k3s_to_worker(pool, worker : Hetzner::Instance)
-    ssh.run(worker, settings.networking.ssh.port, CLOUD_INIT_WAIT_SCRIPT, settings.networking.ssh.use_agent)
-    ssh.run(worker, settings.networking.ssh.port, ::Kubernetes::Installer.worker_install_script(settings, masters, first_master, pool), settings.networking.ssh.use_agent)
-    log_line "...k3s has been deployed to worker #{worker.name}.", log_prefix: "Instance #{worker.name}"
-  end
-
-  private def master_install_script(master, master_count)
-    server = ""
-    datastore_endpoint = ""
-    etcd_arguments = ""
-
-    if settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{::Kubernetes::Installer.api_server_ip_address(first_master)}:6443 "
-      etcd_arguments = " --etcd-expose-metrics=true "
-    else
-      datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{settings.datastore.external_datastore_endpoint}' "
-    end
-
-    extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{::Kubernetes::Installer.kubelet_args_list(settings)} #{kube_proxy_args_list}"
-    master_taint = settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
-    labels_and_taints = ::Kubernetes::Installer.labels_and_taints(settings, settings.masters_pool)
-
-    Crinja.render(MASTER_INSTALL_SCRIPT, {
-      cluster_name: settings.cluster_name,
-      k3s_version: settings.k3s_version,
-      k3s_token: ::Kubernetes::Installer.k3s_token(settings, masters),
-      cni: cni.enabled.to_s,
-      cni_mode: cni.mode,
-      flannel_backend: flannel_backend,
-      master_taint: master_taint,
-      extra_args: extra_args,
-      server: server,
-      tls_sans: generate_tls_sans(master_count),
-      private_network_enabled: settings.networking.private_network.enabled.to_s,
-      private_network_subnet: settings.networking.private_network.enabled ? settings.networking.private_network.subnet : "",
-      cluster_cidr: settings.networking.cluster_cidr,
-      service_cidr: settings.networking.service_cidr,
-      cluster_dns: settings.networking.cluster_dns,
-      datastore_endpoint: datastore_endpoint,
-      etcd_arguments: etcd_arguments,
-      embedded_registry_mirror_enabled: settings.embedded_registry_mirror.enabled.to_s,
-      local_path_storage_class_enabled: settings.local_path_storage_class.enabled.to_s,
-      labels_and_taints: labels_and_taints
-    })
-  end
-
-  private def flannel_backend
-    if cni.flannel? && cni.encryption?
-      available_releases = K3s.available_releases
-      selected_k3s_index = available_releases.index(settings.k3s_version).not_nil!
-      k3s_1_23_6_index = available_releases.index("v1.23.6+k3s1").not_nil!
-
-      selected_k3s_index >= k3s_1_23_6_index ? " --flannel-backend=wireguard-native " : " --flannel-backend=wireguard "
-    elsif cni.flannel?
-      " "
-    else
-      args = ["--flannel-backend=none", "--disable-network-policy"]
-      args << "--disable-kube-proxy" unless cni.kube_proxy?
-      args.join(" ")
-    end
-  end
-
-  private def kube_api_server_args_list
-    kubernetes_component_args_list("kube-apiserver", settings.kube_api_server_args)
-  end
-
-  private def kube_scheduler_args_list
-    kubernetes_component_args_list("kube-scheduler", settings.kube_scheduler_args)
-  end
-
-  private def kube_controller_manager_args_list
-    kubernetes_component_args_list("kube-controller-manager", settings.kube_controller_manager_args)
-  end
-
-  private def kube_cloud_controller_manager_args_list
-    kubernetes_component_args_list("kube-cloud-controller-manager", settings.kube_cloud_controller_manager_args)
-  end
-
-  private def kube_proxy_args_list
-    kubernetes_component_args_list("kube-proxy", settings.kube_proxy_args)
   end
 
   private def first_master : Hetzner::Instance
     @first_master ||= begin
-      token = ::Kubernetes::Installer.k3s_token(settings, masters)
+      token = K3s.k3s_token(settings, masters)
       return masters[0] if token.empty?
 
-      bootstrapped_master = masters.sort_by(&.name).find { |master| ::Kubernetes::Installer.token_by_master(settings, master) == token }
+      bootstrapped_master = masters.sort_by(&.name).find { |master| K3s.k3s_token(settings, [master]) == token }
       bootstrapped_master || masters[0]
     end
-  end
-
-  private def save_kubeconfig(master_count)
-    kubeconfig_path = configuration.kubeconfig_path
-
-    log_line "Generating the kubeconfig file to #{kubeconfig_path}...", "Control plane"
-
-    kubeconfig = ssh.run(first_master, settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", settings.networking.ssh.use_agent, print_output: false).
-      gsub("default", settings.cluster_name)
-
-    File.write(kubeconfig_path, kubeconfig)
-
-    if settings.create_load_balancer_for_the_kubernetes_api
-      load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{settings.cluster_name}"
-      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address}:6443")
-
-      File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
-    end
-
-    masters.each_with_index do |master, index|
-      master_ip_address = settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
-      master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
-      master_kubeconfig = kubeconfig
-        .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
-        .gsub("name: #{settings.cluster_name}", "name: #{master.name}")
-        .gsub("cluster: #{settings.cluster_name}", "cluster: #{master.name}")
-        .gsub("user: #{settings.cluster_name}", "user: #{master.name}")
-        .gsub("current-context: #{settings.cluster_name}", "current-context: #{master.name}")
-
-      File.write(master_kubeconfig_path, master_kubeconfig)
-    end
-
-    paths = settings.create_load_balancer_for_the_kubernetes_api ? [load_balancer_kubeconfig_path] : [] of String
-
-    paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
-
-    run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", settings.hetzner_token, log_prefix: "Control plane")
-
-    switch_to_context(first_master.name)
-
-    masters.each do |master|
-      FileUtils.rm("#{kubeconfig_path}-#{master.name}")
-    end
-
-    File.chmod kubeconfig_path, 0o600
-
-    log_line "...kubeconfig file generated as #{kubeconfig_path}.", "Control plane"
-  end
-
-  private def generate_tls_sans(master_count)
-    sans = ["--tls-san=#{::Kubernetes::Installer.api_server_ip_address(first_master)}", "--tls-san=127.0.0.1"]
-    sans << "--tls-san=#{load_balancer_ip_address}" if settings.create_load_balancer_for_the_kubernetes_api
-    sans << "--tls-san=#{settings.api_server_hostname}" if settings.api_server_hostname
-
-    masters.each do |master|
-      sans << "--tls-san=#{master.private_ip_address}"
-      sans << "--tls-san=#{master.public_ip_address}"
-    end
-
-    sans.uniq.sort.join(" ")
   end
 
   private def default_log_prefix
     "Kubernetes software"
   end
 
-  private def load_balancer_ip_address
-    load_balancer.try(&.public_ip_address)
-  end
-
   private def default_context
     load_balancer.nil? ? first_master.name : settings.cluster_name
-  end
-
-  private def self.build_labels(label_collection)
-    labels = label_collection.compact_map do |label|
-      next if label.key.nil? || label.value.nil?
-      key   = escape(label.key.not_nil!)
-      value = escape(label.value.not_nil!)
-      "--node-label \"#{key}=#{value}\""
-    end
-    labels.empty? ? "" : " #{labels.join(" ")} "
-  end
-
-  private def self.build_taints(taint_collection)
-    taints = taint_collection.compact_map do |taint|
-      next if taint.key.nil? || taint.value.nil?
-      key, value, effect = parse_taint(taint)
-      "--node-taint \"#{key}=#{value}:#{effect}\""
-    end
-    taints.empty? ? "" : " #{taints.join(" ")} "
-  end
-
-  private def self.parse_taint(taint)
-    key = escape(taint.key.not_nil!)
-    parts = taint.value.not_nil!.split(":")
-    value = escape(parts[0])
-    effect = parts.size > 1 ? parts[1] : "NoSchedule"
-    {key, value, effect}
-  end
-
-  private def self.escape(str)
-    str.gsub(/["\/\.]/, {"\"" => "\\\"", "/" => "\\/", "." => "\\."})
   end
 end

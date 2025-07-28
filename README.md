@@ -36,7 +36,7 @@ k3s is my go-to Kubernetes distribution because it's lightweight, using far less
 
 With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
 
-- Creating all the necessary infrastructure resources (instances, placement groups, load balancer, private network, and firewall).
+- Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
 - Deploying k3s to the nodes.
 - Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately.
 - installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.

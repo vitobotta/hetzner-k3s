@@ -23,14 +23,13 @@ class Hetzner::LoadBalancer::Create
   def run
     load_balancer = load_balancer_finder.run
 
-    unless load_balancer
-      log_line "Creating load balancer for API server..."
-      create_load_balancer
-      load_balancer = wait_for_load_balancer_public_ip
-      log_line "...load balancer for API server created"
-    end
+    return load_balancer if load_balancer
 
-    load_balancer.not_nil!
+    log_line "Creating load balancer for API server..."
+    create_load_balancer
+    load_balancer = wait_for_public_ip_ready
+    log_line "...load balancer for API server created"
+    load_balancer
   end
 
   private def create_load_balancer
@@ -45,7 +44,7 @@ class Hetzner::LoadBalancer::Create
     end
   end
 
-  private def wait_for_load_balancer_public_ip
+  private def wait_for_public_ip_ready
     loop do
       load_balancer = load_balancer_finder.run
       break load_balancer if load_balancer.try(&.public_ip_address)
