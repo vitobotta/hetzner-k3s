@@ -61,7 +61,7 @@ class Kubernetes::Installer
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
     Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install if settings.csi_driver.enabled?
 
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
