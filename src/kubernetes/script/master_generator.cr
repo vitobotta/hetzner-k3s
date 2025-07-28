@@ -50,7 +50,10 @@ class Kubernetes::Script::MasterGenerator
       etcd_arguments:                   etcd_arguments,
       embedded_registry_mirror_enabled: @settings.embedded_registry_mirror.enabled.to_s,
       local_path_storage_class_enabled: @settings.local_path_storage_class.enabled.to_s,
-      labels_and_taints:                labels_and_taints,
+      traefik_enabled: @settings.traefik.enabled.to_s,
+      servicelb_enabled: @settings.servicelb.enabled.to_s,
+      metrics_server_enabled: @settings.metrics_server.enabled.to_s,
+      labels_and_taints: labels_and_taints
     })
   end
 

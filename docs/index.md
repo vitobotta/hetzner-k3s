@@ -54,11 +54,10 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 - Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage (enabled by default, can be disabled with `csi_driver.enabled: false`).
 - Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
+- K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable any of them with the corresponding `traefik.enabled`, `servicelb.enabled`, or `metrics_server.enabled` flags.
 
 ---
 
 ## Quick Start
 
 For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
-
----

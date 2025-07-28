@@ -117,6 +117,15 @@ embedded_registry_mirror:
 # csi_driver:
 #   enabled: true   # install the Hetzner CSI driver (default). Set to false to skip installation if you don't need persistent volumes backed by Hetzner block storage.
 
+# traefik:
+#   enabled: false  # built-in Traefik ingress controller. Disabled by default; set to true to install.
+
+# servicelb:
+#   enabled: false  # built-in ServiceLB for LoadBalancer services. Disabled by default; set to true to install.
+
+# metrics_server:
+#   enabled: false  # Kubernetes metrics-server addon. Disabled by default; set to true to install.
+
 protect_against_deletion: true
 
 create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
