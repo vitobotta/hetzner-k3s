@@ -7,6 +7,7 @@ require "../kubernetes/installer"
 require "./instance_builder"
 require "./network_manager"
 require "./load_balancer_manager"
+require "./firewall_manager"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -33,10 +34,12 @@ class Cluster::Create
   private getter instance_builder : InstanceBuilder
   private getter network_manager : NetworkManager
   private getter load_balancer_manager : LoadBalancerManager
+  private getter firewall_manager : FirewallManager
 
   def initialize(@configuration)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
+    @firewall_manager = FirewallManager.new(settings, hetzner_client)
 
     @network = network_manager.find_or_create if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
@@ -51,6 +54,8 @@ class Cluster::Create
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
     load_balancer_manager.handle(master_instances.size, network)
+
+    firewall_manager.handle(master_created_instances)
 
     initiate_k3s_setup
 
@@ -137,5 +142,9 @@ class Cluster::Create
     end
 
     instance_factories.size.times { wait_channel.receive } if wait
+  end
+
+  private def master_created_instances : Array(Hetzner::Instance)
+    instances.select { |instance| master_instances.any? { |factory| factory.instance_name == instance.name } }
   end
 end
