@@ -13,50 +13,7 @@ module Util
       log_prefix : String = "",
       print_output : Bool = true
     ) : CommandResult
-      stdout = IO::Memory.new
-      stderr = IO::Memory.new
-
-      log_prefix = log_prefix.blank? ? default_log_prefix : log_prefix
-
-      output_streams = setup_output_streams(log_prefix, stdout, stderr, print_output)
-
-      env = {
-        "KUBECONFIG" => kubeconfig_path,
-        "HCLOUD_TOKEN" => hetzner_token
-      }
-
-      # Use a temporary file to avoid argument length limitations
-      tmp_file = File.tempname("hetzner_k3s_", ".sh")
-      begin
-        File.write(tmp_file, command)
-        File.chmod(tmp_file, 0o755)
-
-        status = nil
-        begin
-          status = Process.run("bash",
-            args: [tmp_file],
-            env: env,
-            output: output_streams[:out],
-            error: output_streams[:err]
-          )
-        rescue ex
-          log_line "Process execution failed: #{ex.message}", log_prefix: log_prefix
-          return CommandResult.new("Process execution failed: #{ex.message}", 1)
-        end
-
-        output = status.success? ? stdout.to_s : stderr.to_s
-        result = CommandResult.new(output, status.exit_status)
-
-        unless result.success?
-          error_msg = error_message.blank? ? "Shell command failed" : error_message
-          log_line "#{error_msg}: #{result.output}", log_prefix: log_prefix
-          exit 1 if abort_on_error
-        end
-
-        result
-      ensure
-        cleanup_temp_file(tmp_file)
-      end
+      execute_shell_command(command, nil, kubeconfig_path, hetzner_token, error_message, abort_on_error, log_prefix, print_output)
     end
 
     def run_shell_command_with_stdin(
@@ -68,6 +25,19 @@ module Util
       abort_on_error : Bool = true,
       log_prefix : String = "",
       print_output : Bool = true
+    ) : CommandResult
+      execute_shell_command(command, stdin_content, kubeconfig_path, hetzner_token, error_message, abort_on_error, log_prefix, print_output)
+    end
+
+    private def execute_shell_command(
+      command : String,
+      stdin_content : String?,
+      kubeconfig_path : String,
+      hetzner_token : String,
+      error_message : String,
+      abort_on_error : Bool,
+      log_prefix : String,
+      print_output : Bool
     ) : CommandResult
       stdout = IO::Memory.new
       stderr = IO::Memory.new
@@ -89,18 +59,27 @@ module Util
 
         status = nil
         begin
-          process = Process.new("bash",
-            args: [tmp_file],
-            env: env,
-            output: output_streams[:out],
-            error: output_streams[:err]
-          )
-          
-          # Write stdin content to the process
-          process.input.puts(stdin_content)
-          process.input.close
-          
-          status = process.wait
+          if stdin_content
+            process = Process.new("bash",
+              args: [tmp_file],
+              env: env,
+              output: output_streams[:out],
+              error: output_streams[:err]
+            )
+            
+            # Write stdin content to the process
+            process.input.puts(stdin_content)
+            process.input.close
+            
+            status = process.wait
+          else
+            status = Process.run("bash",
+              args: [tmp_file],
+              env: env,
+              output: output_streams[:out],
+              error: output_streams[:err]
+            )
+          end
         rescue ex
           log_line "Process execution failed: #{ex.message}", log_prefix: log_prefix
           return CommandResult.new("Process execution failed: #{ex.message}", 1)
