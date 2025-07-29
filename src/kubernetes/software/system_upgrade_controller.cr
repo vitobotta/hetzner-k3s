@@ -1,4 +1,3 @@
-require "../resources/resource"
 require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../../configuration/loader"
@@ -65,9 +64,9 @@ class Kubernetes::Software::SystemUpgradeController
 
   private def apply_tolerations_to_deployments(resources : Array(YAML::Any)) : Array(YAML::Any)
     resources.map do |resource|
-      parsed_resource = Kubernetes::Resources::Resource.from_yaml(resource.to_yaml)
+      kind = resource["kind"].as_s
       
-      if parsed_resource.kind == "Deployment"
+      if kind == "Deployment"
         patched_deployment = deployment_with_added_toleration(resource)
         YAML.parse(patched_deployment.to_yaml)
       else

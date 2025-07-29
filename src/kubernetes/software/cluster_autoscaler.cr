@@ -5,17 +5,33 @@ require "../../hetzner/instance/create"
 require "../../util"
 require "../../util/shell"
 require "../../util/ssh"
-require "../resources/resource"
 require "../resources/deployment"
 require "../resources/pod/spec/toleration"
 require "../resources/pod/spec/container"
-require "../../util"
 require "../util"
 require "../script/worker_generator"
 
 class Kubernetes::Software::ClusterAutoscaler
   include Util
   include Kubernetes::Util
+
+  CLUSTER_AUTOSCALER_NAME = "cluster-autoscaler"
+  SSL_CERTS_VOLUME_NAME = "ssl-certs"
+  DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
+  FALLBACK_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt"
+  
+  CLOUD_PROVIDER = "hetzner"
+  CRITICAL_ADDONS_ONLY_TOLERATION_KEY = "CriticalAddonsOnly"
+  STORAGE_API_GROUP = "storage.k8s.io"
+  VOLUME_ATTACHMENTS_RESOURCE = "volumeattachments"
+  HCLOUD_CLOUD_INIT_VAR = "HCLOUD_CLOUD_INIT"
+  HCLOUD_CLUSTER_CONFIG_VAR = "HCLOUD_CLUSTER_CONFIG"
+  HCLOUD_FIREWALL_VAR = "HCLOUD_FIREWALL"
+  HCLOUD_SSH_KEY_VAR = "HCLOUD_SSH_KEY"
+  HCLOUD_NETWORK_VAR = "HCLOUD_NETWORK"
+  HCLOUD_PUBLIC_IPV4_VAR = "HCLOUD_PUBLIC_IPV4"
+  HCLOUD_PUBLIC_IPV6_VAR = "HCLOUD_PUBLIC_IPV6"
+  CERT_CHECK_COMMAND = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -61,7 +77,7 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def certificate_path : String
     @certificate_path ||= begin
-      command = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
+      command = CERT_CHECK_COMMAND
       result = ssh.run(
         first_master, 
         settings.networking.ssh.port, 
@@ -70,7 +86,7 @@ class Kubernetes::Software::ClusterAutoscaler
         false
       ).chomp
       
-      result == "1" ? "/etc/ssl/certs/ca-certificates.crt" : "/etc/ssl/certs/ca-bundle.crt"
+      result == "1" ? DEFAULT_CA_CERTIFICATES : FALLBACK_CA_BUNDLE
     end
   end
 
@@ -101,33 +117,31 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def patch_resources(resources : Array(YAML::Any)) : Array(YAML::Any)
     resources.map do |resource|
-      parsed_resource = Kubernetes::Resources::Resource.from_yaml(resource.to_yaml)
+      kind = resource["kind"].as_s
       
-      case parsed_resource.kind
+      case kind
       when "Deployment"
-        patched_deployment = patch_deployment_resource(resource)
-        YAML.parse(patched_deployment.to_yaml)
+        patch_deployment(resource)
       when "ClusterRole"
-        patched_cluster_role = patch_cluster_role_resource(resource)
-        YAML.parse(patched_cluster_role.to_yaml)
+        patch_cluster_role(resource)
       else
         resource
       end
     end
   end
 
-  private def patch_deployment_resource(resource : YAML::Any) : Kubernetes::Resources::Deployment
+  private def patch_deployment(resource : YAML::Any) : YAML::Any
     deployment = Kubernetes::Resources::Deployment.from_yaml(resource.to_yaml)
     patch_deployment_tolerations(deployment)
     patch_deployment_containers(deployment)
     patch_deployment_volumes(deployment)
-    deployment
+    YAML.parse(deployment.to_yaml)
   end
 
-  private def patch_cluster_role_resource(resource : YAML::Any) : Kubernetes::Resources::Resource
+  private def patch_cluster_role(resource : YAML::Any) : YAML::Any
     cluster_role = YAML.parse(resource.to_yaml)
     add_volumeattachments_permission(cluster_role)
-    Kubernetes::Resources::Resource.from_yaml(cluster_role.to_yaml)
+    cluster_role
   end
 
   private def add_volumeattachments_permission(cluster_role : YAML::Any) : Nil
@@ -137,28 +151,28 @@ class Kubernetes::Software::ClusterAutoscaler
     rules.each do |rule|
       api_groups = rule["apiGroups"]?.try(&.as_a)
       next unless api_groups
-      next unless api_groups.any? { |group| group.as_s == "storage.k8s.io" }
+      next unless api_groups.any? { |group| group.as_s == STORAGE_API_GROUP }
 
       resources = rule["resources"]?.try(&.as_a)
       next unless resources
 
-      has_volumeattachments = resources.any? { |r| r.as_s == "volumeattachments" }
+      has_volumeattachments = resources.any? { |r| r.as_s == VOLUME_ATTACHMENTS_RESOURCE }
       next if has_volumeattachments
 
-      resources << YAML::Any.new("volumeattachments")
+      resources << YAML::Any.new(VOLUME_ATTACHMENTS_RESOURCE)
       log_line "Added volumeattachments permission to cluster autoscaler ClusterRole", log_prefix: default_log_prefix
     end
   end
 
   private def patch_deployment_tolerations(deployment : Kubernetes::Resources::Deployment) : Void
     pod_spec = deployment.spec.template.spec
-    pod_spec.add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
+    pod_spec.add_toleration(key: CRITICAL_ADDONS_ONLY_TOLERATION_KEY, value: "true", effect: "NoExecute")
   end
 
   private def container_command : Array(String)
     [
       "./cluster-autoscaler",
-      "--cloud-provider=hetzner",
+      "--cloud-provider=#{CLOUD_PROVIDER}",
       "--enforce-node-group-min-size",
     ] + settings.cluster_autoscaler_args + node_pool_args + autoscaler_config_args
   end
@@ -236,32 +250,34 @@ class Kubernetes::Software::ClusterAutoscaler
     container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:#{settings.manifests.cluster_autoscaler_container_image_tag}"
     container.command = container_command
 
-    update_container_environment_variables(container)
-    update_certificate_path(container)
+    configure_container_environment(container)
+    configure_container_volume_mounts(container)
   end
 
-  private def update_container_environment_variables(container : Kubernetes::Resources::Pod::Spec::Container) : Void
+  private def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     env_vars = container.env || [] of Kubernetes::Resources::Pod::Spec::Container::EnvVariable
     
-    remove_env_variable(env_vars, "HCLOUD_CLOUD_INIT")
-    set_env_variable(env_vars, "HCLOUD_CLUSTER_CONFIG", Base64.strict_encode(build_config_json))
-    set_env_variable(env_vars, "HCLOUD_FIREWALL", settings.cluster_name)
-    set_env_variable(env_vars, "HCLOUD_SSH_KEY", settings.cluster_name)
-    set_env_variable(env_vars, "HCLOUD_NETWORK", resolve_network_name)
-    set_env_variable(env_vars, "HCLOUD_PUBLIC_IPV4", settings.networking.public_network.ipv4.to_s)
-    set_env_variable(env_vars, "HCLOUD_PUBLIC_IPV6", settings.networking.public_network.ipv6.to_s)
+    remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
+    
+    set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR, Base64.strict_encode(build_config_json))
+    set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
+    set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.cluster_name)
+    set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
+    set_env_variable(env_vars, HCLOUD_PUBLIC_IPV4_VAR, settings.networking.public_network.ipv4.to_s)
+    set_env_variable(env_vars, HCLOUD_PUBLIC_IPV6_VAR, settings.networking.public_network.ipv6.to_s)
     
     container.env = env_vars
   end
 
-  private def update_certificate_path(container : Kubernetes::Resources::Pod::Spec::Container) : Void
+  private def configure_container_volume_mounts(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     volume_mounts = container.volumeMounts || [] of Kubernetes::Resources::Pod::Spec::Container::VolumeMount
     
-    ssl_mount = volume_mounts.find { |mount| mount.name == "ssl-certs" }
+    ssl_mount = volume_mounts.find { |mount| mount.name == SSL_CERTS_VOLUME_NAME }
     ssl_mount.mountPath = certificate_path if ssl_mount
     
     container.volumeMounts = volume_mounts
   end
+
 
   private def resolve_network_name : String
     existing_name = settings.networking.private_network.existing_network_name
@@ -285,7 +301,7 @@ class Kubernetes::Software::ClusterAutoscaler
     containers = deployment.spec.template.spec.containers
     return unless containers
 
-    autoscaler_container = containers.find { |c| c.name == "cluster-autoscaler" }
+    autoscaler_container = containers.find { |c| c.name == CLUSTER_AUTOSCALER_NAME }
     patch_autoscaler_container(autoscaler_container) if autoscaler_container
   end
 
@@ -293,7 +309,7 @@ class Kubernetes::Software::ClusterAutoscaler
     volumes = deployment.spec.template.spec.volumes
     return unless volumes
 
-    ssl_volume = volumes.find { |v| v.name == "ssl-certs" }
+    ssl_volume = volumes.find { |v| v.name == SSL_CERTS_VOLUME_NAME }
     return unless ssl_volume
 
     host_path = ssl_volume.hostPath
