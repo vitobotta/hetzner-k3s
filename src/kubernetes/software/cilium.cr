@@ -2,6 +2,7 @@ require "../../configuration/loader"
 require "../../configuration/main"
 require "../../util"
 require "../../util/shell"
+require "crinja"
 
 class CiliumInstallationError < Exception; end
 class CiliumConfigError < Exception; end
@@ -22,7 +23,9 @@ class Kubernetes::Software::Cilium
   DEFAULT_ENCRYPTION_TYPE = "wireguard"
   DEFAULT_ROUTING_MODE = "tunnel"
   DEFAULT_TUNNEL_PROTOCOL = "vxlan"
-  DEFAULT_HUBBLE_METRICS = "{dns,drop,tcp,flow,port-distribution,icmp,http}"
+
+  # Template
+  CILIUM_VALUES_TEMPLATE = {{ read_file("#{__DIR__}/../../../templates/cilium_values.yaml") }}
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -52,7 +55,16 @@ class Kubernetes::Software::Cilium
 
   private def install_cilium
     helm_command = build_helm_command
-    result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
+    helm_values_path = settings.networking.cni.cilium.helm_values_path
+    
+    if helm_values_path && File.exists?(helm_values_path)
+      # Use existing values file
+      result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
+    else
+      # Use generated values from template
+      values_content = generate_helm_values
+      result = run_shell_command_with_stdin(helm_command, values_content, configuration.kubeconfig_path, settings.hetzner_token)
+    end
     
     unless result.success?
       raise CiliumInstallationError.new("Failed to install Cilium CNI: #{result.output}")
@@ -77,7 +89,7 @@ class Kubernetes::Software::Cilium
     if helm_values_path && File.exists?(helm_values_path)
       cmd << "--values #{helm_values_path}"
     else
-      cmd << build_helm_set_flags.join(" ")
+      cmd << "--values -"
     end
     
     cmd << "cilium #{HELM_CHART_NAME}"
@@ -88,86 +100,35 @@ class Kubernetes::Software::Cilium
     version.strip
   end
 
-  private def build_helm_set_flags
-    flags = [] of String
-    
-    flags.concat(build_encryption_flags)
-    flags.concat(build_routing_flags)
-    flags.concat(build_ipam_flags)
-    flags.concat(build_kube_proxy_flags)
-    flags.concat(build_hubble_flags)
-    flags.concat(build_k8s_service_flags)
-    flags.concat(build_resource_flags)
-    flags.concat(build_egress_flags)
-    
-    flags
-  end
-
-  private def build_encryption_flags
-    encryption = settings.networking.cni.encryption
+  private def generate_helm_values
     cilium_config = settings.networking.cni.cilium
     
-    [
-      "--set encryption.enabled=#{encryption}",
-      "--set encryption.type=#{cilium_config.encryption_type || DEFAULT_ENCRYPTION_TYPE}",
-      "--set encryption.nodeEncryption=#{encryption}"
-    ]
-  end
-
-  private def build_routing_flags
-    cilium_config = settings.networking.cni.cilium
+    template_vars = {
+      encryption_enabled: settings.networking.cni.encryption,
+      encryption_type: cilium_config.encryption_type || DEFAULT_ENCRYPTION_TYPE,
+      routing_mode: cilium_config.routing_mode || DEFAULT_ROUTING_MODE,
+      tunnel_protocol: cilium_config.tunnel_protocol || DEFAULT_TUNNEL_PROTOCOL,
+      hubble_enabled: cilium_config.hubble_enabled || true,
+      hubble_metrics: build_hubble_metrics_array(cilium_config.hubble_metrics),
+      hubble_relay_enabled: cilium_config.hubble_relay_enabled || true,
+      hubble_ui_enabled: cilium_config.hubble_ui_enabled || true,
+      k8s_service_host: cilium_config.k8s_service_host || DEFAULT_K8S_SERVICE_HOST,
+      k8s_service_port: cilium_config.k8s_service_port || DEFAULT_K8S_SERVICE_PORT,
+      operator_replicas: cilium_config.operator_replicas || DEFAULT_OPERATOR_REPLICAS,
+      operator_memory_request: cilium_config.operator_memory_request || DEFAULT_OPERATOR_MEMORY_REQUEST,
+      agent_memory_request: cilium_config.agent_memory_request || DEFAULT_AGENT_MEMORY_REQUEST,
+      egress_gateway_enabled: settings.networking.cni.cilium_egress_gateway
+    }
     
-    [
-      "--set routingMode=#{cilium_config.routing_mode || DEFAULT_ROUTING_MODE}",
-      "--set tunnelProtocol=#{cilium_config.tunnel_protocol || DEFAULT_TUNNEL_PROTOCOL}"
-    ]
+    Crinja.render(CILIUM_VALUES_TEMPLATE, template_vars)
   end
 
-  private def build_ipam_flags
-    ["--set ipam.mode=\"kubernetes\""]
-  end
-
-  private def build_kube_proxy_flags
-    ["--set kubeProxyReplacement=true"]
-  end
-
-  private def build_hubble_flags
-    cilium_config = settings.networking.cni.cilium
-    
-    [
-      "--set hubble.enabled=#{cilium_config.hubble_enabled || true}",
-      "--set hubble.metrics.enabled=\"#{cilium_config.hubble_metrics || DEFAULT_HUBBLE_METRICS}\"",
-      "--set hubble.relay.enabled=#{cilium_config.hubble_relay_enabled || true}",
-      "--set hubble.ui.enabled=#{cilium_config.hubble_ui_enabled || true}"
-    ]
-  end
-
-  private def build_k8s_service_flags
-    cilium_config = settings.networking.cni.cilium
-    
-    [
-      "--set k8sServiceHost=#{cilium_config.k8s_service_host || DEFAULT_K8S_SERVICE_HOST}",
-      "--set k8sServicePort=#{cilium_config.k8s_service_port || DEFAULT_K8S_SERVICE_PORT}"
-    ]
-  end
-
-  private def build_resource_flags
-    cilium_config = settings.networking.cni.cilium
-    
-    [
-      "--set operator.replicas=#{cilium_config.operator_replicas || DEFAULT_OPERATOR_REPLICAS}",
-      "--set operator.resources.requests.memory=#{cilium_config.operator_memory_request || DEFAULT_OPERATOR_MEMORY_REQUEST}",
-      "--set resources.requests.memory=#{cilium_config.agent_memory_request || DEFAULT_AGENT_MEMORY_REQUEST}"
-    ]
-  end
-
-  private def build_egress_flags
-    egress_gateway = settings.networking.cni.cilium_egress_gateway
-    
-    [
-      "--set egressGateway.enabled=#{egress_gateway}",
-      "--set bpf.masquerade=#{egress_gateway}"
-    ]
+  private def build_hubble_metrics_array(custom_metrics : String?) : Array(String)
+    if custom_metrics
+      custom_metrics.split(/[{} ,]+/).reject &.empty?
+    else
+      ["dns", "drop", "tcp", "flow", "port-distribution", "icmp", "http"]
+    end
   end
 
   private def default_log_prefix
