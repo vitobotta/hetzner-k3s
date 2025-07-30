@@ -79,8 +79,9 @@ kubectl get jobs -n system-upgrade --field-selector status.active=1
 ```
 
 ✅ **Upgrade Completion Checklist:**
+
 - [ ] All upgrade jobs in `system-upgrade` namespace have completed
-- [ ] All nodes show `Ready` status 
+- [ ] All nodes show `Ready` status
 - [ ] All nodes display the new k3s version in `kubectl get nodes -owide`
 - [ ] No active or failed upgrade jobs remain
 
