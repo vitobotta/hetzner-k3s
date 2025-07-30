@@ -30,6 +30,8 @@ In a new HA cluster, the seed master (or first master) is `master1`. If you dele
 
 ## Upgrading to a New Version of k3s
 
+### Step 1: Initiate the Upgrade
+
 For the first upgrade of your cluster, simply run the following command to update to a newer version of k3s:
 
 ```bash
@@ -40,7 +42,66 @@ Specify the new k3s version as an additional parameter, and the configuration fi
 
 Note: For single-master clusters, the API server will be briefly unavailable during the control plane upgrade.
 
-To monitor the upgrade progress, use `watch kubectl get nodes -owide`. You will see the masters upgrading one at a time, followed by the worker nodes.
+### Step 2: Monitor the Upgrade Process
+
+After running the upgrade command, you must monitor the upgrade jobs in the `system-upgrade` namespace to ensure all nodes are successfully upgraded:
+
+```bash
+# Watch the upgrade progress for all nodes
+watch kubectl get nodes -owide
+
+# Monitor upgrade jobs and plans
+watch kubectl get jobs,pods -n system-upgrade
+
+# Check upgrade plans status
+kubectl get plan -n system-upgrade -o wide
+
+# Check upgrade job logs
+kubectl logs -n system-upgrade -f job/<upgrade-job-name>
+```
+
+You will see the masters upgrading one at a time, followed by the worker nodes. The upgrade process creates upgrade jobs in the `system-upgrade` namespace that handle the actual node upgrades.
+
+### Step 3: Verify Upgrade Completion
+
+Before proceeding, ensure all upgrade jobs have completed successfully and all nodes are running the new k3s version:
+
+```bash
+# Check that all upgrade jobs are completed
+kubectl get jobs -n system-upgrade
+
+# Verify all nodes are ready and running the new version
+kubectl get nodes -o wide
+
+# Check for any failed or pending jobs
+kubectl get jobs -n system-upgrade --field-selector status.failed=1
+kubectl get jobs -n system-upgrade --field-selector status.active=1
+```
+
+✅ **Upgrade Completion Checklist:**
+- [ ] All upgrade jobs in `system-upgrade` namespace have completed
+- [ ] All nodes show `Ready` status 
+- [ ] All nodes display the new k3s version in `kubectl get nodes -owide`
+- [ ] No active or failed upgrade jobs remain
+
+### Step 4: Run Create Command (CRITICAL)
+
+Once all upgrade jobs have completed and all nodes have been successfully updated to the new k3s version, you MUST run the create command:
+
+```bash
+hetzner-k3s create --config cluster_config.yaml
+```
+
+#### Why This Step is Essential:
+
+The `upgrade` command automatically updates the k3s version in your cluster configuration file, but this step is crucial because:
+
+1. **Updates Masters Configuration**: Ensures that any new master nodes provisioned in the future will use the correct (new) k3s version instead of the previous version
+2. **Updates Worker Node Templates**: Updates the worker node pool configurations to ensure new worker nodes are created with the upgraded k3s version
+3. **Synchronizes Cluster State**: Ensures the actual cluster state matches the desired state defined in your configuration file
+4. **Prevents Version Mismatch**: Without this step, new nodes added to the cluster would be created with the old k3s version and would need to be upgraded again by the system upgrade controller, causing unnecessary delays and potential issues
+
+If you skip this step and add new nodes to the cluster later, they will first be created with the old k3s version and then need to be upgraded again, which is inefficient and can cause compatibility issues.
 
 ### What to Do If the Upgrade Doesn’t Go Smoothly
 
