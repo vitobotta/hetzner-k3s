@@ -59,7 +59,8 @@ class Hetzner::Instance::Create
     @additional_packages = [] of String,
     @additional_pre_k3s_commands = [] of String,
     @additional_post_k3s_commands = [] of String,
-    @location = "fsn1"
+    @location = "fsn1",
+    @grow_root_partition_automatically = true
   )
     @cluster_name = settings.cluster_name
     @snapshot_os = settings.snapshot_os
@@ -80,7 +81,7 @@ class Hetzner::Instance::Create
     instance
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String, grow_root_partition_automatically = true)
     CloudInitGenerator.new(
       settings: settings,
       ssh_port: ssh_port,
@@ -88,7 +89,8 @@ class Hetzner::Instance::Create
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
       additional_post_k3s_commands: additional_post_k3s_commands,
-      init_commands: init_commands
+      init_commands: init_commands,
+      grow_root_partition_automatically: grow_root_partition_automatically
     ).generate
   end
 
@@ -195,7 +197,7 @@ class Hetzner::Instance::Create
   end
 
   private def instance_config
-    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands)
+    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands, [] of String, @grow_root_partition_automatically)
 
     base_config = {
       :name       => instance_name,

@@ -4,6 +4,8 @@ preserve_hostname: true
 {{ growpart_str }}
 
 write_files:
+{{ growroot_disabled_file }}
+
 {{ eth1_str }}
 
 {{ firewall_files }}

@@ -24,7 +24,8 @@ class Hetzner::Instance::CloudInitGenerator
     @additional_packages : Array(String),
     @additional_pre_k3s_commands : Array(String),
     @additional_post_k3s_commands : Array(String),
-    @init_commands : Array(String)
+    @init_commands : Array(String),
+    @grow_root_partition_automatically : Bool
   )
   end
 
@@ -39,6 +40,7 @@ class Hetzner::Instance::CloudInitGenerator
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config,
       allowed_ssh_networks_config:            allowed_ssh_networks_config,
       growpart_str:                           growpart,
+      growroot_disabled_file:                 growroot_disabled_file,
       ssh_port:                               @ssh_port,
     })
   end
@@ -188,6 +190,16 @@ class Hetzner::Instance::CloudInitGenerator
       devices: ["/var"]
     YAML
  : ""
+  end
+
+  private def growroot_disabled_file
+    return "" if @grow_root_partition_automatically
+
+    <<-YAML
+    - content: |
+        true
+      path: /etc/growroot-disabled
+    YAML
   end
 
   private def eth1

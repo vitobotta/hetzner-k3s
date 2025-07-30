@@ -115,6 +115,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
 
 # additional_post_k3s_commands:
 # - apt autoremove -y
+# For more advanced usage like resizing the root partition for use with Rook Ceph, see [Resizing root partition with additional post k3s commands](./Resizing_root_partition_with_post_create_commands.md)
 
 # kube_api_server_args:
 # - arg1
@@ -147,7 +148,10 @@ You can define any number of worker node pools, either static or autoscaled, and
 
 Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
 
-The `additional_pre_k3s_commands` are executed before k3s installation, while `additional_post_k3s_commands` run after k3s is installed and configured.
+- `additional_pre_k3s_commands`: Commands executed before k3s installation
+- `additional_post_k3s_commands`: Commands executed after k3s is installed and configured
+
+For an example of using `additional_post_k3s_commands` to resize the root partition for use with storage solutions like Rook Ceph, see [Resizing root partition with additional post k3s commands](./Resizing_root_partition_with_post_create_commands.md).
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
