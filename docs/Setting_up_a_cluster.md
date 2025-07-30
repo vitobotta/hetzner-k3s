@@ -1,5 +1,19 @@
 By [TitanFighter](https://github.com/TitanFighter)
 
+# Setting Up a Cluster
+
+This guide will walk you through creating a fully functional Kubernetes cluster on Hetzner Cloud using hetzner-k3s, complete with ingress controller and a sample application.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+1. **Hetzner Cloud Account** with project and API token
+2. **kubectl** installed on your local machine
+3. **Helm** installed on your local machine  
+4. **hetzner-k3s** installed (see [Installation Guide](Installation.md))
+5. **SSH Key Pair** for accessing cluster nodes
+
 ## Instructions
 
 ### Installation of a "hello-world" project
