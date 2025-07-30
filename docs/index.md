@@ -1,7 +1,7 @@
 <h1 align="center">hetzner-k3s</h1>
 
 <p align="center">
-  <img src="https://github.com/vitobotta/hetzner-k3s/raw/main/logo.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
+  <img src="https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
 <h3 align="center">The simplest and quickest way to set up<br/>production-ready Kubernetes clusters on Hetzner Cloud.</h3>
