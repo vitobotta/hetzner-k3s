@@ -15,12 +15,12 @@ module Kubernetes::Util
 
   private def execute_kubectl_command(command : String, error_message : String) : Util::Shell::CommandResult
     result = run_shell_command(command, configuration.kubeconfig_path, settings.hetzner_token)
-    
+
     unless result.success?
       log_line "#{error_message}: #{result.output}"
       exit 1
     end
-    
+
     result
   end
 
@@ -99,11 +99,11 @@ module Kubernetes::Util
     command_parts = [base]
     command_parts << "--request-timeout=#{request_timeout}s" if request_timeout
     command_parts << "2>/dev/null" unless print_output
-    
+
     command = command_parts.join(" ")
     run_shell_command(command, "", settings.hetzner_token,
-                      log_prefix: "Control plane",
-                      abort_on_error: abort_on_error,
-                      print_output: print_output)
+      log_prefix: "Control plane",
+      abort_on_error: abort_on_error,
+      print_output: print_output)
   end
 end

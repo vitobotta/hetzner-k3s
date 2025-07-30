@@ -25,7 +25,7 @@ class Configuration::NetworkingComponents::PrivateNetwork
   private def validate_existing_network_name(errors, hetzner_client)
     return if existing_network_name.empty?
     return if Hetzner::Network::Find.new(hetzner_client, existing_network_name).run
-    
+
     errors << "You have specified that you want to use the existing network named '#{existing_network_name}' but this network doesn't exist"
   end
 end

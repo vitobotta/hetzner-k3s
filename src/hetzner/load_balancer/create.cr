@@ -56,57 +56,57 @@ class Hetzner::LoadBalancer::Create
     if settings.networking.private_network.enabled
       {
         :algorithm => {
-          :type => "round_robin"
+          :type => "round_robin",
         },
         :load_balancer_type => "lb11",
-        :location => location,
-        :name => load_balancer_name,
-        :network => network_id,
-        :public_interface => true,
-        :services => [
+        :location           => location,
+        :name               => load_balancer_name,
+        :network            => network_id,
+        :public_interface   => true,
+        :services           => [
           {
             :destination_port => 6443,
-            :listen_port => 6443,
-            :protocol => "tcp",
-            :proxyprotocol => false
-          }
+            :listen_port      => 6443,
+            :protocol         => "tcp",
+            :proxyprotocol    => false,
+          },
         ],
         :targets => [
           {
             :label_selector => {
-              :selector => "cluster=#{cluster_name},role=master"
+              :selector => "cluster=#{cluster_name},role=master",
             },
-            :type => "label_selector",
-            :use_private_ip => true
-          }
-        ]
+            :type           => "label_selector",
+            :use_private_ip => true,
+          },
+        ],
       }
     else
       {
         :algorithm => {
-          :type => "round_robin"
+          :type => "round_robin",
         },
         :load_balancer_type => "lb11",
-        :location => location,
-        :name => load_balancer_name,
-        :public_interface => true,
-        :services => [
+        :location           => location,
+        :name               => load_balancer_name,
+        :public_interface   => true,
+        :services           => [
           {
             :destination_port => 6443,
-            :listen_port => 6443,
-            :protocol => "tcp",
-            :proxyprotocol => false
-          }
+            :listen_port      => 6443,
+            :protocol         => "tcp",
+            :proxyprotocol    => false,
+          },
         ],
         :targets => [
           {
             :label_selector => {
-              :selector => "cluster=#{cluster_name},role=master"
+              :selector => "cluster=#{cluster_name},role=master",
             },
-            :type => "label_selector",
-            :use_private_ip => false
-          }
-        ]
+            :type           => "label_selector",
+            :use_private_ip => false,
+          },
+        ],
       }
     end
   end

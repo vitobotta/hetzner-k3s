@@ -46,10 +46,10 @@ class Configuration::Settings::NodePool::Location
 
   private def validate_masters_locations_and_network_zone
     return if masters_pool.locations.empty?
-    
+
     valid_locations = masters_pool.locations.all? { |loc| location_exists?(loc) }
     same_network_zone = masters_pool.locations.map { |loc| network_zone_by_location(loc) }.uniq.size == 1
-    
+
     return if valid_locations && same_network_zone
     errors << "All must be in valid locations and in the same same network zone when using a private network"
   end

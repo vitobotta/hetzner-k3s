@@ -40,11 +40,11 @@ class Kubernetes::Installer
   private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
 
   def initialize(
-      @configuration,
-      @load_balancer,
-      @ssh,
-      @autoscaling_worker_node_pools
-    )
+    @configuration,
+    @load_balancer,
+    @ssh,
+    @autoscaling_worker_node_pools
+  )
     @kubeconfig_manager = Kubernetes::KubeconfigManager.new(@configuration, settings, @ssh)
     @master_generator = Kubernetes::Script::MasterGenerator.new(@configuration, settings)
     @worker_generator = Kubernetes::Script::WorkerGenerator.new(@configuration, settings)
@@ -55,7 +55,6 @@ class Kubernetes::Installer
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
 
-    # Save kubeconfig using the new manager
     kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
 
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
@@ -133,7 +132,7 @@ class Kubernetes::Installer
       break if ready_workers > 0
 
       if Time.monotonic > timeout
-        log_line "Timeout waiting for worker nodes, aborting" , log_prefix: "Cluster Autoscaler"
+        log_line "Timeout waiting for worker nodes, aborting", log_prefix: "Cluster Autoscaler"
         exit 1
       end
 

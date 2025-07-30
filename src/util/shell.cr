@@ -13,6 +13,32 @@ module Util
       log_prefix : String = "",
       print_output : Bool = true
     ) : CommandResult
+      execute_shell_command(command, nil, kubeconfig_path, hetzner_token, error_message, abort_on_error, log_prefix, print_output)
+    end
+
+    def run_shell_command_with_stdin(
+      command : String,
+      stdin_content : String,
+      kubeconfig_path : String,
+      hetzner_token : String,
+      error_message : String = "",
+      abort_on_error : Bool = true,
+      log_prefix : String = "",
+      print_output : Bool = true
+    ) : CommandResult
+      execute_shell_command(command, stdin_content, kubeconfig_path, hetzner_token, error_message, abort_on_error, log_prefix, print_output)
+    end
+
+    private def execute_shell_command(
+      command : String,
+      stdin_content : String?,
+      kubeconfig_path : String,
+      hetzner_token : String,
+      error_message : String,
+      abort_on_error : Bool,
+      log_prefix : String,
+      print_output : Bool
+    ) : CommandResult
       stdout = IO::Memory.new
       stderr = IO::Memory.new
 
@@ -21,8 +47,8 @@ module Util
       output_streams = setup_output_streams(log_prefix, stdout, stderr, print_output)
 
       env = {
-        "KUBECONFIG" => kubeconfig_path,
-        "HCLOUD_TOKEN" => hetzner_token
+        "KUBECONFIG"   => kubeconfig_path,
+        "HCLOUD_TOKEN" => hetzner_token,
       }
 
       # Use a temporary file to avoid argument length limitations
@@ -33,12 +59,27 @@ module Util
 
         status = nil
         begin
-          status = Process.run("bash",
-            args: [tmp_file],
-            env: env,
-            output: output_streams[:out],
-            error: output_streams[:err]
-          )
+          if stdin_content
+            process = Process.new("bash",
+              args: [tmp_file],
+              env: env,
+              output: output_streams[:out],
+              error: output_streams[:err]
+            )
+
+            # Write stdin content to the process
+            process.input.puts(stdin_content)
+            process.input.close
+
+            status = process.wait
+          else
+            status = Process.run("bash",
+              args: [tmp_file],
+              env: env,
+              output: output_streams[:out],
+              error: output_streams[:err]
+            )
+          end
         rescue ex
           log_line "Process execution failed: #{ex.message}", log_prefix: log_prefix
           return CommandResult.new("Process execution failed: #{ex.message}", 1)
@@ -66,12 +107,12 @@ module Util
 
         {
           out: IO::MultiWriter.new(out_stream, stdout),
-          err: IO::MultiWriter.new(err_stream, stderr)
+          err: IO::MultiWriter.new(err_stream, stderr),
         }
       else
         {
           out: stdout,
-          err: stderr
+          err: stderr,
         }
       end
     end
@@ -85,7 +126,7 @@ module Util
         # Log but don't fail if we can't delete the temp file
         # This can happen on some systems or if the file is locked
         log_line "Warning: Could not delete temporary file #{tmp_file}: #{ex.message}",
-                 log_prefix: "Shell"
+          log_prefix: "Shell"
       end
     end
   end

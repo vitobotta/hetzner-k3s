@@ -33,6 +33,7 @@ class Cluster::LoadBalancerManager
       create(default_masters_Location, network.try(&.id))
     else
       delete
+      nil
     end
   end
 

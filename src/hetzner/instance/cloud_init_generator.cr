@@ -5,16 +5,16 @@ require "base64"
 class Hetzner::Instance::CloudInitGenerator
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
-  CONFIGURE_FIREWALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/configure_firewall.sh") }}
-  FIREWALL_SETUP_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
-  FIREWALL_STATUS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
-  FIREWALL_UPDATER_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
+  CONFIGURE_FIREWALL_SCRIPT      = {{ read_file("#{__DIR__}/../../../templates/firewall/configure_firewall.sh") }}
+  FIREWALL_SETUP_SCRIPT          = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
+  FIREWALL_STATUS_SCRIPT         = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
+  FIREWALL_UPDATER_SCRIPT        = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
   SETUP_FIREWALL_SERVICES_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_services.sh") }}
-  IPTABLES_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/iptables_restore.service") }}
-  IPSET_RESTORE_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
-  FIREWALL_UPDATER_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
+  IPTABLES_RESTORE_SERVICE       = {{ read_file("#{__DIR__}/../../../templates/firewall/iptables_restore.service") }}
+  IPSET_RESTORE_SERVICE          = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
+  FIREWALL_UPDATER_SERVICE       = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
 
-  SSH_LISTEN_CONF = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
+  SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
 
   def initialize(
@@ -30,16 +30,16 @@ class Hetzner::Instance::CloudInitGenerator
 
   def generate
     Crinja.render(CLOUD_INIT_YAML, {
-      packages_str: generate_packages_str,
-      post_create_commands_str: generate_post_create_commands_str,
-      eth1_str: eth1,
-      firewall_files: firewall_files,
-      ssh_files: ssh_files,
-      init_files: init_file_content,
+      packages_str:                           generate_packages_str,
+      post_create_commands_str:               generate_post_create_commands_str,
+      eth1_str:                               eth1,
+      firewall_files:                         firewall_files,
+      ssh_files:                              ssh_files,
+      init_files:                             init_file_content,
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config,
-      allowed_ssh_networks_config: allowed_ssh_networks_config,
-      growpart_str: growpart,
-      ssh_port: @ssh_port
+      allowed_ssh_networks_config:            allowed_ssh_networks_config,
+      growpart_str:                           growpart,
+      ssh_port:                               @ssh_port,
     })
   end
 
@@ -66,16 +66,16 @@ class Hetzner::Instance::CloudInitGenerator
   private def configure_firewall_script
     script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
       cluster_cidr: @settings.networking.cluster_cidr,
-      service_cidr: @settings.networking.service_cidr
+      service_cidr: @settings.networking.service_cidr,
     })
     format_file_content(script)
   end
 
   private def firewall_setup_script
     script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
-      hetzner_token: @settings.hetzner_token,
+      hetzner_token:                @settings.hetzner_token,
       hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port: @settings.networking.ssh.port
+      ssh_port:                     @settings.networking.ssh.port,
     })
     format_file_content(script)
   end
@@ -90,18 +90,18 @@ class Hetzner::Instance::CloudInitGenerator
 
   private def setup_firewall_services_script
     script = Crinja.render(SETUP_FIREWALL_SERVICES_SCRIPT, {
-      hetzner_token: @settings.hetzner_token,
+      hetzner_token:                @settings.hetzner_token,
       hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port: @settings.networking.ssh.port
+      ssh_port:                     @settings.networking.ssh.port,
     })
     format_file_content(script)
   end
 
   private def firewall_updater_service
     service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
-      hetzner_token: @settings.hetzner_token,
+      hetzner_token:                @settings.hetzner_token,
       hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port: @settings.networking.ssh.port
+      ssh_port:                     @settings.networking.ssh.port,
     })
     format_file_content(service)
   end
@@ -158,14 +158,14 @@ class Hetzner::Instance::CloudInitGenerator
 
   private def ssh_listen_conf
     conf = Crinja.render(SSH_LISTEN_CONF, {
-      ssh_port: @settings.networking.ssh.port
+      ssh_port: @settings.networking.ssh.port,
     })
     format_file_content(conf)
   end
 
   private def ssh_configuration_script
     script = Crinja.render(SSH_CONFIGURATION_SCRIPT, {
-      ssh_port: @settings.networking.ssh.port
+      ssh_port: @settings.networking.ssh.port,
     })
     format_file_content(script)
   end
@@ -187,7 +187,7 @@ class Hetzner::Instance::CloudInitGenerator
     growpart:
       devices: ["/var"]
     YAML
-    : ""
+ : ""
   end
 
   private def eth1
@@ -197,7 +197,7 @@ class Hetzner::Instance::CloudInitGenerator
         STARTMODE='auto'
       path: /etc/sysconfig/network/ifcfg-eth1
     YAML
-    : ""
+ : ""
   end
 
   private def init_file_content
@@ -233,7 +233,7 @@ class Hetzner::Instance::CloudInitGenerator
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
       "/etc/configure_ssh.sh",
-      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
+      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf",
     ]
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
@@ -270,7 +270,7 @@ class Hetzner::Instance::CloudInitGenerator
       "sed -i 's/NUMBER_LIMIT=\"2-10\"/NUMBER_LIMIT=\"4\"/g' /etc/snapper/configs/root",
       "sed -i 's/NUMBER_LIMIT_IMPORTANT=\"4-10\"/NUMBER_LIMIT_IMPORTANT=\"3\"/g' /etc/snapper/configs/root",
       "sed -i 's/NETCONFIG_NIS_SETDOMAINNAME=\"yes\"/NETCONFIG_NIS_SETDOMAINNAME=\"no\"/g' /etc/sysconfig/network/config",
-      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp"
+      "sed -i 's/DHCLIENT_SET_HOSTNAME=\"yes\"/DHCLIENT_SET_HOSTNAME=\"no\"/g' /etc/sysconfig/network/dhcp",
     ]
   end
 

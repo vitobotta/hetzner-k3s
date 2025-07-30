@@ -28,7 +28,7 @@ class Cluster::Delete
 
   def run
     return delete_resources if force
-    
+
     input = get_cluster_name_input
     validate_cluster_name(input)
 
@@ -45,7 +45,7 @@ class Cluster::Delete
     loop do
       print "Please enter the cluster name to confirm that you want to delete it: "
       input = gets.try(&.strip)
-      
+
       return input unless input.nil? || input.empty?
       puts "\nError: Input cannot be empty. Please enter the cluster name.".colorize(:red)
     end
@@ -148,7 +148,6 @@ class Cluster::Delete
       end
     end
   end
-
 
   private def default_log_prefix
     "Cluster cleanup"

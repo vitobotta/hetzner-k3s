@@ -9,7 +9,7 @@ require "./cluster/upgrade"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.3.3"
+    VERSION = "2.3.4"
 
     def self.print_banner
       puts " _          _                            _    _____     ".colorize(:green)
@@ -26,10 +26,10 @@ module Hetzner::K3s
       define_help description: "Create a cluster"
 
       define_flag configuration_file_path : String,
-                  description: "The path of the YAML configuration file",
-                  long: "config",
-                  short: "c",
-                  required: true
+        description: "The path of the YAML configuration file",
+        long: "config",
+        short: "c",
+        required: true
 
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :create)
@@ -41,16 +41,16 @@ module Hetzner::K3s
       define_help description: "Delete a cluster"
 
       define_flag configuration_file_path : String,
-                  description: "The path of the YAML configuration file",
-                  long: "config",
-                  short: "c",
-                  required: true
+        description: "The path of the YAML configuration file",
+        long: "config",
+        short: "c",
+        required: true
 
       define_flag force : Bool,
-                  description: "Force deletion of the cluster without any prompts",
-                  long: "force",
-                  required: false,
-                  default: false
+        description: "Force deletion of the cluster without any prompts",
+        long: "force",
+        required: false,
+        default: false
 
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, flags.force, :delete)
@@ -62,21 +62,21 @@ module Hetzner::K3s
       define_help description: "Upgrade a cluster to a newer version of k3s"
 
       define_flag configuration_file_path : String,
-                  description: "The path of the YAML configuration file",
-                  long: "config",
-                  short: "c",
-                  required: true
+        description: "The path of the YAML configuration file",
+        long: "config",
+        short: "c",
+        required: true
 
       define_flag new_k3s_version : String,
-                  description: "The new version of k3s to upgrade to",
-                  long: "--new-k3s-version",
-                  required: true
+        description: "The new version of k3s to upgrade to",
+        long: "--new-k3s-version",
+        required: true
 
       define_flag force : Bool,
-                  description: "Force upgrade of the cluster without any prompts",
-                  long: "force",
-                  required: false,
-                  default: false
+        description: "Force upgrade of the cluster without any prompts",
+        long: "force",
+        required: false,
+        default: false
 
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, flags.new_k3s_version, flags.force, :upgrade)

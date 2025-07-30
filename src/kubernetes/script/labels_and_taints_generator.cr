@@ -4,7 +4,7 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
   def self.build_labels(label_collection)
     labels = label_collection.compact_map do |label|
       next if label.key.nil? || label.value.nil?
-      key   = escape(label.key.not_nil!)
+      key = escape(label.key.not_nil!)
       value = escape(label.value.not_nil!)
       "--node-label \"#{key}=#{value}\""
     end

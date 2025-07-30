@@ -1,0 +1,51 @@
+# Cilium Helm Values Template
+# Generated dynamically by hetzner-k3s
+
+# Encryption settings
+encryption:
+  enabled: {{ encryption_enabled }}
+  type: {{ encryption_type }}
+  nodeEncryption: {{ encryption_enabled }}
+
+# Routing and tunneling
+routingMode: {{ routing_mode }}
+tunnelProtocol: {{ tunnel_protocol }}
+
+# IPAM settings
+ipam:
+  mode: "kubernetes"
+
+# Kubernetes proxy replacement
+kubeProxyReplacement: true
+
+# Hubble observability
+hubble:
+  enabled: {{ hubble_enabled }}
+  metrics:
+    enabled: {{ hubble_metrics }}
+  relay:
+    enabled: {{ hubble_relay_enabled }}
+  ui:
+    enabled: {{ hubble_ui_enabled }}
+
+# Kubernetes service settings
+k8sServiceHost: {{ k8s_service_host }}
+k8sServicePort: {{ k8s_service_port }}
+
+# Resource settings
+operator:
+  replicas: {{ operator_replicas }}
+  resources:
+    requests:
+      memory: "{{ operator_memory_request }}"
+resources:
+  requests:
+    memory: "{{ agent_memory_request }}"
+
+# Egress gateway settings
+egressGateway:
+  enabled: {{ egress_gateway_enabled }}
+
+# BPF settings
+bpf:
+  masquerade: {{ egress_gateway_enabled }}

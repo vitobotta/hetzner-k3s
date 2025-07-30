@@ -30,8 +30,8 @@ class Hetzner::SSHKey::Create
 
   private def create_ssh_key
     ssh_key_config = {
-      :name => ssh_key_name,
-      :public_key => File.read(public_ssh_key_path).chomp
+      :name       => ssh_key_name,
+      :public_key => File.read(public_ssh_key_path).chomp,
     }
 
     Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds) do

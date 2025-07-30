@@ -31,4 +31,3 @@ module Configuration
     end
   end
 end
-
