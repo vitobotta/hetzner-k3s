@@ -53,7 +53,7 @@ class Cluster::Create
   def run
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
-    load_balancer_manager.handle(master_instances.size, network)
+    @load_balancer = load_balancer_manager.handle(master_instances.size, network)
 
     firewall_manager.handle(master_created_instances)
 
