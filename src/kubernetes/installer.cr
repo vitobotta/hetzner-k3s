@@ -55,7 +55,7 @@ class Kubernetes::Installer
 
     set_up_control_plane(masters_installation_queue_channel, master_count)
 
-    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer, use_load_balancer_as_default: true)
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
 
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
@@ -148,7 +148,7 @@ class Kubernetes::Installer
     log_line "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
     sleep 10.seconds unless /No change detected/ =~ output
 
-    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer, use_load_balancer_as_default: false)
+    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
     sleep 5.seconds
 
     wait_for_control_plane
