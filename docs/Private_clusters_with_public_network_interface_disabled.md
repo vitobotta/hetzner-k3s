@@ -73,7 +73,7 @@ autoscaling_image: debian-12
 
 - [ ] Next, you need to set up network configuration commands. These steps will ensure that the nodes in your clusters use the NAT gateway to access the Internet. You can use either `additional_pre_k3s_commands` (before k3s installation) or `additional_post_k3s_commands` (after k3s installation) depending on your needs.
 
-For `ubuntu-24.04` (this should be equivalent to the steps in the hetzner guide):
+For `ubuntu-24.04`:
 
 ```yaml
 additional_pre_k3s_commands:
@@ -81,8 +81,6 @@ additional_pre_k3s_commands:
 - printf "[Resolve]\nDNS=185.12.64.2 185.12.64.1" > /etc/systemd/resolved.conf
 - systemctl restart systemd-networkd
 - systemctl restart systemd-resolved
-additional_post_k3s_commands:
-# add more steps here if you want to update the instance via apt etc. 
 ```
 
 For `debian-12`:
@@ -108,6 +106,8 @@ additional_pre_k3s_commands:
 - resolvconf --enable-updates
 - resolvconf -u
 ```
+
+**Note about Ubuntu vs Debian:** The Debian configuration requires installing `ifupdown` and related packages, which cannot be done on Ubuntu without internet access. Ubuntu 24.04 uses systemd-networkd by default, making the configuration simpler and more suitable for private cluster setups where internet access is only available after the NAT gateway configuration is complete.
 
 Replace `enp7s0` with your network interface name, and `10.0.0.1` with the correct gateway IP address for your subnet. Note that this is not the IP address of the NAT gateway instance; it's simply the first IP in the range.
 
