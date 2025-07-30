@@ -14,11 +14,51 @@ Hetzner Cloud is an awesome cloud provider that offers excellent service with th
 
 k3s is my go-to Kubernetes distribution because it's lightweight, using far less memory and CPU, which leaves more resources for your workloads. It is also incredibly fast to deploy and upgrade because, thanks to being a single binary.
 
+---
+
+## About the Author
+
+Hey there! I'm the Lead Platform Architect at [Brella](https://www.brella.io/), an event management platform based in Finland. You could say I'm the person who ensures everything works smoothly. That includes handling coding, infrastructure, and supporting the rest of the development team.
+
+Outside of my main job, I spend time looking for security bugs as a bug bounty hunter. My goal is to find vulnerabilities in web applications and report them responsibly so they can be fixed.
+
+If you'd like to connect or just have a chat, feel free to check out my public profile [here](https://vitobotta.com/). You'll find all the necessary links there. I may also be available for consultancies around hetzner-k3s and related topics.
+
+---
+
+## Sponsors
+
+I want to give a big thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this project! Their support has been incredibly helpful, giving me the chance to focus more time and effort on the work. Because of their contribution, I've been able to dedicate myself to creating a simpler migration strategy for moving clusters from v1.x to v2.x. I'm confident this collaboration will lead to even more improvements down the road. Thank you so much!
+
+Also thanks to [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@worldsayshi](https://github.com/worldsayshi), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) and the other sponsors. Your contributions are very much appreciated!
+
+If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta) too.
+
+---
+
+## Code of conduct
+
+Everyone interacting in the hetzner-k3s project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
+
+---
+
+## License
+
+This tool is available as open source under the terms of the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
+
 With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
 
 - Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
 - Deploying k3s to the nodes.
 - Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately.
-- installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.
+- Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.
 - Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
+
+---
+
+## Quick Start
+
+For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
+
+---
