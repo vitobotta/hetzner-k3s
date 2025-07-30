@@ -19,6 +19,7 @@
 				"formulahendry.auto-rename-tag",
 				"aaron-bond.better-comments",
 				"angelomollame.conflict-squeezer",
+				"sitoi.ai-commit",
 				"ms-vscode-remote.remote-containers",
 				"ms-azuretools.vscode-docker",
 				"mikestead.dotenv",
