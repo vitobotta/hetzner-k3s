@@ -14,7 +14,7 @@ class Kubernetes::KubeconfigManager
     "Kubeconfig Manager"
   end
 
-  def save_kubeconfig(masters : Array(Hetzner::Instance), first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?)
+  def save_kubeconfig(masters : Array(Hetzner::Instance), first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?, use_load_balancer_as_default : Bool = false)
     kubeconfig_path = @configuration.kubeconfig_path
 
     log_line "Generating the kubeconfig file to #{kubeconfig_path}...", "Control plane"
@@ -50,7 +50,8 @@ class Kubernetes::KubeconfigManager
 
     run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", @settings.hetzner_token, log_prefix: "Control plane")
 
-    switch_to_context(first_master.name, kubeconfig_path)
+    default_context = use_load_balancer_as_default && @settings.create_load_balancer_for_the_kubernetes_api ? @settings.cluster_name : first_master.name
+    switch_to_context(default_context, kubeconfig_path)
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")
