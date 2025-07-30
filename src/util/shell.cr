@@ -47,8 +47,8 @@ module Util
       output_streams = setup_output_streams(log_prefix, stdout, stderr, print_output)
 
       env = {
-        "KUBECONFIG" => kubeconfig_path,
-        "HCLOUD_TOKEN" => hetzner_token
+        "KUBECONFIG"   => kubeconfig_path,
+        "HCLOUD_TOKEN" => hetzner_token,
       }
 
       # Use a temporary file to avoid argument length limitations
@@ -66,11 +66,11 @@ module Util
               output: output_streams[:out],
               error: output_streams[:err]
             )
-            
+
             # Write stdin content to the process
             process.input.puts(stdin_content)
             process.input.close
-            
+
             status = process.wait
           else
             status = Process.run("bash",
@@ -107,12 +107,12 @@ module Util
 
         {
           out: IO::MultiWriter.new(out_stream, stdout),
-          err: IO::MultiWriter.new(err_stream, stderr)
+          err: IO::MultiWriter.new(err_stream, stderr),
         }
       else
         {
           out: stdout,
-          err: stderr
+          err: stderr,
         }
       end
     end
@@ -126,7 +126,7 @@ module Util
         # Log but don't fail if we can't delete the temp file
         # This can happen on some systems or if the file is locked
         log_line "Warning: Could not delete temporary file #{tmp_file}: #{ex.message}",
-                 log_prefix: "Shell"
+          log_prefix: "Shell"
       end
     end
   end

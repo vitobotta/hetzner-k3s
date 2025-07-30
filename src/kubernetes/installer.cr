@@ -40,11 +40,11 @@ class Kubernetes::Installer
   private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
 
   def initialize(
-      @configuration,
-      @load_balancer,
-      @ssh,
-      @autoscaling_worker_node_pools
-    )
+    @configuration,
+    @load_balancer,
+    @ssh,
+    @autoscaling_worker_node_pools
+  )
     @kubeconfig_manager = Kubernetes::KubeconfigManager.new(@configuration, settings, @ssh)
     @master_generator = Kubernetes::Script::MasterGenerator.new(@configuration, settings)
     @worker_generator = Kubernetes::Script::WorkerGenerator.new(@configuration, settings)
@@ -133,7 +133,7 @@ class Kubernetes::Installer
       break if ready_workers > 0
 
       if Time.monotonic > timeout
-        log_line "Timeout waiting for worker nodes, aborting" , log_prefix: "Cluster Autoscaler"
+        log_line "Timeout waiting for worker nodes, aborting", log_prefix: "Cluster Autoscaler"
         exit 1
       end
 

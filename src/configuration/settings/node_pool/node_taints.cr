@@ -13,7 +13,7 @@ class Configuration::Settings::NodePool::NodeTaints
 
     taints.try &.each do |taint|
       next unless taint.key.nil? || taint.value.nil?
-      
+
       errors << "#{pool_type} has invalid taints"
       break
     end

@@ -16,22 +16,22 @@ class Kubernetes::Software::ClusterAutoscaler
   include Kubernetes::Util
 
   CLUSTER_AUTOSCALER_NAME = "cluster-autoscaler"
-  SSL_CERTS_VOLUME_NAME = "ssl-certs"
+  SSL_CERTS_VOLUME_NAME   = "ssl-certs"
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
-  FALLBACK_CA_BUNDLE = "/etc/ssl/certs/ca-bundle.crt"
-  
-  CLOUD_PROVIDER = "hetzner"
+  FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
+
+  CLOUD_PROVIDER                      = "hetzner"
   CRITICAL_ADDONS_ONLY_TOLERATION_KEY = "CriticalAddonsOnly"
-  STORAGE_API_GROUP = "storage.k8s.io"
-  VOLUME_ATTACHMENTS_RESOURCE = "volumeattachments"
-  HCLOUD_CLOUD_INIT_VAR = "HCLOUD_CLOUD_INIT"
-  HCLOUD_CLUSTER_CONFIG_VAR = "HCLOUD_CLUSTER_CONFIG"
-  HCLOUD_FIREWALL_VAR = "HCLOUD_FIREWALL"
-  HCLOUD_SSH_KEY_VAR = "HCLOUD_SSH_KEY"
-  HCLOUD_NETWORK_VAR = "HCLOUD_NETWORK"
-  HCLOUD_PUBLIC_IPV4_VAR = "HCLOUD_PUBLIC_IPV4"
-  HCLOUD_PUBLIC_IPV6_VAR = "HCLOUD_PUBLIC_IPV6"
-  CERT_CHECK_COMMAND = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
+  STORAGE_API_GROUP                   = "storage.k8s.io"
+  VOLUME_ATTACHMENTS_RESOURCE         = "volumeattachments"
+  HCLOUD_CLOUD_INIT_VAR               = "HCLOUD_CLOUD_INIT"
+  HCLOUD_CLUSTER_CONFIG_VAR           = "HCLOUD_CLUSTER_CONFIG"
+  HCLOUD_FIREWALL_VAR                 = "HCLOUD_FIREWALL"
+  HCLOUD_SSH_KEY_VAR                  = "HCLOUD_SSH_KEY"
+  HCLOUD_NETWORK_VAR                  = "HCLOUD_NETWORK"
+  HCLOUD_PUBLIC_IPV4_VAR              = "HCLOUD_PUBLIC_IPV4"
+  HCLOUD_PUBLIC_IPV6_VAR              = "HCLOUD_PUBLIC_IPV6"
+  CERT_CHECK_COMMAND                  = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
@@ -60,17 +60,17 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def cloud_init(pool : Configuration::WorkerNodePool) : String
     worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(
-      configuration, 
+      configuration,
       settings
     ).generate_script(masters, first_master, pool)
-    
+
     ::Hetzner::Instance::Create.cloud_init(
-      settings, 
-      settings.networking.ssh.port, 
-      settings.snapshot_os, 
-      settings.additional_packages, 
-      settings.additional_pre_k3s_commands, 
-      settings.additional_post_k3s_commands, 
+      settings,
+      settings.networking.ssh.port,
+      settings.snapshot_os,
+      settings.additional_packages,
+      settings.additional_pre_k3s_commands,
+      settings.additional_post_k3s_commands,
       [worker_install_script]
     )
   end
@@ -79,13 +79,13 @@ class Kubernetes::Software::ClusterAutoscaler
     @certificate_path ||= begin
       command = CERT_CHECK_COMMAND
       result = ssh.run(
-        first_master, 
-        settings.networking.ssh.port, 
-        command, 
-        settings.networking.ssh.use_agent, 
+        first_master,
+        settings.networking.ssh.port,
+        command,
+        settings.networking.ssh.use_agent,
         false
       ).chomp
-      
+
       result == "1" ? DEFAULT_CA_CERTIFICATES : FALLBACK_CA_BUNDLE
     end
   end
@@ -118,7 +118,7 @@ class Kubernetes::Software::ClusterAutoscaler
   private def patch_resources(resources : Array(YAML::Any)) : Array(YAML::Any)
     resources.map do |resource|
       kind = resource["kind"].as_s
-      
+
       case kind
       when "Deployment"
         patch_deployment(resource)
@@ -256,28 +256,27 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     env_vars = container.env || [] of Kubernetes::Resources::Pod::Spec::Container::EnvVariable
-    
+
     remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
-    
+
     set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR, Base64.strict_encode(build_config_json))
     set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV4_VAR, settings.networking.public_network.ipv4.to_s)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV6_VAR, settings.networking.public_network.ipv6.to_s)
-    
+
     container.env = env_vars
   end
 
   private def configure_container_volume_mounts(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     volume_mounts = container.volumeMounts || [] of Kubernetes::Resources::Pod::Spec::Container::VolumeMount
-    
+
     ssl_mount = volume_mounts.find { |mount| mount.name == SSL_CERTS_VOLUME_NAME }
     ssl_mount.mountPath = certificate_path if ssl_mount
-    
+
     container.volumeMounts = volume_mounts
   end
-
 
   private def resolve_network_name : String
     existing_name = settings.networking.private_network.existing_network_name
@@ -319,10 +318,10 @@ class Kubernetes::Software::ClusterAutoscaler
   private def manifest : String
     manifest_url = settings.manifests.cluster_autoscaler_manifest_url
     raw_manifest = fetch_manifest(manifest_url)
-    
+
     resources = YAML.parse_all(raw_manifest)
     patched_resources = patch_resources(resources)
-    
+
     patched_resources.map(&.to_yaml).join("---\n")
   end
 

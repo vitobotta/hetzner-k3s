@@ -30,15 +30,15 @@ class Hetzner::Network::Create
 
   private def network_config
     {
-      :name => network_name,
+      :name     => network_name,
       :ip_range => settings.networking.private_network.subnet,
-      :subnets => [
+      :subnets  => [
         {
-          :ip_range => settings.networking.private_network.subnet,
+          :ip_range     => settings.networking.private_network.subnet,
           :network_zone => network_zone,
-          :type => "cloud"
-        }
-      ]
+          :type         => "cloud",
+        },
+      ],
     }
   end
 

@@ -66,7 +66,6 @@ class Cluster::Create
     warn_if_not_protected
   end
 
-
   private def create_ssh_key
     Hetzner::SSHKey::Create.new(hetzner_client, settings).run
   end
@@ -98,7 +97,7 @@ class Cluster::Create
     end
   end
 
-  ### Instances
+  # ## Instances
 
   private def masters_locations : Array(String)
     settings.masters_pool.locations

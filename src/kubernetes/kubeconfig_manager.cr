@@ -19,8 +19,8 @@ class Kubernetes::KubeconfigManager
 
     log_line "Generating the kubeconfig file to #{kubeconfig_path}...", "Control plane"
 
-    kubeconfig = @ssh.run(first_master, @settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", @settings.networking.ssh.use_agent, print_output: false).
-      gsub("default", @settings.cluster_name)
+    kubeconfig = @ssh.run(first_master, @settings.networking.ssh.port, "cat /etc/rancher/k3s/k3s.yaml", @settings.networking.ssh.use_agent, print_output: false)
+      .gsub("default", @settings.cluster_name)
 
     File.write(kubeconfig_path, kubeconfig)
 

@@ -24,7 +24,6 @@ require "./settings/node_pool/node_taints"
 require "./settings/datastore"
 require "../util"
 
-
 class Configuration::Loader
   include Util
 
@@ -144,7 +143,7 @@ class Configuration::Loader
 
   private def validate_worker_node_pools
     node_pools = settings.worker_node_pools || [] of Configuration::WorkerNodePool
-    
+
     if node_pools.empty? && !settings.schedule_workloads_on_masters
       errors << "At least one worker node pool is required in order to schedule workloads"
       return

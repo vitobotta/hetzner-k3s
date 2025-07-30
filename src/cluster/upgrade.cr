@@ -67,7 +67,7 @@ class Cluster::Upgrade
 
   private def workers_upgrade_manifest
     Crinja.render(UPGRADE_PLAN_MANIFEST_FOR_WORKERS, {
-      new_k3s_version: new_k3s_version,
+      new_k3s_version:            new_k3s_version,
       worker_upgrade_concurrency: settings.k3s_upgrade_concurrency,
     })
   end

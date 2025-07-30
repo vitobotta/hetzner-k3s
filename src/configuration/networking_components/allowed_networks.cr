@@ -43,7 +43,7 @@ class Configuration::NetworkingComponents::AllowedNetworks
 
   private def validate_networks(errors, networks, network_type)
     return errors << "#{network_type} allowed networks are required" if networks.nil? || networks.empty?
-    
+
     networks.each { |cidr| validate_cidr_network(errors, cidr, network_type) }
     validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
   end

@@ -102,7 +102,7 @@ class Util::SSH
     unless status.success?
       error_msg = stderr.to_s.strip
       log_line "SSH command failed (exit code: #{status.exit_code}): #{error_msg}",
-               log_prefix: "Instance #{instance.name}" if debug
+        log_prefix: "Instance #{instance.name}" if debug
       raise IO::Error.new("SSH command failed on #{instance.name}: #{error_msg}")
     end
 
@@ -120,7 +120,7 @@ class Util::SSH
       "-o", "ServerAliveCountMax=3",
       "-o", "PasswordAuthentication=no",
       "-o", "PreferredAuthentications=publickey",
-      "-o", "PubkeyAuthentication=yes"
+      "-o", "PubkeyAuthentication=yes",
     ]
 
     # Add private key if not using SSH agent
@@ -138,12 +138,12 @@ class Util::SSH
     if print_output || debug
       {
         out: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDOUT), stdout),
-        err: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDERR), stderr)
+        err: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDERR), stderr),
       }
     else
       {
         out: stdout,
-        err: stderr
+        err: stderr,
       }
     end
   end

@@ -16,8 +16,8 @@ class Hetzner::Instance::Create
   include Util::Shell
   include Kubernetes::Util
 
-  INITIAL_DELAY = 1     # 1 second
-  MAX_DELAY = 60
+  INITIAL_DELAY =  1 # 1 second
+  MAX_DELAY     = 60
 
   private getter settings : Configuration::Main
   private getter legacy_instance_name : String
@@ -47,21 +47,20 @@ class Hetzner::Instance::Create
   private getter instance_existed : Bool = false
 
   def initialize(
-      @settings,
-      @hetzner_client,
-      @mutex,
-      @legacy_instance_name,
-      @instance_name,
-      @instance_type,
-      @image,
-      @ssh_key,
-      @network,
-      @additional_packages = [] of String,
-      @additional_pre_k3s_commands = [] of String,
-      @additional_post_k3s_commands = [] of String,
-      @location = "fsn1"
-    )
-
+    @settings,
+    @hetzner_client,
+    @mutex,
+    @legacy_instance_name,
+    @instance_name,
+    @instance_type,
+    @image,
+    @ssh_key,
+    @network,
+    @additional_packages = [] of String,
+    @additional_pre_k3s_commands = [] of String,
+    @additional_post_k3s_commands = [] of String,
+    @location = "fsn1"
+  )
     @cluster_name = settings.cluster_name
     @snapshot_os = settings.snapshot_os
     @ssh = settings.networking.ssh
@@ -190,7 +189,7 @@ class Hetzner::Instance::Create
 
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", { :network => network.not_nil!.id })
+      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", {:network => network.not_nil!.id})
       log_line "Waiting for instance to be attached to the network..."
     end
   end
@@ -199,28 +198,28 @@ class Hetzner::Instance::Create
     user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands)
 
     base_config = {
-      :name => instance_name,
-      :location => location,
-      :image => image,
+      :name       => instance_name,
+      :location   => location,
+      :image      => image,
       :public_net => {
         :enable_ipv4 => enable_public_net_ipv4,
         :enable_ipv6 => enable_public_net_ipv6,
       },
       :server_type => instance_type,
-      :ssh_keys => [
-        ssh_key.id
+      :ssh_keys    => [
+        ssh_key.id,
       ],
       :user_data => user_data,
-      :labels => {
+      :labels    => {
         :cluster => cluster_name,
-        :role => (instance_name =~ /master/ ? "master" : "worker")
+        :role    => (instance_name =~ /master/ ? "master" : "worker"),
       },
-      :start_after_create => true
+      :start_after_create => true,
     }
 
     network = @network
 
-    base_config = base_config.merge({ :networks => [network.id] }) unless network.nil?
+    base_config = base_config.merge({:networks => [network.id]}) unless network.nil?
 
     base_config
   end
