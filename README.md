@@ -39,11 +39,17 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 - Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
 - Deploying k3s to the nodes.
 - Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately.
-- installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.
+- Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage.
 - Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
 
+---
+
+## Quick Start
+
 For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
+
+---
 
 ___
 ## Who am I?
