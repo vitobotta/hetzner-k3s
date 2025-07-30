@@ -16,11 +16,11 @@ class Hetzner::Firewall::Create
   private getter allowed_networks : Configuration::NetworkingComponents::AllowedNetworks
 
   def initialize(
-      @settings,
-      @hetzner_client,
-      @firewall_name,
-      @masters
-    )
+    @settings,
+    @hetzner_client,
+    @firewall_name,
+    @masters
+  )
     @private_network = settings.networking.private_network
     @ssh = settings.networking.ssh
     @allowed_networks = settings.networking.allowed_networks
@@ -29,9 +29,9 @@ class Hetzner::Firewall::Create
 
   def run
     firewall = firewall_finder.run
-    
+
     return handle_firewall_update(firewall) if firewall
-    
+
     log_line "Creating firewall..."
     create_firewall
     log_line "...firewall created"
@@ -72,99 +72,99 @@ class Hetzner::Firewall::Create
   private def firewall_config
     rules = [
       {
-        :description => "Allow SSH port",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => ssh.port.to_s,
-        :source_ips => allowed_networks.ssh,
-        :destination_ips => [] of String
+        :description     => "Allow SSH port",
+        :direction       => "in",
+        :protocol        => "tcp",
+        :port            => ssh.port.to_s,
+        :source_ips      => allowed_networks.ssh,
+        :destination_ips => [] of String,
       },
       {
         :description => "Allow ICMP (ping)",
-        :direction => "in",
-        :protocol =>  "icmp",
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "icmp",
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
+        :destination_ips => [] of String,
       },
       {
         :description => "Node port range TCP",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => "30000-32767",
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "tcp",
+        :port        => "30000-32767",
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
+        :destination_ips => [] of String,
       },
       {
         :description => "Node port range UDP",
-        :direction => "in",
-        :protocol =>  "udp",
-        :port => "30000-32767",
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "udp",
+        :port        => "30000-32767",
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
-      }
+        :destination_ips => [] of String,
+      },
     ]
 
     if private_network.try(&.enabled)
       rules += [
         {
-          :description => "Allow Kubernetes API access to allowed networks",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "6443",
-          :source_ips => allowed_networks.api,
-          :destination_ips => [] of String
+          :description     => "Allow Kubernetes API access to allowed networks",
+          :direction       => "in",
+          :protocol        => "tcp",
+          :port            => "6443",
+          :source_ips      => allowed_networks.api,
+          :destination_ips => [] of String,
         },
         {
-          :description => "Allow all TCP traffic between nodes on the private network",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "any",
-          :source_ips => [private_network.subnet],
-          :destination_ips => [] of String
+          :description     => "Allow all TCP traffic between nodes on the private network",
+          :direction       => "in",
+          :protocol        => "tcp",
+          :port            => "any",
+          :source_ips      => [private_network.subnet],
+          :destination_ips => [] of String,
         },
         {
-          :description => "Allow all UDP traffic between nodes on the private network",
-          :direction => "in",
-          :protocol =>  "udp",
-          :port => "any",
-          :source_ips => [private_network.subnet],
-          :destination_ips => [] of String
-        }
+          :description     => "Allow all UDP traffic between nodes on the private network",
+          :direction       => "in",
+          :protocol        => "udp",
+          :port            => "any",
+          :source_ips      => [private_network.subnet],
+          :destination_ips => [] of String,
+        },
       ]
     else
       rules << {
         :description => "Allow port 6443 (Kubernetes API server) between masters",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => "6443",
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "tcp",
+        :port        => "6443",
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
+        :destination_ips => [] of String,
       }
 
       wireguard_port = settings.networking.cni.cilium? ? "51871" : "51820"
 
       rules << {
         :description => "Allow wireguard traffic (Cilium)",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => wireguard_port,
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "tcp",
+        :port        => wireguard_port,
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
+        :destination_ips => [] of String,
       }
 
       if masters.size > 0 && settings.datastore.mode == "etcd"
@@ -173,21 +173,21 @@ class Hetzner::Firewall::Create
         end
 
         rules << {
-          :description => "Allow etcd traffic between masters",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "2379",
-          :source_ips => master_ips,
-          :destination_ips => [] of String
+          :description     => "Allow etcd traffic between masters",
+          :direction       => "in",
+          :protocol        => "tcp",
+          :port            => "2379",
+          :source_ips      => master_ips,
+          :destination_ips => [] of String,
         }
 
         rules << {
-          :description => "Allow etcd traffic between masters",
-          :direction => "in",
-          :protocol =>  "tcp",
-          :port => "2380",
-          :source_ips => master_ips,
-          :destination_ips => [] of String
+          :description     => "Allow etcd traffic between masters",
+          :direction       => "in",
+          :protocol        => "tcp",
+          :port            => "2380",
+          :source_ips      => master_ips,
+          :destination_ips => [] of String,
         }
       end
     end
@@ -195,28 +195,28 @@ class Hetzner::Firewall::Create
     if settings.embedded_registry_mirror.enabled && !private_network.try(&.enabled)
       rules << {
         :description => "Allow traffic between nodes for peer-to-peer image distribution",
-        :direction => "in",
-        :protocol =>  "tcp",
-        :port => "5001",
-        :source_ips => [
+        :direction   => "in",
+        :protocol    => "tcp",
+        :port        => "5001",
+        :source_ips  => [
           "0.0.0.0/0",
-          "::/0"
+          "::/0",
         ],
-        :destination_ips => [] of String
+        :destination_ips => [] of String,
       }
     end
 
     {
-      :name => firewall_name,
-      :rules => rules,
+      :name     => firewall_name,
+      :rules    => rules,
       :apply_to => [
         {
           :label_selector => {
-            :selector => "cluster=#{settings.cluster_name}"
+            :selector => "cluster=#{settings.cluster_name}",
           },
-          :type => "label_selector"
-        }
-      ]
+          :type => "label_selector",
+        },
+      ],
     }
   end
 
