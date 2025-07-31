@@ -89,7 +89,7 @@ module Util
         result = CommandResult.new(output, status.exit_status)
 
         unless result.success?
-          error_msg = error_message.blank? ? "Shell command failed" : error_message
+          error_msg = error_message.blank? ? "" : error_message
           log_line "#{error_msg}: #{result.output}", log_prefix: log_prefix
           exit 1 if abort_on_error
         end

@@ -8,9 +8,11 @@ class Configuration::Settings::KubeconfigPath
 
   def validate
     return errors << "kubeconfig_path is required" unless @kubeconfig_path
-    return unless File.exists?(@kubeconfig_path)
 
-    errors << "kubeconfig_path already exists and it's a directory. We would need to write a kubeconfig file at that path" if File.directory?(@kubeconfig_path)
-    errors << "kubeconfig_path does not exist" if @file_must_exist
+    if File.directory?(@kubeconfig_path)
+      errors << "kubeconfig_path already exists and it's a directory. We would need to write a kubeconfig file at that path"
+    elsif @file_must_exist && !File.exists?(@kubeconfig_path)
+      errors << "kubeconfig_path does not exist"
+    end
   end
 end
