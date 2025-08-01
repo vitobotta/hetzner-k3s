@@ -126,10 +126,10 @@ class Cluster::Run
 
   private def execute_on_single_instance(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, instance_name : String, &block : Util::SSH, Hetzner::Instance -> String)
     instances = detect_instances
-    
+
     # Find the specific instance by name
     target_instance = instances.find { |instance| instance.name == instance_name }
-    
+
     unless target_instance
       puts "Error: Instance '#{instance_name}' not found in the cluster".colorize(:red)
       exit 1
@@ -139,7 +139,7 @@ class Cluster::Run
     request_user_confirmation(confirmation_prompt, cancellation_message)
 
     ssh = setup_ssh_connection
-    
+
     # Execute on the single instance
     execute_on_single_instance_target(ssh, target_instance, action_type, &block)
   end
@@ -199,14 +199,14 @@ class Cluster::Run
 
   private def execute_on_each_instance(ssh : Util::SSH, instances, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
     channel = Channel(Nil).new
-    
+
     instances.each do |instance|
       spawn do
         execute_on_single_instance(ssh, instance, action_type, &block)
         channel.send(nil)
       end
     end
-    
+
     instances.size.times { channel.receive }
   end
 
