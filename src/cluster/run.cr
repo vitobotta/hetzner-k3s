@@ -22,8 +22,8 @@ class Cluster::Run
 
   def run_command(command : String)
     execute_on_instances("Command to execute: #{command}", "execute this command on all nodes", "Command execution cancelled.", "Command") do |ssh, instance|
-      ssh.run(instance, settings.networking.ssh.port.to_s, command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
-      "\nCommand completed successfully"
+      ssh_output = ssh.run(instance, settings.networking.ssh.port.to_s, command, settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
+      ssh_output + "\nCommand completed successfully"
     end
   end
 
@@ -35,21 +35,29 @@ class Cluster::Run
     remote_script_path = "/tmp/#{script_name}"
 
     execute_on_instances("Script to upload and execute: #{script_path}", "upload and execute this script on all nodes", "Script execution cancelled.", "Script") do |ssh, instance|
+      all_output = [] of String
+
       # Uploading script...
       upload_command = "cat > #{remote_script_path} << 'EOF'\n#{script_content}\nEOF"
-      ssh.run(instance, settings.networking.ssh.port.to_s, upload_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      upload_output = ssh.run(instance, settings.networking.ssh.port.to_s, upload_command, settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
+      all_output << upload_output unless upload_output.empty?
 
       # Making script executable...
-      ssh.run(instance, settings.networking.ssh.port.to_s, "chmod +x #{remote_script_path}", settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      chmod_output = ssh.run(instance, settings.networking.ssh.port.to_s, "chmod +x #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
+      all_output << chmod_output unless chmod_output.empty?
 
       # Executing script...
       execute_command = "#{remote_script_path}"
-      ssh.run(instance, settings.networking.ssh.port.to_s, execute_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      script_output = ssh.run(instance, settings.networking.ssh.port.to_s, execute_command, settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
+      all_output << script_output unless script_output.empty?
 
       # Cleaning up...
-      ssh.run(instance, settings.networking.ssh.port.to_s, "rm #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true)
+      # Don't capture cleanup output since print_output=false
+      ssh.run(instance, settings.networking.ssh.port.to_s, "rm #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
 
-      "\nScript execution completed successfully"
+      # Combine all captured output
+      combined_output = all_output.join("\n")
+      combined_output.empty? ? "\nScript execution completed successfully" : combined_output + "\nScript execution completed successfully"
     end
   end
 
@@ -116,34 +124,50 @@ class Cluster::Run
   end
 
   private def execute_on_each_instance(ssh : Util::SSH, instances, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
+    channel = Channel(Nil).new
+    
     instances.each do |instance|
-      execute_on_single_instance(ssh, instance, action_type, &block)
+      spawn do
+        execute_on_single_instance(ssh, instance, action_type, &block)
+        channel.send(nil)
+      end
     end
+    
+    instances.size.times { channel.receive }
   end
 
   private def execute_on_single_instance(ssh : Util::SSH, instance, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
+    output_lines = [] of String
+
     if instance.host_ip_address
-      puts "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
+      output_lines << "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
 
       begin
         success_message = block.call(ssh, instance)
-        puts success_message
+        output_lines << success_message
       rescue ex : IO::Error
-        puts "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red)
+        output_lines << "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red).to_s
       rescue ex
-        puts "Unexpected error: #{ex.message}".colorize(:red)
+        output_lines << "Unexpected error: #{ex.message}".colorize(:red).to_s
       end
 
-      puts
+      output_lines << ""
     else
       print_skipped_instance(instance)
+      return
     end
+
+    # Print all lines for this instance together
+    output_lines.each { |line| puts line }
   end
 
   private def print_skipped_instance(instance)
-    puts "=== Instance: #{instance.name} ==="
-    puts "Instance has no IP address, skipping..."
-    puts
+    output_lines = [
+      "=== Instance: #{instance.name} ===",
+      "Instance has no IP address, skipping...",
+      ""
+    ]
+    output_lines.each { |line| puts line }
   end
 
   private def detect_instances
