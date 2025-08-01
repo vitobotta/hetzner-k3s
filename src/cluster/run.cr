@@ -22,62 +22,44 @@ class Cluster::Run
   end
 
   def run_command(command : String)
-    instances = detect_instances
-    
-    puts "Found #{instances.size} instances in the cluster"
-    puts "Command to execute: #{command}"
-    puts
-    
-    # Show the list of nodes that will be affected
-    puts "Nodes that will be affected:"
-    instances.each do |instance|
-      if instance.host_ip_address
-        puts "  - #{instance.name} (#{instance.host_ip_address})"
-      else
-        puts "  - #{instance.name} (no IP address - will be skipped)"
-      end
-    end
-    puts
-    
-    # Ask for confirmation
-    print "Type 'continue' to execute this command on all nodes: "
-    input = gets.try(&.strip)
-    
-    if input != "continue"
-      puts "Command execution cancelled.".colorize(:yellow)
-      exit 0
-    end
-    
-    puts
-    
-    ssh = Util::SSH.new(
-      settings.networking.ssh.private_key_path,
-      settings.networking.ssh.public_key_path
-    )
-    
-    instances.each do |instance|
-      if instance.host_ip_address
-        puts "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
-        
-        begin
-          result = ssh.run(instance, settings.networking.ssh.port.to_s, command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
-          puts "Command completed successfully"
-        rescue ex : IO::Error
-          puts "SSH command failed: #{ex.message}".colorize(:red)
-        rescue ex
-          puts "Unexpected error: #{ex.message}".colorize(:red)
-        end
-        
-        puts
-      else
-        puts "=== Instance: #{instance.name} ==="
-        puts "Instance has no IP address, skipping..."
-        puts
-      end
+    instances = execute_on_instances("Command to execute: #{command}", "execute this command on all nodes", "Command execution cancelled.", "Command") do |ssh, instance|
+      ssh.run(instance, settings.networking.ssh.port.to_s, command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      "Command completed successfully"
     end
   end
 
   def run_script(script_path : String)
+    # Validate script file
+    validate_script_file(script_path)
+    
+    script_content = File.read(script_path)
+    script_name = File.basename(script_path)
+    remote_script_path = "/tmp/#{script_name}"
+    
+    execute_on_instances("Script to upload and execute: #{script_path}", "upload and execute this script on all nodes", "Script execution cancelled.", "Script") do |ssh, instance|
+      # Upload script to temporary location
+      puts "Uploading script..."
+      upload_command = "cat > #{remote_script_path} << 'EOF'\n#{script_content}\nEOF"
+      ssh.run(instance, settings.networking.ssh.port.to_s, upload_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      
+      # Make script executable
+      puts "Making script executable..."
+      ssh.run(instance, settings.networking.ssh.port.to_s, "chmod +x #{remote_script_path}", settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      
+      # Execute script
+      puts "Executing script..."
+      execute_command = "#{remote_script_path}"
+      ssh.run(instance, settings.networking.ssh.port.to_s, execute_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
+      
+      # Clean up
+      puts "Cleaning up..."
+      ssh.run(instance, settings.networking.ssh.port.to_s, "rm #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true)
+      
+      "Script execution completed successfully"
+    end
+  end
+
+  private def validate_script_file(script_path : String)
     unless File.exists?(script_path)
       puts "Error: Script file '#{script_path}' does not exist".colorize(:red)
       exit 1
@@ -92,14 +74,23 @@ class Cluster::Run
       puts "Error: Script file '#{script_path}' is not readable".colorize(:red)
       exit 1
     end
+  end
 
+  private def execute_on_instances(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
     instances = detect_instances
     
+    print_execution_summary(instances, action_description)
+    request_user_confirmation(confirmation_prompt, cancellation_message)
+    
+    ssh = setup_ssh_connection
+    execute_on_each_instance(ssh, instances, action_type, &block)
+  end
+
+  private def print_execution_summary(instances, action_description : String)
     puts "Found #{instances.size} instances in the cluster"
-    puts "Script to upload and execute: #{script_path}"
+    puts action_description
     puts
     
-    # Show the list of nodes that will be affected
     puts "Nodes that will be affected:"
     instances.each do |instance|
       if instance.host_ip_address
@@ -109,64 +100,56 @@ class Cluster::Run
       end
     end
     puts
-    
-    # Ask for confirmation
-    print "Type 'continue' to upload and execute this script on all nodes: "
+  end
+
+  private def request_user_confirmation(confirmation_prompt : String, cancellation_message : String)
+    print "Type 'continue' to #{confirmation_prompt}: "
     input = gets.try(&.strip)
     
     if input != "continue"
-      puts "Script execution cancelled.".colorize(:yellow)
+      puts "#{cancellation_message}".colorize(:yellow)
       exit 0
     end
     
     puts
-    
-    ssh = Util::SSH.new(
+  end
+
+  private def setup_ssh_connection
+    Util::SSH.new(
       settings.networking.ssh.private_key_path,
       settings.networking.ssh.public_key_path
     )
-    
-    script_content = File.read(script_path)
-    script_name = File.basename(script_path)
-    remote_script_path = "/tmp/#{script_name}"
-    
+  end
+
+  private def execute_on_each_instance(ssh : Util::SSH, instances, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
     instances.each do |instance|
-      if instance.host_ip_address
-        puts "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
-        
-        begin
-          # Upload script to temporary location
-          puts "Uploading script..."
-          upload_command = "cat > #{remote_script_path} << 'EOF'\n#{script_content}\nEOF"
-          ssh.run(instance, settings.networking.ssh.port.to_s, upload_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
-          
-          # Make script executable
-          puts "Making script executable..."
-          ssh.run(instance, settings.networking.ssh.port.to_s, "chmod +x #{remote_script_path}", settings.networking.ssh.use_agent, true, disable_log_prefix: true)
-          
-          # Execute script
-          puts "Executing script..."
-          execute_command = "#{remote_script_path}"
-          ssh.run(instance, settings.networking.ssh.port.to_s, execute_command, settings.networking.ssh.use_agent, true, disable_log_prefix: true)
-          
-          # Clean up
-          puts "Cleaning up..."
-          ssh.run(instance, settings.networking.ssh.port.to_s, "rm #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true)
-          
-          puts "Script execution completed successfully"
-        rescue ex : IO::Error
-          puts "SSH script execution failed: #{ex.message}".colorize(:red)
-        rescue ex
-          puts "Unexpected error: #{ex.message}".colorize(:red)
-        end
-        
-        puts
-      else
-        puts "=== Instance: #{instance.name} ==="
-        puts "Instance has no IP address, skipping..."
-        puts
-      end
+      execute_on_single_instance(ssh, instance, action_type, &block)
     end
+  end
+
+  private def execute_on_single_instance(ssh : Util::SSH, instance, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
+    if instance.host_ip_address
+      puts "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
+      
+      begin
+        success_message = block.call(ssh, instance)
+        puts success_message
+      rescue ex : IO::Error
+        puts "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red)
+      rescue ex
+        puts "Unexpected error: #{ex.message}".colorize(:red)
+      end
+      
+      puts
+    else
+      print_skipped_instance(instance)
+    end
+  end
+
+  private def print_skipped_instance(instance)
+    puts "=== Instance: #{instance.name} ==="
+    puts "Instance has no IP address, skipping..."
+    puts
   end
 
   private def detect_instances
