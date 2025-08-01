@@ -100,7 +100,7 @@ module Hetzner::K3s
     end
 
     class RunCmd < Admiral::Command
-      define_help description: "Run a command or script on all nodes in the cluster"
+      define_help description: "Run a command or script on all nodes in the cluster, or a specific instance"
 
       define_flag configuration_file_path : String,
         description: "The path of the YAML configuration file",
@@ -118,13 +118,20 @@ module Hetzner::K3s
         long: "script",
         required: false
 
+      define_flag instance : String,
+        description: "The instance name to run the command/script on (if not specified, runs on all instances)",
+        long: "instance",
+        required: false
+
       def run
         # Validate that exactly one of --command or --script is provided
         command_value = flags.command
         script_value = flags.script
+        instance_value = flags.instance
         
         command_provided = command_value && !command_value.empty?
         script_provided = script_value && !script_value.empty?
+        instance_provided = instance_value && !instance_value.empty?
 
         if command_provided && script_provided
           puts "Error: Please specify either --command or --script, but not both".colorize(:red)
@@ -140,9 +147,17 @@ module Hetzner::K3s
         cluster_run = Cluster::Run.new(configuration: configuration)
 
         if command_provided
-          cluster_run.run_command(command_value.not_nil!)
+          if instance_provided
+            cluster_run.run_command_on_instance(command_value.not_nil!, instance_value.not_nil!)
+          else
+            cluster_run.run_command(command_value.not_nil!)
+          end
         elsif script_provided
-          cluster_run.run_script(script_value.not_nil!)
+          if instance_provided
+            cluster_run.run_script_on_instance(script_value.not_nil!, instance_value.not_nil!)
+          else
+            cluster_run.run_script(script_value.not_nil!)
+          end
         end
       end
     end
