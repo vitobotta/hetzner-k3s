@@ -73,7 +73,7 @@ class Util::SSH
   end
 
   # Run a command on a remote instance via SSH
-  def run(instance, port, command, use_ssh_agent, print_output = true)
+  def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
     host_ip_address = instance.host_ip_address
     raise "Instance #{instance.name} has no IP address" unless host_ip_address
 
@@ -91,14 +91,24 @@ class Util::SSH
     stdout = IO::Memory.new
     stderr = IO::Memory.new
 
-    output_streams = setup_output_streams(instance.name, stdout, stderr, print_output, debug)
+    # Setup output streams based on capture mode
+    output_streams = if capture_output
+      {
+        out: stdout,
+        err: stderr,
+      }
+    else
+      setup_output_streams(instance.name, stdout, stderr, print_output, debug, disable_log_prefix)
+    end
 
+    # Run the SSH command
     status = Process.run("ssh",
       args: ssh_args,
       output: output_streams[:out],
       error: output_streams[:err]
     )
 
+    # Handle errors consistently
     unless status.success?
       error_msg = stderr.to_s.strip
       log_line "SSH command failed (exit code: #{status.exit_code}): #{error_msg}",
@@ -106,6 +116,7 @@ class Util::SSH
       raise IO::Error.new("SSH command failed on #{instance.name}: #{error_msg}")
     end
 
+    # Return captured output
     stdout.to_s.strip
   end
 
@@ -134,12 +145,19 @@ class Util::SSH
     args
   end
 
-  private def setup_output_streams(instance_name, stdout, stderr, print_output, debug)
+  private def setup_output_streams(instance_name, stdout, stderr, print_output, debug, disable_log_prefix)
     if print_output || debug
-      {
-        out: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDOUT), stdout),
-        err: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDERR), stderr),
-      }
+      if disable_log_prefix
+        {
+          out: IO::MultiWriter.new(STDOUT, stdout),
+          err: IO::MultiWriter.new(STDERR, stderr),
+        }
+      else
+        {
+          out: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDOUT), stdout),
+          err: IO::MultiWriter.new(PrefixedIO.new("[Instance #{instance_name}] ", STDERR), stderr),
+        }
+      end
     else
       {
         out: stdout,

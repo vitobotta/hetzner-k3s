@@ -88,6 +88,8 @@ class Configuration::Loader
     when :delete
     when :upgrade
       validate_upgrade_settings
+    when :run
+      validate_run_settings
     end
   end
 
@@ -103,6 +105,10 @@ class Configuration::Loader
 
     validate_kubectl_presence
     validate_helm_presence
+  end
+
+  private def validate_run_settings
+    validate_kubectl_presence
   end
 
   private def validate_upgrade_settings

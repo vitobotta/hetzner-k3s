@@ -36,11 +36,13 @@ nav:
   - Private_clusters_with_public_network_interface_disabled.md
   - Upgrading_a_cluster_from_1x_to_2x.md
   - Setting_up_a_cluster.md
+  - Important upgrade notes: Important_upgrade_notes.md
   - Recommendations.md
   - Maintenance.md
   - Deleting_a_cluster.md
   - Load_balancers.md
   - Storage.md
   - Floating_IP_egress.md
+  - Running commands and scripts: Run_command.md
   - Troubleshooting.md
   - Contributing_and_support.md
