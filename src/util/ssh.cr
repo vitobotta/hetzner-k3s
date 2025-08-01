@@ -91,42 +91,33 @@ class Util::SSH
     stdout = IO::Memory.new
     stderr = IO::Memory.new
 
-    if capture_output
-      # Capture all output to memory and don't print anything
-      status = Process.run("ssh",
-        args: ssh_args,
-        output: stdout,
-        error: stderr
-      )
-
-      unless status.success?
-        error_msg = stderr.to_s.strip
-        log_line "SSH command failed (exit code: #{status.exit_code}): #{error_msg}",
-          log_prefix: "Instance #{instance.name}" if debug
-        raise IO::Error.new("SSH command failed on #{instance.name}: #{error_msg}")
-      end
-      
-      # Return the complete captured output
-      stdout.to_s.strip
+    # Setup output streams based on capture mode
+    output_streams = if capture_output
+      {
+        out: stdout,
+        err: stderr,
+      }
     else
-      # Original behavior: print output while running
-      output_streams = setup_output_streams(instance.name, stdout, stderr, print_output, debug, disable_log_prefix)
-
-      status = Process.run("ssh",
-        args: ssh_args,
-        output: output_streams[:out],
-        error: output_streams[:err]
-      )
-
-      unless status.success?
-        error_msg = stderr.to_s.strip
-        log_line "SSH command failed (exit code: #{status.exit_code}): #{error_msg}",
-          log_prefix: "Instance #{instance.name}" if debug
-        raise IO::Error.new("SSH command failed on #{instance.name}: #{error_msg}")
-      end
-
-      stdout.to_s.strip
+      setup_output_streams(instance.name, stdout, stderr, print_output, debug, disable_log_prefix)
     end
+
+    # Run the SSH command
+    status = Process.run("ssh",
+      args: ssh_args,
+      output: output_streams[:out],
+      error: output_streams[:err]
+    )
+
+    # Handle errors consistently
+    unless status.success?
+      error_msg = stderr.to_s.strip
+      log_line "SSH command failed (exit code: #{status.exit_code}): #{error_msg}",
+        log_prefix: "Instance #{instance.name}" if debug
+      raise IO::Error.new("SSH command failed on #{instance.name}: #{error_msg}")
+    end
+
+    # Return captured output
+    stdout.to_s.strip
   end
 
   private def build_ssh_args(host_ip_address, port, command, use_ssh_agent, log_level)
