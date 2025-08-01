@@ -7,11 +7,13 @@ require "../hetzner/load_balancer/delete"
 require "../kubernetes/util"
 require "../util/shell"
 require "../util"
+require "./node_detection"
 
 class Cluster::Delete
   include Util
   include Util::Shell
   include Kubernetes::Util
+  include NodeDetection
 
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client do
@@ -24,6 +26,7 @@ class Cluster::Delete
   private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
   def initialize(@configuration, @force)
+    super(@configuration)
   end
 
   def run
@@ -158,39 +161,26 @@ class Cluster::Delete
   end
 
   private def detect_nodes_with_kubectl
-    result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
-    return detect_nodes_with_hetzner_api unless result.success?
-
-    lines = result.output.split("\n")
-    lines = lines[1..] if lines.size > 1 && lines[0].includes?("NAME")
-    all_node_names = lines.reject(&.empty?)
-
-    all_node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
-    detect_nodes_with_hetzner_api if all_node_names.empty?
-  end
+      node_names = detect_instances_node_names_only
+      node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
+      detect_nodes_with_hetzner_api if node_names.empty?
+    end
 
   private def add_instance_deletor(instance_name)
     instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: instance_name)
   end
 
   private def detect_nodes_with_hetzner_api
-    find_instances_to_delete_by_label("cluster=#{settings.cluster_name}")
+      instance_names = [] of String
+      find_instance_names_by_label("cluster=#{settings.cluster_name}", instance_names)
 
-    settings.worker_node_pools.each do |pool|
-      next unless pool.autoscaling_enabled
+      settings.worker_node_pools.each do |pool|
+        next unless pool.autoscaling_enabled
 
-      node_group_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
-      find_instances_to_delete_by_label("hcloud/node-group=#{node_group_name}")
+        node_group_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
+        find_instance_names_by_label("hcloud/node-group=#{node_group_name}", instance_names)
+      end
+
+      instance_names.each { |instance_name| add_instance_deletor(instance_name) unless instance_deletor_exists?(instance_name) }
     end
   end
-
-  private def find_instances_to_delete_by_label(label_selector)
-    success, response = hetzner_client.get("/servers", {:label_selector => label_selector})
-    return unless success
-
-    JSON.parse(response)["servers"].as_a.each do |instance_data|
-      instance_name = instance_data["name"].as_s
-      add_instance_deletor(instance_name) unless instance_deletor_exists?(instance_name)
-    end
-  end
-end
