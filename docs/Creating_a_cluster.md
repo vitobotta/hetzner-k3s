@@ -55,6 +55,20 @@ networking:
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
+#  etcd:
+#    # etcd snapshot configuration (optional)
+#    snapshot_retention: 24
+#    snapshot_schedule_cron: "0 * * * *"
+#
+#    # S3 snapshot configuration (optional)
+#    s3_enabled: false
+#    s3_endpoint: "" # Can also be set with ETCD_S3_ENDPOINT environment variable
+#    s3_region: "" # Can also be set with ETCD_S3_REGION environment variable
+#    s3_bucket: "" # Can also be set with ETCD_S3_BUCKET environment variable
+#    s3_access_key: "" # Can also be set with ETCD_S3_ACCESS_KEY environment variable
+#    s3_secret_key: "" # Can also be set with ETCD_S3_SECRET_KEY environment variable
+#    s3_folder: ""
+#    s3_force_path_style: false
 
 schedule_workloads_on_masters: false
 

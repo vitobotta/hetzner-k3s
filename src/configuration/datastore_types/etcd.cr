@@ -18,7 +18,7 @@ class Configuration::DatastoreTypes::Etcd
 
   def initialize(
     @snapshot_retention : Int64 = 24,
-    @snapshot_schedule_cron : String = "0.hourly",
+    @snapshot_schedule_cron : String = "0 * * * *",
     @s3_enabled : Bool = false,
     @s3_endpoint : String = "",
     @s3_region : String = "",
@@ -45,7 +45,7 @@ class Configuration::DatastoreTypes::Etcd
 
   private def extract_hostname_from_url(url : String) : String
     return url if url.empty?
-    
+
     # Check if it's a full URL (contains ://)
     if url.includes?("://")
       begin
@@ -58,7 +58,7 @@ class Configuration::DatastoreTypes::Etcd
         return url
       end
     end
-    
+
     url
   end
 
