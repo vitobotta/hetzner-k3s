@@ -10,5 +10,8 @@ class Configuration::Settings::Datastore
     return unless datastore.mode == "external"
 
     errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
+    
+    datastore.etcd.validate_s3_settings(errors) if datastore.mode == "etcd"
+    datastore.etcd.validate_etcd_settings(errors) if datastore.mode == "etcd"
   end
 end

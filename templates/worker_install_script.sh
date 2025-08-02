@@ -85,14 +85,14 @@ curl -sfL https://get.k3s.io | \
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_URL=https://{{ api_server_ip_address }}:6443 \
-  INSTALL_K3S_EXEC="agent \
+  INSTALL_K3S_EXEC="agent" \
+  sh -s - \
     --node-name=$HOSTNAME \
     {{ extra_args }} {{ labels_and_taints }} \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
     $KUBELET_INSTANCE_ID \
-    $FLANNEL_SETTINGS" \
-  sh -s - 2>&1 | tee -a /var/log/hetzner-k3s.log
+    $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
 
 # Check if installation was successful
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
