@@ -106,7 +106,8 @@ curl -sfL https://get.k3s.io | \
   K3S_TOKEN="{{ k3s_token }}" \
   {{ datastore_endpoint }} \
   INSTALL_K3S_SKIP_START=false \
-  INSTALL_K3S_EXEC="server \
+  INSTALL_K3S_EXEC="server" \
+  sh -s - \
     --disable traefik \
     --disable-cloud-controller \
     --disable servicelb \
@@ -127,8 +128,7 @@ curl -sfL https://get.k3s.io | \
     --advertise-address=$PRIVATE_IP \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
-    {{ server }} {{ tls_sans }}" \
-  sh -s - 2>&1 | tee -a /var/log/hetzner-k3s.log
+    {{ server }} {{ tls_sans }} 2>&1 | tee -a /var/log/hetzner-k3s.log
 
 # Check if installation was successful
 if [ ${PIPESTATUS[0]} -ne 0 ]; then
