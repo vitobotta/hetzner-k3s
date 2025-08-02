@@ -108,7 +108,7 @@ class Cluster::Run
       exit 1
     end
 
-    unless File.readable?(script_path)
+    unless File::Info.readable?(script_path)
       puts "Error: Script file '#{script_path}' is not readable".colorize(:red)
       exit 1
     end
