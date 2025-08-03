@@ -114,17 +114,19 @@ worker_node_pools:
 embedded_registry_mirror:
   enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
-# csi_driver:
-#   enabled: true   # install the Hetzner CSI driver (default). Set to false to skip installation if you don't need persistent volumes backed by Hetzner block storage.
-
-# traefik:
-#   enabled: false  # built-in Traefik ingress controller. Disabled by default; set to true to install.
-
-# servicelb:
-#   enabled: false  # built-in ServiceLB for LoadBalancer services. Disabled by default; set to true to install.
-
-# metrics_server:
-#   enabled: false  # Kubernetes metrics-server addon. Disabled by default; set to true to install.
+# addons:
+#   csi_driver:
+#     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
+#   traefik:
+#     enabled: false  # built-in Traefik ingress controller. Disabled by default.
+#   servicelb:
+#     enabled: false  # built-in ServiceLB. Disabled by default.
+#   metrics_server:
+#     enabled: false  # Kubernetes metrics-server addon. Disabled by default.
+#   cloud_controller_manager:
+#     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
+#   cluster_autoscaler:
+#     enabled: true   # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
 
 protect_against_deletion: true
 
