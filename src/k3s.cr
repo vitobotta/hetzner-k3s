@@ -8,6 +8,8 @@ module K3s
   private RELEASES_DIRECTORY = File.expand_path("#{ENV["HOME"]}/.hetzner-k3s")
   private RELEASES_FILENAME  = File.expand_path("#{ENV["HOME"]}/.hetzner-k3s/k3s-releases.yaml")
 
+  @@k3s_token : String? = nil
+
   def self.available_releases
     Dir.mkdir(RELEASES_DIRECTORY) unless File.directory?(RELEASES_DIRECTORY)
 
@@ -76,21 +78,26 @@ module K3s
   end
 
   def self.k3s_token(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
-    @@k3s_token ||= begin
-      # Try to get token from each master node
-      tokens = masters.compact_map { |master| get_token_from_master(settings, master) }
-
-      # If we got tokens, return the most common one (quorum approach)
-      unless tokens.empty?
-        # Group tokens by value and count occurrences
-        token_counts = tokens.tally
-        # Find the token with the highest count
-        most_frequent_token, _ = token_counts.max_by { |_, count| count }
-        return most_frequent_token
-      end
-
-      # If no tokens found, generate a random one as fallback
-      Random::Secure.hex
+    if @@k3s_token
+      return @@k3s_token.not_nil!
     end
+
+    # Try to get token from each master node
+    tokens = masters.compact_map { |master| get_token_from_master(settings, master) }
+
+    # If we got tokens, return the most common one (quorum approach)
+    unless tokens.empty?
+      # Group tokens by value and count occurrences
+      token_counts = tokens.tally
+      # Find the token with the highest count
+      most_frequent_token, _ = token_counts.max_by { |_, count| count }
+      @@k3s_token = most_frequent_token
+      return most_frequent_token
+    end
+
+    # If no tokens found, generate a random one as fallback
+    fallback_token = Random::Secure.hex
+    @@k3s_token = fallback_token
+    fallback_token
   end
 end
