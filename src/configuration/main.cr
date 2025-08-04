@@ -5,7 +5,6 @@ require "./worker_node_pool"
 require "./datastore"
 require "./manifests"
 require "./embedded_registry_mirror"
-require "./local_path_storage_class"
 require "./addons"
 require "./cluster_autoscaler"
 
@@ -37,7 +36,6 @@ class Configuration::Main
   getter datastore : Configuration::Datastore = Configuration::Datastore.new
   getter manifests : Configuration::Manifests = Configuration::Manifests.new
   getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
-  getter local_path_storage_class : Configuration::LocalPathStorageClass = Configuration::LocalPathStorageClass.new
   getter addons : Configuration::Addons = Configuration::Addons.new
   getter cluster_autoscaler : Configuration::ClusterAutoscaler = Configuration::ClusterAutoscaler.new
   getter include_instance_type_in_instance_name : Bool = false

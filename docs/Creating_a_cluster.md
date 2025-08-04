@@ -127,6 +127,8 @@ embedded_registry_mirror:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
 #   cluster_autoscaler:
 #     enabled: true   # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
+#   local_path_storage_class:
+#     enabled: false   # Local Path Storage Class addon (default false). Set to true to enable local path storage class.
 
 protect_against_deletion: true
 
