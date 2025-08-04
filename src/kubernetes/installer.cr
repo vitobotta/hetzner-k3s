@@ -148,10 +148,8 @@ class Kubernetes::Installer
     log_line "Waiting for the control plane to be ready...", log_prefix: "Instance #{first_master.name}"
     sleep 10.seconds unless /No change detected/ =~ output
 
-    kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
-    sleep 5.seconds
-
-    wait_for_control_plane
+    # Save kubeconfig and validate the first master is working properly
+    validate_first_master_setup!
   end
 
   private def deploy_to_master(instance : Hetzner::Instance)
@@ -184,6 +182,35 @@ class Kubernetes::Installer
           sleep 1.seconds
         end
       end
+    end
+  end
+
+  private def validate_first_master_setup!
+    # Determine master terminology based on cluster size
+    master_terminology = masters.size > 1 ? "first master" : "master"
+    log_prefix = masters.size > 1 ? "First Master Validation" : "Master Validation"
+
+    begin
+      # Save kubeconfig first
+      kubeconfig_manager.save_kubeconfig(masters, first_master, load_balancer)
+      sleep 5.seconds
+
+      # Validate the master setup using existing wait_for_control_plane method
+      log_line "Validating #{master_terminology} setup...", log_prefix: "Instance #{first_master.name}"
+      
+      wait_for_control_plane
+      
+      log_line "✅ #{master_terminology.capitalize} validation successful", log_prefix: log_prefix
+      
+    rescue ex : Exception | Tasker::Timeout
+      error_message = ex.is_a?(Tasker::Timeout) ? "Timeout waiting for control plane to be ready" : ex.message
+      log_line "❌ Critical error during #{master_terminology} validation: #{error_message}", log_prefix: log_prefix
+      log_line "   This indicates a problem with the configuration affecting the #{master_terminology}.", log_prefix: log_prefix
+      if masters.size > 1
+        log_line "   Aborting early to avoid affecting remaining masters.", log_prefix: log_prefix
+      end
+      log_line "   Please check your configuration and try again.", log_prefix: log_prefix
+      exit 1
     end
   end
 
