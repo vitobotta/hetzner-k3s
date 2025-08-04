@@ -60,8 +60,8 @@ class Kubernetes::Installer
     Kubernetes::Software::Cilium.new(configuration, settings).install if settings.networking.cni.enabled? && settings.networking.cni.cilium?
 
     Kubernetes::Software::Hetzner::Secret.new(configuration, settings).create
-    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install
-    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install
+    Kubernetes::Software::Hetzner::CloudControllerManager.new(configuration, settings).install if settings.addons.cloud_controller_manager.enabled?
+    Kubernetes::Software::Hetzner::CSIDriver.new(configuration, settings).install if settings.addons.csi_driver.enabled?
 
     Kubernetes::Software::SystemUpgradeController.new(configuration, settings).install
 
@@ -69,7 +69,7 @@ class Kubernetes::Installer
       set_up_workers(workers_installation_queue_channel, worker_count, master_count)
     end
 
-    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, masters, first_master, ssh, autoscaling_worker_node_pools).install
+    Kubernetes::Software::ClusterAutoscaler.new(configuration, settings, masters, first_master, ssh, autoscaling_worker_node_pools).install if settings.addons.cluster_autoscaler.enabled?
 
     switch_to_context(default_context)
 

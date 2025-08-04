@@ -1,6 +1,6 @@
 # Storage
 
-hetzner-k3s provides integrated storage solutions for your Kubernetes workloads. The Hetzner CSI Driver is automatically installed during cluster creation, enabling seamless integration with Hetzner's block storage services.
+hetzner-k3s provides integrated storage solutions for your Kubernetes workloads. The Hetzner CSI Driver is automatically installed during cluster creation, enabling seamless integration with Hetzner's block storage services. If you prefer not to use the driver, you can disable its installation by setting `addons.csi_driver.enabled` to `false` in the cluster configuration file. Keep in mind that the minimum size for a volume is 10 Gi.
 
 ## Overview
 
