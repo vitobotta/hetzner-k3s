@@ -113,8 +113,8 @@ class Hetzner::Firewall::Create
       },
     ]
 
-    # Add any user-defined custom firewall rules (defined under networking.allowed_networks.custom)
-    allowed_networks.custom.each do |custom_rule|
+    # Add any user-defined custom firewall rules (networking.allowed_networks.custom_firewall_rules)
+    allowed_networks.custom_firewall_rules.each do |custom_rule|
       rules << {
         :description     => custom_rule.effective_description,
         :direction       => custom_rule.direction,

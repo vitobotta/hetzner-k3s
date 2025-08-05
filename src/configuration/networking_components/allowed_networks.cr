@@ -7,7 +7,7 @@ class Configuration::NetworkingComponents::AllowedNetworks
   getter ssh : Array(String) = ["0.0.0.0/0"]
   getter api : Array(String) = ["0.0.0.0/0"]
   # Optional list of user-defined firewall rules (protocol/port/source networks)
-  getter custom : Array(FirewallRule) = [] of FirewallRule
+  getter custom_firewall_rules : Array(FirewallRule) = [] of FirewallRule
 
   def initialize
   end
@@ -17,7 +17,7 @@ class Configuration::NetworkingComponents::AllowedNetworks
     validate_networks(errors, api, "API")
 
     # Validate any custom firewall rules provided by the user
-    custom.each &.validate(errors)
+    custom_firewall_rules.each &.validate(errors)
   end
 
   private def validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)

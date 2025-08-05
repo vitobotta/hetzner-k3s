@@ -10,8 +10,8 @@ class Configuration::NetworkingComponents::FirewallRule
   getter direction : String = "in"
   # A single port ("80"), a range ("30000-32767"), or "any" for all ports (Hetzner API syntax)
   getter port : String = "any"
-  # CIDR ranges that are allowed to reach the above port/protocol
-  getter source_ips : Array(String) = ["0.0.0.0/0"]
+  # CIDR ranges allowed for incoming traffic when direction is "in"
+  getter source_ips : Array(String) = [] of String
   # CIDR ranges allowed for outgoing traffic when direction is "out"
   getter destination_ips : Array(String) = [] of String
 

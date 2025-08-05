@@ -38,7 +38,7 @@ networking:
     # in rules (SSH, ICMP, node-port ranges, etc.) use ~10 slots. If the sum of the
     # default rules plus your custom ones exceeds 50, hetzner-k3s will abort with
     # an error.
-    custom:
+    custom_firewall_rules:
       - description: "Allow HTTP from any IPv4"
         direction: in
         protocol: tcp
