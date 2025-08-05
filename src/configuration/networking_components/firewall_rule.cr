@@ -65,6 +65,13 @@ class Configuration::NetworkingComponents::FirewallRule
   private def validate_ips(errors, ips, label, required : Bool = false)
     return errors << "#{label} must contain at least one CIDR" if required && (ips.nil? || ips.empty?)
 
+    if ips.size > 100
+      # Hetzner Cloud currently allows up to 100 CIDR blocks per firewall rule (see
+      # https://docs.hetzner.cloud/reference/cloud#firewalls-create-a-firewall). Fail fast if we
+      # exceed this hard limit so that users can reduce their custom rules.
+      errors << "#{label} supports a maximum of 100 CIDR blocks (got #{ips.size})"
+    end
+
     ips.each { |cidr| validate_cidr_network(errors, cidr) }
   end
 
