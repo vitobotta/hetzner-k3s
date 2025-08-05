@@ -38,19 +38,19 @@ networking:
     # in rules (SSH, ICMP, node-port ranges, etc.) use ~10 slots. If the sum of the
     # default rules plus your custom ones exceeds 50, hetzner-k3s will abort with
     # an error.
-    custom_firewall_rules:
-      - description: "Allow HTTP from any IPv4"
-        direction: in
-        protocol: tcp
-        port: 80
-        source_ips:
-          - 0.0.0.0/0
-      - description: "UDP game servers (outbound)"
-        direction: out
-        protocol: udp
-        port: 60000-60100
-        destination_ips:
-          - 203.0.113.0/24
+    # custom_firewall_rules:
+    #   - description: "Allow HTTP from any IPv4"
+    #     direction: in
+    #     protocol: tcp
+    #     port: 80
+    #     source_ips:
+    #       - 0.0.0.0/0
+    #   - description: "UDP game servers (outbound)"
+    #     direction: out
+    #     protocol: udp
+    #     port: 60000-60100
+    #     destination_ips:
+    #       - 203.0.113.0/24
   public_network:
     ipv4: true
     ipv6: true
