@@ -20,6 +20,37 @@ networking:
       - 0.0.0.0/0
     api: # this will firewall port 6443 on the nodes
       - 0.0.0.0/0
+    # OPTIONAL: define extra inbound firewall rules.
+    # Each entry supports the following keys:
+    #   description (string, optional)
+    #   direction   (in | out, default: in)
+    #   protocol    (tcp | udp | icmp | esp | gre, default: tcp)
+    #   port        (single port "80", port range "30000-32767", or "any") – only relevant for tcp/udp
+    #   source_ips  (array of CIDR blocks) – required when direction is in
+    #   destination_ips (array of CIDR blocks) – required when direction is out
+    #
+    # IMPORTANT: Outbound traffic is allowed by default (implicit allow-all).
+    # If you add **any** outbound rule (direction: out), Hetzner Cloud switches
+    # the outbound chain to an implicit **deny-all**; only traffic matching your
+    # outbound rules will be permitted. Define outbound rules carefully to avoid
+    # accidentally blocking required egress (DNS, updates, etc.).
+    # NOTE: Hetzner Cloud Firewalls support **max 50 entries per firewall**. The built-
+    # in rules (SSH, ICMP, node-port ranges, etc.) use ~10 slots. If the sum of the
+    # default rules plus your custom ones exceeds 50, hetzner-k3s will abort with
+    # an error.
+    custom:
+      - description: "Allow HTTP from any IPv4"
+        protocol: tcp
+        direction: in
+        port: 80
+        source_ips:
+          - 0.0.0.0/0
+      - description: "UDP game servers (outbound)"
+        direction: out
+        protocol: udp
+        port: 60000-60100
+        destination_ips:
+          - 203.0.113.0/24
   public_network:
     ipv4: true
     ipv6: true

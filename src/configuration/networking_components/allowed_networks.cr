@@ -1,9 +1,13 @@
+require "./firewall_rule"
+
 class Configuration::NetworkingComponents::AllowedNetworks
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 
   getter ssh : Array(String) = ["0.0.0.0/0"]
   getter api : Array(String) = ["0.0.0.0/0"]
+  # Optional list of user-defined firewall rules (protocol/port/source networks)
+  getter custom : Array(FirewallRule) = [] of FirewallRule
 
   def initialize
   end
@@ -11,6 +15,9 @@ class Configuration::NetworkingComponents::AllowedNetworks
   def validate(errors)
     validate_networks(errors, ssh, "SSH")
     validate_networks(errors, api, "API")
+
+    # Validate any custom firewall rules provided by the user
+    custom.each &.validate(errors)
   end
 
   private def validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
