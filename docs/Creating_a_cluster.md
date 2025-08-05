@@ -40,8 +40,8 @@ networking:
     # an error.
     custom:
       - description: "Allow HTTP from any IPv4"
-        protocol: tcp
         direction: in
+        protocol: tcp
         port: 80
         source_ips:
           - 0.0.0.0/0
