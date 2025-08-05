@@ -20,7 +20,7 @@ networking:
       - 0.0.0.0/0
     api: # this will firewall port 6443 on the nodes
       - 0.0.0.0/0
-    # OPTIONAL: define extra inbound firewall rules.
+    # OPTIONAL: define extra inbound/outbound firewall rules.
     # Each entry supports the following keys:
     #   description (string, optional)
     #   direction   (in | out, default: in)
