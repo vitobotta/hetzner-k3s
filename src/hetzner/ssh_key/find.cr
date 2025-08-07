@@ -1,6 +1,7 @@
 require "../client"
 require "../ssh_key"
 require "../ssh_keys_list"
+require "../../util/ssh"
 
 class Hetzner::SSHKey::Find
   getter hetzner_client : Hetzner::Client
@@ -12,7 +13,7 @@ class Hetzner::SSHKey::Find
 
   def run
     ssh_keys = fetch_ssh_keys
-    fingerprint = calculate_fingerprint(public_ssh_key_path)
+    fingerprint = Util::SSH.calculate_fingerprint(public_ssh_key_path)
 
     ssh_keys.find { |ssh_key| ssh_key.fingerprint == fingerprint } ||
       ssh_keys.find { |ssh_key| ssh_key.name == ssh_key_name }
@@ -42,11 +43,7 @@ class Hetzner::SSHKey::Find
     all_ssh_keys
   end
 
-  private def calculate_fingerprint(public_ssh_key_path)
-    private_key = File.read(public_ssh_key_path).split[1]
-    Digest::MD5.hexdigest(Base64.decode(private_key)).chars.each_slice(2).map(&.join).join(":")
-  end
-
+  
   private def default_log_prefix
     "SSH key"
   end
