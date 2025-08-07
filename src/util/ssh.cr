@@ -24,6 +24,11 @@ class Util::SSH
   def initialize(@private_ssh_key_path, @public_ssh_key_path)
   end
 
+  def self.calculate_fingerprint(public_ssh_key_path)
+    private_key = File.read(public_ssh_key_path).split[1]
+    Digest::MD5.hexdigest(Base64.decode(private_key)).chars.each_slice(2).map(&.join).join(":")
+  end
+
   # Wait for an instance to be ready by repeatedly running a test command until it returns the expected result
   def wait_for_instance(
     instance,

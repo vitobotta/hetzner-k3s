@@ -28,6 +28,7 @@ module Configuration
       allowed_networks.validate(errors)
       private_network.validate(errors, hetzner_client)
       public_network.validate(errors, settings)
+      ssh.validate(errors, hetzner_client, settings.cluster_name)
     end
   end
 end
