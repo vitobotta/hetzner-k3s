@@ -1,4 +1,5 @@
 require "../../configuration/main"
+require "crinja"
 
 class Kubernetes::Script::LabelsAndTaintsGenerator
   def self.build_labels(label_collection)
@@ -8,7 +9,8 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
       value = escape(label.value.not_nil!)
       "--node-label \"#{key}=#{value}\""
     end
-    labels.empty? ? "" : " #{labels.join(" ")} "
+    result = labels.empty? ? "" : " #{labels.join(" ")} "
+    Crinja::SafeString.new(result)
   end
 
   def self.build_taints(taint_collection)
@@ -17,14 +19,16 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
       key, value, effect = parse_taint(taint)
       "--node-taint \"#{key}=#{value}:#{effect}\""
     end
-    taints.empty? ? "" : " #{taints.join(" ")} "
+    result = taints.empty? ? "" : " #{taints.join(" ")} "
+    Crinja::SafeString.new(result)
   end
 
   def self.labels_and_taints(settings, pool)
     pool = pool.not_nil!
     labels = build_labels(pool.labels)
     taints = build_taints(pool.taints)
-    " #{labels} #{taints} "
+    result = " #{labels} #{taints} "
+    Crinja::SafeString.new(result)
   end
 
   private def self.parse_taint(taint)
@@ -36,6 +40,6 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
   end
 
   private def self.escape(str)
-    str.gsub(/["\/\.]/, {"\"" => "\\\"", "/" => "\\/", "." => "\\."})
+    str.gsub("\"", "\\\"")
   end
 end
