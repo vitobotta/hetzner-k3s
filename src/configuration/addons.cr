@@ -18,13 +18,17 @@ module Configuration
       end
     end
 
-    # Addon definitions with sensible defaults (true unless specified otherwise)
+    # Addon definitions with sensible defaults
     getter csi_driver : Toggle = Toggle.new(true)
     getter traefik : Toggle = Toggle.new(false)
     getter servicelb : Toggle = Toggle.new(false)
     getter metrics_server : Toggle = Toggle.new(false)
     getter cloud_controller_manager : Toggle = Toggle.new(true)
-    getter cluster_autoscaler : Toggle = Toggle.new(true)
+
+    # Additional configurable addons
+    getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
+    getter local_path_storage_class : Configuration::LocalPathStorageClass = Configuration::LocalPathStorageClass.new
+    getter cluster_autoscaler : Configuration::ClusterAutoscaler = Configuration::ClusterAutoscaler.new
 
     def initialize
     end
