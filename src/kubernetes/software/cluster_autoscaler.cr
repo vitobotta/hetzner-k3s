@@ -105,7 +105,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def autoscaler_config_args : Array(String)
-    config = settings.cluster_autoscaler
+    config = settings.addons.cluster_autoscaler
     [
       "--scan-interval=#{config.scan_interval}",
       "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}",
