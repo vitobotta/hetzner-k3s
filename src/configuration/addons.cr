@@ -25,8 +25,9 @@ module Configuration
     getter metrics_server : Toggle = Toggle.new(false)
     getter cloud_controller_manager : Toggle = Toggle.new(true)
     getter cluster_autoscaler : Toggle = Toggle.new(true)
+    getter local_path_storage_class : Toggle = Toggle.new(false)
 
     def initialize
     end
   end
-end 
+end
