@@ -22,10 +22,6 @@ To reduce the size of a node pool:
 
 Converting a single-master, non-HA cluster to a multi-master HA cluster is straightforward. Increase the masters instance count and rerun the `create` command. This will set up a load balancer for the API server (if enabled) and update the kubeconfig to direct API requests through the load balancer or one of the master contexts. For production clusters, it’s also a good idea to place the masters in different locations (refer to [this page](Masters_in_different_locations.md) for more details).
 
-## Replacing the Seed Master
-
-In a new HA cluster, the seed master (or first master) is `master1`. If you delete `master1` due to issues and it gets recreated, the seed master will change. When this happens, restart k3s on the existing masters.
-
 ---
 
 ## Upgrading to a New Version of k3s
