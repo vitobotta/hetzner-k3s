@@ -4,10 +4,7 @@ require "./master_node_pool"
 require "./worker_node_pool"
 require "./datastore"
 require "./manifests"
-require "./embedded_registry_mirror"
-require "./local_path_storage_class"
 require "./addons"
-require "./cluster_autoscaler"
 
 class Configuration::Main
   include YAML::Serializable
