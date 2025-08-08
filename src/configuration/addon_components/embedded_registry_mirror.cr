@@ -1,4 +1,4 @@
-class Configuration::EmbeddedRegistryMirror
+class Configuration::AddonComponents::EmbeddedRegistryMirror
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

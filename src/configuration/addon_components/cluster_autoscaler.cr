@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::ClusterAutoscaler
+class Configuration::AddonComponents::ClusterAutoscaler
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 
