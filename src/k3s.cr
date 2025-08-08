@@ -55,7 +55,7 @@ module K3s
     nil
   end
 
-  private def self.get_token_from_master(settings : Configuration::Main, master : Hetzner::Instance) : String?
+  def self.get_token_from_master(settings : Configuration::Main, master : Hetzner::Instance) : String?
     begin
       ssh_client = ::Util::SSH.new(
         settings.networking.ssh.private_key_path,

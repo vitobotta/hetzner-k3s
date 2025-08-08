@@ -197,11 +197,11 @@ class Kubernetes::Installer
 
       # Validate the master setup using existing wait_for_control_plane method
       log_line "Validating #{master_terminology} setup...", log_prefix: "Instance #{first_master.name}"
-      
+
       wait_for_control_plane
-      
+
       log_line "✅ #{master_terminology.capitalize} validation successful", log_prefix: log_prefix
-      
+
     rescue ex : Exception | Tasker::Timeout
       error_message = ex.is_a?(Tasker::Timeout) ? "Timeout waiting for control plane to be ready" : ex.message
       log_line "❌ Critical error during #{master_terminology} validation: #{error_message}", log_prefix: log_prefix
@@ -219,7 +219,7 @@ class Kubernetes::Installer
       token = K3s.k3s_token(settings, masters)
       return masters[0] if token.empty?
 
-      bootstrapped_master = masters.sort_by(&.name).find { |master| K3s.k3s_token(settings, [master]) == token }
+      bootstrapped_master = masters.sort_by(&.name).find { |master| K3s.get_token_from_master(settings, master)  == token }
       bootstrapped_master || masters[0]
     end
   end
