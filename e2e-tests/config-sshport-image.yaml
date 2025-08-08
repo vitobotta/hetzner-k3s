@@ -44,6 +44,7 @@ worker_node_pools:
   instance_count: 1
   location: $LOCATION
 
-embedded_registry_mirror:
-  enabled: true
+addons:
+  embedded_registry_mirror:
+    enabled: true
 

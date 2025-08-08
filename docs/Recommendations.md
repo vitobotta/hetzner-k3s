@@ -173,8 +173,9 @@ worker_node_pools:
     min_instances: 3
     max_instances: 20
 
-embedded_registry_mirror:
-  enabled: true  # Recommended for large clusters
+addons:
+  embedded_registry_mirror:
+    enabled: true  # Recommended for large clusters
 
 protect_against_deletion: true
 create_load_balancer_for_the_kubernetes_api: true
@@ -275,8 +276,9 @@ In v2.0.0, there's a new option to enable the `embedded registry mirror` in k3s.
 
 **Configuration:**
 ```yaml
-embedded_registry_mirror:
-  enabled: true
+addons:
+  embedded_registry_mirror:
+    enabled: true
 ```
 
 > **Note**: Ensure your k3s version supports this feature before enabling.

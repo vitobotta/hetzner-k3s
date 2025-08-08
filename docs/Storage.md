@@ -163,8 +163,9 @@ The Local Path storage class uses the node's local disk storage directly, provid
 To enable the `local-path` storage class, add this to your cluster configuration:
 
 ```yaml
-local_path_storage_class:
-  enabled: true
+addons:
+  local_path_storage_class:
+    enabled: true
 ```
 
 ### Usage Example

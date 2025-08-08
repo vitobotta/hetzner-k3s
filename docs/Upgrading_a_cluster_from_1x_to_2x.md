@@ -23,7 +23,7 @@ done
 ```
 - [ ] Convert the config file to the new format. You can find guidance [here](https://github.com/vitobotta/hetzner-k3s/releases/tag/v2.0.0).
 - [ ] Remove or comment out empty node pools from the config file.
-- [ ] Set `embedded_registry_mirror`.`enabled` to `false` if necessary, depending on the current version of k3s (refer to [this documentation](https://docs.k3s.io/installation/registry-mirror)).
+- [ ] Set `addons.embedded_registry_mirror`.`enabled` to `false` if necessary, depending on the current version of k3s (refer to [this documentation](https://docs.k3s.io/installation/registry-mirror)).
 - [ ] Add `legacy_instance_type` to **ALL** node pools, including both masters and workers. Set it to the current instance type (even if it’s deprecated). **This step is critical for the migration**.
 - [ ] Run the `create` command **using the latest version of hetzner-k3s and the new config file**.
 - [ ] Wait for all CSI pods in `kube-system` to restart, and **make sure everything is running correctly**.

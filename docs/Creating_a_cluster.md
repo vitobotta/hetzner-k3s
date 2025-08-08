@@ -104,17 +104,17 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 
-# cluster_autoscaler:
-#   scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
-#   scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
-#   scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
-#   scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
-#   max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 
-embedded_registry_mirror:
-  enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
-
-# addons:
+addons:
+  embedded_registry_mirror:
+    enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+#   cluster_autoscaler:
+#     enabled: true   # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
+#     scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
+#     scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
+#     scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
+#     scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
+#     max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
 #   traefik:
@@ -125,8 +125,6 @@ embedded_registry_mirror:
 #     enabled: false  # Kubernetes metrics-server addon. Disabled by default.
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
-#   cluster_autoscaler:
-#     enabled: true   # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
 
 protect_against_deletion: true
 
@@ -266,12 +264,13 @@ worker_node_pools:
 You can customize the autoscaler's behavior with these optional parameters at the root level of your configuration:
 
 ```yaml
-cluster_autoscaler:
-  scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
-  scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
-  scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
-  scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
-  max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
+addons:
+  cluster_autoscaler:
+    scan_interval: "2m"                      # How often cluster is reevaluated for scale up or down
+    scale_down_delay_after_add: "10m"        # How long after scale up that scale down evaluation resumes
+    scale_down_delay_after_delete: "10s"     # How long after node deletion that scale down evaluation resumes
+    scale_down_delay_after_failure: "15m"    # How long after scale down failure that scale down evaluation resumes
+    max_node_provision_time: "15m"           # Maximum time CA waits for node to be provisioned
 
 worker_node_pools:
 - name: autoscaled-pool
