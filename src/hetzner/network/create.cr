@@ -2,7 +2,7 @@ require "../client"
 require "./find"
 require "../../util"
 require "../../configuration/main"
-require "../../configuration/models/networking/config"
+require "../../configuration/models/networking"
 
 class Hetzner::Network::Create
   include Util

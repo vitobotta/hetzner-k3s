@@ -3,8 +3,8 @@ require "./networking_components/allowed_networks"
 require "./networking_components/private_network"
 require "./networking_components/public_network"
 require "./networking_components/ssh"
-require "../../../hetzner/client"
-require "../../../hetzner/network/find"
+require "../../hetzner/client"
+require "../../hetzner/network/find"
 
 module Configuration
   class Networking

@@ -1,6 +1,6 @@
-require "../../../../hetzner/client"
-require "../../../../hetzner/ssh_key/find"
-require "../../../../util/ssh"
+require "../../../hetzner/client"
+require "../../../hetzner/ssh_key/find"
+require "../../../util/ssh"
 
 class Configuration::NetworkingComponents::SSH
   include YAML::Serializable
