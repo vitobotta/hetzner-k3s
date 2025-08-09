@@ -1,4 +1,4 @@
-require "../../models/datastore/config"
+require "../../models/datastore"
 
 class Configuration::Validators::Cluster::Datastore
   getter errors : Array(String)

@@ -2,7 +2,7 @@ require "yaml"
 
 require "./models/nodes/master_node_pool"
 require "./models/nodes/worker_node_pool"
-require "./models/datastore/config"
+require "./models/datastore"
 require "./models/features/manifests"
 require "./models/embedded_registry_mirror/config"
 require "./models/storage/local_path_storage_class"
