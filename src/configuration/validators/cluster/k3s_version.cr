@@ -1,4 +1,4 @@
-class Configuration::Settings::K3sVersion
+class Configuration::Validators::Cluster::K3sVersion
   getter errors : Array(String)
   getter k3s_version : String
 

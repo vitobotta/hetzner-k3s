@@ -1,13 +1,13 @@
 require "yaml"
 
-require "./master_node_pool"
-require "./worker_node_pool"
-require "./datastore"
-require "./manifests"
-require "./embedded_registry_mirror"
-require "./local_path_storage_class"
-require "./addons"
-require "./cluster_autoscaler"
+require "./models/nodes/master_node_pool"
+require "./models/nodes/worker_node_pool"
+require "./models/datastore/config"
+require "./models/features/manifests"
+require "./models/embedded_registry_mirror/config"
+require "./models/storage/local_path_storage_class"
+require "./models/features/addons"
+require "./models/features/cluster_autoscaler"
 
 class Configuration::Main
   include YAML::Serializable

@@ -1,4 +1,4 @@
-class Configuration::Settings::NodePool::PoolName
+class Configuration::Validators::Nodes::PoolName
   getter errors : Array(String)
   getter pool_type : Symbol
   getter pool_name : String

@@ -1,7 +1,7 @@
-require "../../node_pool"
-require "../../datastore"
+require "../../models/nodes/node_pool"
+require "../cluster/datastore"
 
-class Configuration::Settings::NodePool::InstanceCount
+class Configuration::Validators::Nodes::InstanceCount
   getter errors : Array(String)
   getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
   getter pool_type : Symbol

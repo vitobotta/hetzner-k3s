@@ -1,4 +1,4 @@
-class Configuration::Settings::ConfigurationFilePath
+class Configuration::Validators::Settings::ConfigurationFilePath
   getter path : String
   getter errors : Array(String)
 

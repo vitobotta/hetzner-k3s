@@ -1,7 +1,7 @@
 require "../client"
 require "./find"
 require "../../util"
-require "../../configuration/networking"
+require "../../configuration/models/networking/config"
 
 class Hetzner::Firewall::Create
   include Util

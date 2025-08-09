@@ -1,6 +1,6 @@
-require "../../node_pool"
+require "../../models/nodes/node_pool"
 
-class Configuration::Settings::NodePool::Autoscaling
+class Configuration::Validators::Nodes::Autoscaling
   getter errors : Array(String)
   getter pool : Configuration::NodePool
 

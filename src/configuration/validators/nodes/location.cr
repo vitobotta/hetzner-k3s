@@ -1,7 +1,7 @@
-require "../../node_pool"
+require "../../models/nodes/node_pool"
 require "../../../hetzner/location"
 
-class Configuration::Settings::NodePool::Location
+class Configuration::Validators::Nodes::Location
   getter errors : Array(String)
   getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
   getter pool_type : Symbol
@@ -66,6 +66,6 @@ class Configuration::Settings::NodePool::Location
   end
 
   private def network_zone_by_location(location)
-    ::Configuration::Settings::NodePool::Location.network_zone_by_location(location)
+    ::Configuration::Validators::Nodes::Location.network_zone_by_location(location)
   end
 end

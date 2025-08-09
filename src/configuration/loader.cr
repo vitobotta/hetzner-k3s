@@ -7,21 +7,21 @@ require "../hetzner/client"
 require "../hetzner/instance_type"
 require "../hetzner/location"
 
-require "./settings/configuration_file_path"
-require "./settings/cluster_name"
-require "./settings/kubeconfig_path"
-require "./settings/k3s_version"
-require "./settings/new_k3s_version"
-require "./networking"
-require "./settings/node_pool"
-require "./settings/node_pool/autoscaling"
-require "./settings/node_pool/pool_name"
-require "./settings/node_pool/instance_type"
-require "./settings/node_pool/location"
-require "./settings/node_pool/instance_count"
-require "./settings/node_pool/node_labels"
-require "./settings/node_pool/node_taints"
-require "./settings/datastore"
+require "./validators/settings/configuration_file_path"
+require "./validators/cluster/cluster_name"
+require "./validators/cluster/kubeconfig_path"
+require "./validators/cluster/k3s_version"
+require "./validators/cluster/new_k3s_version"
+require "./models/networking/config"
+require "./validators/nodes/node_pool"
+require "./validators/nodes/autoscaling"
+require "./validators/nodes/pool_name"
+require "./validators/nodes/instance_type"
+require "./validators/nodes/location"
+require "./validators/nodes/instance_count"
+require "./validators/nodes/node_labels"
+require "./validators/nodes/node_taints"
+require "./validators/cluster/datastore"
 require "../util"
 
 class Configuration::Loader
@@ -66,7 +66,7 @@ class Configuration::Loader
   def initialize(@configuration_file_path, @new_k3s_version, @force)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
-    Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
+    Configuration::Validators::Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
 
     print_errors unless errors.empty?
   end
@@ -74,7 +74,7 @@ class Configuration::Loader
   def validate(command)
     log_line "Validating configuration..."
 
-    Settings::ClusterName.new(errors, settings.cluster_name).validate
+    Configuration::Validators::Cluster::ClusterName.new(errors, settings.cluster_name).validate
 
     validate_command_specific_settings(command)
 
@@ -94,9 +94,9 @@ class Configuration::Loader
   end
 
   private def validate_create_settings
-    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
-    Settings::K3sVersion.new(errors, settings.k3s_version).validate
-    Settings::Datastore.new(errors, settings.datastore).validate
+    Configuration::Validators::Cluster::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
+    Configuration::Validators::Cluster::K3sVersion.new(errors, settings.k3s_version).validate
+    Configuration::Validators::Cluster::Datastore.new(errors, settings.datastore).validate
 
     settings.networking.validate(errors, settings, hetzner_client, settings.networking.private_network)
 
@@ -112,8 +112,8 @@ class Configuration::Loader
   end
 
   private def validate_upgrade_settings
-    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
-    Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+    Configuration::Validators::Cluster::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
+    Configuration::Validators::Cluster::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
 
     validate_kubectl_presence
   end
@@ -136,7 +136,7 @@ class Configuration::Loader
   end
 
   private def validate_masters_pool
-    Settings::NodePool.new(
+    Configuration::Validators::Nodes::NodePool.new(
       errors: errors,
       pool: settings.masters_pool,
       pool_type: :masters,
@@ -159,7 +159,7 @@ class Configuration::Loader
     errors << "Each worker node pool must have a unique name" if names.uniq.size != names.size
 
     node_pools.each do |pool|
-      Settings::NodePool.new(
+      Configuration::Validators::Nodes::NodePool.new(
         errors: errors,
         pool: pool,
         pool_type: :workers,

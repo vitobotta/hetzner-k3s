@@ -1,6 +1,6 @@
-require "../../node_taint"
+require "../../models/nodes/node_taint"
 
-class Configuration::Settings::NodePool::NodeTaints
+class Configuration::Validators::Nodes::NodeTaints
   getter errors : Array(String)
   getter pool_type : Symbol
   getter taints : Array(Configuration::NodeTaint)?

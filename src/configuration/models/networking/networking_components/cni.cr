@@ -1,4 +1,4 @@
-require "./ciium"
+require "./cilium"
 require "./flannel"
 
 class Configuration::NetworkingComponents::CNI

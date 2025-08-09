@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::Settings::NewK3sVersion
+class Configuration::Validators::Cluster::NewK3sVersion
   getter errors : Array(String)
   getter current_k3s_version : String
   getter new_k3s_version : String?

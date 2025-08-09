@@ -1,5 +1,8 @@
 require "ipaddress"
 
+require "../../../../hetzner/network/find"
+require "../../../../hetzner/client"
+
 class Configuration::NetworkingComponents::PrivateNetwork
   include YAML::Serializable
   include YAML::Serializable::Unmapped
