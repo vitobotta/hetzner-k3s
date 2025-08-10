@@ -1,5 +1,5 @@
 require "./cni_config/cilium"
-require "./flannel"
+require "./cni_config/flannel"
 
 class Configuration::NetworkingConfig::CNI
   include YAML::Serializable
