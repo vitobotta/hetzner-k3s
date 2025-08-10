@@ -1,4 +1,4 @@
-require "../../models/node_pool_config/node_pool"
+require "../../models/node_pool"
 require "../cluster/datastore"
 
 class Configuration::Validators::Nodes::InstanceCount

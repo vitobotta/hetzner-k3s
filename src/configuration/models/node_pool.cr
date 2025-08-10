@@ -1,8 +1,8 @@
 require "yaml"
 
-require "./label"
-require "./taint"
-require "./autoscaling"
+require "./node_pool_config/label"
+require "./node_pool_config/taint"
+require "./node_pool_config/autoscaling"
 
 abstract class Configuration::NodePool
   include YAML::Serializable

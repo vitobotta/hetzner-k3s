@@ -1,4 +1,4 @@
-require "../../models/node_pool_config/node_pool"
+require "../../models/node_pool"
 
 class Configuration::Validators::Nodes::Autoscaling
   getter errors : Array(String)
