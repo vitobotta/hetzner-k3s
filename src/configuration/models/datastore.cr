@@ -1,6 +1,6 @@
 require "yaml"
 
-require "./datastore_types/etcd"
+require "./datastore_config/etcd"
 
 class Configuration::Datastore
   include YAML::Serializable
