@@ -7,7 +7,7 @@ require "../hetzner/client"
 require "../hetzner/instance_type"
 require "../hetzner/location"
 
-require "./validators/settings/configuration_file_path"
+require "./validators/configuration_file_path"
 require "./validators/cluster_name"
 require "./validators/kubeconfig_path"
 require "./validators/k3s_version"
@@ -73,7 +73,7 @@ class Configuration::Loader
   def initialize(@configuration_file_path, @new_k3s_version, @force)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
-    Configuration::Validators::Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
+    Configuration::Validators::ConfigurationFilePath.new(errors, configuration_file_path).validate
 
     print_errors unless errors.empty?
   end
