@@ -1,4 +1,4 @@
-class Configuration::Validators::Cluster::KubeconfigPath
+class Configuration::Validators::KubeconfigPath
   getter errors : Array(String)
   getter kubeconfig_path : String
   getter file_must_exist : Bool

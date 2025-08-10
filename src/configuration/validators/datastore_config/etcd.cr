@@ -1,4 +1,4 @@
-class Configuration::Validators::Cluster::DatastoreConfig::Etcd
+class Configuration::Validators::DatastoreConfig::Etcd
   getter errors : Array(String)
   getter etcd : Configuration::Models::DatastoreConfig::Etcd
 

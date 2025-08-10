@@ -1,4 +1,4 @@
-class Configuration::Validators::Cluster::ClusterName
+class Configuration::Validators::ClusterName
   getter cluster_name : String
   getter errors : Array(String)
 

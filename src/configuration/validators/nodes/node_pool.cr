@@ -1,7 +1,7 @@
 require "../../../hetzner/location"
 require "../../../hetzner/instance_type"
 require "../../models/node_pool"
-require "../cluster/datastore"
+require "../datastore"
 
 class Configuration::Validators::Nodes::NodePool
   getter errors : Array(String) = [] of String

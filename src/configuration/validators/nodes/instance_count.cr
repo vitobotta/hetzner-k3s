@@ -1,5 +1,5 @@
 require "../../models/node_pool"
-require "../cluster/datastore"
+require "../datastore"
 
 class Configuration::Validators::Nodes::InstanceCount
   getter errors : Array(String)

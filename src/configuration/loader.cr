@@ -8,10 +8,10 @@ require "../hetzner/instance_type"
 require "../hetzner/location"
 
 require "./validators/settings/configuration_file_path"
-require "./validators/cluster/cluster_name"
-require "./validators/cluster/kubeconfig_path"
-require "./validators/cluster/k3s_version"
-require "./validators/cluster/new_k3s_version"
+require "./validators/cluster_name"
+require "./validators/kubeconfig_path"
+require "./validators/k3s_version"
+require "./validators/new_k3s_version"
 require "./models/networking"
 require "./validators/nodes/node_pool"
 require "./validators/nodes/autoscaling"
@@ -21,7 +21,7 @@ require "./validators/nodes/location"
 require "./validators/nodes/instance_count"
 require "./validators/nodes/node_labels"
 require "./validators/nodes/node_taints"
-require "./validators/cluster/datastore"
+require "./validators/datastore"
 require "./validators/networking/allowed_networks"
 require "./validators/networking/cni_config/cilium"
 require "./validators/networking/cni"
@@ -81,7 +81,7 @@ class Configuration::Loader
   def validate(command)
     log_line "Validating configuration..."
 
-    Configuration::Validators::Cluster::ClusterName.new(errors, settings.cluster_name).validate
+    Configuration::Validators::ClusterName.new(errors, settings.cluster_name).validate
 
     validate_command_specific_settings(command)
 
@@ -101,9 +101,9 @@ class Configuration::Loader
   end
 
   private def validate_create_settings
-    Configuration::Validators::Cluster::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
-    Configuration::Validators::Cluster::K3sVersion.new(errors, settings.k3s_version).validate
-    Configuration::Validators::Cluster::Datastore.new(errors, settings.datastore).validate
+    Configuration::Validators::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
+    Configuration::Validators::K3sVersion.new(errors, settings.k3s_version).validate
+    Configuration::Validators::Datastore.new(errors, settings.datastore).validate
 
     Configuration::Validators::NetworkingValidator.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
 
@@ -119,8 +119,8 @@ class Configuration::Loader
   end
 
   private def validate_upgrade_settings
-    Configuration::Validators::Cluster::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
-    Configuration::Validators::Cluster::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
+    Configuration::Validators::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
+    Configuration::Validators::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
 
     validate_kubectl_presence
   end
