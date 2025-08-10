@@ -22,6 +22,7 @@ require "./validators/nodes/instance_count"
 require "./validators/nodes/node_labels"
 require "./validators/nodes/node_taints"
 require "./validators/cluster/datastore"
+require "./validators/networking/allowed_networks"
 require "../util"
 
 class Configuration::Loader

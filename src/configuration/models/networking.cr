@@ -26,7 +26,7 @@ module Configuration
 
       def validate(errors, settings, hetzner_client, private_network)
         cni.validate(errors, private_network)
-        allowed_networks.validate(errors)
+        Configuration::Validators::Networking::AllowedNetworks.new(errors, allowed_networks).validate
         private_network.validate(errors, hetzner_client)
         public_network.validate(errors, settings)
         ssh.validate(errors, hetzner_client, settings.cluster_name)
