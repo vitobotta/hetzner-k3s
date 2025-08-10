@@ -29,7 +29,7 @@ class Kubernetes::Installer
   getter settings : Configuration::Main { configuration.settings }
   getter masters : Array(Hetzner::Instance) = [] of Hetzner::Instance
   getter workers : Array(Hetzner::Instance) = [] of Hetzner::Instance
-  getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
+  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
   getter kubeconfig_manager : Kubernetes::KubeconfigManager
@@ -37,7 +37,7 @@ class Kubernetes::Installer
   getter worker_generator : Kubernetes::Script::WorkerGenerator
 
   private getter first_master : Hetzner::Instance?
-  private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
+  private getter cni : Configuration::Models::NetworkingConfig::CNI { settings.networking.cni }
 
   def initialize(
     @configuration,
@@ -219,7 +219,15 @@ class Kubernetes::Installer
       token = K3s.k3s_token(settings, masters)
       return masters[0] if token.empty?
 
-      bootstrapped_master = masters.sort_by(&.name).find { |master| K3s.get_token_from_master(settings, master)  == token }
+      # Sort masters by token file creation timestamp (oldest first)
+      # Masters without a token file will be sorted to the end
+      sorted_masters = masters.sort_by do |master|
+        timestamp = K3s.get_token_file_timestamp(settings, master)
+        # Use a very future time for masters without timestamp so they sort to the end
+        timestamp || Time.utc(9999, 1, 1)
+      end
+
+      bootstrapped_master = sorted_masters.find { |master| K3s.get_token_from_master(settings, master) == token }
       bootstrapped_master || masters[0]
     end
   end

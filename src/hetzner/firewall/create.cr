@@ -1,7 +1,7 @@
 require "../client"
 require "./find"
 require "../../util"
-require "../../configuration/networking"
+require "../../configuration/models/networking"
 
 class Hetzner::Firewall::Create
   include Util
@@ -11,9 +11,9 @@ class Hetzner::Firewall::Create
   private getter hetzner_client : Hetzner::Client
   private getter firewall_name : String
   private getter firewall_finder : Hetzner::Firewall::Find
-  private getter private_network : Configuration::NetworkingComponents::PrivateNetwork
-  private getter ssh : Configuration::NetworkingComponents::SSH
-  private getter allowed_networks : Configuration::NetworkingComponents::AllowedNetworks
+  private getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
+  private getter ssh : Configuration::Models::NetworkingConfig::SSH
+  private getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
 
   def initialize(
     @settings,

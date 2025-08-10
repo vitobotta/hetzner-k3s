@@ -1,5 +1,5 @@
 module Util
-  def which(command)
+  def self.which(command)
     exts = ENV.fetch("PATHEXT", "").split(";")
     paths = ENV["PATH"]?.try(&.split(Process::PATH_DELIMITER)) || [] of String
 
@@ -11,6 +11,10 @@ module Util
     end
 
     nil
+  end
+
+  def which(command)
+    Util.which(command)
   end
 
   def log_line(line, log_prefix = "")

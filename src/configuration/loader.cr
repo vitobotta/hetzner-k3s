@@ -7,21 +7,36 @@ require "../hetzner/client"
 require "../hetzner/instance_type"
 require "../hetzner/location"
 
-require "./settings/configuration_file_path"
-require "./settings/cluster_name"
-require "./settings/kubeconfig_path"
-require "./settings/k3s_version"
-require "./settings/new_k3s_version"
-require "./networking"
-require "./settings/node_pool"
-require "./settings/node_pool/autoscaling"
-require "./settings/node_pool/pool_name"
-require "./settings/node_pool/instance_type"
-require "./settings/node_pool/location"
-require "./settings/node_pool/instance_count"
-require "./settings/node_pool/node_labels"
-require "./settings/node_pool/node_taints"
-require "./settings/datastore"
+require "./validators/configuration_file_path"
+require "./validators/cluster_name"
+require "./validators/kubeconfig_path"
+require "./validators/k3s_version"
+require "./validators/new_k3s_version"
+require "./models/networking"
+require "./validators/node_pool"
+require "./validators/node_pool_config/autoscaling"
+require "./validators/node_pool_config/pool_name"
+require "./validators/node_pool_config/instance_type"
+require "./validators/node_pool_config/location"
+require "./validators/node_pool_config/instance_count"
+require "./validators/node_pool_config/labels"
+require "./validators/node_pool_config/taints"
+require "./validators/datastore"
+require "./validators/networking_config/allowed_networks"
+require "./validators/networking_config/cni_config/cilium"
+require "./validators/networking_config/cni"
+require "./validators/networking_config/private_network"
+require "./validators/networking_config/public_network"
+require "./validators/networking_config/ssh"
+require "./validators/networking"
+require "./validators/worker_node_pools"
+require "./validators/masters_pool"
+require "./validators/kubectl_presence"
+require "./validators/helm_presence"
+require "./validators/create_settings"
+require "./validators/upgrade_settings"
+require "./validators/run_settings"
+require "./validators/command_specific_settings"
 require "../util"
 
 class Configuration::Loader
@@ -44,7 +59,7 @@ class Configuration::Loader
     Path[settings.kubeconfig_path].expand(home: true).to_s
   end
 
-  getter masters_pool : Configuration::MasterNodePool do
+  getter masters_pool : Configuration::Models::MasterNodePool do
     settings.masters_pool
   end
 
@@ -66,7 +81,7 @@ class Configuration::Loader
   def initialize(@configuration_file_path, @new_k3s_version, @force)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
-    Settings::ConfigurationFilePath.new(errors, configuration_file_path).validate
+    Configuration::Validators::ConfigurationFilePath.new(errors, configuration_file_path).validate
 
     print_errors unless errors.empty?
   end
@@ -74,7 +89,7 @@ class Configuration::Loader
   def validate(command)
     log_line "Validating configuration..."
 
-    Settings::ClusterName.new(errors, settings.cluster_name).validate
+    Configuration::Validators::ClusterName.new(errors, settings.cluster_name).validate
 
     validate_command_specific_settings(command)
 
@@ -82,48 +97,16 @@ class Configuration::Loader
   end
 
   private def validate_command_specific_settings(command)
-    case command
-    when :create
-      validate_create_settings
-    when :delete
-    when :upgrade
-      validate_upgrade_settings
-    when :run
-      validate_run_settings
-    end
-  end
-
-  private def validate_create_settings
-    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
-    Settings::K3sVersion.new(errors, settings.k3s_version).validate
-    Settings::Datastore.new(errors, settings.datastore).validate
-
-    settings.networking.validate(errors, settings, hetzner_client, settings.networking.private_network)
-
-    validate_masters_pool
-    validate_worker_node_pools
-
-    validate_kubectl_presence
-    validate_helm_presence
-  end
-
-  private def validate_run_settings
-    validate_kubectl_presence
-  end
-
-  private def validate_upgrade_settings
-    Settings::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
-    Settings::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
-
-    validate_kubectl_presence
-  end
-
-  private def validate_kubectl_presence
-    errors << "kubectl is not installed or not in PATH" unless which("kubectl")
-  end
-
-  private def validate_helm_presence
-    errors << "helm is not installed or not in PATH" unless which("helm")
+    Configuration::Validators::CommandSpecificSettings.new(
+      errors: errors,
+      settings: settings,
+      kubeconfig_path: kubeconfig_path,
+      hetzner_client: hetzner_client,
+      masters_pool: masters_pool,
+      instance_types: instance_types,
+      all_locations: all_locations,
+      new_k3s_version: new_k3s_version
+    ).validate(command)
   end
 
   private def print_validation_result
@@ -132,42 +115,6 @@ class Configuration::Loader
     else
       print_errors
       exit 1
-    end
-  end
-
-  private def validate_masters_pool
-    Settings::NodePool.new(
-      errors: errors,
-      pool: settings.masters_pool,
-      pool_type: :masters,
-      masters_pool: masters_pool,
-      instance_types: instance_types,
-      all_locations: all_locations,
-      datastore: settings.datastore
-    ).validate
-  end
-
-  private def validate_worker_node_pools
-    node_pools = settings.worker_node_pools || [] of Configuration::WorkerNodePool
-
-    if node_pools.empty? && !settings.schedule_workloads_on_masters
-      errors << "At least one worker node pool is required in order to schedule workloads"
-      return
-    end
-
-    names = node_pools.map(&.name)
-    errors << "Each worker node pool must have a unique name" if names.uniq.size != names.size
-
-    node_pools.each do |pool|
-      Settings::NodePool.new(
-        errors: errors,
-        pool: pool,
-        pool_type: :workers,
-        masters_pool: masters_pool,
-        instance_types: instance_types,
-        all_locations: all_locations,
-        datastore: settings.datastore
-      ).validate
     end
   end
 

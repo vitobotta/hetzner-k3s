@@ -13,7 +13,7 @@ class Cluster::Create
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client { configuration.hetzner_client }
   private getter settings : Configuration::Main { configuration.settings }
-  private getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool) { settings.worker_node_pools.select(&.autoscaling_enabled) }
+  private getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool) { settings.worker_node_pools.select(&.autoscaling_enabled) }
   private getter ssh_client : Util::SSH { Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path) }
   private getter network : Hetzner::Network?
   private getter ssh_key : Hetzner::SSHKey

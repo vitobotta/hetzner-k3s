@@ -38,3 +38,4 @@ delete.log
 /.bws/
 /bitwarden-state/
 .env
+hetzner-k3s-bin
