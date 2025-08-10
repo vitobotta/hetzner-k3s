@@ -1,6 +1,6 @@
 require "yaml"
 
-require "./models/nodes/master_node_pool"
+require "./models/masters_pool"
 require "./models/nodes/worker_node_pool"
 require "./models/datastore"
 require "./models/addons_config/manifests"
