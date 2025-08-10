@@ -3,11 +3,11 @@ require "yaml"
 require "./models/nodes/master_node_pool"
 require "./models/nodes/worker_node_pool"
 require "./models/datastore"
-require "./models/features/manifests"
+require "./models/addons_config/manifests"
 require "./models/embedded_registry_mirror"
 require "./models/storage/local_path_storage_class"
-require "./models/features/addons"
-require "./models/features/cluster_autoscaler"
+require "./models/addons"
+require "./models/addons_config/cluster_autoscaler"
 
 class Configuration::Main
   include YAML::Serializable
