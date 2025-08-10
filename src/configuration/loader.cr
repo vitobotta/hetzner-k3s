@@ -24,6 +24,7 @@ require "./validators/nodes/node_taints"
 require "./validators/cluster/datastore"
 require "./validators/networking/allowed_networks"
 require "./validators/networking/cni_config/cilium"
+require "./validators/networking/cni"
 require "../util"
 
 class Configuration::Loader

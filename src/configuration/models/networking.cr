@@ -25,7 +25,7 @@ module Configuration
       end
 
       def validate(errors, settings, hetzner_client, private_network)
-        cni.validate(errors, private_network)
+        Configuration::Validators::Networking::CNI.new(errors, cni, private_network).validate
         Configuration::Validators::Networking::AllowedNetworks.new(errors, allowed_networks).validate
         private_network.validate(errors, hetzner_client)
         public_network.validate(errors, settings)
