@@ -1,4 +1,4 @@
-class Configuration::LocalPathStorageClass
+class Configuration::Models::LocalPathStorageClass
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

@@ -1,5 +1,6 @@
 module Configuration
-  class Manifests
+  module Models
+    class Manifests
     include YAML::Serializable
     include YAML::Serializable::Unmapped
 
@@ -13,4 +14,5 @@ module Configuration
     def initialize
     end
   end
+end
 end

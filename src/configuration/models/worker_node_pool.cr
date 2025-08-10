@@ -1,5 +1,5 @@
 require "./node_pool"
 
-class Configuration::WorkerNodePool < Configuration::NodePool
+class Configuration::Models::WorkerNodePool < Configuration::Models::NodePool
   property location : String = "fsn1"
 end

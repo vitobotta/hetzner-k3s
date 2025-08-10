@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::Taint
+class Configuration::Models::NodePoolConfig::Taint
   include YAML::Serializable
 
   property key : String?

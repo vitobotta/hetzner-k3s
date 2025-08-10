@@ -3,9 +3,9 @@ require "../../../hetzner/location"
 
 class Configuration::Validators::Nodes::Location
   getter errors : Array(String)
-  getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
+  getter pool : Configuration::Models::MasterNodePool | Configuration::Models::WorkerNodePool
   getter pool_type : Symbol
-  getter masters_pool : Configuration::MasterNodePool
+  getter masters_pool : Configuration::Models::MasterNodePool
   getter all_locations : Array(Hetzner::Location)
 
   def initialize(@errors, @pool, @pool_type, @masters_pool, @all_locations)
@@ -55,7 +55,7 @@ class Configuration::Validators::Nodes::Location
   end
 
   private def validate_worker_pool_location
-    pool_location = pool.as(Configuration::WorkerNodePool).location
+    pool_location = pool.as(Configuration::Models::WorkerNodePool).location
     return if location_exists?(pool_location) && network_zone_by_location(pool_location) == masters_network_zone
 
     errors << "All workers must be in valid locations and in the same same network zone as the masters when using a private network. If the masters are located in Ashburn, then all the worker must be located in Ashburn too. Same thing for Hillsboro and Singapore. If the masters are located in Germany and/or Finland, then also the workers must all be located in either Germany or Finland since these locations belong to the same network zone."

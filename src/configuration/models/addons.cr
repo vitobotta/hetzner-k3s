@@ -1,5 +1,6 @@
 module Configuration
-  class Addons
+  module Models
+    class Addons
     include YAML::Serializable
     include YAML::Serializable::Unmapped
 
@@ -29,4 +30,5 @@ module Configuration
     def initialize
     end
   end
+end
 end 

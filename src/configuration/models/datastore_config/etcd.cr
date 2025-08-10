@@ -1,7 +1,7 @@
 require "yaml"
 require "uri"
 
-class Configuration::DatastoreTypes::Etcd
+class Configuration::Models::DatastoreConfig::Etcd
   include YAML::Serializable
 
   getter snapshot_retention : Int64 = 24

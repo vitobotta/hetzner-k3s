@@ -29,7 +29,7 @@ class Kubernetes::Installer
   getter settings : Configuration::Main { configuration.settings }
   getter masters : Array(Hetzner::Instance) = [] of Hetzner::Instance
   getter workers : Array(Hetzner::Instance) = [] of Hetzner::Instance
-  getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
+  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
   getter load_balancer : Hetzner::LoadBalancer?
   getter ssh : ::Util::SSH
   getter kubeconfig_manager : Kubernetes::KubeconfigManager
@@ -37,7 +37,7 @@ class Kubernetes::Installer
   getter worker_generator : Kubernetes::Script::WorkerGenerator
 
   private getter first_master : Hetzner::Instance?
-  private getter cni : Configuration::NetworkingConfig::CNI { settings.networking.cni }
+  private getter cni : Configuration::Models::NetworkingConfig::CNI { settings.networking.cni }
 
   def initialize(
     @configuration,

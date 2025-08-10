@@ -1,15 +1,15 @@
 require "./cni_config/cilium"
 require "./cni_config/flannel"
 
-class Configuration::NetworkingConfig::CNI
+class Configuration::Models::NetworkingConfig::CNI
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 
   getter enabled : Bool = true
   getter mode : String = "flannel"
   getter encryption : Bool = true
-  getter cilium : Configuration::NetworkingConfig::Cilium = Configuration::NetworkingConfig::Cilium.new
-  getter flannel : Configuration::NetworkingConfig::Flannel = Configuration::NetworkingConfig::Flannel.new
+  getter cilium : Configuration::Models::NetworkingConfig::CNIConfig::Cilium = Configuration::Models::NetworkingConfig::CNIConfig::Cilium.new
+  getter flannel : Configuration::Models::NetworkingConfig::CNIConfig::Flannel = Configuration::Models::NetworkingConfig::CNIConfig::Flannel.new
   getter cilium_egress_gateway : Bool = false
 
   def initialize

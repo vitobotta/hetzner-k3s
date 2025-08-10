@@ -1,4 +1,4 @@
-class Configuration::NetworkingConfig::PublicNetwork
+class Configuration::Models::NetworkingConfig::PublicNetwork
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

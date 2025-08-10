@@ -35,7 +35,7 @@ class Kubernetes::Software::ClusterAutoscaler
 
   getter configuration : Configuration::Loader
   getter settings : Configuration::Main { configuration.settings }
-  getter autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
+  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
   getter first_master : ::Hetzner::Instance
   getter ssh : ::Util::SSH
   getter masters : Array(::Hetzner::Instance)
@@ -46,7 +46,7 @@ class Kubernetes::Software::ClusterAutoscaler
     @masters : Array(::Hetzner::Instance),
     @first_master : ::Hetzner::Instance,
     @ssh : ::Util::SSH,
-    @autoscaling_worker_node_pools : Array(Configuration::WorkerNodePool)
+    @autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
   )
   end
 
@@ -58,7 +58,7 @@ class Kubernetes::Software::ClusterAutoscaler
     log_line "...Cluster Autoscaler installed", log_prefix: default_log_prefix
   end
 
-  private def cloud_init(pool : Configuration::WorkerNodePool) : String
+  private def cloud_init(pool : Configuration::Models::WorkerNodePool) : String
     worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(
       configuration,
       settings
@@ -98,7 +98,7 @@ class Kubernetes::Software::ClusterAutoscaler
     end
   end
 
-  private def build_node_pool_name(pool : Configuration::WorkerNodePool) : String
+  private def build_node_pool_name(pool : Configuration::Models::WorkerNodePool) : String
     name = pool.name
     raise "Worker node pool name cannot be nil" unless name
     pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{name}" : name
@@ -204,7 +204,7 @@ class Kubernetes::Software::ClusterAutoscaler
     node_configs
   end
 
-  private def build_node_config(pool : Configuration::WorkerNodePool) : Hash(String, JSON::Any)
+  private def build_node_config(pool : Configuration::Models::WorkerNodePool) : Hash(String, JSON::Any)
     labels = extract_labels(pool)
     taints = extract_taints(pool)
     json_labels = JSON.parse(labels.to_json)
@@ -217,7 +217,7 @@ class Kubernetes::Software::ClusterAutoscaler
     }
   end
 
-  private def extract_labels(pool : Configuration::WorkerNodePool) : Hash(String, String)
+  private def extract_labels(pool : Configuration::Models::WorkerNodePool) : Hash(String, String)
     labels = {} of String => String
     pool.labels.each do |label|
       key = label.key
@@ -227,7 +227,7 @@ class Kubernetes::Software::ClusterAutoscaler
     labels
   end
 
-  private def extract_taints(pool : Configuration::WorkerNodePool) : Array(Hash(String, String))
+  private def extract_taints(pool : Configuration::Models::WorkerNodePool) : Array(Hash(String, String))
     taints = [] of Hash(String, String)
     pool.taints.each do |taint|
       key = taint.key

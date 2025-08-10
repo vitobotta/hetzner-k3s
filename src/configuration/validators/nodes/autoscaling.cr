@@ -2,7 +2,7 @@ require "../../models/node_pool"
 
 class Configuration::Validators::Nodes::Autoscaling
   getter errors : Array(String)
-  getter pool : Configuration::NodePool
+  getter pool : Configuration::Models::NodePool
 
   def initialize(@errors, @pool)
   end

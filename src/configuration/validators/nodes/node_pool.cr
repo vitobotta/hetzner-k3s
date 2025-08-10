@@ -5,16 +5,16 @@ require "../cluster/datastore"
 
 class Configuration::Validators::Nodes::NodePool
   getter errors : Array(String) = [] of String
-  getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
+  getter pool : Configuration::Models::MasterNodePool | Configuration::Models::WorkerNodePool
   getter pool_type : Symbol = :workers
-  getter masters_pool : Configuration::MasterNodePool
+  getter masters_pool : Configuration::Models::MasterNodePool
   getter instance_types : Array(Hetzner::InstanceType) = [] of Hetzner::InstanceType
   getter all_locations : Array(Hetzner::Location) = [] of Hetzner::Location
 
   getter pool_name : String { masters? ? "masters" : pool.try(&.name) || "<unnamed-pool>" }
   getter pool_description : String { workers? ? "Worker mode pool '#{pool_name}'" : "Masters pool" }
 
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Models::Datastore
 
   def initialize(@errors, @pool, @pool_type, @masters_pool, @instance_types, @all_locations, @datastore)
   end

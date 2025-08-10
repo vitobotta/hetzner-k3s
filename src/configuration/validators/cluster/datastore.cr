@@ -2,7 +2,7 @@ require "../../models/datastore"
 
 class Configuration::Validators::Cluster::Datastore
   getter errors : Array(String)
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Models::Datastore
 
   def initialize(@errors, @datastore)
   end

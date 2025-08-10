@@ -1,4 +1,4 @@
-class Configuration::NetworkingConfig::Flannel
+class Configuration::Models::NetworkingConfig::CNIConfig::Flannel
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

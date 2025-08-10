@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::Label
+class Configuration::Models::NodePoolConfig::Label
   include YAML::Serializable
 
   property key : String?

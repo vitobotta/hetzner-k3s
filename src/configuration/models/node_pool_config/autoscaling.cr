@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::Autoscaling
+class Configuration::Models::NodePoolConfig::Autoscaling
   include YAML::Serializable
 
   property enabled : Bool = false

@@ -44,7 +44,7 @@ class Configuration::Loader
     Path[settings.kubeconfig_path].expand(home: true).to_s
   end
 
-  getter masters_pool : Configuration::MasterNodePool do
+  getter masters_pool : Configuration::Models::MasterNodePool do
     settings.masters_pool
   end
 
@@ -148,7 +148,7 @@ class Configuration::Loader
   end
 
   private def validate_worker_node_pools
-    node_pools = settings.worker_node_pools || [] of Configuration::WorkerNodePool
+    node_pools = settings.worker_node_pools || [] of Configuration::Models::WorkerNodePool
 
     if node_pools.empty? && !settings.schedule_workloads_on_masters
       errors << "At least one worker node pool is required in order to schedule workloads"

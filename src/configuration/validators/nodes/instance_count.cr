@@ -3,9 +3,9 @@ require "../cluster/datastore"
 
 class Configuration::Validators::Nodes::InstanceCount
   getter errors : Array(String)
-  getter pool : Configuration::MasterNodePool | Configuration::WorkerNodePool
+  getter pool : Configuration::Models::MasterNodePool | Configuration::Models::WorkerNodePool
   getter pool_type : Symbol
-  getter datastore : Configuration::Datastore
+  getter datastore : Configuration::Models::Datastore
 
   def initialize(@errors, @pool, @pool_type, @datastore)
   end

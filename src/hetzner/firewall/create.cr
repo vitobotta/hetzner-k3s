@@ -11,9 +11,9 @@ class Hetzner::Firewall::Create
   private getter hetzner_client : Hetzner::Client
   private getter firewall_name : String
   private getter firewall_finder : Hetzner::Firewall::Find
-  private getter private_network : Configuration::NetworkingConfig::PrivateNetwork
-  private getter ssh : Configuration::NetworkingConfig::SSH
-  private getter allowed_networks : Configuration::NetworkingConfig::AllowedNetworks
+  private getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
+  private getter ssh : Configuration::Models::NetworkingConfig::SSH
+  private getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
 
   def initialize(
     @settings,

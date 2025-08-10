@@ -2,7 +2,7 @@ require "../../../hetzner/client"
 require "../../../hetzner/ssh_key/find"
 require "../../../util/ssh"
 
-class Configuration::NetworkingConfig::SSH
+class Configuration::Models::NetworkingConfig::SSH
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

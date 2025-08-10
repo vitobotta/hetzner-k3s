@@ -4,7 +4,7 @@ require "./node_pool_config/label"
 require "./node_pool_config/taint"
 require "./node_pool_config/autoscaling"
 
-abstract class Configuration::NodePool
+abstract class Configuration::Models::NodePool
   include YAML::Serializable
 
   property name : String?
@@ -12,9 +12,9 @@ abstract class Configuration::NodePool
   property instance_type : String
   property image : String | Int64 | Nil
   property instance_count : Int32 = 1
-  property labels : Array(::Configuration::Label) = [] of ::Configuration::Label
-  property taints : Array(::Configuration::Taint) = [] of ::Configuration::Taint
-  property autoscaling : ::Configuration::Autoscaling?
+  property labels : Array(::Configuration::Models::NodePoolConfig::Label) = [] of ::Configuration::Models::NodePoolConfig::Label
+  property taints : Array(::Configuration::Models::NodePoolConfig::Taint) = [] of ::Configuration::Models::NodePoolConfig::Taint
+  property autoscaling : ::Configuration::Models::NodePoolConfig::Autoscaling?
   property additional_pre_k3s_commands : Array(String) | Nil
   property additional_post_k3s_commands : Array(String) | Nil
   property additional_packages : Array(String) | Nil

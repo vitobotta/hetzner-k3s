@@ -7,15 +7,16 @@ require "../../hetzner/client"
 require "../../hetzner/network/find"
 
 module Configuration
-  class Networking
+  module Models
+    class Networking
     include YAML::Serializable
     include YAML::Serializable::Unmapped
 
-    getter cni : ::Configuration::NetworkingConfig::CNI = ::Configuration::NetworkingConfig::CNI.new
-    getter private_network : ::Configuration::NetworkingConfig::PrivateNetwork = ::Configuration::NetworkingConfig::PrivateNetwork.new
-    getter public_network : ::Configuration::NetworkingConfig::PublicNetwork = ::Configuration::NetworkingConfig::PublicNetwork.new
-    getter allowed_networks : ::Configuration::NetworkingConfig::AllowedNetworks = ::Configuration::NetworkingConfig::AllowedNetworks.new
-    getter ssh : ::Configuration::NetworkingConfig::SSH = ::Configuration::NetworkingConfig::SSH.new
+    getter cni : ::Configuration::Models::NetworkingConfig::CNI = ::Configuration::Models::NetworkingConfig::CNI.new
+    getter private_network : ::Configuration::Models::NetworkingConfig::PrivateNetwork = ::Configuration::Models::NetworkingConfig::PrivateNetwork.new
+    getter public_network : ::Configuration::Models::NetworkingConfig::PublicNetwork = ::Configuration::Models::NetworkingConfig::PublicNetwork.new
+    getter allowed_networks : ::Configuration::Models::NetworkingConfig::AllowedNetworks = ::Configuration::Models::NetworkingConfig::AllowedNetworks.new
+    getter ssh : ::Configuration::Models::NetworkingConfig::SSH = ::Configuration::Models::NetworkingConfig::SSH.new
     getter cluster_cidr : String = "10.244.0.0/16"
     getter service_cidr : String = "10.43.0.0/16"
     getter cluster_dns : String = "10.43.0.10"
@@ -31,4 +32,5 @@ module Configuration
       ssh.validate(errors, hetzner_client, settings.cluster_name)
     end
   end
+end
 end

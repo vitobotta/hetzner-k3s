@@ -18,8 +18,8 @@ class Configuration::Main
   getter k3s_version : String
   getter api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
-  getter masters_pool : Configuration::MasterNodePool
-  getter worker_node_pools : Array(Configuration::WorkerNodePool) = [] of Configuration::WorkerNodePool
+  getter masters_pool : Configuration::Models::MasterNodePool
+  getter worker_node_pools : Array(Configuration::Models::WorkerNodePool) = [] of Configuration::Models::WorkerNodePool
   getter additional_pre_k3s_commands : Array(String) = [] of String
   getter additional_post_k3s_commands : Array(String) = [] of String
   getter additional_packages : Array(String) = [] of String
@@ -33,13 +33,13 @@ class Configuration::Main
   getter image : String = "ubuntu-24.04"
   getter autoscaling_image : String?
   getter snapshot_os : String = "default"
-  getter networking : Configuration::Networking = Configuration::Networking.new
-  getter datastore : Configuration::Datastore = Configuration::Datastore.new
-  getter manifests : Configuration::Manifests = Configuration::Manifests.new
-  getter embedded_registry_mirror : Configuration::EmbeddedRegistryMirror = Configuration::EmbeddedRegistryMirror.new
-  getter local_path_storage_class : Configuration::LocalPathStorageClass = Configuration::LocalPathStorageClass.new
-  getter addons : Configuration::Addons = Configuration::Addons.new
-  getter cluster_autoscaler : Configuration::ClusterAutoscaler = Configuration::ClusterAutoscaler.new
+  getter networking : Configuration::Models::Networking = Configuration::Models::Networking.new
+  getter datastore : Configuration::Models::Datastore = Configuration::Models::Datastore.new
+  getter manifests : Configuration::Models::Manifests = Configuration::Models::Manifests.new
+  getter embedded_registry_mirror : Configuration::Models::EmbeddedRegistryMirror = Configuration::Models::EmbeddedRegistryMirror.new
+  getter local_path_storage_class : Configuration::Models::LocalPathStorageClass = Configuration::Models::LocalPathStorageClass.new
+  getter addons : Configuration::Models::Addons = Configuration::Models::Addons.new
+  getter cluster_autoscaler : Configuration::Models::AddonsConfig::ClusterAutoscaler = Configuration::Models::AddonsConfig::ClusterAutoscaler.new
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false

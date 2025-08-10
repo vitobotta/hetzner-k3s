@@ -1,6 +1,6 @@
 require "yaml"
 
-class Configuration::ClusterAutoscaler
+class Configuration::Models::AddonsConfig::ClusterAutoscaler
   include YAML::Serializable
 
   property scan_interval : String = "10s"
