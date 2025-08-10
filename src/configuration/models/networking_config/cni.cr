@@ -21,7 +21,7 @@ class Configuration::Models::NetworkingConfig::CNI
     errors << "CNI encryption must be enabled when private networking is disabled" unless encryption || private_network.enabled
     errors << "CNI mode must be either 'flannel' or 'cilium' when CNI is enabled" unless {"flannel", "cilium"}.includes?(mode)
 
-    cilium.validate(errors) if cilium?
+    Configuration::Validators::Networking::CNIConfig::Cilium.new(errors, cilium).validate if cilium?
   end
 
   def flannel?

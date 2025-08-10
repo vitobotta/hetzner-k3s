@@ -19,19 +19,4 @@ class Configuration::Models::NetworkingConfig::CNIConfig::Cilium
 
   def initialize
   end
-
-  def validate(errors)
-    if helm_values_path
-      path = helm_values_path.not_nil!
-      if !File.exists?(path)
-        errors << "Cilium helm_values_path '#{path}' does not exist"
-      elsif !File.file?(path)
-        errors << "Cilium helm_values_path '#{path}' is not a file"
-      end
-    end
-
-    if chart_version.nil? || chart_version.empty?
-      errors << "Cilium chart_version is required"
-    end
-  end
 end
