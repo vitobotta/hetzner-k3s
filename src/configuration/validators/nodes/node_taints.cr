@@ -1,9 +1,9 @@
-require "../../models/node_pool_config/node_taint"
+require "../../models/node_pool_config/taint"
 
 class Configuration::Validators::Nodes::NodeTaints
   getter errors : Array(String)
   getter pool_type : Symbol
-  getter taints : Array(Configuration::NodeTaint)?
+  getter taints : Array(Configuration::Taint)?
 
   def initialize(@errors, @pool_type, @taints)
   end

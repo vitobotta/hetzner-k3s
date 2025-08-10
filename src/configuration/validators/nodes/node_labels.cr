@@ -1,9 +1,9 @@
-require "../../models/node_pool_config/node_label"
+require "../../models/node_pool_config/label"
 
 class Configuration::Validators::Nodes::NodeLabels
   getter errors : Array(String)
   getter pool_type : Symbol
-  getter labels : Array(Configuration::NodeLabel)?
+  getter labels : Array(Configuration::Label)?
 
   def initialize(@errors, @pool_type, @labels)
   end
