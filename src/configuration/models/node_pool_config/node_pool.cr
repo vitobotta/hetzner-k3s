@@ -2,7 +2,7 @@ require "yaml"
 
 require "./node_label"
 require "./node_taint"
-require "../addons_config/autoscaling"
+require "./autoscaling"
 
 abstract class Configuration::NodePool
   include YAML::Serializable
