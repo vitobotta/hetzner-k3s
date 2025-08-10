@@ -77,6 +77,29 @@ module K3s
     end
   end
 
+  def self.get_token_file_timestamp(settings : Configuration::Main, master : Hetzner::Instance) : Time?
+    begin
+      ssh_client = ::Util::SSH.new(
+        settings.networking.ssh.private_key_path,
+        settings.networking.ssh.public_key_path
+      )
+
+      result = ssh_client.run(
+        master,
+        settings.networking.ssh.port,
+        "stat -c %Y /var/lib/rancher/k3s/server/node-token 2>/dev/null",
+        settings.networking.ssh.use_agent,
+        print_output: false
+      )
+
+      # Convert timestamp to Time object
+      timestamp = result.strip.to_i64
+      Time.unix(timestamp)
+    rescue ex
+      nil # Return nil if we can't get the timestamp
+    end
+  end
+
   def self.k3s_token(settings : Configuration::Main, masters : Array(Hetzner::Instance)) : String
     if @@k3s_token
       return @@k3s_token.not_nil!

@@ -219,7 +219,15 @@ class Kubernetes::Installer
       token = K3s.k3s_token(settings, masters)
       return masters[0] if token.empty?
 
-      bootstrapped_master = masters.sort_by(&.name).find { |master| K3s.get_token_from_master(settings, master)  == token }
+      # Sort masters by token file creation timestamp (oldest first)
+      # Masters without a token file will be sorted to the end
+      sorted_masters = masters.sort_by do |master|
+        timestamp = K3s.get_token_file_timestamp(settings, master)
+        # Use a very future time for masters without timestamp so they sort to the end
+        timestamp || Time.utc(9999, 1, 1)
+      end
+
+      bootstrapped_master = sorted_masters.find { |master| K3s.get_token_from_master(settings, master) == token }
       bootstrapped_master || masters[0]
     end
   end
