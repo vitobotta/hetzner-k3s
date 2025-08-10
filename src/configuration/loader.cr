@@ -150,7 +150,8 @@ class Configuration::Loader
       masters_pool: masters_pool,
       instance_types: instance_types,
       all_locations: all_locations,
-      datastore: settings.datastore
+      datastore: settings.datastore,
+      private_network_enabled: settings.networking.private_network.enabled
     ).validate
   end
 
@@ -173,7 +174,8 @@ class Configuration::Loader
         masters_pool: masters_pool,
         instance_types: instance_types,
         all_locations: all_locations,
-        datastore: settings.datastore
+        datastore: settings.datastore,
+        private_network_enabled: settings.networking.private_network.enabled
       ).validate
     end
   end

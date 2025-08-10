@@ -7,8 +7,10 @@ class Configuration::Validators::NodePoolConfig::Location
   getter pool_type : Symbol
   getter masters_pool : Configuration::Models::MasterNodePool
   getter all_locations : Array(Hetzner::Location)
+  getter private_network_enabled : Bool
+  getter datastore_mode : String
 
-  def initialize(@errors, @pool, @pool_type, @masters_pool, @all_locations)
+  def initialize(@errors, @pool, @pool_type, @masters_pool, @all_locations, @private_network_enabled, @datastore_mode)
   end
 
   def self.network_zone_by_location(location)
@@ -25,15 +27,21 @@ class Configuration::Validators::NodePoolConfig::Location
   end
 
   def validate
-    masters_pool? ? validate_masters_pool_locations : validate_worker_pool_location
+    if should_validate_network_zones?
+      if pool_type == :masters
+        validate_masters_pool_locations
+      else
+        validate_worker_pool_location
+      end
+    end
   end
 
-  private def masters_pool?
-    pool_type == :masters
-  end
-
-  private def masters_network_zone
-    network_zone_by_location(masters_pool.locations.first)
+  private def should_validate_network_zones?
+    if pool_type == :masters
+      private_network_enabled || datastore_mode == "etcd"
+    else
+      private_network_enabled
+    end
   end
 
   private def validate_masters_pool_locations
@@ -47,25 +55,24 @@ class Configuration::Validators::NodePoolConfig::Location
   private def validate_masters_locations_and_network_zone
     return if masters_pool.locations.empty?
 
+    # Check if all locations are valid
     valid_locations = masters_pool.locations.all? { |loc| location_exists?(loc) }
-    same_network_zone = masters_pool.locations.map { |loc| network_zone_by_location(loc) }.uniq.size == 1
 
-    return if valid_locations && same_network_zone
-    errors << "All must be in valid locations and in the same same network zone when using a private network"
+    # Check if all locations are in the same network zone
+    network_zones = masters_pool.locations.map { |loc| self.class.network_zone_by_location(loc) }
+    same_network_zone = network_zones.uniq.size == 1
+
+    errors << "All masters must be in valid locations and in the same network zone when using a private network or etcd datastore" unless valid_locations && same_network_zone
   end
 
   private def validate_worker_pool_location
     pool_location = pool.as(Configuration::Models::WorkerNodePool).location
-    return if location_exists?(pool_location) && network_zone_by_location(pool_location) == masters_network_zone
+    return if location_exists?(pool_location) && self.class.network_zone_by_location(pool_location) == self.class.network_zone_by_location(masters_pool.locations.first)
 
-    errors << "All workers must be in valid locations and in the same same network zone as the masters when using a private network. If the masters are located in Ashburn, then all the worker must be located in Ashburn too. Same thing for Hillsboro and Singapore. If the masters are located in Germany and/or Finland, then also the workers must all be located in either Germany or Finland since these locations belong to the same network zone."
+    errors << "All workers must be in valid locations and in the same network zone as the masters when using a private network or etcd datastore"
   end
 
   private def location_exists?(location_name)
     all_locations.any? { |loc| loc.name == location_name }
-  end
-
-  private def network_zone_by_location(location)
-    ::Configuration::Validators::NodePoolConfig::Location.network_zone_by_location(location)
   end
 end

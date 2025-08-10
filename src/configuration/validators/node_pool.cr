@@ -15,8 +15,9 @@ class Configuration::Validators::NodePool
   getter pool_description : String { workers? ? "Worker mode pool '#{pool_name}'" : "Masters pool" }
 
   getter datastore : Configuration::Models::Datastore
+  getter private_network_enabled : Bool = true
 
-  def initialize(@errors, @pool, @pool_type, @masters_pool, @instance_types, @all_locations, @datastore)
+  def initialize(@errors, @pool, @pool_type, @masters_pool, @instance_types, @all_locations, @datastore, @private_network_enabled = true)
   end
 
   def validate
@@ -24,7 +25,7 @@ class Configuration::Validators::NodePool
 
     Configuration::Validators::NodePoolConfig::PoolName.new(errors, pool_type, pool_name).validate
     Configuration::Validators::NodePoolConfig::InstanceType.new(errors, pool, instance_types).validate
-    Configuration::Validators::NodePoolConfig::Location.new(errors, pool, pool_type, masters_pool, all_locations).validate
+    Configuration::Validators::NodePoolConfig::Location.new(errors, pool, pool_type, masters_pool, all_locations, private_network_enabled, datastore.mode).validate
     Configuration::Validators::NodePoolConfig::InstanceCount.new(errors, pool, pool_type, datastore).validate unless pool.autoscaling_enabled
     Configuration::Validators::NodePoolConfig::Labels.new(errors, pool_type, pool.try(&.labels)).validate
     Configuration::Validators::NodePoolConfig::Taints.new(errors, pool_type, pool.try(&.taints)).validate
