@@ -22,13 +22,13 @@ require "./validators/nodes/instance_count"
 require "./validators/nodes/node_labels"
 require "./validators/nodes/node_taints"
 require "./validators/datastore"
-require "./validators/networking/allowed_networks"
-require "./validators/networking/cni_config/cilium"
-require "./validators/networking/cni"
-require "./validators/networking/private_network"
-require "./validators/networking/public_network"
-require "./validators/networking/ssh"
-require "./validators/networking/networking"
+require "./validators/networking_config/allowed_networks"
+require "./validators/networking_config/cni_config/cilium"
+require "./validators/networking_config/cni"
+require "./validators/networking_config/private_network"
+require "./validators/networking_config/public_network"
+require "./validators/networking_config/ssh"
+require "./validators/networking"
 require "../util"
 
 class Configuration::Loader
@@ -105,7 +105,7 @@ class Configuration::Loader
     Configuration::Validators::K3sVersion.new(errors, settings.k3s_version).validate
     Configuration::Validators::Datastore.new(errors, settings.datastore).validate
 
-    Configuration::Validators::NetworkingValidator.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
+    Configuration::Validators::Networking.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
 
     validate_masters_pool
     validate_worker_node_pools

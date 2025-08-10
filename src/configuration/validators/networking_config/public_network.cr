@@ -1,7 +1,7 @@
 require "../../models/networking_config/public_network"
 require "../../main"
 
-class Configuration::Validators::Networking::PublicNetwork
+class Configuration::Validators::NetworkingConfig::PublicNetwork
   getter errors : Array(String)
   getter public_network : Configuration::Models::NetworkingConfig::PublicNetwork
   getter settings : Configuration::Main

@@ -3,7 +3,7 @@ require "../../../hetzner/ssh_key/find"
 require "../../../util/ssh"
 require "../../models/networking_config/ssh"
 
-class Configuration::Validators::Networking::SSH
+class Configuration::Validators::NetworkingConfig::SSH
   getter errors : Array(String)
   getter ssh : Configuration::Models::NetworkingConfig::SSH
   getter hetzner_client : Hetzner::Client?

@@ -1,8 +1,8 @@
 require "../../models/networking_config/cni_config/cilium"
 require "../../models/networking_config/cni_config/flannel"
-require "../../validators/networking/cni_config/cilium"
+require "../../validators/networking_config/cni_config/cilium"
 
-class Configuration::Validators::Networking::CNI
+class Configuration::Validators::NetworkingConfig::CNI
   getter errors : Array(String)
   getter cni : Configuration::Models::NetworkingConfig::CNI
   getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
@@ -16,6 +16,6 @@ class Configuration::Validators::Networking::CNI
     errors << "CNI encryption must be enabled when private networking is disabled" unless cni.encryption || private_network.enabled
     errors << "CNI mode must be either 'flannel' or 'cilium' when CNI is enabled" unless {"flannel", "cilium"}.includes?(cni.mode)
 
-    Configuration::Validators::Networking::CNIConfig::Cilium.new(errors, cni.cilium).validate if cni.cilium?
+    Configuration::Validators::NetworkingConfig::CNIConfig::Cilium.new(errors, cni.cilium).validate if cni.cilium?
   end
 end

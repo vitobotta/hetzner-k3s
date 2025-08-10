@@ -1,6 +1,6 @@
 require "file"
 
-class Configuration::Validators::Networking::CNIConfig::Cilium
+class Configuration::Validators::NetworkingConfig::CNIConfig::Cilium
   getter errors : Array(String)
   getter cilium : Configuration::Models::NetworkingConfig::CNIConfig::Cilium
 

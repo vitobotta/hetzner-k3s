@@ -3,7 +3,7 @@ require "ipaddress"
 
 require "../../models/networking_config/allowed_networks"
 
-class Configuration::Validators::Networking::AllowedNetworks
+class Configuration::Validators::NetworkingConfig::AllowedNetworks
   getter errors : Array(String) = [] of String
   getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
 

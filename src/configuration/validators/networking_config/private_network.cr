@@ -4,7 +4,7 @@ require "../../../hetzner/network/find"
 require "../../../hetzner/client"
 require "../../models/networking_config/private_network"
 
-class Configuration::Validators::Networking::PrivateNetwork
+class Configuration::Validators::NetworkingConfig::PrivateNetwork
   getter errors : Array(String)
   getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
   getter hetzner_client : Hetzner::Client
