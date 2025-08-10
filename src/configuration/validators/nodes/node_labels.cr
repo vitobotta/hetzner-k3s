@@ -1,4 +1,4 @@
-require "../../models/nodes/node_label"
+require "../../models/node_pool_config/node_label"
 
 class Configuration::Validators::Nodes::NodeLabels
   getter errors : Array(String)

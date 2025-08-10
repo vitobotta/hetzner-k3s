@@ -1,4 +1,4 @@
-require "../../models/nodes/node_pool"
+require "../../models/node_pool_config/node_pool"
 require "../../../hetzner/location"
 
 class Configuration::Validators::Nodes::Location

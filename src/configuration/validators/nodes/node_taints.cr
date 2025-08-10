@@ -1,4 +1,4 @@
-require "../../models/nodes/node_taint"
+require "../../models/node_pool_config/node_taint"
 
 class Configuration::Validators::Nodes::NodeTaints
   getter errors : Array(String)

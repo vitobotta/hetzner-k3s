@@ -1,6 +1,6 @@
 require "../../../hetzner/location"
 require "../../../hetzner/instance_type"
-require "../../models/nodes/node_pool"
+require "../../models/node_pool_config/node_pool"
 require "../cluster/datastore"
 
 class Configuration::Validators::Nodes::NodePool
