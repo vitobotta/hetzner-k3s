@@ -30,6 +30,13 @@ require "./validators/networking_config/public_network"
 require "./validators/networking_config/ssh"
 require "./validators/networking"
 require "./validators/worker_node_pools"
+require "./validators/masters_pool"
+require "./validators/kubectl_presence"
+require "./validators/helm_presence"
+require "./validators/create_settings"
+require "./validators/upgrade_settings"
+require "./validators/run_settings"
+require "./validators/command_specific_settings"
 require "../util"
 
 class Configuration::Loader
@@ -90,48 +97,16 @@ class Configuration::Loader
   end
 
   private def validate_command_specific_settings(command)
-    case command
-    when :create
-      validate_create_settings
-    when :delete
-    when :upgrade
-      validate_upgrade_settings
-    when :run
-      validate_run_settings
-    end
-  end
-
-  private def validate_create_settings
-    Configuration::Validators::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: false).validate
-    Configuration::Validators::K3sVersion.new(errors, settings.k3s_version).validate
-    Configuration::Validators::Datastore.new(errors, settings.datastore).validate
-
-    Configuration::Validators::Networking.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
-
-    validate_masters_pool
-    validate_worker_node_pools
-
-    validate_kubectl_presence
-    validate_helm_presence
-  end
-
-  private def validate_run_settings
-    validate_kubectl_presence
-  end
-
-  private def validate_upgrade_settings
-    Configuration::Validators::KubeconfigPath.new(errors, kubeconfig_path, file_must_exist: true).validate
-    Configuration::Validators::NewK3sVersion.new(errors, settings.k3s_version, new_k3s_version).validate
-
-    validate_kubectl_presence
-  end
-
-  private def validate_kubectl_presence
-    errors << "kubectl is not installed or not in PATH" unless which("kubectl")
-  end
-
-  private def validate_helm_presence
-    errors << "helm is not installed or not in PATH" unless which("helm")
+    Configuration::Validators::CommandSpecificSettings.new(
+      errors: errors,
+      settings: settings,
+      kubeconfig_path: kubeconfig_path,
+      hetzner_client: hetzner_client,
+      masters_pool: masters_pool,
+      instance_types: instance_types,
+      all_locations: all_locations,
+      new_k3s_version: new_k3s_version
+    ).validate(command)
   end
 
   private def print_validation_result
@@ -141,34 +116,6 @@ class Configuration::Loader
       print_errors
       exit 1
     end
-  end
-
-  private def validate_masters_pool
-    Configuration::Validators::NodePool.new(
-      errors: errors,
-      pool: settings.masters_pool,
-      pool_type: :masters,
-      masters_pool: masters_pool,
-      instance_types: instance_types,
-      all_locations: all_locations,
-      datastore: settings.datastore,
-      private_network_enabled: settings.networking.private_network.enabled
-    ).validate
-  end
-
-  private def validate_worker_node_pools
-    worker_node_pools = settings.worker_node_pools || [] of Configuration::Models::WorkerNodePool
-
-    Configuration::Validators::WorkerNodePools.new(
-      errors: errors,
-      worker_node_pools: worker_node_pools,
-      schedule_workloads_on_masters: settings.schedule_workloads_on_masters,
-      masters_pool: masters_pool,
-      instance_types: instance_types,
-      all_locations: all_locations,
-      datastore: settings.datastore,
-      private_network_enabled: settings.networking.private_network.enabled
-    ).validate
   end
 
   private def print_errors
