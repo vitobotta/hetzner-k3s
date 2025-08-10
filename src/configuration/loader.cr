@@ -29,6 +29,7 @@ require "./validators/networking_config/private_network"
 require "./validators/networking_config/public_network"
 require "./validators/networking_config/ssh"
 require "./validators/networking"
+require "./validators/worker_node_pools"
 require "../util"
 
 class Configuration::Loader
@@ -156,28 +157,18 @@ class Configuration::Loader
   end
 
   private def validate_worker_node_pools
-    node_pools = settings.worker_node_pools || [] of Configuration::Models::WorkerNodePool
+    worker_node_pools = settings.worker_node_pools || [] of Configuration::Models::WorkerNodePool
 
-    if node_pools.empty? && !settings.schedule_workloads_on_masters
-      errors << "At least one worker node pool is required in order to schedule workloads"
-      return
-    end
-
-    names = node_pools.map(&.name)
-    errors << "Each worker node pool must have a unique name" if names.uniq.size != names.size
-
-    node_pools.each do |pool|
-      Configuration::Validators::NodePool.new(
-        errors: errors,
-        pool: pool,
-        pool_type: :workers,
-        masters_pool: masters_pool,
-        instance_types: instance_types,
-        all_locations: all_locations,
-        datastore: settings.datastore,
-        private_network_enabled: settings.networking.private_network.enabled
-      ).validate
-    end
+    Configuration::Validators::WorkerNodePools.new(
+      errors: errors,
+      worker_node_pools: worker_node_pools,
+      schedule_workloads_on_masters: settings.schedule_workloads_on_masters,
+      masters_pool: masters_pool,
+      instance_types: instance_types,
+      all_locations: all_locations,
+      datastore: settings.datastore,
+      private_network_enabled: settings.networking.private_network.enabled
+    ).validate
   end
 
   private def print_errors
