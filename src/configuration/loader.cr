@@ -28,6 +28,7 @@ require "./validators/networking/cni"
 require "./validators/networking/private_network"
 require "./validators/networking/public_network"
 require "./validators/networking/ssh"
+require "./validators/networking/networking"
 require "../util"
 
 class Configuration::Loader
@@ -104,7 +105,7 @@ class Configuration::Loader
     Configuration::Validators::Cluster::K3sVersion.new(errors, settings.k3s_version).validate
     Configuration::Validators::Cluster::Datastore.new(errors, settings.datastore).validate
 
-    settings.networking.validate(errors, settings, hetzner_client, settings.networking.private_network)
+    Configuration::Validators::NetworkingValidator.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
 
     validate_masters_pool
     validate_worker_node_pools
