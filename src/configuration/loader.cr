@@ -25,6 +25,9 @@ require "./validators/cluster/datastore"
 require "./validators/networking/allowed_networks"
 require "./validators/networking/cni_config/cilium"
 require "./validators/networking/cni"
+require "./validators/networking/private_network"
+require "./validators/networking/public_network"
+require "./validators/networking/ssh"
 require "../util"
 
 class Configuration::Loader

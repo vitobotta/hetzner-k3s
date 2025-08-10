@@ -9,10 +9,4 @@ class Configuration::Models::NetworkingConfig::PublicNetwork
 
   def initialize
   end
-
-  def validate(errors, settings)
-    return unless !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall && hetzner_ips_query_server_url.nil?
-
-    errors << "hetzner_ips_query_server_url must be set when private network is disabled and the local firewall is used"
-  end
 end
