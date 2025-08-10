@@ -5,7 +5,7 @@ require "./models/node_pool_config/worker_node_pool"
 require "./models/datastore"
 require "./models/addons_config/manifests"
 require "./models/embedded_registry_mirror"
-require "./models/storage/local_path_storage_class"
+require "./models/local_path_storage_class"
 require "./models/addons"
 require "./models/addons_config/cluster_autoscaler"
 
