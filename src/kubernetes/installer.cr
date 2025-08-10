@@ -37,7 +37,7 @@ class Kubernetes::Installer
   getter worker_generator : Kubernetes::Script::WorkerGenerator
 
   private getter first_master : Hetzner::Instance?
-  private getter cni : Configuration::NetworkingComponents::CNI { settings.networking.cni }
+  private getter cni : Configuration::NetworkingConfig::CNI { settings.networking.cni }
 
   def initialize(
     @configuration,

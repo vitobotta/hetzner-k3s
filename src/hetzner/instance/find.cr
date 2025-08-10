@@ -13,7 +13,7 @@ class Hetzner::Instance::Find
   getter instance_name : String
 
   private getter settings : Configuration::Main
-  private getter ssh : Configuration::NetworkingComponents::SSH
+  private getter ssh : Configuration::NetworkingConfig::SSH
   private getter ssh_client : Util::SSH do
     Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
   end

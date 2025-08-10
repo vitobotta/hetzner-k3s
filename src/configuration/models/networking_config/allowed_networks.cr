@@ -1,4 +1,4 @@
-class Configuration::NetworkingComponents::AllowedNetworks
+class Configuration::NetworkingConfig::AllowedNetworks
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

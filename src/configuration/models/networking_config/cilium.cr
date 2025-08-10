@@ -1,4 +1,4 @@
-class Configuration::NetworkingComponents::Cilium
+class Configuration::NetworkingConfig::Cilium
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 

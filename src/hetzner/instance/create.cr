@@ -36,7 +36,7 @@ class Hetzner::Instance::Create
   private getter additional_post_k3s_commands : Array(String)
   private getter instance_finder : Hetzner::Instance::Find?
   private getter snapshot_os : String
-  private getter ssh : Configuration::NetworkingComponents::SSH
+  private getter ssh : Configuration::NetworkingConfig::SSH
   private getter settings : Configuration::Main
   private getter private_ssh_key_path : String
   private getter public_ssh_key_path : String
