@@ -1,7 +1,7 @@
 require "yaml"
 
 require "./models/masters_pool"
-require "./models/node_pool_config/worker_node_pool"
+require "./models/worker_node_pool"
 require "./models/datastore"
 require "./models/manifests"
 require "./models/embedded_registry_mirror"
