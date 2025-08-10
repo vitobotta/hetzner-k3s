@@ -111,37 +111,4 @@ class Configuration::Models::DatastoreConfig::Etcd
 
     args.join(" ")
   end
-
-  def validate_s3_settings(errors : Array(String), path_prefix : String = "datastore.etcd") : Bool
-    return true unless s3_enabled
-
-    endpoint = s3_endpoint_with_env_fallback
-    bucket = s3_bucket_with_env_fallback
-    access_key = s3_access_key_with_env_fallback
-    secret_key = s3_secret_key_with_env_fallback
-
-    errors << "#{path_prefix}.s3_endpoint is required when etcd S3 snapshots are enabled" if endpoint.empty?
-    errors << "#{path_prefix}.s3_bucket is required when etcd S3 snapshots are enabled" if bucket.empty?
-    errors << "#{path_prefix}.s3_access_key is required when etcd S3 snapshots are enabled" if access_key.empty?
-    errors << "#{path_prefix}.s3_secret_key is required when etcd S3 snapshots are enabled" if secret_key.empty?
-
-    errors.empty?
-  end
-
-  def validate_etcd_settings(errors : Array(String), path_prefix : String = "datastore.etcd") : Bool
-    if snapshot_retention < 0
-      errors << "#{path_prefix}.snapshot_retention must be >= 0"
-    end
-
-    unless snapshot_schedule_cron.empty?
-      if snapshot_schedule_cron.includes?(" ")
-        cron_parts = snapshot_schedule_cron.split(' ')
-        if cron_parts.size != 5
-          errors << "#{path_prefix}.snapshot_schedule_cron must have exactly 5 fields when using cron format (minute hour day month weekday)"
-        end
-      end
-    end
-
-    errors.empty?
-  end
 end
