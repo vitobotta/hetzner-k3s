@@ -1,6 +1,6 @@
 require "../../models/node_pool_config/label"
 
-class Configuration::Validators::Nodes::NodeLabels
+class Configuration::Validators::NodePoolConfig::Labels
   getter errors : Array(String)
   getter pool_type : Symbol
   getter labels : Array(Configuration::Models::NodePoolConfig::Label)?

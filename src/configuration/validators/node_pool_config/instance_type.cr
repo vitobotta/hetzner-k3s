@@ -1,7 +1,7 @@
 require "../../models/node_pool"
 require "../../../hetzner/instance_type"
 
-class Configuration::Validators::Nodes::InstanceType
+class Configuration::Validators::NodePoolConfig::InstanceType
   getter errors : Array(String)
   getter pool : Configuration::Models::MasterNodePool | Configuration::Models::WorkerNodePool
   getter instances_types : Array(Hetzner::InstanceType)

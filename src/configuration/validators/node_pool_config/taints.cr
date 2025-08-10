@@ -1,6 +1,6 @@
 require "../../models/node_pool_config/taint"
 
-class Configuration::Validators::Nodes::NodeTaints
+class Configuration::Validators::NodePoolConfig::Taints
   getter errors : Array(String)
   getter pool_type : Symbol
   getter taints : Array(Configuration::Models::NodePoolConfig::Taint)?

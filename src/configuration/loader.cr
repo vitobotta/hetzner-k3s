@@ -13,14 +13,14 @@ require "./validators/kubeconfig_path"
 require "./validators/k3s_version"
 require "./validators/new_k3s_version"
 require "./models/networking"
-require "./validators/nodes/node_pool"
-require "./validators/nodes/autoscaling"
-require "./validators/nodes/pool_name"
-require "./validators/nodes/instance_type"
-require "./validators/nodes/location"
-require "./validators/nodes/instance_count"
-require "./validators/nodes/node_labels"
-require "./validators/nodes/node_taints"
+require "./validators/node_pool"
+require "./validators/node_pool_config/autoscaling"
+require "./validators/node_pool_config/pool_name"
+require "./validators/node_pool_config/instance_type"
+require "./validators/node_pool_config/location"
+require "./validators/node_pool_config/instance_count"
+require "./validators/node_pool_config/labels"
+require "./validators/node_pool_config/taints"
 require "./validators/datastore"
 require "./validators/networking_config/allowed_networks"
 require "./validators/networking_config/cni_config/cilium"
@@ -143,7 +143,7 @@ class Configuration::Loader
   end
 
   private def validate_masters_pool
-    Configuration::Validators::Nodes::NodePool.new(
+    Configuration::Validators::NodePool.new(
       errors: errors,
       pool: settings.masters_pool,
       pool_type: :masters,
@@ -166,7 +166,7 @@ class Configuration::Loader
     errors << "Each worker node pool must have a unique name" if names.uniq.size != names.size
 
     node_pools.each do |pool|
-      Configuration::Validators::Nodes::NodePool.new(
+      Configuration::Validators::NodePool.new(
         errors: errors,
         pool: pool,
         pool_type: :workers,
