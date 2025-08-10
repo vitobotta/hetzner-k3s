@@ -9,28 +9,28 @@ require "../../hetzner/network/find"
 module Configuration
   module Models
     class Networking
-    include YAML::Serializable
-    include YAML::Serializable::Unmapped
+      include YAML::Serializable
+      include YAML::Serializable::Unmapped
 
-    getter cni : ::Configuration::Models::NetworkingConfig::CNI = ::Configuration::Models::NetworkingConfig::CNI.new
-    getter private_network : ::Configuration::Models::NetworkingConfig::PrivateNetwork = ::Configuration::Models::NetworkingConfig::PrivateNetwork.new
-    getter public_network : ::Configuration::Models::NetworkingConfig::PublicNetwork = ::Configuration::Models::NetworkingConfig::PublicNetwork.new
-    getter allowed_networks : ::Configuration::Models::NetworkingConfig::AllowedNetworks = ::Configuration::Models::NetworkingConfig::AllowedNetworks.new
-    getter ssh : ::Configuration::Models::NetworkingConfig::SSH = ::Configuration::Models::NetworkingConfig::SSH.new
-    getter cluster_cidr : String = "10.244.0.0/16"
-    getter service_cidr : String = "10.43.0.0/16"
-    getter cluster_dns : String = "10.43.0.10"
+      getter cni : ::Configuration::Models::NetworkingConfig::CNI = ::Configuration::Models::NetworkingConfig::CNI.new
+      getter private_network : ::Configuration::Models::NetworkingConfig::PrivateNetwork = ::Configuration::Models::NetworkingConfig::PrivateNetwork.new
+      getter public_network : ::Configuration::Models::NetworkingConfig::PublicNetwork = ::Configuration::Models::NetworkingConfig::PublicNetwork.new
+      getter allowed_networks : ::Configuration::Models::NetworkingConfig::AllowedNetworks = ::Configuration::Models::NetworkingConfig::AllowedNetworks.new
+      getter ssh : ::Configuration::Models::NetworkingConfig::SSH = ::Configuration::Models::NetworkingConfig::SSH.new
+      getter cluster_cidr : String = "10.244.0.0/16"
+      getter service_cidr : String = "10.43.0.0/16"
+      getter cluster_dns : String = "10.43.0.10"
 
-    def initialize
-    end
+      def initialize
+      end
 
-    def validate(errors, settings, hetzner_client, private_network)
-      cni.validate(errors, private_network)
-      allowed_networks.validate(errors)
-      private_network.validate(errors, hetzner_client)
-      public_network.validate(errors, settings)
-      ssh.validate(errors, hetzner_client, settings.cluster_name)
+      def validate(errors, settings, hetzner_client, private_network)
+        cni.validate(errors, private_network)
+        allowed_networks.validate(errors)
+        private_network.validate(errors, hetzner_client)
+        public_network.validate(errors, settings)
+        ssh.validate(errors, hetzner_client, settings.cluster_name)
+      end
     end
   end
-end
 end
