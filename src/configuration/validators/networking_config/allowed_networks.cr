@@ -2,6 +2,7 @@ require "crest"
 require "ipaddress"
 
 require "../../models/networking_config/allowed_networks"
+require "./firewall_rule"
 
 class Configuration::Validators::NetworkingConfig::AllowedNetworks
   getter errors : Array(String) = [] of String
@@ -62,6 +63,8 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
       errors << "The sum of default firewall rules (~#{default_rule_slots}) and your custom ones (#{rules.size}) exceeds the 50-rule limit imposed by Hetzner Cloud. Please reduce the number of custom firewall rules."
     end
 
-    rules.each { |rule| rule.validate(errors) }
+    rules.each do |rule|
+      Configuration::Validators::NetworkingConfig::FirewallRule.new(errors, rule).validate
+    end
   end
 end
