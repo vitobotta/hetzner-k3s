@@ -13,6 +13,7 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
   def validate
     validate_networks(errors, allowed_networks.ssh, "SSH")
     validate_networks(errors, allowed_networks.api, "API")
+    validate_custom_firewall_rules(errors, allowed_networks.custom_firewall_rules)
   end
 
   private def validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
@@ -50,5 +51,17 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
     end
     
     validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
+  end
+
+  private def validate_custom_firewall_rules(errors, rules)
+    return if rules.empty?
+
+    # Hetzner Cloud supports maximum 50 rules per firewall; default rules use ~10
+    default_rule_slots = 10
+    if rules.size + default_rule_slots > 50
+      errors << "The sum of default firewall rules (~#{default_rule_slots}) and your custom ones (#{rules.size}) exceeds the 50-rule limit imposed by Hetzner Cloud. Please reduce the number of custom firewall rules."
+    end
+
+    rules.each { |rule| rule.validate(errors) }
   end
 end

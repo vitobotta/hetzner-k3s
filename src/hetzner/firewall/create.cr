@@ -206,6 +206,23 @@ class Hetzner::Firewall::Create
       }
     end
 
+    # Add any user-defined custom firewall rules (networking.allowed_networks.custom_firewall_rules)
+    allowed_networks.custom_firewall_rules.each do |custom_rule|
+      rules << {
+        :description     => custom_rule.effective_description,
+        :direction       => custom_rule.direction,
+        :protocol        => custom_rule.protocol,
+        :port            => custom_rule.port,
+        :source_ips      => custom_rule.direction == "in" ? custom_rule.source_ips : ([] of String),
+        :destination_ips => custom_rule.direction == "out" ? custom_rule.destination_ips : ([] of String),
+      }
+    end
+
+    # Hetzner Cloud currently allows up to 50 entries per firewall. Fail fast if we exceed this hard limit.
+    if rules.size > 50
+      raise "Generated firewall would contain #{rules.size} rules, which exceeds the 50-rule limit imposed by Hetzner Cloud. Please reduce the number of custom firewall rules or consolidate ranges."
+    end
+
     {
       :name     => firewall_name,
       :rules    => rules,
