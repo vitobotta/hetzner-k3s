@@ -77,7 +77,7 @@ All the documentation is available [here](https://vitobotta.github.io/hetzner-k3
 
 I want to give a big thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this project! Their support has been incredibly helpful, giving me the chance to focus more time and effort on the work. Because of their contribution, I’ve been able to dedicate myself to creating a simpler migration strategy for moving clusters from v1.x to v2.x. I’m confident this collaboration will lead to even more improvements down the road. Thank you so much!
 
-Also thanks to [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian
+Also thanks to [@deubert-it](https://github.com/deubert-it), [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian
 ](https://github.com/ricristian), [@worldsayshi](https://github.com/worldsayshi), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) and the other sponsors. Your contributions are very much appreciated!
 
 If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta) too.
