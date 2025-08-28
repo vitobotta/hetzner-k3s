@@ -19,17 +19,12 @@
 				"formulahendry.auto-rename-tag",
 				"aaron-bond.better-comments",
 				"angelomollame.conflict-squeezer",
-				"sitoi.ai-commit",
-				"ms-vscode-remote.remote-containers",
 				"ms-azuretools.vscode-docker",
 				"mikestead.dotenv",
 				"kaiwood.endwise",
 				"usernamehw.errorlens",
 				"mhutchie.git-graph",
-				"donjayamanne.githistory",
-				"github.vscode-github-actions",
 				"GitHub.vscode-pull-request-github",
-				"GitHub.remotehub",
 				"codezombiech.gitignore",
 				"eamodio.gitlens",
 				"ZainChen.json",
@@ -41,14 +36,8 @@
 				"mutantdino.resourcemonitor",
 				"technosophos.vscode-helm",
 				"jgillich.crystal-lang-fixed"
-				// "crystal-lang-tools.crystal-lang"
 			],
-			"recommendations": [
-				"GitHub.copilot",
-				"GitHub.copilot-chat",
-				"JeroenV.github-copilot-with-context"
-			],
-      "settings": {
+		  "settings": {
 				"remote.autoForwardPorts": false,
 
 				"editor.tabSize": 2,
@@ -62,7 +51,6 @@
 				"editor.fontFamily": "Source Code Pro",
 				"editor.linkedEditing": true,
 				"editor.stickyScroll.enabled": true,
-				"editor.lineNumbers": "on",
 
 				"diffEditor.codeLens": true,
 
@@ -74,7 +62,7 @@
 
 				"terminal.integrated.defaultProfile.linux": "zsh",
 				"terminal.integrated.shell.linux": "/bin/zsh",
-				"terminal.integrated.cwd": "/home/app/hetzner-k3s",
+				"terminal.integrated.cwd": "/home/app/backend",
 				"terminal.integrated.allowChords": false,
 				"terminal.explorerKind": "integrated",
 				"terminal.integrated.shellIntegration.enabled": true,
@@ -86,18 +74,7 @@
 				"git.pruneOnFetch": true,
 				"git.openRepositoryInParentFolders": "never",
 
-				"gitlens.ai.experimental.provider": "openai",
-				"gitlens.ai.experimental.openai.model": "gpt-4-turbo-preview",
-
 				"githubPullRequests.pullBranch": "never",
-
-				"github.copilot.enable": {
-					"*": true,
-					"plaintext": false,
-					"markdown": false,
-					"scminput": false,
-					"yaml": true
-				},
 
 				"security.workspace.trust.untrustedFiles": "open",
 
@@ -107,6 +84,8 @@
 						"kubernetes": "*.yaml,*.yml"
 				},
 
+				"vscode-run-rspec-file.custom-command": "cd $(whereis rspec-launcher | awk '{print $2}' | awk '{sub(/bin\\/rspec-launcher$/, \"\"); print}') && bin/rspec --color -f progress",
+
 				"workbench.commandPalette.preserveInput": true,
 				"workbench.startupEditor": "none",
 				"workbench.editor.closeOnFileDelete": true,
@@ -114,10 +93,26 @@
 				"workbench.editor.autoLockGroups": {
 						"terminalEditor": false
 				},
+				"workbench.colorCustomizations": {
+					"[One Dark Pro]": {
+						"tab.activeBackground": "#252932",        // A slightly lighter/different background
+						"tab.activeBorderTop": "#0cf388",         // A bright, stylish top border
+						"tab.activeBorder": "#0cf388",            // Adds a glowing bottom border as well
+						"tab.unfocusedActiveBorder": "#396887"    // Subtle border when unfocused
+					}
+				},
 
 				"explorer.openEditors.visible": 1,
 				"explorer.autoReveal": false,
 				"explorer.confirmDragAndDrop": false,
+
+				"ruby.format": "rubocop",
+				"ruby.lint": {
+					"ruby": true,
+					"rubocop": true
+				},
+
+				"rubyLsp.yjit": true,
 
 				"[json]": {
 						"editor.defaultFormatter": "vscode.json-language-features"
