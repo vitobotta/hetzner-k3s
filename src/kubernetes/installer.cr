@@ -80,7 +80,6 @@ class Kubernetes::Installer
     load_balancer.nil? ? first_master.name : settings.cluster_name
   end
 
-  # Provide access to first_master for backward compatibility
   private def first_master : Hetzner::Instance
     @first_master_instance.not_nil!
   end
