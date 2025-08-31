@@ -53,20 +53,16 @@ class Kubernetes::Installer
     @worker_setup = Kubernetes::Worker::Setup.new(@configuration, settings, @ssh, @worker_generator)
   end
 
-  # Store masters and first_master for use in other methods
   private getter masters : Array(Hetzner::Instance) = [] of Hetzner::Instance
   private getter first_master_instance : Hetzner::Instance?
 
   def run(masters_installation_queue_channel, workers_installation_queue_channel, completed_channel, master_count, worker_count)
     ensure_kubectl_is_installed!
 
-    # Set up control plane
     @masters, @first_master_instance = @control_plane_setup.set_up_control_plane(masters_installation_queue_channel, master_count, load_balancer)
 
-    # Install all software components
     @software_installer.install_all(@first_master_instance, @masters, ssh, autoscaling_worker_node_pools)
 
-    # Set up workers if any
     if worker_count > 0
       workers = @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
     end
