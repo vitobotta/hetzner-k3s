@@ -65,13 +65,16 @@ class Kubernetes::Software::Cilium
       values_content = generate_helm_values
       # Then, store them in a temporary file.
       values_file = File.tempname("cilium_helm_values", ".yml")
-      File.write(values_file, values_content)
-      File.chmod(values_file, 0o755)
-      # Build the command that'll use the value file we wrote
-      helm_command = build_helm_command(values_file)
-
-      # Finally, run the command!
-      result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
+      begin
+        File.write(values_file, values_content)
+        File.chmod(values_file, 0o755)
+        # Build the command that'll use the value file we wrote
+        helm_command = build_helm_command(values_file)
+        # Finally, run the command!
+        result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
+      ensure
+        cleanup_temp_file(values_file)
+      end
     end
 
     unless result.success?
