@@ -39,3 +39,5 @@ delete.log
 /bitwarden-state/
 .env
 hetzner-k3s-bin
+.kilocode/mcp.json
+.kilocodemodes
