@@ -25,7 +25,6 @@ class Kubernetes::Software::Cilium
   DEFAULT_ROUTING_MODE            = "tunnel"
   DEFAULT_TUNNEL_PROTOCOL         = "vxlan"
 
-  # Template
   CILIUM_VALUES_TEMPLATE = {{ read_file("#{__DIR__}/../../../templates/cilium_values.yaml") }}
 
   getter configuration : Configuration::Loader
@@ -34,7 +33,6 @@ class Kubernetes::Software::Cilium
   def initialize(@configuration, @settings)
   end
 
-  # Install Cilium CNI on the cluster
   def install
     log_line "Installing Cilium..."
 
@@ -58,19 +56,17 @@ class Kubernetes::Software::Cilium
     helm_values_path = settings.networking.cni.cilium.helm_values_path
 
     if helm_values_path && File.exists?(helm_values_path)
-      # Use existing values file
       result = run_shell_command(build_helm_command(helm_values_path), configuration.kubeconfig_path, settings.hetzner_token)
     else
-      # First, generate Helm values
       values_content = generate_helm_values
-      # Then, store them in a temporary file.
       values_file = File.tempname("cilium_helm_values", ".yml")
+
       begin
         File.write(values_file, values_content)
         File.chmod(values_file, 0o755)
-        # Build the command that'll use the value file we wrote
+
         helm_command = build_helm_command(values_file)
-        # Finally, run the command!
+
         result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
       ensure
         cleanup_temp_file(values_file)
@@ -94,7 +90,6 @@ class Kubernetes::Software::Cilium
   private def build_helm_command(helm_values_path : String)
     version = sanitize_version(settings.networking.cni.cilium.chart_version)
 
-    # Build the command with the given helm_values_path
     cmd = ["helm upgrade --install --version #{version} --namespace #{DEFAULT_NAMESPACE}"]
     cmd << "--values #{helm_values_path}"
     cmd << "cilium #{HELM_CHART_NAME}"
