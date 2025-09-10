@@ -135,8 +135,6 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 
-
-
 # addons:
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
