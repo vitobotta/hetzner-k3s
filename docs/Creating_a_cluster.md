@@ -135,15 +135,7 @@ worker_node_pools:
     min_instances: 0
     max_instances: 3
 
-# cluster_autoscaler:
-#   scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
-#   scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
-#   scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
-#   scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
-#   max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 
-embedded_registry_mirror:
-  enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
 # addons:
 #   csi_driver:
@@ -154,11 +146,18 @@ embedded_registry_mirror:
 #     enabled: false  # built-in ServiceLB. Disabled by default.
 #   metrics_server:
 #     enabled: false  # Kubernetes metrics-server addon. Disabled by default.
+#   cluster_autoscaler:
+#       enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
+#       scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
+#       scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
+#       scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
+#       scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
+#       max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
-#   cluster_autoscaler:
-#     enabled: true   # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
-
+#   embedded_registry_mirror:
+#     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+  
 protect_against_deletion: true
 
 create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.

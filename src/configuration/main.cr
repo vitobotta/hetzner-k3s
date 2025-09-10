@@ -4,10 +4,7 @@ require "./models/master_node_pool"
 require "./models/worker_node_pool"
 require "./models/datastore"
 require "./models/manifests"
-require "./models/embedded_registry_mirror"
-require "./models/local_path_storage_class"
 require "./models/addons"
-require "./models/addons_config/cluster_autoscaler"
 
 class Configuration::Main
   include YAML::Serializable
@@ -36,10 +33,7 @@ class Configuration::Main
   getter networking : Configuration::Models::Networking = Configuration::Models::Networking.new
   getter datastore : Configuration::Models::Datastore = Configuration::Models::Datastore.new
   getter manifests : Configuration::Models::Manifests = Configuration::Models::Manifests.new
-  getter embedded_registry_mirror : Configuration::Models::EmbeddedRegistryMirror = Configuration::Models::EmbeddedRegistryMirror.new
-  getter local_path_storage_class : Configuration::Models::LocalPathStorageClass = Configuration::Models::LocalPathStorageClass.new
   getter addons : Configuration::Models::Addons = Configuration::Models::Addons.new
-  getter cluster_autoscaler : Configuration::Models::AddonsConfig::ClusterAutoscaler = Configuration::Models::AddonsConfig::ClusterAutoscaler.new
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false

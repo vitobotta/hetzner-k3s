@@ -3,12 +3,19 @@ require "yaml"
 class Configuration::Models::AddonsConfig::ClusterAutoscaler
   include YAML::Serializable
 
+  # Whether the Cluster Autoscaler addon is enabled.
+  getter enabled : Bool
+
   property scan_interval : String = "10s"
   property scale_down_delay_after_add : String = "10m"
   property scale_down_delay_after_delete : String = "10s"
   property scale_down_delay_after_failure : String = "3m"
   property max_node_provision_time : String = "15m"
 
-  def initialize
+  def initialize(@enabled : Bool = true)
+  end
+
+  def enabled?
+    enabled
   end
 end
