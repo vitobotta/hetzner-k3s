@@ -2,7 +2,8 @@ require "yaml"
 
 class Configuration::Models::AddonsConfig::ClusterAutoscaler
   include YAML::Serializable
-
+  include YAML::Serializable::Unmapped
+  
   # Whether the Cluster Autoscaler addon is enabled.
   getter enabled : Bool
 
