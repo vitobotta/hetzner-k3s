@@ -6,8 +6,8 @@ module Configuration
         include YAML::Serializable::Unmapped
 
         getter enabled : Bool
-        getter deployment_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/system-upgrade-controller.yaml"
-        getter crd_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/crd.yaml"
+        getter deployment_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.16.0/system-upgrade-controller.yaml"
+        getter crd_manifest_url : String = "https://github.com/rancher/system-upgrade-controller/releases/download/v0.16.0/crd.yaml"
 
         def initialize(@enabled : Bool = true)
         end
