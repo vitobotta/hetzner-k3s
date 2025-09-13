@@ -3,7 +3,6 @@ require "yaml"
 require "./models/master_node_pool"
 require "./models/worker_node_pool"
 require "./models/datastore"
-require "./models/manifests"
 require "./models/addons"
 
 class Configuration::Main
@@ -32,7 +31,6 @@ class Configuration::Main
   getter snapshot_os : String = "default"
   getter networking : Configuration::Models::Networking = Configuration::Models::Networking.new
   getter datastore : Configuration::Models::Datastore = Configuration::Models::Datastore.new
-  getter manifests : Configuration::Models::Manifests = Configuration::Models::Manifests.new
   getter addons : Configuration::Models::Addons = Configuration::Models::Addons.new
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true

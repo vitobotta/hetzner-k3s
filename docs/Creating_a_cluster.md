@@ -74,15 +74,6 @@ networking:
   # service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
   # cluster_dns: 10.43.0.10 # optional: IPv4 Cluster IP for coredns service. Needs to be an address from the service_cidr range
 
-
-# manifests:
-#   cloud_controller_manager_manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.23.0/ccm-networks.yaml"
-#   csi_driver_manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.12.0/deploy/kubernetes/hcloud-csi.yml"
-#   system_upgrade_controller_deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/system-upgrade-controller.yaml"
-#   system_upgrade_controller_crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/crd.yaml"
-#   cluster_autoscaler_manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
-#   cluster_autoscaler_container_image_tag: "v1.32.0"
-
 datastore:
   mode: etcd # etcd (default) or external
   external_datastore_endpoint: postgres://....
@@ -138,6 +129,7 @@ worker_node_pools:
 # addons:
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
+#     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.12.0/deploy/kubernetes/hcloud-csi.yml"
 #   traefik:
 #     enabled: false  # built-in Traefik ingress controller. Disabled by default.
 #   servicelb:
@@ -145,14 +137,20 @@ worker_node_pools:
 #   metrics_server:
 #     enabled: false  # Kubernetes metrics-server addon. Disabled by default.
 #   cluster_autoscaler:
-#       enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
-#       scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
-#       scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
-#       scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
-#       scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
-#       max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
+#     enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
+#     manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+#     container_image_tag: "v1.32.0"
+#     scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
+#     scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
+#     scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
+#     scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
+#     max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
+#     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.23.0/ccm-networks.yaml"
+#   system_upgrade_controller:
+#     deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/system-upgrade-controller.yaml"
+#     crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.14.2/crd.yaml"
 #   embedded_registry_mirror:
 #     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
   

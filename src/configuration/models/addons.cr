@@ -1,4 +1,7 @@
 require "./addons_config/cluster_autoscaler"
+require "./addons_config/csi_driver"
+require "./addons_config/cloud_controller_manager"
+require "./addons_config/system_upgrade_controller"
 
 module Configuration
   module Models
@@ -22,16 +25,17 @@ module Configuration
       end
 
       # Addons with simple configuration options
-      getter csi_driver : Toggle = Toggle.new(true)
       getter traefik : Toggle = Toggle.new(false)
       getter servicelb : Toggle = Toggle.new(false)
       getter metrics_server : Toggle = Toggle.new(false)
-      getter cloud_controller_manager : Toggle = Toggle.new(true)
       getter embedded_registry_mirror : Toggle = Toggle.new(true)
       getter local_path_storage_class : Toggle = Toggle.new(false)
-      
+
       # Addons with more complex configuration options
+      getter csi_driver : Configuration::Models::AddonsConfig::CSIDriver = Configuration::Models::AddonsConfig::CSIDriver.new
       getter cluster_autoscaler : Configuration::Models::AddonsConfig::ClusterAutoscaler = Configuration::Models::AddonsConfig::ClusterAutoscaler.new
+      getter cloud_controller_manager : Configuration::Models::AddonsConfig::CloudControllerManager = Configuration::Models::AddonsConfig::CloudControllerManager.new
+      getter system_upgrade_controller : Configuration::Models::AddonsConfig::SystemUpgradeController = Configuration::Models::AddonsConfig::SystemUpgradeController.new
 
       def initialize
       end

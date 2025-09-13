@@ -14,7 +14,7 @@ class Kubernetes::Software::Hetzner::CSIDriver
   def install
     log_line "Installing Hetzner CSI Driver..."
 
-    apply_manifest_from_url(settings.manifests.csi_driver_manifest_url, "Failed to install Hetzner CSI Driver")
+    apply_manifest_from_url(settings.addons.csi_driver.manifest_url, "Failed to install Hetzner CSI Driver")
 
     log_line "Hetzner CSI Driver installed"
   end

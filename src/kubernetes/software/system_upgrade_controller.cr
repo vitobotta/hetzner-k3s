@@ -31,7 +31,7 @@ class Kubernetes::Software::SystemUpgradeController
   end
 
   private def create_crd : Nil
-    crd_url = settings.manifests.system_upgrade_controller_crd_manifest_url
+    crd_url = settings.addons.system_upgrade_controller.crd_manifest_url
     apply_manifest_from_url(crd_url, "Failed to apply System Upgrade Controller CRD")
   end
 
@@ -42,7 +42,7 @@ class Kubernetes::Software::SystemUpgradeController
   end
 
   private def fetch_deployment_manifest : String
-    deployment_url = settings.manifests.system_upgrade_controller_deployment_manifest_url
+    deployment_url = settings.addons.system_upgrade_controller.deployment_manifest_url
     fetch_manifest(deployment_url)
   end
 

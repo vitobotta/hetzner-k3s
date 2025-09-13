@@ -247,7 +247,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patch_autoscaler_container(container : Kubernetes::Resources::Pod::Spec::Container) : Void
-    container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:#{settings.manifests.cluster_autoscaler_container_image_tag}"
+    container.image = "registry.k8s.io/autoscaling/cluster-autoscaler:#{settings.addons.cluster_autoscaler.container_image_tag}"
     container.command = container_command
 
     configure_container_environment(container)
@@ -316,7 +316,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def manifest : String
-    manifest_url = settings.manifests.cluster_autoscaler_manifest_url
+    manifest_url = settings.addons.cluster_autoscaler.manifest_url
     raw_manifest = fetch_manifest(manifest_url)
 
     resources = YAML.parse_all(raw_manifest)

@@ -27,7 +27,7 @@ class Kubernetes::Software::Hetzner::CloudControllerManager
   end
 
   private def resolve_manifest_url : String
-    base_url = settings.manifests.cloud_controller_manager_manifest_url
+    base_url = settings.addons.cloud_controller_manager.manifest_url
 
     if settings.networking.private_network.enabled
       base_url
