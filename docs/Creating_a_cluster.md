@@ -20,15 +20,6 @@ networking:
       - 0.0.0.0/0
     api: # this will firewall port 6443 on the nodes
       - 0.0.0.0/0
-  public_network:
-    ipv4: true
-    ipv6: true
-    # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
-    # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
-  private_network:
-    enabled: true
-    subnet: 10.0.0.0/16
-    existing_network_name: ""
     # OPTIONAL: define extra inbound/outbound firewall rules.
     # Each entry supports the following keys:
     #   description (string, optional)
@@ -60,6 +51,15 @@ networking:
     #     port: 60000-60100
     #     destination_ips:
     #       - 203.0.113.0/24
+  public_network:
+    ipv4: true
+    ipv6: true
+    # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+    # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+  private_network:
+    enabled: true
+    subnet: 10.0.0.0/16
+    existing_network_name: ""
   cni:
     enabled: true
     encryption: false
