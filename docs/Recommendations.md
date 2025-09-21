@@ -173,8 +173,9 @@ worker_node_pools:
     min_instances: 3
     max_instances: 20
 
-embedded_registry_mirror:
-  enabled: true  # Recommended for large clusters
+addons:
+  embedded_registry_mirror:
+    enabled: true  # Recommended for large clusters
 
 protect_against_deletion: true
 create_load_balancer_for_the_kubernetes_api: true
