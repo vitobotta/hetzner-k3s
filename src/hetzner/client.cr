@@ -39,14 +39,28 @@ class Hetzner::Client
   end
 
   private def fetch_instance_types : Array(InstanceType)
-    success, response = get("/server_types")
+    instance_types = [] of InstanceType
+    page = 1
 
-    if success
-      Hetzner::InstanceTypesList.from_json(response).server_types
-    else
-      puts "[Preflight checks] Unable to fetch instance types via Hetzner API"
-      exit 1
+    while true
+      success, response = get("/server_types", {"page" => page.to_s})
+
+      unless success
+        puts "[Preflight checks] Unable to fetch instance types via Hetzner API"
+        exit 1
+      end
+
+      list = Hetzner::InstanceTypesList.from_json(response)
+      instance_types.concat(list.server_types)
+
+      next_page = list.meta.try &.pagination.try &.next_page
+
+      break unless next_page
+
+      page = next_page
     end
+
+    instance_types
   end
 
   def get(path, params : Hash = {} of Symbol => String | Bool | Nil)
