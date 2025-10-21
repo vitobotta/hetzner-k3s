@@ -1,0 +1,1092 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../Recommendations/">
+      
+      
+        <link rel="next" href="../Deleting_a_cluster/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.22">
+    
+    
+      
+        <title>Maintenance - hetzner-k3s documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.84d31ad4.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#maintenance" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="hetzner-k3s documentation" class="md-header__button md-logo" aria-label="hetzner-k3s documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 12h7v1.5h-7m0-4h7V11h-7m0 3.5h7V16h-7m8-12H3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 15h-9V6h9"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            hetzner-k3s documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Maintenance
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/vitobotta/hetzner-k3s" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vitobotta/hetzner-k3s
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="hetzner-k3s documentation" class="md-nav__button md-logo" aria-label="hetzner-k3s documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 12h7v1.5h-7m0-4h7V11h-7m0 3.5h7V16h-7m8-12H3a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 15h-9V6h9"/></svg>
+
+    </a>
+    hetzner-k3s documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/vitobotta/hetzner-k3s" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vitobotta/hetzner-k3s
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Creating_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Creating a cluster
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Masters_in_different_locations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Masters in Different Locations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Private_clusters_with_public_network_interface_disabled/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Private clusters with public network interface disabled
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Upgrading_a_cluster_from_1x_to_2x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Upgrading a cluster created with hetzner-k3s v1.x to v2.x
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Setting_up_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Setting up a cluster
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Important_upgrade_notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Important upgrade notes
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Recommendations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Recommendations
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Maintenance
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    Maintenance
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adding-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adding Nodes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-down-a-node-pool" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scaling Down a Node Pool
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replacing-a-problematic-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      Replacing a Problematic Node
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-a-non-ha-cluster-to-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting a Non-HA Cluster to HA
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-to-a-new-version-of-k3s" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upgrading to a New Version of k3s
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading to a New Version of k3s">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-initiate-the-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Initiate the Upgrade
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-monitor-the-upgrade-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Monitor the Upgrade Process
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-verify-upgrade-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Verify Upgrade Completion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-run-create-command-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Run Create Command (CRITICAL)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Run Create Command (CRITICAL)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-step-is-essential" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why This Step is Essential:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-to-do-if-the-upgrade-doesnt-go-smoothly" class="md-nav__link">
+    <span class="md-ellipsis">
+      What to Do If the Upgrade Doesn’t Go Smoothly
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-the-os-on-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upgrading the OS on Nodes
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Deleting_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Deleting a Cluster
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Load_balancers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Load Balancers
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Storage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Floating_IP_egress/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Floating IP egress
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Run_command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Running commands and scripts
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Contributing_and_support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Contributing and support
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adding-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adding Nodes
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-down-a-node-pool" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scaling Down a Node Pool
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replacing-a-problematic-node" class="md-nav__link">
+    <span class="md-ellipsis">
+      Replacing a Problematic Node
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#converting-a-non-ha-cluster-to-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      Converting a Non-HA Cluster to HA
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-to-a-new-version-of-k3s" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upgrading to a New Version of k3s
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrading to a New Version of k3s">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-initiate-the-upgrade" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Initiate the Upgrade
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-monitor-the-upgrade-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Monitor the Upgrade Process
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-verify-upgrade-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Verify Upgrade Completion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-run-create-command-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Run Create Command (CRITICAL)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Run Create Command (CRITICAL)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-this-step-is-essential" class="md-nav__link">
+    <span class="md-ellipsis">
+      Why This Step is Essential:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-to-do-if-the-upgrade-doesnt-go-smoothly" class="md-nav__link">
+    <span class="md-ellipsis">
+      What to Do If the Upgrade Doesn’t Go Smoothly
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrading-the-os-on-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upgrading the OS on Nodes
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="maintenance">Maintenance</h1>
+<h2 id="adding-nodes">Adding Nodes</h2>
+<p>To add one or more nodes to a node pool, simply update the instance count in the configuration file for that node pool and run the create command again.</p>
+<h2 id="scaling-down-a-node-pool">Scaling Down a Node Pool</h2>
+<p>To reduce the size of a node pool:</p>
+<ol>
+<li>Lower the instance count in the configuration file to ensure the extra nodes are not recreated in the future.</li>
+<li>Drain and delete the additional nodes from Kubernetes. These are typically the last nodes when sorted alphabetically by name (<code>kubectl drain Node</code> followed by <code>kubectl delete node &lt;name&gt;</code>).</li>
+<li>Remove the corresponding instances from the cloud console if the Cloud Controller Manager doesn’t handle this automatically. Make sure you delete the correct ones!</li>
+</ol>
+<h2 id="replacing-a-problematic-node">Replacing a Problematic Node</h2>
+<ol>
+<li>Drain and delete the node from Kubernetes (<code>kubectl drain &lt;name&gt;</code> followed by <code>kubectl delete node &lt;name&gt;</code>).</li>
+<li>Delete the correct instance from the cloud console.</li>
+<li>Run the <code>create</code> command again. This will recreate the missing node and add it to the cluster.</li>
+</ol>
+<h2 id="converting-a-non-ha-cluster-to-ha">Converting a Non-HA Cluster to HA</h2>
+<p>Converting a single-master, non-HA cluster to a multi-master HA cluster is straightforward. Increase the masters instance count and rerun the <code>create</code> command. This will set up a load balancer for the API server (if enabled) and update the kubeconfig to direct API requests through the load balancer or one of the master contexts. For production clusters, it’s also a good idea to place the masters in different locations (refer to <a href="../Masters_in_different_locations/">this page</a> for more details).</p>
+<hr />
+<h2 id="upgrading-to-a-new-version-of-k3s">Upgrading to a New Version of k3s</h2>
+<h3 id="step-1-initiate-the-upgrade">Step 1: Initiate the Upgrade</h3>
+<p>For the first upgrade of your cluster, simply run the following command to update to a newer version of k3s:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>hetzner-k3s<span class="w"> </span>upgrade<span class="w"> </span>--config<span class="w"> </span>cluster_config.yaml<span class="w"> </span>--new-k3s-version<span class="w"> </span>v1.27.1-rc2+k3s1
+</span></code></pre></div>
+<p>Specify the new k3s version as an additional parameter, and the configuration file will be updated automatically during the upgrade. To view available k3s releases, run the command <code>hetzner-k3s releases</code>.</p>
+<p>Note: For single-master clusters, the API server will be briefly unavailable during the control plane upgrade.</p>
+<h3 id="step-2-monitor-the-upgrade-process">Step 2: Monitor the Upgrade Process</h3>
+<p>After running the upgrade command, you must monitor the upgrade jobs in the <code>system-upgrade</code> namespace to ensure all nodes are successfully upgraded:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Watch the upgrade progress for all nodes</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>watch<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-owide
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Monitor upgrade jobs and plans</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>watch<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>jobs,pods<span class="w"> </span>-n<span class="w"> </span>system-upgrade
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Check upgrade plans status</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>kubectl<span class="w"> </span>get<span class="w"> </span>plan<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>-o<span class="w"> </span>wide
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Check upgrade job logs</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>-f<span class="w"> </span>job/&lt;upgrade-job-name&gt;
+</span></code></pre></div>
+<p>You will see the masters upgrading one at a time, followed by the worker nodes. The upgrade process creates upgrade jobs in the <code>system-upgrade</code> namespace that handle the actual node upgrades.</p>
+<h3 id="step-3-verify-upgrade-completion">Step 3: Verify Upgrade Completion</h3>
+<p>Before proceeding, ensure all upgrade jobs have completed successfully and all nodes are running the new k3s version:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Check that all upgrade jobs are completed</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>kubectl<span class="w"> </span>get<span class="w"> </span><span class="nb">jobs</span><span class="w"> </span>-n<span class="w"> </span>system-upgrade
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Verify all nodes are ready and running the new version</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span>wide
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Check for any failed or pending jobs</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>kubectl<span class="w"> </span>get<span class="w"> </span><span class="nb">jobs</span><span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>--field-selector<span class="w"> </span>status.failed<span class="o">=</span><span class="m">1</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>kubectl<span class="w"> </span>get<span class="w"> </span><span class="nb">jobs</span><span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>--field-selector<span class="w"> </span>status.active<span class="o">=</span><span class="m">1</span>
+</span></code></pre></div>
+<p>✅ <strong>Upgrade Completion Checklist:</strong></p>
+<ul class="task-list">
+<li class="task-list-item"><input type="checkbox" disabled/> All upgrade jobs in <code>system-upgrade</code> namespace have completed</li>
+<li class="task-list-item"><input type="checkbox" disabled/> All nodes show <code>Ready</code> status</li>
+<li class="task-list-item"><input type="checkbox" disabled/> All nodes display the new k3s version in <code>kubectl get nodes -owide</code></li>
+<li class="task-list-item"><input type="checkbox" disabled/> No active or failed upgrade jobs remain</li>
+</ul>
+<h3 id="step-4-run-create-command-critical">Step 4: Run Create Command (CRITICAL)</h3>
+<p>Once all upgrade jobs have completed and all nodes have been successfully updated to the new k3s version, you MUST run the create command:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>hetzner-k3s<span class="w"> </span>create<span class="w"> </span>--config<span class="w"> </span>cluster_config.yaml
+</span></code></pre></div>
+<h4 id="why-this-step-is-essential">Why This Step is Essential:</h4>
+<p>The <code>upgrade</code> command automatically updates the k3s version in your cluster configuration file, but this step is crucial because:</p>
+<ol>
+<li><strong>Updates Masters Configuration</strong>: Ensures that any new master nodes provisioned in the future will use the correct (new) k3s version instead of the previous version</li>
+<li><strong>Updates Worker Node Templates</strong>: Updates the worker node pool configurations to ensure new worker nodes are created with the upgraded k3s version</li>
+<li><strong>Synchronizes Cluster State</strong>: Ensures the actual cluster state matches the desired state defined in your configuration file</li>
+<li><strong>Prevents Version Mismatch</strong>: Without this step, new nodes added to the cluster would be created with the old k3s version and would need to be upgraded again by the system upgrade controller, causing unnecessary delays and potential issues</li>
+</ol>
+<p>If you skip this step and add new nodes to the cluster later, they will first be created with the old k3s version and then need to be upgraded again, which is inefficient and can cause compatibility issues.</p>
+<h3 id="what-to-do-if-the-upgrade-doesnt-go-smoothly">What to Do If the Upgrade Doesn’t Go Smoothly</h3>
+<p>If the upgrade stalls or doesn’t complete for all nodes:</p>
+<ol>
+<li>Clean up existing upgrade plans and jobs, then restart the upgrade controller:</li>
+</ol>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>delete<span class="w"> </span>job<span class="w"> </span>--all
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>delete<span class="w"> </span>plan<span class="w"> </span>--all
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>kubectl<span class="w"> </span>label<span class="w"> </span>node<span class="w"> </span>--all<span class="w"> </span>plan.upgrade.cattle.io/k3s-server-<span class="w"> </span>plan.upgrade.cattle.io/k3s-agent-
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>rollout<span class="w"> </span>restart<span class="w"> </span>deployment<span class="w"> </span>system-upgrade-controller
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>rollout<span class="w"> </span>status<span class="w"> </span>deployment<span class="w"> </span>system-upgrade-controller
+</span></code></pre></div>
+<p>You can also check the logs of the system upgrade controller’s pod:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span>logs<span class="w"> </span>-f<span class="w"> </span><span class="k">$(</span>kubectl<span class="w"> </span>-n<span class="w"> </span>system-upgrade<span class="w"> </span>get<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>pod-template-hash<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.items[0].metadata.name}&quot;</span><span class="k">)</span>
+</span></code></pre></div>
+<p>If the upgrade stalls after upgrading the masters but before upgrading the worker nodes, simply cleaning up resources might not be enough. In this case, run the following to mark the masters as upgraded and allow the upgrade to continue for the workers:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>kubectl<span class="w"> </span>label<span class="w"> </span>node<span class="w"> </span>&lt;master1&gt;<span class="w"> </span>&lt;master2&gt;<span class="w"> </span>&lt;master2&gt;<span class="w"> </span>plan.upgrade.cattle.io/k3s-server<span class="o">=</span>upgraded
+</span></code></pre></div>
+<p>Once all the nodes have been upgraded, remember to re-run the <code>hetzner-k3s create</code> command. This way, new nodes will be created with the new version right away. If you don’t, they will first be created with the old version and then upgraded by the system upgrade controller.</p>
+<hr />
+<h2 id="upgrading-the-os-on-nodes">Upgrading the OS on Nodes</h2>
+<ol>
+<li>Consider adding a temporary node during the process if your cluster doesn’t have enough spare capacity.</li>
+<li>Drain one node.</li>
+<li>Update the OS and reboot the node.</li>
+<li>Uncordon the node.</li>
+<li>Repeat for the next node.</li>
+</ol>
+<p>To automate this process, you can install the <a href="https://kured.dev/">Kubernetes Reboot Daemon</a> ("Kured"). For Kured to work effectively, ensure the OS on your nodes has unattended upgrades enabled, at least for security updates. For example, if the image is Ubuntu, add this to the configuration file before running the <code>create</code> command:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">additional_packages</span><span class="p">:</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unattended-upgrades</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">update-notifier-common</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nt">additional_post_k3s_commands</span><span class="p">:</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sudo systemctl enable unattended-upgrades</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sudo systemctl start unattended-upgrades</span>
+</span></code></pre></div>
+<p>Refer to the Kured documentation for additional configuration options, such as maintenance windows.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": ["content.tooltips", "content.code.annotate", "content.code.copy", "navigation.expand", "navigation.indexes", "navigation.sections", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
+      
+    
+  </body>
+</html>
