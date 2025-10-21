@@ -54,6 +54,13 @@ This will provide more detailed output, which can help you identify the root of 
 1. **Check Network Connectivity**: Verify nodes can communicate with each other
 2. **Review Firewall Rules**: Ensure necessary ports are open
 3. **Wait and Retry**: If it's a rate limit issue, wait a few minutes and retry
+4. **Check Network Configuration**: See section below for IPv4/IPv6 configuration issues
+
+### IPv4 Disabled with IPv6 Only Configuration
+
+**Symptoms**: Cluster creation hangs after nodes are created. SSH connection times out when trying to connect to a private IP address.
+
+**Note**: The tool currently does not support IPv6-only public network configuration. When you disable IPv4 (`public_network.ipv4: false`), you must run `hetzner-k3s` from a machine that has access to the same private network, either directly or through a VPN. Otherwise, the tool will attempt to use the private IP addresses for SSH connections and fail.
 
 ### Load Balancer Issues
 
