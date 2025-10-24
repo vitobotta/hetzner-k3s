@@ -62,7 +62,7 @@
 
 				"terminal.integrated.defaultProfile.linux": "zsh",
 				"terminal.integrated.shell.linux": "/bin/zsh",
-				"terminal.integrated.cwd": "/home/app/backend",
+				"terminal.integrated.cwd": "/home/app/hetzner-k3s",
 				"terminal.integrated.allowChords": false,
 				"terminal.explorerKind": "integrated",
 				"terminal.integrated.shellIntegration.enabled": true,
