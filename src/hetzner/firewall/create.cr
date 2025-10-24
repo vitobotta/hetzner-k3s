@@ -192,7 +192,7 @@ class Hetzner::Firewall::Create
       end
     end
 
-    if settings.embedded_registry_mirror.enabled && !private_network.try(&.enabled)
+    if settings.addons.embedded_registry_mirror.enabled && !private_network.try(&.enabled)
       rules << {
         :description => "Allow traffic between nodes for peer-to-peer image distribution",
         :direction   => "in",
