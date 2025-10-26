@@ -16,30 +16,25 @@ jobs:
           - runs_on_tag: macos-13
             binary_os_suffix: macos
             binary_arch_suffix: amd64
-            crystal_build_static: false
           - runs_on_tag: macos-14
             binary_os_suffix: macos
             binary_arch_suffix: arm64
             architecture: arm
-            crystal_build_static: false
           - runs_on_tag: ubuntu-22.04
             binary_os_suffix: linux
             binary_arch_suffix: arm64
             arch: aarch64
             distro: alpine_latest
             base_image: ''
-            crystal_build_static: true
           - runs_on_tag: ubuntu-24.04
             binary_os_suffix: linux
             binary_arch_suffix: amd64
             arch: none
             distro: none
             base_image: amd64/alpine
-            crystal_build_static: true
     runs-on: ${{ matrix.runs_on_tag }}
     env:
       FILENAME: hetzner-k3s-${{ matrix.binary_os_suffix }}-${{ matrix.binary_arch_suffix }}
-      CRYSTAL_BUILD_STATIC: ${{ matrix.crystal_build_static }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -69,11 +64,7 @@ jobs:
 
           shards install --without-development
 
-          if [ "${CRYSTAL_BUILD_STATIC:-false}" = "true" ]; then
-            crystal build src/hetzner-k3s.cr --release --static
-          else
-            crystal build src/hetzner-k3s.cr --release
-          fi
+          crystal build src/hetzner-k3s.cr --release
 
           chmod +x hetzner-k3s
           cp hetzner-k3s "${FILENAME}"
@@ -93,17 +84,12 @@ jobs:
               make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards gc-dev gc-static
           env: |
             FILENAME=${{ env.FILENAME }}
-            CRYSTAL_BUILD_STATIC=${{ env.CRYSTAL_BUILD_STATIC }}
           run: |
             set -eux
 
             shards install --without-development
 
-            if [ "${CRYSTAL_BUILD_STATIC:-false}" = "true" ]; then
-              crystal build src/hetzner-k3s.cr --release --static
-            else
-              crystal build src/hetzner-k3s.cr --release
-            fi
+            crystal build src/hetzner-k3s.cr --release --static
 
             chmod +x hetzner-k3s
             cp hetzner-k3s "${FILENAME}"
