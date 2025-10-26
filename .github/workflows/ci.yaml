@@ -64,7 +64,19 @@ jobs:
 
       - if: matrix.binary_os_suffix == 'macos'
         name: Build Crystal binary
-        run: ./.github/scripts/build-crystal-binary.sh
+        run: |
+          set -eux
+
+          shards install --without-development
+
+          if [ "${CRYSTAL_BUILD_STATIC:-false}" = "true" ]; then
+            crystal build src/hetzner-k3s.cr --release --static
+          else
+            crystal build src/hetzner-k3s.cr --release
+          fi
+
+          chmod +x hetzner-k3s
+          cp hetzner-k3s "${FILENAME}"
 
       - if: matrix.binary_os_suffix == 'linux'
         name: Build Crystal binary
@@ -83,7 +95,18 @@ jobs:
             FILENAME=${{ env.FILENAME }}
             CRYSTAL_BUILD_STATIC=${{ env.CRYSTAL_BUILD_STATIC }}
           run: |
-            sh .github/scripts/build-crystal-binary.sh
+            set -eux
+
+            shards install --without-development
+
+            if [ "${CRYSTAL_BUILD_STATIC:-false}" = "true" ]; then
+              crystal build src/hetzner-k3s.cr --release --static
+            else
+              crystal build src/hetzner-k3s.cr --release
+            fi
+
+            chmod +x hetzner-k3s
+            cp hetzner-k3s "${FILENAME}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
