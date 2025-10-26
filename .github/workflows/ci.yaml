@@ -48,7 +48,6 @@ jobs:
       - if: matrix.binary_os_suffix == 'macos'
         name: macos build step
         run: |
-          set -euo pipefail
           brew install openssl@3
           brew unlink openssl@1.1 || true
           brew link --force --overwrite openssl@3
@@ -61,7 +60,7 @@ jobs:
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
-          cp hetzner-k3s $FILENAME
+          cp hetzner-k3s ${{ env.FILENAME }}
 
       - if: matrix.binary_os_suffix == 'linux'
         uses: uraimo/run-on-arch-action@v2
@@ -71,7 +70,7 @@ jobs:
           distro: ${{ matrix.distro }}
           base_image: ${{ matrix.base_image }}
 
-          shell: /bin/bash
+          shell: /bin/sh
 
           install: |
             apk update
@@ -80,11 +79,9 @@ jobs:
               make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards gc-dev gc-static
 
           run: |
-            set -euo pipefail
             shards install --without-development
             crystal build src/hetzner-k3s.cr --release --static
-            chmod +x hetzner-k3s
-            cp hetzner-k3s $FILENAME
+            cp hetzner-k3s ${{ env.FILENAME }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
