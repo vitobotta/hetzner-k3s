@@ -82,7 +82,7 @@ jobs:
             apk add --update --no-cache gcc gmp-dev gmp-static libevent-static musl-dev pcre-dev pcre2-dev pcre2-static libxml2-dev \
               libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
               make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards gc-dev gc-static
-          env:
+          env: |
             FILENAME: ${{ env.FILENAME }}
           run: |
             set -eux
