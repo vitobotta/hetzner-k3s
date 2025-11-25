@@ -103,16 +103,9 @@ fi
 mkdir -p /etc/rancher/k3s
 
 # Create registries.yaml
-if [ -n "{{ private_registry_config }}" ]; then
-  cat >/etc/rancher/k3s/registries.yaml <<'EOF'
-{{ registries_config }}
+cat >/etc/rancher/k3s/registries.yaml <<\EOF
+{{ private_registry_config | trim }}
 EOF
-else
-  cat >/etc/rancher/k3s/registries.yaml <<EOF
-mirrors:
-  "*":
-EOF
-fi
 
 # Get instance ID for public network
 KUBELET_INSTANCE_ID=""
