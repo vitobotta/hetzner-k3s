@@ -6,7 +6,7 @@ module Configuration
         include YAML::Serializable::Unmapped
 
         getter enabled : Bool
-        getter manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.17.0/deploy/kubernetes/hcloud-csi.yml"
+        getter manifest_url : String = "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.18.3/deploy/kubernetes/hcloud-csi.yml"
 
         def initialize(@enabled : Bool = true)
         end
