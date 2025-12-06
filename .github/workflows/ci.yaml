@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  workflow_call:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: Build binary - ${{ matrix.binary_os_suffix }}-${{ matrix.binary_arch_suffix }}
+    strategy:
+      matrix:
+        include:
+          - runs_on_tag: macos-13
+            binary_os_suffix: macos
+            binary_arch_suffix: amd64
+          - runs_on_tag: macos-14
+            binary_os_suffix: macos
+            binary_arch_suffix: arm64
+            architecture: arm
+          - runs_on_tag: ubuntu-22.04
+            binary_os_suffix: linux
+            binary_arch_suffix: arm64
+            arch: aarch64
+            distro: alpine_latest
+            base_image: ''
+          - runs_on_tag: ubuntu-24.04
+            binary_os_suffix: linux
+            binary_arch_suffix: amd64
+            arch: none
+            distro: none
+            base_image: amd64/alpine
+    runs-on: ${{ matrix.runs_on_tag }}
+    env:
+      FILENAME: hetzner-k3s-${{ matrix.binary_os_suffix }}-${{ matrix.binary_arch_suffix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          set-safe-directory: '/home/runner/work/hetzner-k3s/hetzner-k3s'
+
+      - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: 1.14.1
+
+      - if: matrix.binary_os_suffix == 'macos'
+        name: macos build step
+        run: |
+          brew install openssl@3
+          brew unlink openssl@1.1 || true
+          brew link --force --overwrite openssl@3
+          
+          export PATH="/usr/local/opt/openssl@3/bin:$PATH"
+          export LDFLAGS="-L/usr/local/opt/openssl@3/lib"
+          export CPPFLAGS="-I/usr/local/opt/openssl@3/include"
+          export PKG_CONFIG_PATH="/usr/local/opt/openssl@3/lib/pkgconfig"
+          
+          shards install --without-development
+          crystal build src/hetzner-k3s.cr --release
+          chmod +x hetzner-k3s
+          cp hetzner-k3s ${{ env.FILENAME }}
+
+      - if: matrix.binary_os_suffix == 'linux'
+        uses: uraimo/run-on-arch-action@v2
+        name: linux build step
+        with:
+          arch: ${{ matrix.arch }}
+          distro: ${{ matrix.distro }}
+          base_image: ${{ matrix.base_image }}
+
+          shell: /bin/sh
+
+          install: |
+            apk update
+            apk add --update --no-cache gcc gmp-dev gmp-static libevent-static musl-dev pcre-dev pcre2-dev pcre2-static libxml2-dev \
+              libxml2-static openssl-dev openssl-libs-static tzdata yaml-static zlib-static xz-static \
+              make git autoconf automake libtool patch libssh2-static libssh2-dev crystal shards gc-dev gc-static
+
+          run: |
+            shards install --without-development
+            crystal build src/hetzner-k3s.cr --release --static
+            cp hetzner-k3s ${{ env.FILENAME }}
+
+      - name: Upload hetzner-k3s Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILENAME }}
+          path: ${{ env.FILENAME }}
+          retention-days: 45
