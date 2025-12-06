@@ -20,7 +20,7 @@ class Kubernetes::Software::Installer
     create_hetzner_secret
     install_hetzner_cloud_controller_manager_if_enabled
     install_hetzner_csi_driver_if_enabled
-    install_system_upgrade_controller
+    install_system_upgrade_controller_if_enabled
     install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
   end
 
@@ -40,8 +40,8 @@ class Kubernetes::Software::Installer
     Kubernetes::Software::Hetzner::CSIDriver.new(@configuration, @settings).install if @settings.addons.csi_driver.enabled?
   end
 
-  private def install_system_upgrade_controller
-    Kubernetes::Software::SystemUpgradeController.new(@configuration, @settings).install
+  private def install_system_upgrade_controller_if_enabled
+    Kubernetes::Software::SystemUpgradeController.new(@configuration, @settings).install if @settings.addons.system_upgrade_controller.enabled?
   end
 
   private def install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
