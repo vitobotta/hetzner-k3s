@@ -6,7 +6,7 @@ module Configuration
         include YAML::Serializable::Unmapped
 
         getter enabled : Bool
-        getter manifest_url : String = "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.26.0/ccm-networks.yaml"
+        getter manifest_url : String = "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.28.0/ccm-networks.yaml"
 
         def initialize(@enabled : Bool = true)
         end
