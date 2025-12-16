@@ -2,7 +2,7 @@
 
 The v1 version of hetzner-k3s is quite old and hasn’t been supported for some time. I understand that many haven’t upgraded to v2 because, until now, there wasn’t a simple process to do this.
 
-The good news is that the migration is now possible and straightforward, as long as you follow these instructions carefully and take your time. This upgrade also allows you to replace deprecated instance types (like the `CX` series) with newer ones. Note that this migration requires hetzner-k3s v2.2.4 or higher.
+The good news is that the migration is now possible and straightforward, as long as you follow these instructions **very carefully** and take your time. This upgrade also allows you to replace deprecated instance types with newer ones. Note that this migration requires hetzner-k3s v2.2.4 or higher. Using the very latest version is recommended.
 
 ## Prerequisites
 
@@ -21,10 +21,11 @@ hcloud server list | awk '{print $4}' | tail -n +2 | while read ip; do
   ssh -n root@${ip} "cat /etc/k8s-resolv.conf"
 done
 ```
-- [ ] Convert the config file to the new format. You can find guidance [here](https://github.com/vitobotta/hetzner-k3s/releases/tag/v2.0.0).
+- [ ] Convert the config file to the new format. You can find guidance [here](https://github.com/vitobotta/hetzner-k3s/releases/tag/v2.0.0) for the initial v2.0.0 release. Make sure you read all the following release notes to apply any other changes to the config format introduced by newer versions of the tool, until the very latest release.
 - [ ] Remove or comment out empty node pools from the config file.
 - [ ] Set `embedded_registry_mirror`.`enabled` to `false` if necessary, depending on the current version of k3s (refer to [this documentation](https://docs.k3s.io/installation/registry-mirror)).
-- [ ] Add `legacy_instance_type` to **ALL** node pools, including both masters and workers. Set it to the current instance type (even if it’s deprecated). **This step is critical for the migration**.
+- [ ] Add `legacy_instance_type` to **ALL** node pools, including both masters and workers. Set it to the current instance type for each node pool, even if it’s now deprecated.  **This step is critical for the migration**.
+- [ ] Set `instance` type for all the node pools to supported instance types, if your current ones have been deprecated by Hetzner. This is important to replace the existing nodes with new ones based on supported instance types.
 - [ ] Run the `create` command **using the latest version of hetzner-k3s and the new config file**.
 - [ ] Wait for all CSI pods in `kube-system` to restart, and **make sure everything is running correctly**.
 
@@ -32,7 +33,7 @@ done
 
 Replace one master at a time (unless your cluster has a load balancer for the Kubernetes API, switch to another master's kube context before replacing `master1`):
 
-- [ ] Drain and delete the master using both kubectl and the Hetzner console (or the `hcloud` CLI) to remove the actual instance.
+- [ ] Drain the master first, then delete it both from the cluster using both kubectl and from the Hetzner console (or the `hcloud` CLI) to delete the actual instance.
 - [ ] Rerun the `create` command to recreate the master with the new instance type. Wait for it to join the control plane and reach the "ready" status.
 - [ ] SSH into each master and verify that the etcd members are updated and in sync:
 
@@ -49,9 +50,9 @@ export ETCDCTL_KEY=/var/lib/rancher/k3s/server/tls/etcd/server-client.key
 etcdctl member list
 ```
 
-Repeat this process carefully for each master. After all three masters have been replaced:
+Repeat the steps above carefully for each master. Once all three masters have been replaced:
 
-- [ ] Rerun the `create` command once or twice to ensure the configuration is stable and the masters no longer restart.
+- [ ] Rerun the `create` command once or twice more to ensure the configuration is stable and the masters no longer restart.
 - [ ] [Debug DNS resolution](https://kubernetes.io/docs/tasks/administer-cluster/dns-debugging-resolution/). If there are issues, restart the agents for DNS resolution with this command, then restart CoreDNS:
 ```bash
 hcloud server list | grep worker | awk '{print $4}'| while read ip; do
@@ -74,13 +75,13 @@ Replace one worker node at a time (except for the last one you just added):
 - [ ] Rerun the `create` command to recreate the deleted node.
 - [ ] Verify everything is working as expected before moving on to the next node in the pool.
 
-Once all the existing nodes have been rotated:
+Once all the existing nodes in the pool have been rotated:
 
 - [ ] Drain the very last node in the pool (the one you added earlier).
 - [ ] Verify everything is functioning correctly.
 - [ ] Delete the last node using both kubectl and the Hetzner console (or the `hcloud` CLI).
 - [ ] Update the `instance_count` for the node pool by reducing it by 1.
-- [ ] Proceed with the next pool.
+- [ ] Proceed with the next node pool.
 
 ## Finalizing
 
