@@ -26,6 +26,7 @@ class Kubernetes::Software::ClusterAutoscaler
   VOLUME_ATTACHMENTS_RESOURCE         = "volumeattachments"
   HCLOUD_CLOUD_INIT_VAR               = "HCLOUD_CLOUD_INIT"
   HCLOUD_CLUSTER_CONFIG_VAR           = "HCLOUD_CLUSTER_CONFIG"
+  HCLOUD_CLUSTER_CONFIG_FILE_VAR      = "HCLOUD_CLUSTER_CONFIG_FILE"
   HCLOUD_FIREWALL_VAR                 = "HCLOUD_FIREWALL"
   HCLOUD_SSH_KEY_VAR                  = "HCLOUD_SSH_KEY"
   HCLOUD_NETWORK_VAR                  = "HCLOUD_NETWORK"
@@ -57,7 +58,8 @@ class Kubernetes::Software::ClusterAutoscaler
   def install : Nil
     log_line "Installing Cluster Autoscaler...", log_prefix: default_log_prefix
 
-    apply_manifest_from_yaml(manifest, "Failed to install Cluster Autoscaler")
+    apply_manifest_server_side(configmap_manifest, "Failed to create Cluster Autoscaler ConfigMap")
+    apply_manifest_server_side(manifest, "Failed to install Cluster Autoscaler")
 
     log_line "...Cluster Autoscaler installed", log_prefix: default_log_prefix
   end
@@ -178,7 +180,6 @@ class Kubernetes::Software::ClusterAutoscaler
       "./cluster-autoscaler",
       "--cloud-provider=#{CLOUD_PROVIDER}",
       "--enforce-node-group-min-size",
-      "--cluster-config=#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}",
     ] + settings.cluster_autoscaler_args + node_pool_args + autoscaler_config_args
   end
 
@@ -265,6 +266,7 @@ class Kubernetes::Software::ClusterAutoscaler
     remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
     remove_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR)
 
+    set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_FILE_VAR, "#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}")
     set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
@@ -342,11 +344,10 @@ class Kubernetes::Software::ClusterAutoscaler
     resources = YAML.parse_all(raw_manifest)
     patched_resources = patch_resources(resources)
 
-    configmap_yaml = build_configmap_manifest
-    configmap_yaml + "---\n" + patched_resources.map(&.to_yaml).join("---\n")
+    patched_resources.map(&.to_yaml).join("---\n")
   end
 
-  private def build_configmap_manifest : String
+  private def configmap_manifest : String
     config_json = build_config_json
     {
       "apiVersion" => "v1",
