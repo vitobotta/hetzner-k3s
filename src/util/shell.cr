@@ -57,7 +57,7 @@ module Util
         end
 
         output = status.success? ? stdout.to_s : stderr.to_s
-        result = CommandResult.new(output, status.exit_status)
+        result = CommandResult.new(output, status.exit_code)
 
         unless result.success?
           error_msg = error_message.blank? ? "" : error_message
