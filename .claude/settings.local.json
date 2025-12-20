@@ -3,9 +3,7 @@
     "allow": [
       "Bash(crystal tool format:*)",
       "Bash(grep:*)",
-      "Bash(crystal build:*)",
-      "Bash(./hetzner-k3s create:*)",
-      "Bash(tee:*)"
+      "Bash(crystal build:*)"
     ],
     "deny": []
   }
