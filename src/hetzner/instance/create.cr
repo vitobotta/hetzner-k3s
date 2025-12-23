@@ -27,6 +27,7 @@ class Hetzner::Instance::Create
   private getter instance_type : String
   private getter image : String | Int64
   private getter location : String
+  private getter grow_root_partition_automatically : Bool
   private getter ssh_key : Hetzner::SSHKey
   private getter network : Hetzner::Network?
   private getter enable_public_net_ipv4 : Bool
@@ -56,11 +57,11 @@ class Hetzner::Instance::Create
     @image,
     @ssh_key,
     @network,
+    @grow_root_partition_automatically,
     @additional_packages = [] of String,
     @additional_pre_k3s_commands = [] of String,
     @additional_post_k3s_commands = [] of String,
-    @location = "fsn1",
-    @grow_root_partition_automatically = true
+    @location = "fsn1"
   )
     @cluster_name = settings.cluster_name
     @snapshot_os = settings.snapshot_os
@@ -81,7 +82,7 @@ class Hetzner::Instance::Create
     instance
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String, grow_root_partition_automatically = true)
+  def self.cloud_init(settings, grow_root_partition_automatically, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String)
     CloudInitGenerator.new(
       settings: settings,
       ssh_port: ssh_port,
@@ -197,7 +198,7 @@ class Hetzner::Instance::Create
   end
 
   private def instance_config
-    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands, [] of String, @grow_root_partition_automatically)
+    user_data = Hetzner::Instance::Create.cloud_init(settings, @grow_root_partition_automatically, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands, [] of String)
 
     base_config = {
       :name       => instance_name,

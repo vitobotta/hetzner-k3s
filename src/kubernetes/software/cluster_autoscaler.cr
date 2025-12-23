@@ -64,8 +64,11 @@ class Kubernetes::Software::ClusterAutoscaler
       settings
     ).generate_script(masters, first_master, pool)
 
+    grow_root_partition_automatically = pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
+
     ::Hetzner::Instance::Create.cloud_init(
       settings,
+      grow_root_partition_automatically,
       settings.networking.ssh.port,
       settings.snapshot_os,
       settings.additional_packages,
