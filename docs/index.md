@@ -28,11 +28,19 @@ If you'd like to connect or just have a chat, feel free to check out my public p
 
 ## Sponsors
 
-I want to give a big thank you to [**Alamos GmbH**](https://alamos.gmbh) for sponsoring this project! Their support has been incredibly helpful, giving me the chance to focus more time and effort on the work. Because of their contribution, I've been able to dedicate myself to creating a simpler migration strategy for moving clusters from v1.x to v2.x. I'm confident this collaboration will lead to even more improvements down the road. Thank you so much!
+If you or your company find this project useful, please consider [sponsoring its development](https://github.com/sponsors/vitobotta). Your support helps keep this project actively maintained.
 
-Also thanks to [@deubert-it](https://github.com/deubert-it), [@magicpages](https://github.com/magicpages), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@worldsayshi](https://github.com/worldsayshi), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) and the other sponsors. Your contributions are very much appreciated!
+### Platinum Sponsors
 
-If you like this project and would like to help its development, consider [becoming a sponsor](https://github.com/sponsors/vitobotta) too.
+A special thank you to <a href="https://alamos.gmbh">Alamos GmbH</href> for sponsoring the development of awesome features!
+
+<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos" height="80"></a>
+
+### Backers
+
+Also thanks to [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian
+](https://github.com/ricristian), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
+
 
 ---
 
