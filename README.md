@@ -75,7 +75,7 @@ If you or your company find this project useful, please consider [sponsoring its
 
 ### Platinum Sponsors
 
-A special thank you to <a href="https://alamos.gmbh">Alamos GmbH</href> for sponsoring the development of awesome features!
+A special thank you to <a href="https://alamos.gmbh">Alamos GmbH</a> for sponsoring the development of awesome features!
 
 <a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos" height="80"></a>
 
