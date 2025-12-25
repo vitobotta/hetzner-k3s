@@ -178,11 +178,13 @@ kubectl get nodes
 | Factor | hetzner-k3s | Managed Services | Terraform-based |
 |--------|-------------|------------------|-----------------|
 | **Setup time** | 2-3 minutes | 5-10 minutes | 15-30+ minutes |
-| **Dependencies** | CLI only | Account signup | Terraform, Packer, HCL knowledge |
+| **Dependencies** | CLI tool only | Third-party account* | Terraform, Packer, HCL knowledge |
 | **Data privacy** | Full control | Third-party access | Full control |
 | **Monthly cost** | Infrastructure only | Infrastructure + fees | Infrastructure only |
 | **Credential exposure** | None | API tokens to third party | None |
 | **Learning curve** | Low | Low | Medium-High |
+
+*Managed services (Cloudfleet, Edka, etc.) require signing up for their platform in addition to Hetzner Cloud.
 
 For a detailed comparison, see [Why hetzner-k3s Stands Out](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
 
