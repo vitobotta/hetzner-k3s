@@ -183,7 +183,7 @@ Most teams running 1-50 node clusters on Hetzner find hetzner-k3s sufficient. Yo
 
 ### Large Scale (100+ nodes)
 
-hetzner-k3s supports large clusters with custom firewall configuration. See the [Recommendations](Recommendations.md) page for architecture guidance.
+hetzner-k3s has been tested with 500 nodes and is designed to scale beyond. Clusters over 100 nodes require some configuration changes—see the [Recommendations](Recommendations.md) page for setup details.
 
 ### Multi-Cloud Requirements
 

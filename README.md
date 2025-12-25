@@ -219,7 +219,7 @@ Cluster communication over Hetzner's private network by default.
 Choose Flannel (simple) or Cilium (advanced networking features).
 
 ### Large Cluster Support
-Clusters with 100+ nodes supported with custom firewall configuration (see [Recommendations](https://vitobotta.github.io/hetzner-k3s/Recommendations/)).
+Tested with 500 nodes and designed to scale beyond. Clusters over 100 nodes require some configuration changes (see [Recommendations](https://vitobotta.github.io/hetzner-k3s/Recommendations/)).
 
 ---
 
