@@ -24,7 +24,7 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
 - K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable them individually with `addons.traefik.enabled`, `addons.servicelb.enabled`, or `addons.metrics_server.enabled` in the configuration file.
 
-If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, I highly recommend you check out [this page](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools.md/).
+If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, I highly recommend you check out [this page](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
 
 ---
 
