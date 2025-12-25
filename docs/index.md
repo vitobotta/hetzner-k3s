@@ -4,7 +4,7 @@
   <img src="https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
-<h3 align="center">The simplest and quickest way to set up<br/>production-ready Kubernetes clusters on Hetzner Cloud.</h3>
+<h3 align="center">The easiest and fastest way to set up<br/>production-ready Kubernetes clusters on Hetzner Cloud.</h3>
 
 ## What is this?
 

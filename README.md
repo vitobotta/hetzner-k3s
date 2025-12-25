@@ -20,7 +20,7 @@
 |_| |_|\___|\__/___|_| |_|\___|_|       |_|\_\____/|___/
 ```
 
-# The simplest and quickest way to set up production-ready Kubernetes clusters on Hetzner Cloud.
+# The easiest and fastest way to set up production-ready Kubernetes clusters on Hetzner Cloud.
 
 <p align="center">
   <img src="logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
