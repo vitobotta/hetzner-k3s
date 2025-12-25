@@ -28,7 +28,7 @@
 
 ## What is this?
 
-This is a CLI tool designed to make it incredibly fast and easy to create and manage Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) (referral link, we both receive some credits) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution from [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
+hetzner-k3s is a CLI tool designed to make it incredibly easy and fast and to create and manage Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) (referral link, we both receive some credits) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution created by [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
 
 Hetzner Cloud is an awesome cloud provider that offers excellent service with the best performance-to-cost ratio available. They have data centers in Europe, USA and Singapore, making it a versatile choice.
 
@@ -43,6 +43,8 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 - Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
 - Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
 - K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable them individually with `addons.traefik.enabled`, `addons.servicelb.enabled`, or `addons.metrics_server.enabled` in the configuration file.
+
+If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, you can check out [this page](docs/COMPARISON.md).
 
 ---
 

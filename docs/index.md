@@ -8,11 +8,23 @@
 
 ## What is this?
 
-This is a CLI tool designed to make it incredibly fast and easy to create and manage Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) (referral link, we both receive some credits) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution from [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
+hetzner-k3s is a CLI tool designed to make it incredibly easy and fast and to create and manage Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) (referral link, we both receive some credits) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution created by [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
 
 Hetzner Cloud is an awesome cloud provider that offers excellent service with the best performance-to-cost ratio available. They have data centers in Europe, USA and Singapore, making it a versatile choice.
 
 k3s is my go-to Kubernetes distribution because it's lightweight, using far less memory and CPU, which leaves more resources for your workloads. It is also incredibly fast to deploy and upgrade because, thanks to being a single binary.
+
+With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
+
+- Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
+- Deploying k3s to the nodes.
+- Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
+- Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
+- Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
+- Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
+- K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable them individually with `addons.traefik.enabled`, `addons.servicelb.enabled`, or `addons.metrics_server.enabled` in the configuration file.
+
+If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, you can check out [this page](COMPARISON.md).
 
 ---
 
@@ -53,19 +65,3 @@ Everyone interacting in the hetzner-k3s project's codebases, issue trackers, cha
 ## License
 
 This tool is available as open source under the terms of the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
-
-With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
-
-- Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
-- Deploying k3s to the nodes.
-- Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
-- Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
-- Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
-- Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
-- K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable them with `addons.traefik.enabled`, `addons.servicelb.enabled`, or `addons.metrics_server.enabled`.
-
----
-
-## Quick Start
-
-For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
