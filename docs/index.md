@@ -34,41 +34,12 @@
 
 ## Getting Started
 
-<div class="grid cards" markdown>
-
--   :material-download:{ .lg .middle } **Installation**
-
-    ---
-
-    Install hetzner-k3s on macOS, Linux, or Windows (via WSL)
-
-    [:octicons-arrow-right-24: Install now](Installation.md)
-
--   :material-rocket-launch:{ .lg .middle } **Create Your First Cluster**
-
-    ---
-
-    Step-by-step guide to creating a production-ready cluster
-
-    [:octicons-arrow-right-24: Get started](Creating_a_cluster.md)
-
--   :material-school:{ .lg .middle } **Complete Tutorial**
-
-    ---
-
-    Set up a cluster with ingress, TLS, and a sample application
-
-    [:octicons-arrow-right-24: Full walkthrough](Setting_up_a_cluster.md)
-
--   :material-scale-balance:{ .lg .middle } **Why hetzner-k3s?**
-
-    ---
-
-    Compare hetzner-k3s to managed services and Terraform-based alternatives
-
-    [:octicons-arrow-right-24: See comparison](Comparison_with_other_tools.md)
-
-</div>
+| | |
+|---|---|
+| **[Installation](Installation.md)** | Install hetzner-k3s on macOS, Linux, or Windows (via WSL) |
+| **[Create Your First Cluster](Creating_a_cluster.md)** | Configuration reference and cluster creation |
+| **[Complete Tutorial](Setting_up_a_cluster.md)** | Set up a cluster with ingress, TLS, and a sample application |
+| **[Why hetzner-k3s?](Comparison_with_other_tools.md)** | Compare to managed services and Terraform-based alternatives |
 
 ---
 
