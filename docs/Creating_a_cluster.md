@@ -99,7 +99,7 @@ schedule_workloads_on_masters: false
 # snapshot_os: microos # optional: specified the os type when using a custom snapshot
 
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3 # for HA; you can also create a single master cluster for dev and testing (not recommended for production)
   locations: # You can choose a single location for single master clusters or if you prefer to have all masters in the same location. For regional clusters (which are only available in the eu-central network zone), each master needs to be placed in a separate location.
     - fsn1
@@ -108,7 +108,7 @@ masters_pool:
 
 worker_node_pools:
 - name: small-static
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 4
   location: hel1
   # image: debian-11
@@ -119,7 +119,7 @@ worker_node_pools:
   #   - key: something
   #     value: value1:NoSchedule
 - name: medium-autoscaled
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   autoscaling:
     enabled: true
@@ -280,7 +280,7 @@ The cluster autoscaler automatically manages the number of worker nodes in your 
 ```yaml
 worker_node_pools:
 - name: autoscaled-pool
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   autoscaling:
     enabled: true
@@ -302,7 +302,7 @@ cluster_autoscaler:
 
 worker_node_pools:
 - name: autoscaled-pool
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   autoscaling:
     enabled: true

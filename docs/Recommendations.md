@@ -44,14 +44,14 @@ networking:
     mode: flannel
 
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3  # For HA
   locations:
     - nbg1
 
 worker_node_pools:
 - name: workers
-  instance_type: cpx31
+  instance_type: cpx32
   instance_count: 3
   location: nbg1
   autoscaling:
@@ -150,7 +150,7 @@ datastore:
   # external_datastore_endpoint: postgres://...
 
 masters_pool:
-  instance_type: cpx31
+  instance_type: cpx32
   instance_count: 3
   locations:
     - nbg1
@@ -159,14 +159,14 @@ masters_pool:
 
 worker_node_pools:
 - name: compute
-  instance_type: cpx41
+  instance_type: cpx42
   location: nbg1
   autoscaling:
     enabled: true
     min_instances: 5
     max_instances: 50
 - name: storage
-  instance_type: cpx51
+  instance_type: cpx52
   location: hel1
   autoscaling:
     enabled: true
@@ -213,7 +213,7 @@ worker_node_pools:
 ### Small Production Clusters (5-20 nodes)
 ```yaml
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3  # HA masters
   locations:
     - fsn1
@@ -221,7 +221,7 @@ masters_pool:
     - nbg1
 worker_node_pools:
 - name: workers
-  instance_type: cpx31
+  instance_type: cpx32
   instance_count: 3
   autoscaling:
     enabled: true
@@ -232,7 +232,7 @@ worker_node_pools:
 ### Medium Production Clusters (20-50 nodes)
 ```yaml
 masters_pool:
-  instance_type: cpx31
+  instance_type: cpx32
   instance_count: 3
   locations:
     - fsn1
@@ -240,14 +240,14 @@ masters_pool:
     - nbg1
 worker_node_pools:
 - name: web
-  instance_type: cpx31
+  instance_type: cpx32
   location: nbg1
   autoscaling:
     enabled: true
     min_instances: 3
     max_instances: 10
 - name: backend
-  instance_type: cpx41
+  instance_type: cpx42
   location: hel1
   autoscaling:
     enabled: true

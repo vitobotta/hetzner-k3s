@@ -32,7 +32,7 @@ Configure different partitioning strategies per node pool:
 ```yaml
 worker_node_pools:
 - name: storage-workers
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   grow_root_partition_automatically: false  # Disable for storage nodes
   additional_post_k3s_commands:
@@ -43,7 +43,7 @@ worker_node_pools:
   - [ resize2fs, /dev/sda1 ]
 
 - name: regular-workers
-  instance_type: cpx21
+  instance_type: cpx22
   location: hel1
   # Inherits global setting (or true if global is not set)
   # grow_root_partition_automatically: true  # automatic growth
@@ -109,14 +109,14 @@ Complete cluster configuration with disk resizing for storage nodes:
 grow_root_partition_automatically: true  # Default for most nodes
 
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3
   locations: [fsn1, hel1, nbg1]
   # Inherits global: true (automatic growth)
 
 worker_node_pools:
 - name: storage-workers
-  instance_type: cpx31
+  instance_type: cpx32
   instance_count: 4
   location: fsn1
   grow_root_partition_automatically: false  # Override: manual partitioning
@@ -128,7 +128,7 @@ worker_node_pools:
   - [ resize2fs, /dev/sda1 ]
 
 - name: regular-workers
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 2
   location: hel1
   # Inherits global: true (automatic growth)

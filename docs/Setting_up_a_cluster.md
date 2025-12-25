@@ -10,7 +10,7 @@ Before starting, ensure you have:
 
 1. **Hetzner Cloud Account** with project and API token
 2. **kubectl** installed on your local machine
-3. **Helm** installed on your local machine  
+3. **Helm** installed on your local machine
 4. **hetzner-k3s** installed (see [Installation Guide](Installation.md))
 5. **SSH Key Pair** for accessing cluster nodes
 
@@ -44,7 +44,7 @@ networking:
       - 0.0.0.0/0
 
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3
   locations:
     - fsn1
@@ -53,11 +53,11 @@ masters_pool:
 
 worker_node_pools:
 - name: small
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 4
   location: hel1
 - name: big
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   autoscaling:
     enabled: true
