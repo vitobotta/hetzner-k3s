@@ -17,8 +17,7 @@ theme:
     - search.highlight
     - search.suggest
     - toc.follow
-  icon:
-    logo: material/kubernetes
+  logo: https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png
   palette:
     scheme: default
 plugins:
