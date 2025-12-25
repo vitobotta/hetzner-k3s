@@ -61,3 +61,4 @@ eval "$(ssh-agent -s)"
 ssh-add -k ~/.ssh/id_*[!.pub]
 
 clear
+export PATH="$HOME/.local/bin:$PATH"
