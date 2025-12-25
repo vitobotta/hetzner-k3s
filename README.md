@@ -29,7 +29,9 @@
 ## Table of Contents
 
 - [Why hetzner-k3s?](#why-hetzner-k3s)
+  - [How It Works](#how-it-works)
 - [Why Hetzner Cloud + k3s?](#why-hetzner-cloud--k3s)
+  - [Sample Monthly Costs](#sample-monthly-costs)
 - [What Gets Installed](#what-gets-installed)
 - [Quick Start](#quick-start)
 - [Who Uses hetzner-k3s?](#who-uses-hetzner-k3s)
