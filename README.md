@@ -50,19 +50,6 @@
 
 ---
 
-## What People Are Saying
-
-> *"Honestly I'm shocked at how easy this was. My experience with kubeadm a few years back was not as nice. Yay for k3s!"*
-
-> *"I tried other tools but switched to hetzner-k3s because I didn't want to be dependent on a provider that could take away the fancy dashboard anytime."*
-
-> *"hetzner-k3s is by far the easiest and fastest way to create and manage clusters in Hetzner Cloud."*
-> — [LowEndTalk community](https://lowendtalk.com/discussion/204479/hetzner-k3s-v2-2-8-is-out-the-easiest-way-to-manage-kubernetes-in-hetzner-cloud)
-
-Featured on [Hacker News](https://news.ycombinator.com/item?id=28098106) and discussed in the Hetzner community as the go-to tool for k3s deployments.
-
----
-
 ## Why Hetzner Cloud + k3s?
 
 ### Hetzner Cloud: Exceptional Value
