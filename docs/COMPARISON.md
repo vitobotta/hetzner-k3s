@@ -119,6 +119,8 @@ Hetzner Cloud offers excellent service with the best performance-to-cost ratio a
 
 Talos is a modern, immutable OS built specifically for Kubernetes. Deploying a Talos cluster on Hetzner provides enhanced security and manageability but involves a more detailed setup process. This includes manually creating network components, a NAT gateway VM, generating Talos-specific configuration files, and bootstrapping the nodes.
 
+---
+
 ### Cluster API (CAPH)
 
 The Cluster API Provider for Hetzner (CAPH) allows for declarative, Kubernetes-style management of cluster infrastructure. However, it requires an existing Kubernetes cluster to act as a "management cluster" (often a local kind cluster), from which the target workload cluster on Hetzner is provisioned. This makes the initial setup more involved than using a simple CLI tool.
