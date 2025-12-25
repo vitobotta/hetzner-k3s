@@ -30,7 +30,7 @@ markdown_extensions:
   - pymdownx.tasklist
 nav:
   - Home: index.md
-  - Comparison.md
+  - Comparison with other tools: Comparison_with_other_tools.md
   - Installation.md
   - Creating_a_cluster.md
   - Masters_in_different_locations.md
