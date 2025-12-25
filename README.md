@@ -47,15 +47,15 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, I highly recommend you check out [this page](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
 
 When you are ready, head to the [installation instructions](https://vitobotta.github.io/hetzner-k3s/Installation/) to get started.
+
 ---
 
 ## Quick Start
 
 For a step-by-step guide on setting up a cluster with the most common configuration, check out the [documentation](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
 
----
-
 ___
+
 ## Who am I?
 
 Hey there! I’m the Lead Platform Architect at [Brella](https://www.brella.io/), an event management platform based in Finland. You could say I’m the person who ensures everything works smoothly. That includes handling coding, infrastructure, and supporting the rest of the development team.
