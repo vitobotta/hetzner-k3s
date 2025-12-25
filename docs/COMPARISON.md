@@ -145,4 +145,4 @@ The Cluster API Provider for Hetzner (CAPH) allows for declarative, Kubernetes-s
 
 ## Bottom Line
 
-**hetzner-k3s** hits the sweet spot for most Hetzner users: it's nearly as easy as managed solutions but without surrendering control of your credentials, data, or wallet. You get speed, simplicity, and sovereignty — with no recurring platform fees eating into Hetzner's cost advantage.
+**hetzner-k3s** hits the sweet spot for most Hetzner users: it's nearly as easy as managed solutions but without surrendering control of your credentials, data, or wallet. You get speed, simplicity, and sovereignty - with no recurring platform fees eating into Hetzner's cost advantage.
