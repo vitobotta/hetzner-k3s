@@ -115,6 +115,8 @@ Hetzner Cloud offers excellent service with the best performance-to-cost ratio a
 - Designed for multi-cloud/hybrid scenarios
 - Unnecessary complexity if you're only using Hetzner
 
+---
+
 ### Talos Linux
 
 Talos is a modern, immutable OS built specifically for Kubernetes. Deploying a Talos cluster on Hetzner provides enhanced security and manageability but involves a more detailed setup process. This includes manually creating network components, a NAT gateway VM, generating Talos-specific configuration files, and bootstrapping the nodes.
