@@ -67,7 +67,7 @@ In stress testing, a 500-node cluster (3 masters, 497 workers) was created in un
 
 ### Production-Ready Defaults
 
-- **High availability** — distribute masters across locations
+- **High availability** — distribute masters and workers across locations
 - **Autoscaling** — scale worker pools based on resource demands
 - **Private networking** — cluster traffic stays off the public internet
 - **Automatic upgrades** — the System Upgrade Controller handles rolling updates
@@ -112,6 +112,7 @@ In stress testing, a 500-node cluster (3 masters, 497 workers) was created in un
 - **Up to 80% lower costs** than AWS, Google Cloud, and Azure
 - **Transparent, all-inclusive pricing** — traffic, IPv4/IPv6, DDoS protection, and firewalls included
 - **Six global locations** — Germany (Nuremberg, Falkenstein), Finland (Helsinki), USA (Ashburn, Hillsboro), Singapore
+- **Flexible instance types** — x86 and ARM architectures, including cost-effective ARM instances (CAX) for budget-friendly clusters
 - **25+ years of reliability** — proven infrastructure trusted by companies worldwide
 
 ---

@@ -75,6 +75,7 @@
 - **Up to 80% lower costs** than AWS, Google Cloud, and Azure
 - **Transparent pricing** — traffic, IPv4/IPv6, DDoS protection, and firewalls included
 - **Global presence** — data centers in Germany (Nuremberg, Falkenstein), Finland (Helsinki), USA (Ashburn, Hillsboro), and Singapore
+- **Flexible instance types** — x86 and ARM architectures, including cost-effective ARM instances (CAX) for budget-friendly clusters
 - **Proven reliability** — trusted by companies worldwide for over 25 years
 
 ### k3s: Lightweight Kubernetes
@@ -193,7 +194,7 @@ For a detailed comparison, see [Why hetzner-k3s Stands Out](https://vitobotta.gi
 ## Key Features
 
 ### High Availability
-Deploy masters across multiple locations (Nuremberg, Falkenstein, Helsinki) for regional resilience.
+Deploy masters and worker pools across multiple locations for regional resilience.
 
 ### Autoscaling
 Define min/max instances per node pool. The Cluster Autoscaler handles the rest.
@@ -210,7 +211,7 @@ worker_node_pools:
 ```
 
 ### Multiple Node Pools
-Mix instance types and locations for different workloads.
+Mix instance types and locations for different workloads. Hetzner offers x86 and ARM instances at various performance levels—including cost-effective ARM instances (CAX) ideal for budget-friendly clusters.
 
 ### Private Networking
 Cluster communication over Hetzner's private network by default.
