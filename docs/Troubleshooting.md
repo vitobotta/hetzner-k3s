@@ -1,5 +1,9 @@
 # Troubleshooting
 
+This page covers common issues and their solutions. If you don't find an answer here, check [GitHub Issues](https://github.com/vitobotta/hetzner-k3s/issues) or ask in [GitHub Discussions](https://github.com/vitobotta/hetzner-k3s/discussions).
+
+---
+
 ## Common Issues and Solutions
 
 ### SSH Connection Problems

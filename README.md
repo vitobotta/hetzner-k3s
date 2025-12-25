@@ -20,85 +20,257 @@
 |_| |_|\___|\__/___|_| |_|\___|_|       |_|\_\____/|___/
 ```
 
-# The easiest and fastest way to set up production-ready Kubernetes clusters on Hetzner Cloud.
+# The easiest and fastest way to create production-ready Kubernetes clusters on Hetzner Cloud
 
 <p align="center">
   <img src="logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
-## What is this?
+## Why hetzner-k3s?
 
-hetzner-k3s is a CLI tool designed to make it incredibly easy and fast and to create and manage Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) (referral link, we both receive some credits) using [k3s](https://k3s.io/), a lightweight Kubernetes distribution created by [Rancher](https://rancher.com/). In a test run, I created a **500**-node highly available cluster (3 masters, 497 worker nodes) in just **under 11 minutes** - though this was with only the public network, as private networks are limited to 100 instances per network. I think this might be a world record!
+**hetzner-k3s** is a CLI tool that creates production-ready Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) in minutes, not hours. No Terraform to learn, no management cluster required, no third-party access to your credentials.
 
-Hetzner Cloud is an awesome cloud provider that offers excellent service with the best performance-to-cost ratio available. They have data centers in Europe, USA and Singapore, making it a versatile choice.
+### Speed That Sets Records
 
-k3s is my go-to Kubernetes distribution because it's lightweight, using far less memory and CPU, which leaves more resources for your workloads. It is also incredibly fast to deploy and upgrade because, thanks to being a single binary.
+- **3-node HA cluster in 2-3 minutes** — masters, workers, networking, and essential components all configured
+- **500-node cluster in under 11 minutes** — tested with 3 masters and 497 workers (possibly a world record!)
 
-With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master nodes and 3 worker nodes takes only **2-3 minutes**. This includes:
+### Simplicity Without Compromise
 
-- Creating all the necessary infrastructure resources (instances, load balancer, private network, and firewall).
-- Deploying k3s to the nodes.
-- Installing the [Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager) to provision load balancers immediately (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
-- Installing the [Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver) to handle persistent volumes using Hetzner's block storage (enabled by default, can be disabled with `addons.csi_driver.enabled: false`).
-- Installing the [Rancher System Upgrade Controller](https://github.com/rancher/system-upgrade-controller) to simplify and speed up k3s version upgrades.
-- Installing the [Cluster Autoscaler](https://github.com/kubernetes/autoscaler) to enable autoscaling of node pools.
-- K3s built-in addons Traefik, ServiceLB and metrics-server are disabled by default for a leaner control-plane. You can enable them individually with `addons.traefik.enabled`, `addons.servicelb.enabled`, or `addons.metrics_server.enabled` in the configuration file.
+- **Single CLI tool** — no Terraform, Packer, Ansible, or existing Kubernetes cluster required
+- **One YAML config file** — human-readable configuration, version-controllable
+- **Batteries included** — Cloud Controller Manager, CSI driver, System Upgrade Controller, and Cluster Autoscaler installed automatically
 
-If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, I highly recommend you check out [this page](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
+### Complete Control, Zero Lock-in
 
-When you are ready, head to the [installation instructions](https://vitobotta.github.io/hetzner-k3s/Installation/) to get started.
+- **Your credentials stay local** — Hetzner API token never leaves your machine
+- **No third-party access** — unlike managed services, no one else can see your clusters or workloads
+- **Open source (MIT License)** — inspect, modify, and contribute to the code
+- **No recurring platform fees** — you only pay Hetzner for infrastructure
+
+---
+
+## What People Are Saying
+
+> *"Honestly I'm shocked at how easy this was. My experience with kubeadm a few years back was not as nice. Yay for k3s!"*
+
+> *"I tried other tools but switched to hetzner-k3s because I didn't want to be dependent on a provider that could take away the fancy dashboard anytime."*
+
+> *"hetzner-k3s is by far the easiest and fastest way to create and manage clusters in Hetzner Cloud."*
+> — [LowEndTalk community](https://lowendtalk.com/discussion/204479/hetzner-k3s-v2-2-8-is-out-the-easiest-way-to-manage-kubernetes-in-hetzner-cloud)
+
+Featured on [Hacker News](https://news.ycombinator.com/item?id=28098106) and discussed in the Hetzner community as the go-to tool for k3s deployments.
+
+---
+
+## Why Hetzner Cloud + k3s?
+
+### Hetzner Cloud: Exceptional Value
+
+[Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) offers the best performance-to-cost ratio in the industry:
+
+- **Up to 80% lower costs** than AWS, Google Cloud, and Azure
+- **Transparent pricing** — traffic, IPv4/IPv6, DDoS protection, and firewalls included
+- **Global presence** — data centers in Germany (Nuremberg, Falkenstein), Finland (Helsinki), USA (Ashburn, Hillsboro), and Singapore
+- **Proven reliability** — trusted by companies worldwide for over 25 years
+
+### k3s: Lightweight Kubernetes
+
+[k3s](https://k3s.io/) by Rancher is a certified Kubernetes distribution optimized for resource efficiency:
+
+- **Lower resource footprint** — uses less memory and CPU, leaving more for your workloads
+- **Single binary** — fast to deploy and upgrade
+- **Production-ready** — 99.8% successful automated updates in community benchmarks
+
+---
+
+## What Gets Installed
+
+When you run `hetzner-k3s create`, you get a complete, production-ready cluster:
+
+| Component | Purpose |
+|-----------|---------|
+| **k3s** | Lightweight Kubernetes distribution |
+| **[Hetzner Cloud Controller Manager](https://github.com/hetznercloud/hcloud-cloud-controller-manager)** | Automatic load balancer provisioning |
+| **[Hetzner CSI Driver](https://github.com/hetznercloud/csi-driver)** | Persistent volumes via Hetzner block storage |
+| **[System Upgrade Controller](https://github.com/rancher/system-upgrade-controller)** | Zero-downtime k3s upgrades |
+| **[Cluster Autoscaler](https://github.com/kubernetes/autoscaler)** | Automatic node scaling based on demand |
+
+All integrated with Hetzner's private networking and firewall. Traefik, ServiceLB, and metrics-server are available as optional add-ons.
 
 ---
 
 ## Quick Start
 
-For a step-by-step guide on setting up a cluster with the most common configuration, check out the [documentation](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
+### 1. Install hetzner-k3s
 
-___
+**macOS (Homebrew):**
+```bash
+brew install vitobotta/tap/hetzner_k3s
+```
 
-## Who am I?
+**Linux (amd64):**
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-amd64
+chmod +x hetzner-k3s-linux-amd64
+sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
+```
 
-Hey there! I’m the Lead Platform Architect at [Brella](https://www.brella.io/), an event management platform based in Finland. You could say I’m the person who ensures everything works smoothly. That includes handling coding, infrastructure, and supporting the rest of the development team.
+See [Installation Guide](https://vitobotta.github.io/hetzner-k3s/Installation/) for all platforms.
 
-Outside of my main job, I spend time looking for security bugs as a bug bounty hunter. My goal is to find vulnerabilities in web applications and report them responsibly so they can be fixed.
+### 2. Create a Configuration File
 
-If you’d like to connect or just have a chat, feel free to check out my public profile [here](https://vitobotta.com/). You’ll find all the necessary links there. I may also be available for consultancies around hetzner-k3s and related topics.
+Create `cluster.yaml`:
+
+```yaml
+hetzner_token: <your-token>
+cluster_name: my-cluster
+kubeconfig_path: "./kubeconfig"
+k3s_version: v1.32.0+k3s1
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false
+    public_key_path: "~/.ssh/id_ed25519.pub"
+    private_key_path: "~/.ssh/id_ed25519"
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+
+masters_pool:
+  instance_type: cpx22
+  instance_count: 3
+  locations:
+    - fsn1
+    - hel1
+    - nbg1
+
+worker_node_pools:
+- name: workers
+  instance_type: cpx32
+  instance_count: 3
+  location: hel1
+```
+
+### 3. Create Your Cluster
+
+```bash
+hetzner-k3s create --config cluster.yaml
+```
+
+In 2-3 minutes, your cluster is ready. The kubeconfig is saved automatically.
+
+```bash
+export KUBECONFIG=./kubeconfig
+kubectl get nodes
+```
 
 ---
 
-## Docs
+## How It Compares
 
-All the documentation is available [here](https://vitobotta.github.io/hetzner-k3s/).
+| Factor | hetzner-k3s | Managed Services | Terraform-based |
+|--------|-------------|------------------|-----------------|
+| **Setup time** | 2-3 minutes | 5-10 minutes | 15-30+ minutes |
+| **Dependencies** | CLI only | Account signup | Terraform, Packer, HCL knowledge |
+| **Data privacy** | Full control | Third-party access | Full control |
+| **Monthly cost** | Infrastructure only | Infrastructure + fees | Infrastructure only |
+| **Credential exposure** | None | API tokens to third party | None |
+| **Learning curve** | Low | Low | Medium-High |
+
+For a detailed comparison, see [Why hetzner-k3s Stands Out](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
+
+---
+
+## Key Features
+
+### High Availability
+Deploy masters across multiple locations (Nuremberg, Falkenstein, Helsinki) for regional resilience.
+
+### Autoscaling
+Define min/max instances per node pool. The Cluster Autoscaler handles the rest.
+
+```yaml
+worker_node_pools:
+- name: autoscaled
+  instance_type: cpx32
+  location: fsn1
+  autoscaling:
+    enabled: true
+    min_instances: 1
+    max_instances: 10
+```
+
+### Multiple Node Pools
+Mix instance types and locations for different workloads.
+
+### Private Networking
+Cluster communication over Hetzner's private network by default.
+
+### CNI Options
+Choose Flannel (simple) or Cilium (advanced networking features).
+
+### Large Cluster Support
+Clusters with 100+ nodes supported with custom firewall configuration (see [Recommendations](https://vitobotta.github.io/hetzner-k3s/Recommendations/)).
+
+---
+
+## Documentation
+
+Full documentation: **[vitobotta.github.io/hetzner-k3s](https://vitobotta.github.io/hetzner-k3s/)**
+
+- [Installation](https://vitobotta.github.io/hetzner-k3s/Installation/)
+- [Creating a Cluster](https://vitobotta.github.io/hetzner-k3s/Creating_a_cluster/)
+- [Setting Up a Complete Stack](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/)
+- [Cluster Maintenance](https://vitobotta.github.io/hetzner-k3s/Maintenance/)
+- [Recommendations for Production](https://vitobotta.github.io/hetzner-k3s/Recommendations/)
+- [Troubleshooting](https://vitobotta.github.io/hetzner-k3s/Troubleshooting/)
+
+---
+
+## Who am I?
+
+I'm Vito Botta, Lead Platform Architect at [Brella](https://www.brella.io/), an event management platform based in Finland. I handle infrastructure, coding, and support for the development team.
+
+I also spend time as a bug bounty hunter, finding and responsibly reporting security vulnerabilities.
+
+Connect with me at [vitobotta.com](https://vitobotta.com/). I'm available for consultancies around hetzner-k3s and Kubernetes on Hetzner.
 
 ---
 
 ## Sponsors
 
-If you or your company find this project useful, please consider [sponsoring its development](https://github.com/sponsors/vitobotta). Your support helps keep this project actively maintained.
+Your support helps keep this project actively maintained. Consider [sponsoring development](https://github.com/sponsors/vitobotta).
 
 ### Platinum Sponsors
 
-A special thank you to <a href="https://alamos.gmbh">Alamos GmbH</a> for sponsoring the development of awesome features!
+<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="80"></a>
 
-<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos" height="80"></a>
+A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the development of key features!
 
 ### Backers
 
-Also thanks to [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian
-](https://github.com/ricristian), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
+Thanks to [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
 
-___
-## Code of conduct
+---
 
-Everyone interacting in the hetzner-k3s project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
+## Contributing
 
-___
+Contributions are welcome! See [Contributing and Support](https://vitobotta.github.io/hetzner-k3s/Contributing_and_support/) for guidelines.
+
+## Code of Conduct
+
+Everyone interacting in this project is expected to follow the [code of conduct](https://github.com/vitobotta/hetzner-k3s/blob/main/CODE_OF_CONDUCT.md).
+
 ## License
 
-This tool is available as open source under the terms of the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
+Open source under the [MIT License](https://github.com/vitobotta/hetzner-k3s/blob/main/LICENSE.txt).
 
-___
+---
 
-## Stargazers over time
+## Star History
 
 [![Stargazers over time](https://starchart.cc/vitobotta/hetzner-k3s.svg)](https://starchart.cc/vitobotta/hetzner-k3s)

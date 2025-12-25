@@ -1,54 +1,85 @@
-## Prerequisites
+# Installation
 
-To use this tool, you will need a few things:
-
-- A Hetzner Cloud account.
-- A Hetzner Cloud token: To get this, create a project in the cloud console, then generate an API token with **both read and write permissions** (go to the sidebar > Security > API Tokens). Remember, you’ll only see the token once, so make sure to save it somewhere secure.
-- kubectl and Helm installed, as these are necessary for installing components in the cluster and performing k3s upgrades.
+Get hetzner-k3s running on your system in under a minute.
 
 ---
 
-## Installation
+## Prerequisites
 
-### macOS
+Before installing hetzner-k3s, you'll need:
 
-#### With Homebrew
+| Requirement | Description |
+|-------------|-------------|
+| **Hetzner Cloud account** | [Sign up here](https://hetzner.cloud/?ref=mqx6KKKwyook) if you don't have one |
+| **API token** | Create one in Cloud Console → Security → API Tokens (read & write permissions) |
+| **SSH key pair** | For accessing cluster nodes |
+| **kubectl** | For interacting with your cluster ([installation guide](https://kubernetes.io/docs/tasks/tools/#kubectl)) |
+| **Helm** | For installing applications ([installation guide](https://helm.sh/docs/intro/install/)) |
+
+---
+
+## macOS
+
+### Homebrew (Recommended)
+
 ```bash
 brew install vitobotta/tap/hetzner_k3s
 ```
 
-#### Binary installation
-First, install these dependencies:
+### Binary Installation
+
+If you prefer not to use Homebrew, install the required dependencies first:
+
 - libevent
 - bdw-gc
 - libyaml
 - pcre
 - gmp
 
-##### Apple Silicon / ARM
+**Apple Silicon (M1/M2/M3):**
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-macos-arm64
 chmod +x hetzner-k3s-macos-arm64
 sudo mv hetzner-k3s-macos-arm64 /usr/local/bin/hetzner-k3s
 ```
 
-##### Intel / x86
+**Intel:**
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-macos-amd64
 chmod +x hetzner-k3s-macos-amd64
 sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 ```
 
-### Linux
+---
 
-NOTE: If you're using certain distributions like Fedora, you might run into a little issue when you try to run hetzner-k3s because of a different version of OpenSSL. The easiest way to fix this, for now, is to run these commands before starting hetzner-k3s:
+## Linux
+
+### amd64 (x86_64)
+
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-amd64
+chmod +x hetzner-k3s-linux-amd64
+sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
+```
+
+### arm64 (ARM)
+
+```bash
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-arm64
+chmod +x hetzner-k3s-linux-arm64
+sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
+```
+
+### Fedora and Similar Distributions
+
+Some distributions (like Fedora) may have OpenSSL compatibility issues. If you encounter errors, set these environment variables before running hetzner-k3s:
 
 ```bash
 export OPENSSL_CONF=/dev/null
 export OPENSSL_MODULES=/dev/null
 ```
 
-For example, you can define a function replacing `hetzner-k3s` in your `.bashrc` or `.zshrc`:
+For convenience, add a wrapper function to your `~/.bashrc` or `~/.zshrc`:
 
 ```bash
 hetzner-k3s() {
@@ -56,20 +87,46 @@ hetzner-k3s() {
 }
 ```
 
-#### amd64
+---
+
+## Windows
+
+Use the Linux binary with [WSL (Windows Subsystem for Linux)](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+After installing WSL, follow the Linux installation instructions above.
+
+---
+
+## Verify Installation
+
+Check that hetzner-k3s is installed correctly:
+
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-amd64
-chmod +x hetzner-k3s-linux-amd64
-sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
+hetzner-k3s --version
 ```
 
-#### arm
+You should see the version number displayed.
+
+---
+
+## Next Steps
+
+Now that hetzner-k3s is installed:
+
+1. **[Create your first cluster](Creating_a_cluster.md)** — Configuration reference and detailed options
+2. **[Set up a complete stack](Setting_up_a_cluster.md)** — Tutorial with ingress, TLS, and a sample application
+
+---
+
+## Updating
+
+To update to the latest version:
+
+**Homebrew:**
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-arm64
-chmod +x hetzner-k3s-linux-arm64
-sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
+brew upgrade vitobotta/tap/hetzner_k3s
 ```
 
-### Windows
+**Binary installations:** Download and replace the binary using the same steps as the initial installation.
 
-For Windows, I recommend using the Linux binary with [WSL](https://learn.microsoft.com/en-us/windows/wsl/install).
+Check the [releases page](https://github.com/vitobotta/hetzner-k3s/releases) for the latest version and changelog.

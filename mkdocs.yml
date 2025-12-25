@@ -1,4 +1,5 @@
 site_name: hetzner-k3s documentation
+site_description: The easiest and fastest way to create production-ready Kubernetes clusters on Hetzner Cloud
 repo_name: vitobotta/hetzner-k3s
 repo_url: https://github.com/vitobotta/hetzner-k3s
 theme:
@@ -11,10 +12,13 @@ theme:
     - navigation.expand
     - navigation.indexes
     - navigation.sections
+    - navigation.tabs
+    - navigation.top
     - search.highlight
     - search.suggest
+    - toc.follow
   icon:
-    logo: material/book-open
+    logo: material/kubernetes
   palette:
     scheme: default
 plugins:
@@ -28,22 +32,32 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - pymdownx.tasklist
+  - attr_list
+  - md_in_html
+  - admonition
+  - pymdownx.details
+  - tables
 nav:
   - Home: index.md
-  - Comparison with other tools: Comparison_with_other_tools.md
-  - Installation.md
-  - Creating_a_cluster.md
-  - Masters_in_different_locations.md
-  - Private_clusters_with_public_network_interface_disabled.md
-  - Upgrading_a_cluster_from_1x_to_2x.md
-  - Setting_up_a_cluster.md
-  - Important upgrade notes: Important_upgrade_notes.md
-  - Recommendations.md
-  - Maintenance.md
-  - Deleting_a_cluster.md
-  - Load_balancers.md
-  - Storage.md
-  - Floating_IP_egress.md
-  - Running commands and scripts: Run_command.md
-  - Troubleshooting.md
-  - Contributing_and_support.md
+  - Getting Started:
+    - Installation: Installation.md
+    - Creating a Cluster: Creating_a_cluster.md
+    - Complete Tutorial: Setting_up_a_cluster.md
+  - Operations:
+    - Cluster Maintenance: Maintenance.md
+    - Load Balancers: Load_balancers.md
+    - Storage: Storage.md
+    - Deleting a Cluster: Deleting_a_cluster.md
+    - Running Commands: Run_command.md
+  - Advanced:
+    - Recommendations: Recommendations.md
+    - Masters in Different Locations: Masters_in_different_locations.md
+    - Private Clusters: Private_clusters_with_public_network_interface_disabled.md
+    - Floating IP Egress: Floating_IP_egress.md
+    - Resizing Root Partition: Resizing_root_partition_with_post_create_commands.md
+  - Reference:
+    - Why hetzner-k3s: Comparison_with_other_tools.md
+    - Troubleshooting: Troubleshooting.md
+    - Important Upgrade Notes: Important_upgrade_notes.md
+    - Upgrading from v1.x to v2.x: Upgrading_a_cluster_from_1x_to_2x.md
+  - Contributing: Contributing_and_support.md

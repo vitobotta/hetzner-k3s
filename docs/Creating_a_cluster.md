@@ -1,6 +1,12 @@
-# Creating a cluster
+# Creating a Cluster
 
-The tool needs a basic configuration file, written in YAML format, to handle tasks like creating, upgrading, or deleting clusters. Below is an example where commented lines indicate optional settings:
+This page covers the full configuration reference for hetzner-k3s. For a quick start, see the [Quick Start in the README](https://github.com/vitobotta/hetzner-k3s#quick-start) or the [Complete Tutorial](Setting_up_a_cluster.md).
+
+---
+
+## Configuration File
+
+hetzner-k3s uses a YAML configuration file. Below is a complete example with all options. Commented lines are optional:
 
 ```yaml
 ---

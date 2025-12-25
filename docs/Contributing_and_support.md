@@ -1,50 +1,102 @@
-# Contributing and support
+# Contributing and Support
 
-Feel free to create a pull request if you’d like to suggest any changes. If you’re running into issues with the tool, please open an issue, and I’ll do my best to assist you.
+hetzner-k3s is an open source project, and contributions are welcome!
 
-If you’re interested in supporting the project financially, you might want to consider [becoming a sponsor](https://github.com/sponsors/vitobotta).
+---
 
-___
-## Building from source
+## Getting Help
 
-This tool is built using [Crystal](https://crystal-lang.org/). If you want to build it or make changes to the code and test them, you’ll need to have Crystal installed on your local machine or use a container.
+### GitHub Issues
 
-In this repository, you’ll find a Dockerfile that creates a container image with Crystal and all the necessary dependencies. There’s also a Docker Compose file to easily run a container with that image and link the source code into the container. Additionally, there’s a devcontainer.json file that works with compatible IDEs, such as Visual Studio Code, when using the Dev Containers extension.
+If you're running into issues with the tool, please [open an issue](https://github.com/vitobotta/hetzner-k3s/issues). Include:
 
+- Your configuration file (with sensitive values redacted)
+- Full output with debug mode enabled (`DEBUG=true hetzner-k3s ...`)
+- Your operating system and hetzner-k3s version
+- Steps to reproduce the issue
 
-### Developing with VSCode
+### GitHub Discussions
 
-To get started, you’ll need to install [Visual Studio Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers&ssr=false). Once you have both, open the project in VSCode. You can do this by running `code .` in the root directory of the git repository.
+For general questions, ideas, or discussions, use [GitHub Discussions](https://github.com/vitobotta/hetzner-k3s/discussions). This is a good place for:
 
-When the project is open, you should see a pop-up dialog asking you to "Reopen in Container." Go ahead and click that option. Wait for the build process to finish and the server to start. After that, click the "+" button to open a terminal inside the container.
+- Questions about best practices
+- Feature suggestions
+- Sharing how you're using hetzner-k3s
 
-One thing to keep in mind: if you can’t find the Dev Containers extension in the Marketplace (for example, if the first result is the Docker extension instead), make sure you’re using the official build of VSCode. It seems that some extensions are disabled if you’re using an Open Source build.
+### Documentation
 
+Check the [Troubleshooting](Troubleshooting.md) page for solutions to common issues.
 
-### Developing with Compose
+---
 
-If you prefer not to install VSCode, you can still develop using Docker and Compose in the exact same container.
+## Contributing Code
 
-To build and start the development container, use this command:
+Pull requests are welcome! Whether it's fixing a bug, improving documentation, or adding a feature.
+
+### Development Environment
+
+hetzner-k3s is built using [Crystal](https://crystal-lang.org/). You can develop using:
+
+- **VS Code with Dev Containers** (recommended)
+- **Docker Compose**
+- **Local Crystal installation**
+
+### VS Code Setup
+
+1. Install [Visual Studio Code](https://code.visualstudio.com/) and the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Open the project in VS Code (`code .` in the repository root)
+3. Click "Reopen in Container" when prompted
+4. Wait for the container to build
+5. Open a terminal inside the container
+
+**Note:** If you can't find the Dev Containers extension, ensure you're using the official VS Code build (some extensions are disabled in Open Source builds).
+
+### Docker Compose Setup
+
+If you prefer not to use VS Code:
+
 ```bash
+# Build and start the development container
 docker compose up -d
-```
 
-After that, to access the container, run:
-```bash
+# Access the container
 docker compose exec hetzner-k3s bash
 ```
 
-### Working Inside the Container
+### Running the Tool
 
-Once you’re inside the development container (whether through VSCode or Docker Compose directly), you can execute `hetzner-k3s` like this:
+Inside the development container:
+
 ```bash
+# Run without building
 crystal run ./src/hetzner-k3s.cr -- create --config cluster_config.yaml
-```
 
-If you want to generate a binary, use this command:
-```bash
+# Build a binary
 crystal build ./src/hetzner-k3s.cr --static
 ```
 
-The `--static` flag ensures the binary is statically linked, meaning it won’t rely on external libraries that might not be available on the system where you plan to run it.
+The `--static` flag creates a statically linked binary that doesn't depend on external libraries.
+
+---
+
+## Supporting the Project
+
+If you or your company find this project useful, please consider [becoming a sponsor](https://github.com/sponsors/vitobotta). Your support helps:
+
+- Fund ongoing development and maintenance
+- Enable new features
+- Keep the project actively maintained
+
+### Current Sponsors
+
+**Platinum:** [Alamos GmbH](https://alamos.gmbh)
+
+**Backers:** [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE)
+
+---
+
+## Consulting
+
+Need help with hetzner-k3s, Kubernetes on Hetzner, or related infrastructure? The maintainer is available for consulting engagements.
+
+Contact: [vitobotta.com](https://vitobotta.com/)
