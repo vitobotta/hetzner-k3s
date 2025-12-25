@@ -11,7 +11,7 @@ There are several ways to run Kubernetes on Hetzner Cloud. This page explains wh
 | **Setup time** | 2-3 minutes | 5-10 minutes | 15-30+ minutes | 20+ minutes |
 | **Dependencies** | CLI only | Account signup | Terraform, Packer, HCL | Management cluster |
 | **Data privacy** | Full control | Third-party access | Full control | Full control |
-| **Monthly cost** | Infrastructure only | Infrastructure + fees | Infrastructure only | Infrastructure only |
+| **Monthly cost** | Infrastructure only | Infrastructure + platform fees (scale with cluster size) | Infrastructure only | Infrastructure only |
 | **Credential exposure** | None | API tokens to third party | None | None |
 | **Learning curve** | Low | Low | Medium-High | High |
 | **Best for** | Most Hetzner users | Zero-ops teams | Terraform-native teams | Multi-cloud standardization |
@@ -71,11 +71,13 @@ Managed services handle cluster operations for you, which is valuable if you wan
 **Credential sharing**: You provide your Hetzner API token to the service. The provider has ongoing access to your cloud account and can see your workloads. For regulated industries or security-conscious teams, this may be a concern.
 
 **Pricing structure**: Managed services typically charge:
-- A cluster management fee
+- A base cluster management fee
 - Per-vCPU fees for worker nodes
 - Sometimes per-user fees for enterprise tiers
 
-For example, Cloudfleet's free tier limits you to 24 vCPUs with standard availability. Beyond that, costs scale with usage. Enterprise tiers may require minimum monthly commitments.
+These platform fees add up quickly as clusters grow. A small development cluster might have modest fees, but production clusters with dozens of nodes can see platform costs that rival or exceed the underlying Hetzner infrastructure costs.
+
+For example, Cloudfleet's free tier limits you to 24 vCPUs with standard availability. Beyond that, costs scale with each additional vCPU. The difference between hetzner-k3s (infrastructure only) and managed services becomes substantial at scale—potentially saving hundreds of euros per month on larger deployments.
 
 **Vendor dependency**: Your cluster management depends on the service's availability. If the provider changes pricing, terms, or discontinues service, you're affected. Migration requires effort.
 

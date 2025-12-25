@@ -32,6 +32,7 @@
 - [Why Hetzner Cloud + k3s?](#why-hetzner-cloud--k3s)
 - [What Gets Installed](#what-gets-installed)
 - [Quick Start](#quick-start)
+- [Who Uses hetzner-k3s?](#who-uses-hetzner-k3s)
 - [How It Compares](#how-it-compares)
 - [Key Features](#key-features)
 - [Documentation](#documentation)
@@ -64,6 +65,24 @@
 - **Open source (MIT License)** — inspect, modify, and contribute to the code
 - **No recurring platform fees** — you only pay Hetzner for infrastructure
 
+### How It Works
+
+```mermaid
+flowchart LR
+    subgraph local["Your Machine"]
+        config["cluster.yaml<br/>(30 lines)"]
+        cli["hetzner-k3s create"]
+    end
+
+    config --> cli
+    cli --> api["Hetzner Cloud API"]
+    api --> cluster["Production Cluster<br/>Ready in 2-3 min"]
+
+    style cluster fill:#22c55e,color:#fff
+```
+
+No Terraform. No Packer. No Ansible. No management cluster. No third-party account. Your API token never leaves your machine.
+
 ---
 
 ## Why Hetzner Cloud + k3s?
@@ -85,6 +104,23 @@
 - **Lower resource footprint** — uses less memory and CPU, leaving more for your workloads
 - **Single binary** — fast to deploy and upgrade
 - **Production-ready** — 99.8% successful automated updates in community benchmarks
+
+### Sample Monthly Costs
+
+Real infrastructure costs for common cluster configurations (December 2025 pricing):
+
+| Cluster Type | Configuration | Monthly Cost |
+|--------------|---------------|--------------|
+| **Development** | 1 master (CX23), 2 workers (CX23) | ~€16/month |
+| **Small Production** | 3 masters (CPX22), 3 workers (CPX32) | ~€58/month |
+| **Medium Production** | 3 masters (CPX22), 10 workers (CPX32) | ~€135/month |
+| **Large Production** | 3 masters (CPX42), 50 workers (CPX32) | ~€615/month |
+
+*Includes load balancer (~€5.50/month). No management fees, no per-user fees—just infrastructure.*
+
+**Compare to managed alternatives:**
+- Equivalent AWS EKS: 3-5x higher infrastructure cost + $0.10/hour cluster fee (~$73/month)
+- Managed Hetzner services (e.g. Cloudfleet): Infrastructure + platform fees that scale with cluster size and add up quickly
 
 ---
 
@@ -171,6 +207,18 @@ In 2-3 minutes, your cluster is ready. The kubeconfig is saved automatically.
 export KUBECONFIG=./kubeconfig
 kubectl get nodes
 ```
+
+---
+
+## Who Uses hetzner-k3s?
+
+- **Startups** running cost-efficient production workloads
+- **Development teams** spinning up ephemeral test clusters
+- **Agencies and consultants** deploying client infrastructure quickly
+- **Companies** in regulated industries requiring data sovereignty
+- **Platform engineers** who want simplicity without sacrificing control
+
+Join an active community with 2,000+ GitHub stars and regular contributions.
 
 ---
 
