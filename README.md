@@ -50,7 +50,7 @@ If you're curious about why hetzner-k3s is a good choice for setting up your clu
 
 ## Quick Start
 
-For a step-by-step guide on setting up a cluster with the most common configuration, check out this [documentation page](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
+For a step-by-step guide on setting up a cluster with the most common configuration, check out the [documentation](https://vitobotta.github.io/hetzner-k3s/Setting_up_a_cluster/).
 
 ---
 
