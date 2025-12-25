@@ -36,7 +36,7 @@ If you prefer not to use Homebrew, install the required dependencies first:
 - pcre
 - gmp
 
-**Apple Silicon (M1/M2/M3):**
+**Apple Silicon:**
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-macos-arm64
 chmod +x hetzner-k3s-macos-arm64
