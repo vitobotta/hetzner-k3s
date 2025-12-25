@@ -218,7 +218,7 @@ kubectl get nodes
 - **Companies** in regulated industries requiring data sovereignty
 - **Platform engineers** who want simplicity without sacrificing control
 
-Join an active community with 2,000+ GitHub stars and regular contributions.
+Join an active community with 3,100+ GitHub stars and regular contributions.
 
 ---
 
