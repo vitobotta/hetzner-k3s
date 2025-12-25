@@ -26,6 +26,22 @@
   <img src="logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
+## Table of Contents
+
+- [Why hetzner-k3s?](#why-hetzner-k3s)
+- [Why Hetzner Cloud + k3s?](#why-hetzner-cloud--k3s)
+- [What Gets Installed](#what-gets-installed)
+- [Quick Start](#quick-start)
+- [How It Compares](#how-it-compares)
+- [Key Features](#key-features)
+- [Documentation](#documentation)
+- [Who am I?](#who-am-i)
+- [Sponsors](#sponsors)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 ## Why hetzner-k3s?
 
 **hetzner-k3s** is a CLI tool that creates production-ready Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) in minutes, not hours. No Terraform to learn, no management cluster required, no third-party access to your credentials.
