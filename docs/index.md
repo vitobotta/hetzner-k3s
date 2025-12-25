@@ -26,6 +26,8 @@ With `hetzner-k3s`, setting up a highly available k3s cluster with 3 master node
 
 If you're curious about why hetzner-k3s is a good choice for setting up your clusters and how it stacks up against other options, I highly recommend you check out [this page](https://vitobotta.github.io/hetzner-k3s/Comparison_with_other_tools/).
 
+When you are ready, head to the [installation instructions](https://vitobotta.github.io/hetzner-k3s/Installation/) to get started.
+
 ---
 
 ## About the Author
