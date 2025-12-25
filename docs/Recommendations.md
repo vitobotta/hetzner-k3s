@@ -69,7 +69,7 @@ For larger clusters, the default setup has some limitations that need to be addr
 
 ### Limitations of Default Setup
 
-Hetzner's private networks, used in hetzner-k3s' default configuration, only support up to 100 nodes. If your cluster is going to grow beyond that, you need to disable the private network in your configuration.
+Hetzner's private networks, used in hetzner-k3s' default configuration, only support up to 100 nodes. If your cluster is going to grow beyond that, you need to disable the private network in your configuration, to use the public network instead (no worries, all traffic between nodes is automatically encrypted with Wireguard).
 
 ### Large Cluster Architecture (Since v2.2.8)
 
