@@ -26,6 +26,8 @@ Before installing hetzner-k3s, you'll need:
 brew install vitobotta/tap/hetzner_k3s
 ```
 
+Homebrew also works on Linux — see the [Linux section](#linux) below.
+
 ### Binary Installation
 
 If you prefer not to use Homebrew, install the required dependencies first:
