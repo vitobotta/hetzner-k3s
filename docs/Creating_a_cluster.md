@@ -13,7 +13,7 @@ hetzner-k3s uses a YAML configuration file. Below is a complete example with all
 hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
-k3s_version: v1.30.3+k3s1
+k3s_version: v1.32.0+k3s1
 
 networking:
   ssh:
