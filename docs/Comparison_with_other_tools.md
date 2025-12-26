@@ -77,7 +77,7 @@ Managed services handle cluster operations for you, which is valuable if you wan
 
 These platform fees add up quickly as clusters grow. A small development cluster might have modest fees, but production clusters with dozens of nodes can see platform costs that rival or exceed the underlying Hetzner infrastructure costs.
 
-For example, Cloudfleet's free tier limits you to 24 vCPUs with standard availability. Beyond that, costs scale with each additional vCPU. The difference between hetzner-k3s (infrastructure only) and managed services becomes substantial at scale—potentially saving hundreds of euros per month on larger deployments.
+For example, Cloudfleet's free tier limits you to 24 vCPUs with standard availability. Beyond that, costs scale with each additional vCPU. The difference between hetzner-k3s (infrastructure only) and managed services becomes substantial at scale—potentially saving hundreds or thousands of euros per month on larger deployments.
 
 **Vendor dependency**: Your cluster management depends on the service's availability. If the provider changes pricing, terms, or discontinues service, you're affected. Migration requires effort.
 
