@@ -209,7 +209,7 @@ The `datastore` section configures how Kubernetes stores its cluster state. The 
 
 You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads. Each pool can have optional `labels` and `taints`. Labels are key-value pairs that help you target specific nodes when scheduling workloads using node selectors or affinity rules. Taints prevent pods from being scheduled on certain nodes unless the pods explicitly tolerate the taint—useful for dedicating nodes to specific workloads or keeping certain nodes free for particular purposes.
 
-Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
+Settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
 
 - `additional_pre_k3s_commands`: Commands executed before k3s installation
 - `additional_post_k3s_commands`: Commands executed after k3s is installed and configured
