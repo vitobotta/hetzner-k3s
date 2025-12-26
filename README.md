@@ -26,6 +26,10 @@
   <img src="logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
+<p align="center">
+  <a href="https://hetzner-k3s.com/"><strong>hetzner-k3s.com</strong></a>
+</p>
+
 ## Table of Contents
 
 - [Why hetzner-k3s?](#why-hetzner-k3s)
