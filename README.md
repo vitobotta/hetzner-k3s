@@ -136,12 +136,12 @@ All integrated with Hetzner's private networking and firewall. Traefik, ServiceL
 
 ### 1. Install hetzner-k3s
 
-**macOS (Homebrew):**
+**Homebrew (macOS/Linux):**
 ```bash
 brew install vitobotta/tap/hetzner_k3s
 ```
 
-**Linux (amd64):**
+**Linux binary (amd64):**
 ```bash
 wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64

@@ -54,6 +54,12 @@ sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 
 ## Linux
 
+### Homebrew (Recommended)
+
+```bash
+brew install vitobotta/tap/hetzner_k3s
+```
+
 ### amd64 (x86_64)
 
 ```bash
