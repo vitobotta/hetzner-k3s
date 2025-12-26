@@ -187,6 +187,8 @@ worker_node_pools:
   location: hel1
 ```
 
+See [Creating a Cluster](https://vitobotta.github.io/hetzner-k3s/Creating_a_cluster/) for a complete configuration example with all available options.
+
 ### 3. Create Your Cluster
 
 ```bash
