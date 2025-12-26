@@ -72,7 +72,7 @@
 ```mermaid
 flowchart LR
     subgraph local["Your Machine"]
-        config["cluster.yaml<br/>(30 lines)"]
+        config["cluster.yaml<br/>"]
         cli["hetzner-k3s create"]
     end
 
