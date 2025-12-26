@@ -43,7 +43,7 @@ class Kubernetes::Installer
     @configuration,
     @load_balancer,
     @ssh,
-    @autoscaling_worker_node_pools
+    @autoscaling_worker_node_pools,
   )
     @kubeconfig_manager = Kubernetes::KubeconfigManager.new(@configuration, settings, @ssh)
     @master_generator = Kubernetes::Script::MasterGenerator.new(@configuration, settings)
@@ -61,11 +61,11 @@ class Kubernetes::Installer
 
     @masters, @first_master_instance = @control_plane_setup.set_up_control_plane(masters_installation_queue_channel, master_count, load_balancer)
 
-    @software_installer.install_all(@first_master_instance, @masters, ssh, autoscaling_worker_node_pools)
-
     if worker_count > 0
       workers = @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
     end
+
+    @software_installer.install_all(@first_master_instance, @masters, ssh, autoscaling_worker_node_pools)
 
     switch_to_context(default_context)
 
