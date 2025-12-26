@@ -69,19 +69,9 @@
 
 ### How It Works
 
-```mermaid
-flowchart LR
-    subgraph local["Your Machine"]
-        config["cluster.yaml<br/>"]
-        cli["hetzner-k3s create"]
-    end
-
-    config --> cli
-    cli --> api["Hetzner Cloud API"]
-    api --> cluster["Production Cluster<br/>Ready in 2-3 min"]
-
-    style cluster fill:#22c55e,color:#fff
-```
+<p align="center">
+  <img src="diagram.svg" alt="How hetzner-k3s works" width="700">
+</p>
 
 No Terraform. No Packer. No Ansible. No management cluster. No third-party account. Your API token never leaves your machine.
 
