@@ -223,7 +223,7 @@ Join an active community with 3,100+ GitHub stars and regular contributions.
 | **Setup time** | 2-3 minutes | 5-10 minutes | 15-30+ minutes |
 | **Dependencies** | CLI tool only | Third-party account* | Terraform, Packer, HCL knowledge |
 | **Data privacy** | Full control | Third-party access | Full control |
-| **Monthly cost** | Infrastructure only | Infrastructure + fees | Infrastructure only |
+| **Monthly cost** | Infrastructure only | Infrastructure + platform fees | Infrastructure only |
 | **Credential exposure** | None | API tokens to third party | None |
 | **Learning curve** | Low | Low | Medium-High |
 
