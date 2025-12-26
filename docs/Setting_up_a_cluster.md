@@ -269,7 +269,18 @@ On the machine running Kubernetes:
 
 ### 3. How can I check the resource usage of nodes or pods?
 
-First, install the metrics-server from this GitHub repository: https://github.com/kubernetes-sigs/metrics-server. After installation, you can use either `kubectl top nodes` or `kubectl top pods -A` to view resource usage.
+You need the metrics-server installed in your cluster. There are two ways to enable it:
+
+1. **Via hetzner-k3s config** (recommended): Enable it in the `addons` section of your cluster configuration file, and hetzner-k3s will automatically enable it in k3s:
+   ```yaml
+   addons:
+     metrics_server:
+       enabled: true
+   ```
+
+2. **Manual installation**: Install via manifest or Helm from the [metrics-server repository](https://github.com/kubernetes-sigs/metrics-server).
+
+After installation, you can use either `kubectl top nodes` or `kubectl top pods -A` to view resource usage.
 
 ### 4. What is Ingress?
 
