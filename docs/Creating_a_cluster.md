@@ -98,7 +98,7 @@ datastore:
 #    s3_folder: ""
 #    s3_force_path_style: false
 
-schedule_workloads_on_masters: false
+schedule_workloads_on_masters: false # set to true to allow pods to be scheduled on master nodes (useful for small clusters)
 
 # image: rocky-9 # optional: default is ubuntu-24.04
 # autoscaling_image: 103908130 # optional, defaults to the `image` setting
@@ -118,10 +118,10 @@ worker_node_pools:
   instance_count: 4
   location: hel1
   # image: debian-11
-  # labels:
+  # labels: # Kubernetes labels to apply to nodes in this pool (for node selection in workloads)
   #   - key: purpose
   #     value: blah
-  # taints:
+  # taints: # Kubernetes taints to apply to nodes in this pool (to repel pods unless they tolerate the taint)
   #   - key: something
   #     value: value1:NoSchedule
 - name: medium-autoscaled
@@ -161,11 +161,11 @@ worker_node_pools:
 #   embedded_registry_mirror:
 #     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
-protect_against_deletion: true
+protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
-create_load_balancer_for_the_kubernetes_api: false # Just a heads up: right now, we can’t limit access to the load balancer by IP through the firewall. This feature hasn’t been added by Hetzner yet.
+create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
-k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time
+k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability
 
 # additional_packages:
 # - somepackage
@@ -203,9 +203,11 @@ Most settings are straightforward and easy to understand. To see a list of avail
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
 
-When setting `masters_pool`.`instance_count`, keep in mind that if you set it to 1, the tool will create a control plane that is not highly available. For production clusters, it’s better to set this to a number greater than 1. To avoid split brain issues with etcd, this number should be odd, and 3 is the recommended value. Additionally, for production environments, it’s a good idea to configure masters in different locations using the `masters_pool`.`locations` setting.
+When setting `masters_pool`.`instance_count`, keep in mind that if you set it to 1, the tool will create a control plane that is not highly available. For production clusters, it's better to set this to a number greater than 1. To avoid split brain issues with etcd, this number should be odd, and 3 is the recommended value. Additionally, for production environments, it's a good idea to configure masters in different locations using the `masters_pool`.`locations` setting.
 
-You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads.
+The `datastore` section configures how Kubernetes stores its cluster state. The default mode is `etcd`, which runs an embedded etcd cluster on your master nodes—this is the recommended option for most deployments. For very large clusters or special requirements, you can use `external` mode with an external datastore (etcd, PostgreSQL, or MySQL) by specifying the connection string in `external_datastore_endpoint`. The etcd mode also supports optional S3 backup configuration for disaster recovery.
+
+You can define any number of worker node pools, either static or autoscaled, and create pools with nodes of different specifications to handle various workloads. Each pool can have optional `labels` and `taints`. Labels are key-value pairs that help you target specific nodes when scheduling workloads using node selectors or affinity rules. Taints prevent pods from being scheduled on certain nodes unless the pods explicitly tolerate the taint—useful for dedicating nodes to specific workloads or keeping certain nodes free for particular purposes.
 
 Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_commands`, and `additional_post_k3s_commands`, can be specified at the root level of the configuration file or for each individual pool if different settings are needed. If these settings are configured at the pool level, they will override any settings defined at the root level.
 
@@ -213,6 +215,19 @@ Hetzner Cloud init settings, such as `additional_packages`, `additional_pre_k3s_
 - `additional_post_k3s_commands`: Commands executed after k3s is installed and configured
 
 For an example of using `additional_post_k3s_commands` to resize the root partition for use with storage solutions like Rook Ceph, see [Resizing root partition with additional post k3s commands](./Resizing_root_partition_with_post_create_commands.md).
+
+The `addons` section controls which components hetzner-k3s installs automatically:
+
+- **csi_driver**: The Hetzner CSI driver enables persistent volumes backed by Hetzner block storage. Enabled by default; disable if you're using alternative storage solutions like Rook Ceph or Longhorn.
+- **cloud_controller_manager**: Integrates with Hetzner Cloud to provision load balancers automatically when you create Kubernetes Service objects of type LoadBalancer. Enabled by default.
+- **system_upgrade_controller**: Enables zero-downtime rolling upgrades of k3s across your cluster. Enabled by default.
+- **cluster_autoscaler**: Automatically scales worker node pools based on resource demands. Enabled by default when you have autoscaling pools defined.
+- **traefik**: k3s's built-in ingress controller. Disabled by default; enable if you want a quick ingress solution without installing your own.
+- **servicelb**: k3s's built-in load balancer for bare-metal environments. Disabled by default; typically not needed when using Hetzner's load balancers.
+- **metrics_server**: Enables `kubectl top` commands for viewing resource usage. Disabled by default.
+- **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
+
+The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
