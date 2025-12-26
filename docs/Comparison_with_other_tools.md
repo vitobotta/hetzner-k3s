@@ -189,7 +189,7 @@ hetzner-k3s has been tested with 500 nodes and is designed to scale beyond. Clus
 
 ### Multi-Cloud Requirements
 
-If you need clusters across AWS, GCP, and Hetzner with unified management, consider Claudie or Cluster API. hetzner-k3s is optimized specifically for Hetzner.
+If you need clusters across AWS, GCP, and Hetzner with unified management, consider Claudie or Cluster API. hetzner-k3s is designed specifically for Hetzner.
 
 ---
 
