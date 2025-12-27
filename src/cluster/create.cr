@@ -130,10 +130,11 @@ class Cluster::Create
       spawn do
         begin
           created_instance = instance_factory.run
-          semaphore.receive # release the semaphore immediately after instance creation
           handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_factory, wait)
         rescue e : Exception
           puts "Error creating instance: #{e.message}"
+        ensure
+          semaphore.receive
         end
       end
     end

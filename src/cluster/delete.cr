@@ -77,17 +77,27 @@ class Cluster::Delete
     initialize_worker_nodes
     detect_nodes_with_kubectl
 
-    channel = Channel(String).new
+    channel = Channel(String | Exception).new
 
     instance_deletors.each do |instance_deletor|
       spawn do
-        instance_deletor.run
-        channel.send(instance_deletor.instance_name)
+        begin
+          instance_deletor.run
+          channel.send(instance_deletor.instance_name)
+        rescue e : Exception
+          channel.send(e)
+        end
       end
     end
 
+    errors = [] of Exception
     instance_deletors.size.times do
-      channel.receive
+      result = channel.receive
+      errors << result if result.is_a?(Exception)
+    end
+
+    unless errors.empty?
+      errors.each { |e| puts "Error deleting instance: #{e.message}".colorize(:red) }
     end
   end
 
