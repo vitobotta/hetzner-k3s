@@ -24,6 +24,42 @@ class Kubernetes::LocalFirewall::Setup
     log_line "Local firewall deployed", instance
   end
 
+  def deploy_to_all_nodes(first_master : Hetzner::Instance, known_instances : Array(Hetzner::Instance)) : Nil
+    return unless local_firewall_enabled?
+
+    all_node_ips = fetch_all_node_ips(first_master)
+    return if all_node_ips.empty?
+
+    known_ips = known_instances.flat_map { |i| [i.public_ip_address, i.private_ip_address].compact }
+    autoscaled_ips = all_node_ips - known_ips
+
+    return if autoscaled_ips.empty?
+
+    log_line_global "Deploying firewall to #{autoscaled_ips.size} autoscaled node(s)..."
+
+    completed_channel = Channel(String).new
+    semaphore = Channel(Nil).new(10)
+
+    autoscaled_ips.each do |ip|
+      semaphore.send(nil)
+      spawn do
+        begin
+          instance = create_instance_from_ip(ip)
+          deploy(instance)
+          completed_channel.send(ip)
+        rescue e : Exception
+          log_line_global "Failed to deploy firewall to #{ip}: #{e.message}"
+          completed_channel.send(ip)
+        ensure
+          semaphore.receive
+        end
+      end
+    end
+
+    autoscaled_ips.size.times { completed_channel.receive }
+    log_line_global "Firewall deployed to all autoscaled nodes"
+  end
+
   private def local_firewall_enabled? : Bool
     !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall
   end
@@ -32,6 +68,8 @@ class Kubernetes::LocalFirewall::Setup
     firewall_script_b64 = Base64.strict_encode(render_firewall_script)
     firewall_service_b64 = Base64.strict_encode(FIREWALL_SERVICE)
     firewall_status_b64 = Base64.strict_encode(render_firewall_status)
+    ssh_networks_b64 = Base64.strict_encode(allowed_ssh_networks)
+    api_networks_b64 = Base64.strict_encode(allowed_api_networks)
 
     run_ssh(instance, <<-SCRIPT)
       echo '#{firewall_script_b64}' | base64 -d > /usr/local/bin/firewall.sh
@@ -41,6 +79,9 @@ class Kubernetes::LocalFirewall::Setup
 
       echo '#{firewall_status_b64}' | base64 -d > /usr/local/bin/firewall-status
       chmod 755 /usr/local/bin/firewall-status
+
+      echo '#{ssh_networks_b64}' | base64 -d > /etc/allowed-networks-ssh.conf
+      echo '#{api_networks_b64}' | base64 -d > /etc/allowed-networks-kubernetes-api.conf
     SCRIPT
   end
 
@@ -71,11 +112,41 @@ class Kubernetes::LocalFirewall::Setup
     })
   end
 
+  private def allowed_ssh_networks : String
+    settings.networking.allowed_networks.ssh.join("\n")
+  end
+
+  private def allowed_api_networks : String
+    settings.networking.allowed_networks.api.join("\n")
+  end
+
   private def run_ssh(instance : Hetzner::Instance, script : String) : String
     ssh.run(instance, settings.networking.ssh.port, script, settings.networking.ssh.use_agent)
   end
 
+  private def fetch_all_node_ips(first_master : Hetzner::Instance) : Array(String)
+    output = run_ssh(first_master, <<-SCRIPT)
+      KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -o jsonpath='{range .items[*]}{.status.addresses[?(@.type=="ExternalIP")].address}{"\\n"}{end}' 2>/dev/null || true
+    SCRIPT
+
+    output.lines.map(&.strip).reject(&.empty?)
+  end
+
+  private def create_instance_from_ip(ip : String) : Hetzner::Instance
+    Hetzner::Instance.new(
+      id: 0,
+      status: "running",
+      instance_name: ip,
+      internal_ip: ip,
+      external_ip: ip
+    )
+  end
+
   private def log_line(message : String, instance : Hetzner::Instance) : Nil
     puts "[Local Firewall - #{instance.name}] #{message}"
+  end
+
+  private def log_line_global(message : String) : Nil
+    puts "[Local Firewall] #{message}"
   end
 end

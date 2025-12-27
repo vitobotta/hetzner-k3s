@@ -6,6 +6,7 @@ require "../util/shell"
 require "../util/ssh"
 require "./control_plane/setup"
 require "./kubeconfig_manager"
+require "./local_firewall/setup"
 require "./script/master_generator"
 require "./script/worker_generator"
 require "./software/cilium"
@@ -33,6 +34,7 @@ class Kubernetes::Installer
   private getter software_installer : Kubernetes::Software::Installer
   private getter control_plane_setup : Kubernetes::ControlPlane::Setup
   private getter worker_setup : Kubernetes::Worker::Setup
+  private getter local_firewall_setup : Kubernetes::LocalFirewall::Setup
 
   def initialize(
     @configuration,
@@ -46,6 +48,7 @@ class Kubernetes::Installer
     @software_installer = Kubernetes::Software::Installer.new(@configuration, settings)
     @control_plane_setup = Kubernetes::ControlPlane::Setup.new(@configuration, settings, @ssh, @master_generator, @kubeconfig_manager)
     @worker_setup = Kubernetes::Worker::Setup.new(@configuration, settings, @ssh, @worker_generator)
+    @local_firewall_setup = Kubernetes::LocalFirewall::Setup.new(settings, @ssh)
   end
 
   private getter masters : Array(Hetzner::Instance) = [] of Hetzner::Instance
@@ -55,6 +58,8 @@ class Kubernetes::Installer
     ensure_kubectl_is_installed!
 
     @masters, @first_master_instance = @control_plane_setup.set_up_control_plane(masters_installation_queue_channel, master_count, load_balancer)
+
+    @local_firewall_setup.deploy_to_all_nodes(first_master, @masters)
 
     @software_installer.install_all(@first_master_instance, @masters, ssh, autoscaling_worker_node_pools)
 
