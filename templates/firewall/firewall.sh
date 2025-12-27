@@ -36,7 +36,7 @@ readonly LAST_IPS_FILE="/tmp/last_node_ips.txt"
 # =============================================================================
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+    echo "$*"
 }
 
 validate_ip_network() {

@@ -18,10 +18,10 @@ class Kubernetes::LocalFirewall::Setup
   def deploy(instance : Hetzner::Instance) : Nil
     return unless local_firewall_enabled?
 
-    log_line "Deploying local firewall...", instance
+    log_line "Deploying local firewall...", instance.name
     deploy_firewall_files(instance)
     ensure_firewall_running(instance)
-    log_line "Local firewall deployed", instance
+    log_line "...local firewall deployed", instance.name
   end
 
   def deploy_to_all_nodes(first_master : Hetzner::Instance, known_instances : Array(Hetzner::Instance)) : Nil
@@ -35,7 +35,7 @@ class Kubernetes::LocalFirewall::Setup
 
     return if autoscaled_ips.empty?
 
-    log_line_global "Deploying firewall to #{autoscaled_ips.size} autoscaled node(s)..."
+    log_line "Deploying firewall to #{autoscaled_ips.size} autoscaled node(s)..."
 
     completed_channel = Channel(String).new
     semaphore = Channel(Nil).new(10)
@@ -45,10 +45,11 @@ class Kubernetes::LocalFirewall::Setup
       spawn do
         begin
           instance = create_instance_from_ip(ip)
-          deploy(instance)
+          deploy_firewall_files(instance)
+          ensure_firewall_running(instance)
           completed_channel.send(ip)
         rescue e : Exception
-          log_line_global "Failed to deploy firewall to #{ip}: #{e.message}"
+          log_line "Failed to deploy firewall to #{ip}: #{e.message}"
           completed_channel.send(ip)
         ensure
           semaphore.receive
@@ -57,7 +58,7 @@ class Kubernetes::LocalFirewall::Setup
     end
 
     autoscaled_ips.size.times { completed_channel.receive }
-    log_line_global "Firewall deployed to all autoscaled nodes"
+    log_line "...firewall deployed to all autoscaled nodes"
   end
 
   private def local_firewall_enabled? : Bool
@@ -152,11 +153,8 @@ class Kubernetes::LocalFirewall::Setup
     )
   end
 
-  private def log_line(message : String, instance : Hetzner::Instance) : Nil
-    puts "[Local Firewall - #{instance.name}] #{message}"
-  end
-
-  private def log_line_global(message : String) : Nil
-    puts "[Local Firewall] #{message}"
+  private def log_line(message : String, instance_name : String? = nil) : Nil
+    prefix = instance_name ? "Local Firewall - #{instance_name}" : "Local Firewall"
+    puts "[#{prefix}] #{message}"
   end
 end
