@@ -169,11 +169,10 @@ restore_ipsets() {
 setup_iptables() {
     log "Configuring iptables..."
 
-    # Flush and set defaults
-    iptables -F
-    iptables -X
+    # Flush INPUT chain and set defaults
+    # Note: We only flush INPUT as other chains (FORWARD, etc.) are managed by K3s/CNI
+    iptables -F INPUT
     iptables -P INPUT DROP
-    iptables -P FORWARD DROP
     iptables -P OUTPUT ACCEPT
 
     # Basic rules
