@@ -1,5 +1,6 @@
 require "base64"
 require "crinja"
+require "tasker"
 require "../../configuration/main"
 require "../../hetzner/instance"
 require "../../util/ssh"
@@ -8,6 +9,8 @@ class Kubernetes::LocalFirewall::Setup
   FIREWALL_SCRIPT  = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall.sh") }}
   FIREWALL_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall.service") }}
   FIREWALL_STATUS  = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
+
+  AUTOSCALED_NODE_TIMEOUT = 30.seconds
 
   private getter settings : Configuration::Main
   private getter ssh : ::Util::SSH
@@ -44,15 +47,18 @@ class Kubernetes::LocalFirewall::Setup
       semaphore.send(nil)
       spawn do
         begin
-          instance = create_instance_from_ip(ip)
-          deploy_firewall_files(instance)
-          ensure_firewall_running(instance)
-          completed_channel.send(ip)
+          Tasker.timeout(AUTOSCALED_NODE_TIMEOUT) do
+            instance = create_instance_from_ip(ip)
+            deploy_firewall_files(instance)
+            ensure_firewall_running(instance)
+          end
+        rescue Tasker::Timeout
+          log_line "Timeout deploying firewall to #{ip}, skipping"
         rescue e : Exception
           log_line "Failed to deploy firewall to #{ip}: #{e.message}"
-          completed_channel.send(ip)
         ensure
           semaphore.receive
+          completed_channel.send(ip)
         end
       end
     end
