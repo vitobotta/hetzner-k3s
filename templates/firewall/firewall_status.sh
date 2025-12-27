@@ -98,21 +98,26 @@ check_iptables() {
     fi
 
     echo "Default Policies:"
-    iptables -L 2>/dev/null | grep "^Chain" | head -3
+    iptables -S 2>/dev/null | grep "^-P" | while read -r line; do
+        echo "  $line"
+    done
     echo
 
     echo "Key Rules Check:"
+    local rules
+    rules=$(iptables -S INPUT 2>/dev/null)
+
     local checks=(
-        "ICMP:icmp"
-        "Nodes ipset:match-set nodes"
-        "API ipset:match-set allowed_networks_k8s_api"
-        "SSH ipset:match-set allowed_networks_ssh"
+        "ICMP:-p icmp"
+        "Nodes ipset:--match-set nodes"
+        "API ipset:--match-set allowed_networks_k8s_api"
+        "SSH ipset:--match-set allowed_networks_ssh"
     )
 
     for check in "${checks[@]}"; do
         local name="${check%%:*}"
         local pattern="${check#*:}"
-        if iptables -L INPUT -v 2>/dev/null | grep -q "$pattern"; then
+        if echo "$rules" | grep -q -- "$pattern"; then
             echo "  [OK] $name rule active"
         else
             echo "  [MISSING] $name rule"

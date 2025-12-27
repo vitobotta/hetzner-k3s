@@ -87,9 +87,7 @@ class Kubernetes::LocalFirewall::Setup
 
   private def ensure_firewall_running(instance : Hetzner::Instance) : Nil
     run_ssh(instance, <<-SCRIPT)
-      if [ ! -f /etc/iptables/rules.v4 ]; then
-        /usr/local/bin/firewall.sh setup
-      fi
+      /usr/local/bin/firewall.sh setup
       systemctl daemon-reload
       systemctl enable firewall.service
       systemctl restart firewall.service
