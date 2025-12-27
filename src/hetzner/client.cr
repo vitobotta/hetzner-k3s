@@ -125,17 +125,22 @@ class Hetzner::Client
   end
 
   private def handle_rate_limit(response)
-    local_reset_time = Time.local + 1.hour
-    puts "[Hetzner API] Rate Limit hit. Rate limit resets at: #{local_reset_time.to_s("%Y-%m-%d %H:%M:%S")}"
+    reset_header = response.headers["RateLimit-Reset"]?
+    reset_timestamp = reset_header.is_a?(String) ? reset_header : reset_header.try(&.first?)
+    reset_time = if reset_timestamp
+                   Time.unix(reset_timestamp.to_i64)
+                 else
+                   Time.utc + 1.hour
+                 end
 
-    wait_time = 3600
+    puts "[Hetzner API] Rate limit hit. Rate limit resets at: #{reset_time.to_local.to_s("%Y-%m-%d %H:%M:%S")}"
 
-    while wait_time > 0
+    while Time.utc < reset_time
+      wait_time = (reset_time - Time.utc).total_seconds.to_i
       remaining = Time::Span.new(seconds: wait_time)
-      puts "[Hetzner API] Waiting for #{remaining.total_hours.floor}h#{remaining.minutes.floor}m#{remaining.seconds.floor}s until rate limit reset..."
-      sleep_time = [wait_time, 5].min
+      puts "[Hetzner API] Waiting for #{remaining.total_hours.floor.to_i}h#{remaining.minutes}m#{remaining.seconds}s until rate limit reset..."
+      sleep_time = [wait_time, 30].min
       sleep(sleep_time.seconds)
-      wait_time -= sleep_time
     end
   end
 
