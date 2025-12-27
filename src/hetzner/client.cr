@@ -12,6 +12,9 @@ class Hetzner::Client
 
   private getter api_url : String = "https://api.hetzner.cloud/v1"
   private getter mutex : Mutex = Mutex.new
+  private getter connect_timeout : Time::Span = 10.seconds
+  private getter read_timeout : Time::Span = 30.seconds
+  private getter write_timeout : Time::Span = 30.seconds
   @locations : Array(Location)?
   @instance_types : Array(InstanceType)?
 
@@ -70,7 +73,10 @@ class Hetzner::Client
         params: params,
         json: true,
         headers: headers,
-        handle_errors: false
+        handle_errors: false,
+        connect_timeout: connect_timeout,
+        read_timeout: read_timeout,
+        write_timeout: write_timeout
       )
     end
 
@@ -84,7 +90,10 @@ class Hetzner::Client
         params,
         json: true,
         headers: headers,
-        handle_errors: false
+        handle_errors: false,
+        connect_timeout: connect_timeout,
+        read_timeout: read_timeout,
+        write_timeout: write_timeout
       )
     end
 
@@ -98,7 +107,10 @@ class Hetzner::Client
         params,
         json: true,
         headers: headers,
-        handle_errors: false
+        handle_errors: false,
+        connect_timeout: connect_timeout,
+        read_timeout: read_timeout,
+        write_timeout: write_timeout
       )
     end
 
@@ -111,7 +123,10 @@ class Hetzner::Client
         "#{api_url}#{path}/#{id}",
         json: true,
         headers: headers,
-        handle_errors: false
+        handle_errors: false,
+        connect_timeout: connect_timeout,
+        read_timeout: read_timeout,
+        write_timeout: write_timeout
       )
     end
 
