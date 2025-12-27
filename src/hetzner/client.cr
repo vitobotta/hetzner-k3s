@@ -1,4 +1,5 @@
 require "crest"
+require "retriable"
 require "yaml"
 require "json"
 
@@ -161,7 +162,7 @@ class Hetzner::Client
 
   private def with_rate_limit
     while true
-      response = yield
+      response = with_network_retry { yield }
 
       if response.status_code == 429
         mutex.synchronize do
@@ -170,6 +171,20 @@ class Hetzner::Client
       else
         return response
       end
+    end
+  end
+
+  private def with_network_retry
+    Retriable.retry(
+      max_attempts: 3,
+      backoff: false,
+      base_interval: 2.seconds,
+      on: {IO::Error, Socket::Error, IO::TimeoutError},
+      on_retry: ->(ex : Exception, attempt : Int32, _elapsed : Time::Span, _next : Time::Span) {
+        puts "[Hetzner API] Network error (#{ex.class}), retrying in 2s (attempt #{attempt}/3)..."
+      }
+    ) do
+      yield
     end
   end
 
