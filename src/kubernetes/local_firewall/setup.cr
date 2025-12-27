@@ -73,6 +73,11 @@ class Kubernetes::LocalFirewall::Setup
     api_networks_b64 = Base64.strict_encode(allowed_api_networks)
 
     run_ssh(instance, <<-SCRIPT)
+      # Remove old firewall-status symlink if it exists (old version used a symlink)
+      if [ -L /usr/local/bin/firewall-status ]; then
+        rm -f /usr/local/bin/firewall-status
+      fi
+
       echo '#{firewall_script_b64}' | base64 -d > /usr/local/bin/firewall.sh
       chmod 755 /usr/local/bin/firewall.sh
 
