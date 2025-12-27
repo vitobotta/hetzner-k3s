@@ -12,6 +12,14 @@
 
 ---
 
+> **📢 Shape the Future of hetzner-k3s**
+>
+> I'm exploring a dual-licensing model: free for personal and non-commercial use, with a reasonable fee for commercial/profit-making activities. I'd love your input on this direction!
+>
+> **[Join the discussion →](https://github.com/vitobotta/hetzner-k3s/discussions/703)**
+
+---
+
 ```
  _          _                            _    _____
 | |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___

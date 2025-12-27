@@ -8,6 +8,14 @@
 
 ---
 
+!!! info "📢 Shape the Future of hetzner-k3s"
+
+    I'm exploring a dual-licensing model: free for personal and non-commercial use, with a reasonable fee for commercial/profit-making activities. I'd love your input on this direction!
+
+    **[Join the discussion →](https://github.com/vitobotta/hetzner-k3s/discussions/703)**
+
+---
+
 ## What is hetzner-k3s?
 
 **hetzner-k3s** is a CLI tool that creates fully-configured Kubernetes clusters on [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) in minutes. It uses [k3s](https://k3s.io/), a lightweight Kubernetes distribution by Rancher, and automatically configures everything you need for production workloads.
