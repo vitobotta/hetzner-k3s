@@ -1,7 +1,6 @@
-require "io"
-require "../util"
 require "retriable"
 require "tasker"
+require "../util"
 require "./prefixed_io"
 require "./shell"
 

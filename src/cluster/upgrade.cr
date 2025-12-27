@@ -1,9 +1,8 @@
 require "crinja"
+require "../configuration/loader"
+require "../kubernetes/util"
 require "../util"
 require "../util/shell"
-require "../kubernetes/util"
-require "../configuration/main"
-require "../configuration/loader"
 
 class Cluster::Upgrade
   include Util

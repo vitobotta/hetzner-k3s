@@ -1,11 +1,7 @@
 require "yaml"
-require "crest"
 
 require "./main"
-
 require "../hetzner/client"
-require "../hetzner/instance_type"
-require "../hetzner/location"
 
 require "./validators/configuration_file_path"
 require "./validators/cluster_name"

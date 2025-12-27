@@ -1,13 +1,11 @@
-require "../configuration/main"
 require "../configuration/loader"
-require "../hetzner/client"
 require "../hetzner/ssh_key/create"
-require "../util/ssh"
 require "../kubernetes/installer"
-require "./instance_builder"
-require "./network_manager"
-require "./load_balancer_manager"
+require "../util/ssh"
 require "./firewall_manager"
+require "./instance_builder"
+require "./load_balancer_manager"
+require "./network_manager"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader

@@ -1,6 +1,4 @@
 require "../client"
-require "../instance"
-require "../instances_list"
 require "./find"
 require "../../util"
 

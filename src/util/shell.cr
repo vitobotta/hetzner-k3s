@@ -1,6 +1,5 @@
+require "./prefixed_io"
 require "./shell/command_result"
-require "random/secure"
-require "file_utils"
 
 module Util
   module Shell

@@ -1,5 +1,4 @@
 require "../configuration/loader"
-require "../hetzner/instance"
 require "../util/ssh"
 require "./node_detection"
 
