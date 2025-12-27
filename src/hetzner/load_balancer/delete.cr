@@ -5,13 +5,13 @@ require "../../util"
 class Hetzner::LoadBalancer::Delete
   include Util
 
-  getter hetzner_client : Hetzner::Client
-  getter cluster_name : String
-  getter load_balancer_name : String do
+  private getter hetzner_client : Hetzner::Client
+  private getter cluster_name : String
+  private getter load_balancer_name : String do
     "#{cluster_name}-api"
   end
-  getter load_balancer_finder : Hetzner::LoadBalancer::Find
-  getter print_log : Bool = true
+  private getter load_balancer_finder : Hetzner::LoadBalancer::Find
+  private getter print_log : Bool = true
 
   def initialize(@hetzner_client, @cluster_name, @print_log)
     @load_balancer_finder = Hetzner::LoadBalancer::Find.new(@hetzner_client, load_balancer_name)
