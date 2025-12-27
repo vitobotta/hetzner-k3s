@@ -87,6 +87,18 @@ class Kubernetes::LocalFirewall::Setup
 
   private def ensure_firewall_running(instance : Hetzner::Instance) : Nil
     run_ssh(instance, <<-SCRIPT)
+      # Stop and disable old firewall services if they exist
+      for svc in firewall_updater iptables_restore ipset_restore; do
+        if systemctl list-unit-files | grep -q "${svc}.service"; then
+          systemctl stop ${svc}.service 2>/dev/null || true
+          systemctl disable ${svc}.service 2>/dev/null || true
+        fi
+      done
+
+      # Remove old firewall scripts if they exist
+      rm -rf /usr/local/lib/firewall 2>/dev/null || true
+
+      # Setup and start new firewall service
       /usr/local/bin/firewall.sh setup
       systemctl daemon-reload
       systemctl enable firewall.service
