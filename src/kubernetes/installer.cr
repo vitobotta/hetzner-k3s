@@ -21,14 +21,14 @@ class Kubernetes::Installer
   include Util
   include Util::Shell
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
-  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
-  getter load_balancer : Hetzner::LoadBalancer?
-  getter ssh : ::Util::SSH
-  getter kubeconfig_manager : Kubernetes::KubeconfigManager
-  getter master_generator : Kubernetes::Script::MasterGenerator
-  getter worker_generator : Kubernetes::Script::WorkerGenerator
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
+  private getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
+  private getter load_balancer : Hetzner::LoadBalancer?
+  private getter ssh : ::Util::SSH
+  private getter kubeconfig_manager : Kubernetes::KubeconfigManager
+  private getter master_generator : Kubernetes::Script::MasterGenerator
+  private getter worker_generator : Kubernetes::Script::WorkerGenerator
 
   private getter software_installer : Kubernetes::Software::Installer
   private getter control_plane_setup : Kubernetes::ControlPlane::Setup

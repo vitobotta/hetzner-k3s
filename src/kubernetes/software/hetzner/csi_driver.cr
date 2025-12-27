@@ -5,8 +5,8 @@ class Kubernetes::Software::Hetzner::CSIDriver
   include Util
   include Kubernetes::Util
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
 
   def initialize(@configuration, @settings)
   end

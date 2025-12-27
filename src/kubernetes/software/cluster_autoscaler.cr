@@ -33,12 +33,12 @@ class Kubernetes::Software::ClusterAutoscaler
   HCLOUD_PUBLIC_IPV6_VAR              = "HCLOUD_PUBLIC_IPV6"
   CERT_CHECK_COMMAND                  = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
-  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
-  getter first_master : ::Hetzner::Instance
-  getter ssh : ::Util::SSH
-  getter masters : Array(::Hetzner::Instance)
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
+  private getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
+  private getter first_master : ::Hetzner::Instance
+  private getter ssh : ::Util::SSH
+  private getter masters : Array(::Hetzner::Instance)
 
   def initialize(
     @configuration : Configuration::Loader,

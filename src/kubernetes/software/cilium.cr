@@ -27,8 +27,8 @@ class Kubernetes::Software::Cilium
 
   CILIUM_VALUES_TEMPLATE = {{ read_file("#{__DIR__}/../../../templates/cilium_values.yaml") }}
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
 
   def initialize(@configuration, @settings)
   end
@@ -69,7 +69,7 @@ class Kubernetes::Software::Cilium
 
         result = run_shell_command(helm_command, configuration.kubeconfig_path, settings.hetzner_token)
       ensure
-        cleanup_temp_file(values_file)
+        File.delete(values_file) if File.exists?(values_file)
       end
     end
 

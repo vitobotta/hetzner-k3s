@@ -1,5 +1,4 @@
 require "crinja"
-require "base64"
 
 require "../../configuration/main"
 require "../../configuration/loader"
@@ -31,7 +30,7 @@ class Kubernetes::Script::WorkerGenerator
     })
   end
 
-  def kubelet_args_list
+  private def kubelet_args_list
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", @settings.all_kubelet_args)
   end
 
@@ -43,7 +42,7 @@ class Kubernetes::Script::WorkerGenerator
     first_master.private_ip_address || first_master.public_ip_address
   end
 
-  def default_log_prefix
+  private def default_log_prefix
     "Kubernetes Script Worker"
   end
 end

@@ -7,8 +7,8 @@ class Kubernetes::Software::Hetzner::Secret
 
   HETZNER_CLOUD_SECRET_MANIFEST = {{ read_file("#{__DIR__}/../../../../templates/hetzner_cloud_secret_manifest.yaml") }}
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
 
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
   end
