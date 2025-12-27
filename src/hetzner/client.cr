@@ -1,7 +1,6 @@
 require "crest"
-require "retriable"
-require "yaml"
 require "json"
+require "retriable"
 
 require "./location"
 require "./locations_list"

@@ -1,4 +1,4 @@
-require "./network"
+require "./load_balancer"
 
 class Hetzner::LoadBalancersList
   include JSON::Serializable
