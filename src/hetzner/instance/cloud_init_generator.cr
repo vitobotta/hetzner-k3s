@@ -5,14 +5,9 @@ require "base64"
 class Hetzner::Instance::CloudInitGenerator
   CLOUD_INIT_YAML = {{ read_file("#{__DIR__}/../../../templates/cloud_init.yaml") }}
 
-  CONFIGURE_FIREWALL_SCRIPT      = {{ read_file("#{__DIR__}/../../../templates/firewall/configure_firewall.sh") }}
-  FIREWALL_SETUP_SCRIPT          = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_setup.sh") }}
-  FIREWALL_STATUS_SCRIPT         = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
-  FIREWALL_UPDATER_SCRIPT        = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.sh") }}
-  SETUP_FIREWALL_SERVICES_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/firewall/setup_services.sh") }}
-  IPTABLES_RESTORE_SERVICE       = {{ read_file("#{__DIR__}/../../../templates/firewall/iptables_restore.service") }}
-  IPSET_RESTORE_SERVICE          = {{ read_file("#{__DIR__}/../../../templates/firewall/ipset_restore.service") }}
-  FIREWALL_UPDATER_SERVICE       = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_updater.service") }}
+  FIREWALL_SCRIPT  = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall.sh") }}
+  FIREWALL_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall.service") }}
+  FIREWALL_STATUS  = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
 
   SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
@@ -65,55 +60,26 @@ class Hetzner::Instance::CloudInitGenerator
     format_file_content(@settings.networking.allowed_networks.ssh.join("\n"))
   end
 
-  private def configure_firewall_script
-    script = Crinja.render(CONFIGURE_FIREWALL_SCRIPT, {
-      cluster_cidr: @settings.networking.cluster_cidr,
-      service_cidr: @settings.networking.service_cidr,
+  private def firewall_script
+    script = Crinja.render(FIREWALL_SCRIPT, {
+      hetzner_token:                @settings.hetzner_token,
+      hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
+      ssh_port:                     @settings.networking.ssh.port,
+      cluster_cidr:                 @settings.networking.cluster_cidr,
+      service_cidr:                 @settings.networking.service_cidr,
     })
     format_file_content(script)
   end
 
-  private def firewall_setup_script
-    script = Crinja.render(FIREWALL_SETUP_SCRIPT, {
-      hetzner_token:                @settings.hetzner_token,
-      hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port:                     @settings.networking.ssh.port,
-    })
-    format_file_content(script)
+  private def firewall_service
+    format_file_content(FIREWALL_SERVICE)
   end
 
   private def firewall_status_script
-    format_file_content(FIREWALL_STATUS_SCRIPT)
-  end
-
-  private def firewall_updater_script
-    format_file_content(FIREWALL_UPDATER_SCRIPT)
-  end
-
-  private def setup_firewall_services_script
-    script = Crinja.render(SETUP_FIREWALL_SERVICES_SCRIPT, {
-      hetzner_token:                @settings.hetzner_token,
-      hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port:                     @settings.networking.ssh.port,
+    script = Crinja.render(FIREWALL_STATUS, {
+      ssh_port: @settings.networking.ssh.port,
     })
     format_file_content(script)
-  end
-
-  private def firewall_updater_service
-    service = Crinja.render(FIREWALL_UPDATER_SERVICE, {
-      hetzner_token:                @settings.hetzner_token,
-      hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
-      ssh_port:                     @settings.networking.ssh.port,
-    })
-    format_file_content(service)
-  end
-
-  private def ipset_restore_service
-    format_file_content(IPSET_RESTORE_SERVICE)
-  end
-
-  private def iptables_restore_service
-    format_file_content(IPTABLES_RESTORE_SERVICE)
   end
 
   private def firewall_files
@@ -126,34 +92,16 @@ class Hetzner::Instance::CloudInitGenerator
     - content: #{allowed_ssh_networks_config}
       path: /etc/allowed-networks-ssh.conf
       encoding: gzip+base64
-    - path: /usr/local/lib/firewall/configure_firewall.sh
+    - path: /usr/local/bin/firewall.sh
       permissions: '0755'
-      content: #{configure_firewall_script}
+      content: #{firewall_script}
       encoding: gzip+base64
-    - path: /usr/local/lib/firewall/firewall_setup.sh
-      permissions: '0755'
-      content: #{firewall_setup_script}
+    - path: /etc/systemd/system/firewall.service
+      content: #{firewall_service}
       encoding: gzip+base64
-    - path: /usr/local/lib/firewall/firewall_status.sh
+    - path: /usr/local/bin/firewall-status
       permissions: '0755'
       content: #{firewall_status_script}
-      encoding: gzip+base64
-    - path: /etc/systemd/system/firewall_updater.service
-      content: #{firewall_updater_service}
-      encoding: gzip+base64
-    - path: /usr/local/lib/firewall/firewall_updater.sh
-      permissions: '0755'
-      content: #{firewall_updater_script}
-      encoding: gzip+base64
-    - path: /etc/systemd/system/iptables_restore.service
-      content: #{iptables_restore_service}
-      encoding: gzip+base64
-    - path: /etc/systemd/system/ipset_restore.service
-      content: #{ipset_restore_service}
-      encoding: gzip+base64
-    - path: /usr/local/lib/firewall/setup_service.sh
-      permissions: '0755'
-      content: #{setup_firewall_services_script}
       encoding: gzip+base64
     YAML
   end
@@ -249,7 +197,8 @@ class Hetzner::Instance::CloudInitGenerator
     ]
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
-      commands << "/usr/local/lib/firewall/firewall_setup.sh"
+      commands << "/usr/local/bin/firewall.sh setup"
+      commands << "systemctl daemon-reload && systemctl enable --now firewall.service"
     end
 
     commands

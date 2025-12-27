@@ -1,0 +1,16 @@
+[Unit]
+Description=K3s Node Firewall Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/firewall.sh daemon
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
