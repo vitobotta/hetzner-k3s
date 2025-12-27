@@ -1,10 +1,8 @@
 require "../../configuration/loader"
-require "../../configuration/main"
-require "../../hetzner/instance"
-require "../../util/ssh"
 require "../../util/shell"
-require "../script/master_generator"
+require "../../util/ssh"
 require "../kubeconfig_manager"
+require "../script/master_generator"
 
 class Kubernetes::ControlPlane::Setup
   include Util::Shell

@@ -1,11 +1,13 @@
 require "file_utils"
-require "../util"
-require "../util/ssh"
-require "../hetzner/instance"
 require "../configuration/loader"
+require "../hetzner/load_balancer"
+require "../util"
+require "../util/shell"
+require "../util/ssh"
 
 class Kubernetes::KubeconfigManager
   include Util
+  include Util::Shell
 
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @ssh : ::Util::SSH)
   end
