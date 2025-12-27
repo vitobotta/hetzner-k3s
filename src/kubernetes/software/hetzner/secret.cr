@@ -23,19 +23,15 @@ class Kubernetes::Software::Hetzner::Secret
   end
 
   private def build_secret_manifest : String
-    network_name = resolve_network_name
-
     Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network: network_name,
+      network: network_name_for_secret,
       token:   settings.hetzner_token,
     })
   end
 
-  private def resolve_network_name : String
+  private def network_name_for_secret : String
     return "" unless settings.networking.private_network.enabled
-
-    existing_name = settings.networking.private_network.existing_network_name
-    existing_name.blank? ? settings.cluster_name : existing_name
+    resolve_network_name
   end
 
   private def default_log_prefix : String
