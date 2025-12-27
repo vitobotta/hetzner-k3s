@@ -2,9 +2,15 @@ require "../../configuration/loader"
 require "../../configuration/main"
 require "../../hetzner/instance"
 require "../../util/ssh"
+require "../deployment_helper"
 require "../script/worker_generator"
 
 class Kubernetes::Worker::Setup
+  include Kubernetes::SSHDeploymentHelper
+
+  getter settings : Configuration::Main
+  getter ssh : ::Util::SSH
+
   def initialize(
     @configuration : Configuration::Loader,
     @settings : Configuration::Main,
@@ -49,15 +55,6 @@ class Kubernetes::Worker::Setup
     wait_for_cloud_init(instance)
     script = @worker_generator.generate_script(masters, first_master, pool)
     deploy_to_instance(instance, script)
-  end
-
-  private def wait_for_cloud_init(instance : Hetzner::Instance)
-    cloud_init_wait_script = {{ read_file("#{__DIR__}/../../../templates/cloud_init_wait_script.sh") }}
-    @ssh.run(instance, @settings.networking.ssh.port, cloud_init_wait_script, @settings.networking.ssh.use_agent)
-  end
-
-  private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
-    @ssh.run(instance, @settings.networking.ssh.port, script, @settings.networking.ssh.use_agent)
   end
 
   private def wait_for_one_worker_to_be_ready(first_master : Hetzner::Instance)

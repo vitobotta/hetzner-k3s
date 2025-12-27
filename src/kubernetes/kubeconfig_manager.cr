@@ -1,13 +1,14 @@
-require "file_utils"
 require "../configuration/loader"
 require "../hetzner/load_balancer"
 require "../util"
 require "../util/shell"
 require "../util/ssh"
+require "./deployment_helper"
 
 class Kubernetes::KubeconfigManager
   include Util
   include Util::Shell
+  include Kubernetes::DeploymentHelper
 
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @ssh : ::Util::SSH)
   end
@@ -74,10 +75,6 @@ class Kubernetes::KubeconfigManager
     end
 
     sans.uniq.sort.join(" ")
-  end
-
-  private def api_server_ip_address(first_master : Hetzner::Instance)
-    first_master.private_ip_address || first_master.public_ip_address
   end
 
   private def load_balancer_ip_address(load_balancer : Hetzner::LoadBalancer?)
