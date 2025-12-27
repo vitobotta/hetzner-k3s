@@ -15,13 +15,6 @@ class Cluster::Delete
   include Kubernetes::Util
   include NodeDetection
 
-  private getter configuration : Configuration::Loader
-  private getter hetzner_client : Hetzner::Client do
-    configuration.hetzner_client
-  end
-  private getter settings : Configuration::Main do
-    configuration.settings
-  end
   private getter force : Bool = false
   private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
 
@@ -161,26 +154,26 @@ class Cluster::Delete
   end
 
   private def detect_nodes_with_kubectl
-      node_names = detect_instances_node_names_only
-      node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
-      detect_nodes_with_hetzner_api if node_names.empty?
-    end
+    node_names = detect_instances_node_names_only
+    node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
+    detect_nodes_with_hetzner_api if node_names.empty?
+  end
 
   private def add_instance_deletor(instance_name)
     instance_deletors << Hetzner::Instance::Delete.new(settings: settings, hetzner_client: hetzner_client, instance_name: instance_name)
   end
 
   private def detect_nodes_with_hetzner_api
-      instance_names = [] of String
-      find_instance_names_by_label("cluster=#{settings.cluster_name}", instance_names)
+    instance_names = [] of String
+    find_instance_names_by_label("cluster=#{settings.cluster_name}", instance_names)
 
-      settings.worker_node_pools.each do |pool|
-        next unless pool.autoscaling_enabled
+    settings.worker_node_pools.each do |pool|
+      next unless pool.autoscaling_enabled
 
-        node_group_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
-        find_instance_names_by_label("hcloud/node-group=#{node_group_name}", instance_names)
-      end
-
-      instance_names.each { |instance_name| add_instance_deletor(instance_name) unless instance_deletor_exists?(instance_name) }
+      node_group_name = pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name
+      find_instance_names_by_label("hcloud/node-group=#{node_group_name}", instance_names)
     end
+
+    instance_names.each { |instance_name| add_instance_deletor(instance_name) unless instance_deletor_exists?(instance_name) }
   end
+end

@@ -12,11 +12,11 @@ class Cluster::Upgrade
   UPGRADE_PLAN_MANIFEST_FOR_MASTERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_masters.yaml") }}
   UPGRADE_PLAN_MANIFEST_FOR_WORKERS = {{ read_file("#{__DIR__}/../../templates/upgrade_plan_for_workers.yaml") }}
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main do
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main do
     configuration.settings
   end
-  getter new_k3s_version : String? do
+  private getter new_k3s_version : String? do
     configuration.new_k3s_version
   end
 

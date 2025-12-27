@@ -19,7 +19,7 @@ class Cluster::NetworkManager
       settings: settings,
       hetzner_client: hetzner_client,
       network_name: settings.cluster_name,
-      network_zone: ::Configuration::Validators::NodePoolConfig::Location.network_zone_by_location(default_masters_Location)
+      network_zone: ::Configuration::Validators::NodePoolConfig::Location.network_zone_by_location(default_masters_location)
     ).run
   end
 
@@ -28,7 +28,7 @@ class Cluster::NetworkManager
     Hetzner::Network::Find.new(hetzner_client, existing_network_name).run
   end
 
-  private def default_masters_Location
+  private def default_masters_location
     settings.masters_pool.locations.first
   end
 end

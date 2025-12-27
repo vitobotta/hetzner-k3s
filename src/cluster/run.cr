@@ -8,17 +8,6 @@ class Cluster::Run
   include Kubernetes::Util
   include NodeDetection
 
-  private getter configuration : Configuration::Loader
-  private getter hetzner_client : Hetzner::Client do
-    configuration.hetzner_client
-  end
-  private getter settings : Configuration::Main do
-    configuration.settings
-  end
-
-  def initialize(@configuration)
-  end
-
   def run_command(command : String)
     run_command_internal(command, nil)
   end

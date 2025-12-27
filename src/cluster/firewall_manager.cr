@@ -1,6 +1,5 @@
 require "../hetzner/client"
 require "../hetzner/firewall/create"
-require "../hetzner/firewall/find"
 
 class FirewallManager
   private getter settings : Configuration::Main
