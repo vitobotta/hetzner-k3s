@@ -3,8 +3,6 @@ require "./networking_config/allowed_networks"
 require "./networking_config/private_network"
 require "./networking_config/public_network"
 require "./networking_config/ssh"
-require "../../hetzner/client"
-require "../../hetzner/network/find"
 
 module Configuration
   module Models
