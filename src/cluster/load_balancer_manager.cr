@@ -30,14 +30,14 @@ class Cluster::LoadBalancerManager
 
   def handle(master_count, network)
     if settings.create_load_balancer_for_the_kubernetes_api && master_count > 1
-      create(default_masters_Location, network.try(&.id))
+      create(default_masters_location, network.try(&.id))
     else
       delete
       nil
     end
   end
 
-  private def default_masters_Location
+  private def default_masters_location
     settings.masters_pool.locations.first
   end
 end

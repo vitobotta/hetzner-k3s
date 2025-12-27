@@ -1,13 +1,14 @@
 require "crinja"
-require "base64"
 
 require "../../configuration/main"
 require "../../configuration/loader"
+require "../deployment_helper"
 require "../util"
 require "./labels_and_taints_generator"
 
 class Kubernetes::Script::WorkerGenerator
   include Util
+  include Kubernetes::DeploymentHelper
 
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/worker_install_script.sh") }}
 
@@ -31,7 +32,7 @@ class Kubernetes::Script::WorkerGenerator
     })
   end
 
-  def kubelet_args_list
+  private def kubelet_args_list
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", @settings.all_kubelet_args)
   end
 
@@ -39,11 +40,7 @@ class Kubernetes::Script::WorkerGenerator
     K3s.k3s_token(@settings, masters)
   end
 
-  private def api_server_ip_address(first_master : Hetzner::Instance)
-    first_master.private_ip_address || first_master.public_ip_address
-  end
-
-  def default_log_prefix
+  private def default_log_prefix
     "Kubernetes Script Worker"
   end
 end

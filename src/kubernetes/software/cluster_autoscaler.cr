@@ -20,9 +20,8 @@ class Kubernetes::Software::ClusterAutoscaler
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
   FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
 
-  CLOUD_PROVIDER                      = "hetzner"
-  CRITICAL_ADDONS_ONLY_TOLERATION_KEY = "CriticalAddonsOnly"
-  STORAGE_API_GROUP                   = "storage.k8s.io"
+  CLOUD_PROVIDER              = "hetzner"
+  STORAGE_API_GROUP           = "storage.k8s.io"
   VOLUME_ATTACHMENTS_RESOURCE         = "volumeattachments"
   HCLOUD_CLOUD_INIT_VAR               = "HCLOUD_CLOUD_INIT"
   HCLOUD_CLUSTER_CONFIG_VAR           = "HCLOUD_CLUSTER_CONFIG"
@@ -33,12 +32,12 @@ class Kubernetes::Software::ClusterAutoscaler
   HCLOUD_PUBLIC_IPV6_VAR              = "HCLOUD_PUBLIC_IPV6"
   CERT_CHECK_COMMAND                  = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
 
-  getter configuration : Configuration::Loader
-  getter settings : Configuration::Main { configuration.settings }
-  getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
-  getter first_master : ::Hetzner::Instance
-  getter ssh : ::Util::SSH
-  getter masters : Array(::Hetzner::Instance)
+  private getter configuration : Configuration::Loader
+  private getter settings : Configuration::Main { configuration.settings }
+  private getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
+  private getter first_master : ::Hetzner::Instance
+  private getter ssh : ::Util::SSH
+  private getter masters : Array(::Hetzner::Instance)
 
   def initialize(
     @configuration : Configuration::Loader,
@@ -165,8 +164,7 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def patch_deployment_tolerations(deployment : Kubernetes::Resources::Deployment) : Void
-    pod_spec = deployment.spec.template.spec
-    pod_spec.add_toleration(key: CRITICAL_ADDONS_ONLY_TOLERATION_KEY, value: "true", effect: "NoExecute")
+    deployment.spec.template.spec.add_critical_addons_only_toleration
   end
 
   private def container_command : Array(String)
@@ -276,11 +274,6 @@ class Kubernetes::Software::ClusterAutoscaler
     ssl_mount.mountPath = certificate_path if ssl_mount
 
     container.volumeMounts = volume_mounts
-  end
-
-  private def resolve_network_name : String
-    existing_name = settings.networking.private_network.existing_network_name
-    existing_name.blank? ? settings.cluster_name : existing_name
   end
 
   private def remove_env_variable(env_vars : Array(Kubernetes::Resources::Pod::Spec::Container::EnvVariable), name : String) : Void

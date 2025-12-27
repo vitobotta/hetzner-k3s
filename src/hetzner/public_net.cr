@@ -1,4 +1,4 @@
-require "./client"
+require "json"
 require "./ipv4"
 
 class Hetzner::PublicNet

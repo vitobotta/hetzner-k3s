@@ -10,11 +10,10 @@ class Configuration::Validators::Datastore
 
   def validate
     return errors << "datastore mode is invalid - allowed values are 'etcd' and 'external'" unless {"etcd", "external"}.includes?(datastore.mode)
-    return unless datastore.mode == "external"
 
-    errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
-
-    if datastore.mode == "etcd"
+    if datastore.mode == "external"
+      errors << "external_datastore_endpoint is required for external datastore" if datastore.external_datastore_endpoint.strip.empty?
+    else
       etcd_validator = Configuration::Validators::DatastoreConfig::Etcd.new(errors, datastore.etcd)
       etcd_validator.validate_s3_settings
       etcd_validator.validate_etcd_settings

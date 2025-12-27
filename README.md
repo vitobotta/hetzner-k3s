@@ -147,7 +147,7 @@ brew install vitobotta/tap/hetzner_k3s
 
 **Linux binary (amd64):**
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.3/hetzner-k3s-linux-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.4/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64
 sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ```

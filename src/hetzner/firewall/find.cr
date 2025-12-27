@@ -3,8 +3,8 @@ require "../firewall"
 require "../firewalls_list"
 
 class Hetzner::Firewall::Find
-  getter hetzner_client : Hetzner::Client
-  getter firewall_name : String
+  private getter hetzner_client : Hetzner::Client
+  private getter firewall_name : String
 
   def initialize(@hetzner_client, @firewall_name)
   end

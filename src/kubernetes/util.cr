@@ -106,4 +106,9 @@ module Kubernetes::Util
       abort_on_error: abort_on_error,
       print_output: print_output)
   end
+
+  def resolve_network_name : String
+    existing_name = settings.networking.private_network.existing_network_name
+    existing_name.blank? ? settings.cluster_name : existing_name
+  end
 end

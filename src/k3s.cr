@@ -1,5 +1,4 @@
 require "yaml"
-require "file"
 require "crest"
 
 module K3s
