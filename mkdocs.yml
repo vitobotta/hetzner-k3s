@@ -17,7 +17,7 @@ theme:
     - search.highlight
     - search.suggest
     - toc.follow
-  logo: https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png
+  logo: https://github.com/vitobotta/hetzner-k3s/raw/main/hetzner-k3s-logo-300x208.png
   palette:
     scheme: default
 plugins:

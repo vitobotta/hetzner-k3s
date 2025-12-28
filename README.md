@@ -31,7 +31,7 @@
 # The easiest and fastest way to create production-ready Kubernetes clusters on Hetzner Cloud
 
 <p align="center">
-  <img src="logo-v2.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
+  <img src="hetzner-k3s-logo-300x208.png" alt="hetzner-k3s logo" width="200" height="200" style="margin-left: auto;">
 </p>
 
 <p align="center">
