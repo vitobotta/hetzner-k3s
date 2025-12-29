@@ -18,6 +18,12 @@
 >
 > **[Join the discussion →](https://github.com/vitobotta/hetzner-k3s/discussions/703)**
 
+> **❤️ Support This Project**
+>
+> hetzner-k3s is maintained by a single developer. If it saves you time or money, please consider sponsoring its continued development.
+>
+> **[Become a sponsor →](#why-sponsor)**
+
 ---
 
 ```
