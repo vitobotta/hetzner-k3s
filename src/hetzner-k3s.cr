@@ -23,6 +23,15 @@ module Hetzner::K3s
       puts
     end
 
+    def self.print_sponsor_message
+      puts
+      puts "───────────────────────────────────────────────────────".colorize(:blue)
+      puts "  Enjoying hetzner-k3s? Support its development:".colorize(:blue)
+      puts "  https://github.com/sponsors/vitobotta".colorize(:blue)
+      puts "───────────────────────────────────────────────────────".colorize(:blue)
+      puts
+    end
+
     class Create < Admiral::Command
       define_help description: "Create a cluster"
 
@@ -32,9 +41,17 @@ module Hetzner::K3s
         short: "c",
         required: true
 
+      define_flag quiet : Bool,
+        description: "Suppress the sponsor message",
+        long: "quiet",
+        short: "q",
+        required: false,
+        default: false
+
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :create)
         Cluster::Create.new(configuration: configuration).run
+        ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
     end
 
@@ -53,9 +70,17 @@ module Hetzner::K3s
         required: false,
         default: false
 
+      define_flag quiet : Bool,
+        description: "Suppress the sponsor message",
+        long: "quiet",
+        short: "q",
+        required: false,
+        default: false
+
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, flags.force, :delete)
         Cluster::Delete.new(configuration: configuration, force: flags.force).run
+        ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
     end
 
@@ -79,9 +104,17 @@ module Hetzner::K3s
         required: false,
         default: false
 
+      define_flag quiet : Bool,
+        description: "Suppress the sponsor message",
+        long: "quiet",
+        short: "q",
+        required: false,
+        default: false
+
       def run
         configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, flags.new_k3s_version, flags.force, :upgrade)
         Cluster::Upgrade.new(configuration: configuration).run
+        ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
     end
 
