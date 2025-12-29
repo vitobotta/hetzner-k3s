@@ -16,7 +16,13 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       VERSION: ${{ github.ref_name }}
-      MESSAGE: "WIP"
+      MESSAGE: |
+        WIP
+
+        ---
+
+        If hetzner-k3s is useful to you or your company, please consider [sponsoring its development](https://github.com/sponsors/vitobotta).
+        Sponsorship helps ensure continued maintenance and new features. Thank you to our current sponsors! 🙏
     steps:
       - name: Download Binaries Built by CI Workflow
         uses: actions/download-artifact@v4
