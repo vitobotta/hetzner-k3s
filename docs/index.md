@@ -135,9 +135,15 @@ Connect with me at [vitobotta.com](https://vitobotta.com/). I'm available for co
 
 ---
 
-## Sponsors
+## Why Sponsor?
 
-If you or your company find this project useful, please consider [sponsoring its development](https://github.com/sponsors/vitobotta). Your support helps keep this project actively maintained.
+This project is maintained by a single developer in my spare time. Sponsorship helps me:
+
+- Respond to issues faster
+- Ship new features regularly
+- Keep the project compatible with new Hetzner Cloud updates
+
+If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta).
 
 ### Platinum Sponsors
 
