@@ -8,6 +8,9 @@ class Kubernetes::Resources::Pod
         property name : String?
         property mountPath : String?
         property readOnly : Bool?
+
+        def initialize(@name : String? = nil, @mountPath : String? = nil, @readOnly : Bool? = nil)
+        end
       end
     end
   end
