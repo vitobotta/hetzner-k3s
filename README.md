@@ -12,12 +12,6 @@
 
 ---
 
-> **📢 Shape the Future of hetzner-k3s**
->
-> I'm exploring a dual-licensing model: free for personal and non-commercial use, with a reasonable fee for commercial/profit-making activities. I'd love your input on this direction!
->
-> **[Join the discussion →](https://github.com/vitobotta/hetzner-k3s/discussions/703)**
-
 > **❤️ Support This Project**
 >
 > hetzner-k3s is maintained by a single developer. If it saves you time or money, please consider sponsoring its continued development.
