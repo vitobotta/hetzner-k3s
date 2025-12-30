@@ -62,9 +62,8 @@ fi
 mkdir -p /etc/rancher/k3s
 
 # Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<EOF
-mirrors:
-  "*":
+cat >/etc/rancher/k3s/registries.yaml <<\EOF
+{{ private_registry_config | trim }}
 EOF
 
 # Get instance ID for public network
