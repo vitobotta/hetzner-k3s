@@ -20,14 +20,6 @@
 
 ---
 
-```
- _          _                            _    _____
-| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___
-| '_ \ / _ \ __|_  / '_ \ / _ \ '__|____| |/ / |_ \/ __|
-| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \__ \
-|_| |_|\___|\__/___|_| |_|\___|_|       |_|\_\____/|___/
-```
-
 # The easiest and fastest way to create production-ready Kubernetes clusters on Hetzner Cloud
 
 <p align="center">
