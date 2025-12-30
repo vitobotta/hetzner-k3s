@@ -1,13 +1,19 @@
 require "../../configuration/loader"
-require "../../configuration/main"
-require "../../hetzner/instance"
-require "../../util/ssh"
 require "../../util/shell"
-require "../script/master_generator"
+require "../../util/ssh"
+require "../deployment_helper"
 require "../kubeconfig_manager"
+require "../local_firewall/setup"
+require "../script/master_generator"
 
 class Kubernetes::ControlPlane::Setup
   include Util::Shell
+  include Kubernetes::SSHDeploymentHelper
+
+  getter settings : Configuration::Main
+  getter ssh : ::Util::SSH
+
+  private getter local_firewall_setup : Kubernetes::LocalFirewall::Setup
 
   def initialize(
     @configuration : Configuration::Loader,
@@ -16,6 +22,7 @@ class Kubernetes::ControlPlane::Setup
     @master_generator : Kubernetes::Script::MasterGenerator,
     @kubeconfig_manager : Kubernetes::KubeconfigManager
   )
+    @local_firewall_setup = Kubernetes::LocalFirewall::Setup.new(settings, ssh)
   end
 
   def set_up_control_plane(masters_installation_queue_channel, master_count, load_balancer)
@@ -32,6 +39,7 @@ class Kubernetes::ControlPlane::Setup
 
   private def set_up_first_master(first_master : Hetzner::Instance, masters : Array(Hetzner::Instance), load_balancer)
     wait_for_cloud_init(first_master)
+    local_firewall_setup.deploy(first_master)
     install_script = @master_generator.generate_script(first_master, masters, first_master, load_balancer, @kubeconfig_manager)
     output = deploy_to_instance(first_master, install_script)
 
@@ -60,17 +68,9 @@ class Kubernetes::ControlPlane::Setup
 
   private def deploy_to_master(instance : Hetzner::Instance, masters : Array(Hetzner::Instance), first_master : Hetzner::Instance, load_balancer)
     wait_for_cloud_init(instance)
+    local_firewall_setup.deploy(instance)
     script = @master_generator.generate_script(instance, masters, first_master, load_balancer, @kubeconfig_manager)
     deploy_to_instance(instance, script)
-  end
-
-  private def wait_for_cloud_init(instance : Hetzner::Instance)
-    cloud_init_wait_script = {{ read_file("#{__DIR__}/../../../templates/cloud_init_wait_script.sh") }}
-    @ssh.run(instance, @settings.networking.ssh.port, cloud_init_wait_script, @settings.networking.ssh.use_agent)
-  end
-
-  private def deploy_to_instance(instance : Hetzner::Instance, script : String) : String
-    @ssh.run(instance, @settings.networking.ssh.port, script, @settings.networking.ssh.use_agent)
   end
 
   private def identify_first_master(masters : Array(Hetzner::Instance)) : Hetzner::Instance
@@ -138,4 +138,3 @@ class Kubernetes::ControlPlane::Setup
     puts "[#{log_prefix}] #{message}"
   end
 end
-

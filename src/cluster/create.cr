@@ -1,13 +1,11 @@
-require "../configuration/main"
 require "../configuration/loader"
-require "../hetzner/client"
 require "../hetzner/ssh_key/create"
-require "../util/ssh"
 require "../kubernetes/installer"
-require "./instance_builder"
-require "./network_manager"
-require "./load_balancer_manager"
+require "../util/ssh"
 require "./firewall_manager"
+require "./instance_builder"
+require "./load_balancer_manager"
+require "./network_manager"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -132,10 +130,11 @@ class Cluster::Create
       spawn do
         begin
           created_instance = instance_factory.run
-          semaphore.receive # release the semaphore immediately after instance creation
           handle_created_instance(created_instance, kubernetes_installation_queue_channel, wait_channel, instance_factory, wait)
         rescue e : Exception
           puts "Error creating instance: #{e.message}"
+        ensure
+          semaphore.receive
         end
       end
     end

@@ -5,13 +5,13 @@ require "../../util"
 class Hetzner::LoadBalancer::Create
   include Util
 
-  getter settings : Configuration::Main
-  getter hetzner_client : Hetzner::Client
-  getter cluster_name : String
-  getter location : String
-  getter network_id : Int64? = 0
-  getter load_balancer_finder : Hetzner::LoadBalancer::Find
-  getter load_balancer_name : String do
+  private getter settings : Configuration::Main
+  private getter hetzner_client : Hetzner::Client
+  private getter cluster_name : String
+  private getter location : String
+  private getter network_id : Int64? = 0
+  private getter load_balancer_finder : Hetzner::LoadBalancer::Find
+  private getter load_balancer_name : String do
     "#{cluster_name}-api"
   end
 
@@ -53,62 +53,38 @@ class Hetzner::LoadBalancer::Create
   end
 
   private def load_balancer_config
-    if settings.networking.private_network.enabled
-      {
-        :algorithm => {
-          :type => "round_robin",
+    private_network_enabled = settings.networking.private_network.enabled
+
+    config = {
+      :algorithm => {
+        :type => "round_robin",
+      },
+      :load_balancer_type => "lb11",
+      :location           => location,
+      :name               => load_balancer_name,
+      :public_interface   => true,
+      :services           => [
+        {
+          :destination_port => 6443,
+          :listen_port      => 6443,
+          :protocol         => "tcp",
+          :proxyprotocol    => false,
         },
-        :load_balancer_type => "lb11",
-        :location           => location,
-        :name               => load_balancer_name,
-        :network            => network_id,
-        :public_interface   => true,
-        :services           => [
-          {
-            :destination_port => 6443,
-            :listen_port      => 6443,
-            :protocol         => "tcp",
-            :proxyprotocol    => false,
+      ],
+      :targets => [
+        {
+          :label_selector => {
+            :selector => "cluster=#{cluster_name},role=master",
           },
-        ],
-        :targets => [
-          {
-            :label_selector => {
-              :selector => "cluster=#{cluster_name},role=master",
-            },
-            :type           => "label_selector",
-            :use_private_ip => true,
-          },
-        ],
-      }
-    else
-      {
-        :algorithm => {
-          :type => "round_robin",
+          :type           => "label_selector",
+          :use_private_ip => private_network_enabled,
         },
-        :load_balancer_type => "lb11",
-        :location           => location,
-        :name               => load_balancer_name,
-        :public_interface   => true,
-        :services           => [
-          {
-            :destination_port => 6443,
-            :listen_port      => 6443,
-            :protocol         => "tcp",
-            :proxyprotocol    => false,
-          },
-        ],
-        :targets => [
-          {
-            :label_selector => {
-              :selector => "cluster=#{cluster_name},role=master",
-            },
-            :type           => "label_selector",
-            :use_private_ip => false,
-          },
-        ],
-      }
-    end
+      ],
+    }
+
+    config = config.merge({:network => network_id}) if private_network_enabled
+
+    config
   end
 
   private def default_log_prefix

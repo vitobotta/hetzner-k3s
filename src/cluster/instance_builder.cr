@@ -68,7 +68,7 @@ class Cluster::InstanceBuilder
       instance_name: instance_name,
       instance_type: instance_type,
       image: image,
-      location: node_pool.location || default_masters_Location,
+      location: node_pool.location || default_masters_location,
       ssh_key: ssh_key,
       network: network,
       additional_packages: additional_packages,
@@ -97,7 +97,7 @@ class Cluster::InstanceBuilder
     factories
   end
 
-  private def default_masters_Location
+  private def default_masters_location
     settings.masters_pool.locations.first
   end
 end

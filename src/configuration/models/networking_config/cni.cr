@@ -20,7 +20,7 @@ class Configuration::Models::NetworkingConfig::CNI
   end
 
   def cilium?
-    enabled && mode == "cilium"
+    enabled? && mode == "cilium"
   end
 
   def encryption?

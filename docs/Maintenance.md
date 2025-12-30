@@ -2,7 +2,7 @@
 
 ## Adding Nodes
 
-To add one or more nodes to a node pool, simply update the instance count in the configuration file for that node pool and run the create command again.
+To add one or more nodes to a node pool, simply update the instance count in the configuration file for that node pool and run the `create` command again.
 
 ## Scaling Down a Node Pool
 

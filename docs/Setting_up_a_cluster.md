@@ -9,21 +9,18 @@ This guide will walk you through creating a fully functional Kubernetes cluster 
 Before starting, ensure you have:
 
 1. **Hetzner Cloud Account** with project and API token
-2. **kubectl** installed on your local machine
-3. **Helm** installed on your local machine  
-4. **hetzner-k3s** installed (see [Installation Guide](Installation.md))
-5. **SSH Key Pair** for accessing cluster nodes
+2. **SSH Key Pair** for accessing cluster nodes
+3. **kubectl** installed on your local machine ([installation guide](https://kubernetes.io/docs/tasks/tools/#kubectl))
+4. **Helm** installed on your local machine ([installation guide](https://helm.sh/docs/intro/install/))
+5. **hetzner-k3s** installed on your local machine ([installation guide](Installation.md))
 
 ## Instructions
 
 ### Installation of a "hello-world" project
 
-For testing, we’ll use this "hello-world" app: [hello-world app](https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml)
+For testing, we'll use this "hello-world" app: [hello-world app](https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml)
 
-1. Install `kubectl` on your computer: [kubectl installation](https://kubernetes.io/docs/tasks/tools/#kubectl)
-2. Install `Helm` on your computer: [Helm installation](https://helm.sh/docs/intro/install/)
-3. Install `hetzner-k3s` on your computer: [Installation](Installation.md)
-4. Create a file called `hetzner-k3s_cluster_config.yaml` with the following configuration. This setup is for a Highly Available (HA) cluster with 3 master nodes and 3 worker nodes. You can use 1 master and 1 worker for testing:
+1. Create a file called `hetzner-k3s_cluster_config.yaml` with the following configuration. This setup is for a Highly Available (HA) cluster with 3 master nodes and 3 worker nodes. You can use 1 master and 1 worker for testing:
 
 ```yaml
 hetzner_token: ...
@@ -44,7 +41,7 @@ networking:
       - 0.0.0.0/0
 
 masters_pool:
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 3
   locations:
     - fsn1
@@ -53,11 +50,11 @@ masters_pool:
 
 worker_node_pools:
 - name: small
-  instance_type: cpx21
+  instance_type: cpx22
   instance_count: 4
   location: hel1
 - name: big
-  instance_type: cpx31
+  instance_type: cpx32
   location: fsn1
   autoscaling:
     enabled: true
@@ -67,13 +64,13 @@ worker_node_pools:
 
 For more details on all the available settings, refer to the full config example in [Creating a cluster](Creating_a_cluster.md).
 
-5. Create the cluster: `hetzner-k3s create --config hetzner-k3s_cluster_config.yaml`
-6. `hetzner-k3s` automatically generates a `kubeconfig` file for the cluster in the directory where you run the tool. You can either copy this file to `~/.kube/config` if it’s the only cluster or run `export KUBECONFIG=./kubeconfig` in the same directory to access the cluster. After this, you can interact with your cluster using `kubectl` installed in step 1.
+2. Create the cluster: `hetzner-k3s create --config hetzner-k3s_cluster_config.yaml`
+3. `hetzner-k3s` automatically generates a `kubeconfig` file for the cluster in the directory where you run the tool. You can either copy this file to `~/.kube/config` if it's the only cluster or run `export KUBECONFIG=./kubeconfig` in the same directory to access the cluster. After this, you can interact with your cluster using `kubectl`.
 
-TIP: If you don’t want to run `kubectl apply ...` every time, you can store all your configuration files in a folder and then run `kubectl apply -f /path/to/configs/ -R`.
+TIP: If you don't want to run `kubectl apply ...` every time, you can store all your configuration files in a folder and then run `kubectl apply -f /path/to/configs/ -R`.
 
-7. Create a file: `touch ingress-nginx-annotations.yaml`
-8. Add annotations to the file: `nano ingress-nginx-annotations.yaml`
+4. Create a file: `touch ingress-nginx-annotations.yaml`
+5. Add annotations to the file: `nano ingress-nginx-annotations.yaml`
 
 ```yaml
 # INSTALLATION
@@ -130,9 +127,9 @@ controller:
 - Replace `yourDomain.com` with your actual domain.
 - Replace `WORKERS_LOAD_BALANCER_NAME` with a name of your choice.
 
-9. Add the ingress-nginx Helm repo: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
-10. Update the Helm repo: `helm repo update`
-11. Install ingress-nginx:
+6. Add the ingress-nginx Helm repo: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+7. Update the Helm repo: `helm repo update`
+8. Install ingress-nginx:
 
 ```bash
 helm upgrade --install \
@@ -147,10 +144,10 @@ The `--set controller.ingressClassResource.default=true` flag configures this as
 
 TIP: To delete it: `helm uninstall ingress-nginx -n ingress-nginx`. Be careful, as this will delete the current Hetzner load balancer, and installing a new ingress controller may create a new load balancer with a different public IP.
 
-12. After a few minutes, check that the "EXTERNAL-IP" column shows an IP instead of "pending": `kubectl get svc -n ingress-nginx`
+9. After a few minutes, check that the "EXTERNAL-IP" column shows an IP instead of "pending": `kubectl get svc -n ingress-nginx`
 
-13. The `load-balancer.hetzner.cloud/uses-proxyprotocol: "true"` annotation requires `use-proxy-protocol: "true"` for ingress-nginx. To set this up, create a file: `touch ingress-nginx-configmap.yaml`
-14. Add the following content to the file: `nano ingress-nginx-configmap.yaml`
+10. The `load-balancer.hetzner.cloud/uses-proxyprotocol: "true"` annotation requires `use-proxy-protocol: "true"` for ingress-nginx. To set this up, create a file: `touch ingress-nginx-configmap.yaml`
+11. Add the following content to the file: `nano ingress-nginx-configmap.yaml`
 
 ```yaml
 apiVersion: v1
@@ -163,10 +160,10 @@ data:
   use-proxy-protocol: "true"
 ```
 
-15. Apply the ConfigMap: `kubectl apply -f ./ingress-nginx-configmap.yaml`
-16. Open your Hetzner cloud console, go to "Your project -> Load Balancers," and find the PUBLIC IP of the load balancer with the name you used in the `load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME` annotation. Copy or note this IP.
-17. Download the hello-world app: `curl https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml --output hello-world.yaml`
-18. Edit the file to add the annotation and set the hostname:
+12. Apply the ConfigMap: `kubectl apply -f ./ingress-nginx-configmap.yaml`
+13. Open your Hetzner cloud console, go to "Your project -> Load Balancers," and find the PUBLIC IP of the load balancer with the name you used in the `load-balancer.hetzner.cloud/name: WORKERS_LOAD_BALANCER_NAME` annotation. Copy or note this IP.
+14. Download the hello-world app: `curl https://raw.githubusercontent.com/vitobotta/hetzner-k3s/refs/heads/main/sample-deployment.yaml --output hello-world.yaml`
+15. Edit the file to add the annotation and set the hostname:
 
 ```yaml
 ---
@@ -178,25 +175,25 @@ metadata:
     kubernetes.io/ingress.class: nginx  # <<<--- Add annotation
 spec:
   rules:
-  - host: hello-world.IP_FROM_STEP_12.nip.io # <<<--- Replace `IP_FROM_STEP_12` with the IP from step 16.
+  - host: hello-world.IP_FROM_STEP_13.nip.io # <<<--- Replace `IP_FROM_STEP_13` with the IP from step 13.
   ....
 ```
 
-19. Install the hello-world app: `kubectl apply -f hello-world.yaml`
-20. Open http://hello-world.IP_FROM_STEP_12.nip.io in your browser. You should see the Rancher "Hello World!" page.
-The `host.IP_FROM_STEP_12.nip.io` (the `.nip.io` part is key) is a quick way to test things without configuring DNS. A query to a hostname ending in `.nip.io` returns the IP address in the hostname itself. If you enabled the proxy protocol as shown earlier, your public IP address should appear in the `X-Forwarded-For` header, meaning the application can "see" it.
+16. Install the hello-world app: `kubectl apply -f hello-world.yaml`
+17. Open http://hello-world.IP_FROM_STEP_13.nip.io in your browser. You should see the Rancher "Hello World!" page.
+The `host.IP_FROM_STEP_13.nip.io` (the `.nip.io` part is key) is a quick way to test things without configuring DNS. A query to a hostname ending in `.nip.io` returns the IP address in the hostname itself. If you enabled the proxy protocol as shown earlier, your public IP address should appear in the `X-Forwarded-For` header, meaning the application can "see" it.
 
-21. To connect your actual domain, follow these steps:
-   - Assign the IP address from step 12 to your domain in your DNS settings.
-   - Change `- host: hello-world.IP_FROM_STEP_12.nip.io` to `- host: yourDomain.com`.
+18. To connect your actual domain, follow these steps:
+   - Assign the IP address from step 13 to your domain in your DNS settings.
+   - Change `- host: hello-world.IP_FROM_STEP_13.nip.io` to `- host: yourDomain.com`.
    - Run `kubectl apply -f hello-world.yaml`.
    - Wait until DNS records are updated.
 
 ### If you need LetsEncrypt
 
-22. Add the LetsEncrypt Helm repo: `helm repo add jetstack https://charts.jetstack.io`
-23. Update the Helm repo: `helm repo update`
-24. Install the LetsEncrypt certificates issuer:
+19. Add the LetsEncrypt Helm repo: `helm repo add jetstack https://charts.jetstack.io`
+20. Update the Helm repo: `helm repo update`
+21. Install the LetsEncrypt certificates issuer:
 
 ```bash
 helm upgrade --install \
@@ -206,7 +203,7 @@ helm upgrade --install \
 cert-manager jetstack/cert-manager
 ```
 
-25. Create a file called `lets-encrypt.yaml` with the following content:
+22. Create a file called `lets-encrypt.yaml` with the following content:
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -226,8 +223,8 @@ spec:
           class: nginx
 ```
 
-26. Apply the file: `kubectl apply -f ./lets-encrypt.yaml`
-27. Edit `hello-world.yaml` and add the settings for TLS encryption:
+23. Apply the file: `kubectl apply -f ./lets-encrypt.yaml`
+24. Edit `hello-world.yaml` and add the settings for TLS encryption:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -249,7 +246,7 @@ spec:
 
 TIP: If you didn’t configure Nginx as the default Ingress Class, you’ll need to add the `spec.ingressClassName: nginx` annotation.
 
-28. Apply the changes: `kubectl apply -f ./hello-world.yaml`
+25. Apply the changes: `kubectl apply -f ./hello-world.yaml`
 
 ## FAQs
 
@@ -272,7 +269,18 @@ On the machine running Kubernetes:
 
 ### 3. How can I check the resource usage of nodes or pods?
 
-First, install the metrics-server from this GitHub repository: https://github.com/kubernetes-sigs/metrics-server. After installation, you can use either `kubectl top nodes` or `kubectl top pods -A` to view resource usage.
+You need the metrics-server installed in your cluster. There are two ways to enable it:
+
+1. **Via hetzner-k3s config** (recommended): Enable it in the `addons` section of your cluster configuration file, and hetzner-k3s will automatically enable it in k3s:
+   ```yaml
+   addons:
+     metrics_server:
+       enabled: true
+   ```
+
+2. **Manual installation**: Install via manifest or Helm from the [metrics-server repository](https://github.com/kubernetes-sigs/metrics-server).
+
+After installation, you can use either `kubectl top nodes` or `kubectl top pods -A` to view resource usage.
 
 ### 4. What is Ingress?
 

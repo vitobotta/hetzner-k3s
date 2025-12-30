@@ -1,6 +1,4 @@
 require "../client"
-require "../ssh_key"
-require "../ssh_keys_list"
 require "./find"
 require "../../util"
 

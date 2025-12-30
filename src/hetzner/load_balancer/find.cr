@@ -3,8 +3,8 @@ require "../load_balancer"
 require "../load_balancers_list"
 
 class Hetzner::LoadBalancer::Find
-  getter hetzner_client : Hetzner::Client
-  getter load_balancer_name : String
+  private getter hetzner_client : Hetzner::Client
+  private getter load_balancer_name : String
 
   def initialize(@hetzner_client, @load_balancer_name)
   end

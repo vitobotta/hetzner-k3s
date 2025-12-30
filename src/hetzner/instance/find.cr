@@ -2,24 +2,15 @@ require "../client"
 require "../instance"
 require "../instances_list"
 require "../../util"
-require "../../util/ssh"
-require "../../util/shell"
 
 class Hetzner::Instance::Find
   include Util
-  include Util::Shell
 
-  getter hetzner_client : Hetzner::Client
-  getter instance_name : String
-
+  private getter hetzner_client : Hetzner::Client
+  private getter instance_name : String
   private getter settings : Configuration::Main
-  private getter ssh : Configuration::Models::NetworkingConfig::SSH
-  private getter ssh_client : Util::SSH do
-    Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
-  end
 
   def initialize(@settings, @hetzner_client, @instance_name)
-    @ssh = settings.networking.ssh
   end
 
   def run
@@ -40,7 +31,7 @@ class Hetzner::Instance::Find
     end
   end
 
-  def default_log_prefix
+  private def default_log_prefix
     "Instances"
   end
 end

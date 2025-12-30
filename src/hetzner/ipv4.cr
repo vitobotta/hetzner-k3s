@@ -1,4 +1,4 @@
-require "./client"
+require "json"
 
 class Hetzner::Ipv4
   include JSON::Serializable

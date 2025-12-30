@@ -1,11 +1,7 @@
 require "yaml"
-require "crest"
 
 require "./main"
-
 require "../hetzner/client"
-require "../hetzner/instance_type"
-require "../hetzner/location"
 
 require "./validators/configuration_file_path"
 require "./validators/cluster_name"
@@ -42,7 +38,6 @@ require "../util"
 class Configuration::Loader
   include Util
 
-  getter hetzner_client : Hetzner::Client?
   getter errors : Array(String) = [] of String
   getter settings : Configuration::Main
 
@@ -74,8 +69,6 @@ class Configuration::Loader
   getter new_k3s_version : String?
   getter configuration_file_path : String
 
-  private property instance_types_loaded : Bool = false
-  private property locations_loaded : Bool = false
   private property force : Bool = false
 
   def initialize(@configuration_file_path, @new_k3s_version, @force)

@@ -3,8 +3,8 @@ require "../network"
 require "../networks_list"
 
 class Hetzner::Network::Find
-  getter hetzner_client : Hetzner::Client
-  getter network_name : String
+  private getter hetzner_client : Hetzner::Client
+  private getter network_name : String
 
   def initialize(@hetzner_client, @network_name)
   end

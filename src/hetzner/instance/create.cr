@@ -1,15 +1,12 @@
-require "crinja"
 require "../client"
-require "../ssh_key"
 require "../network"
-require "./find"
+require "../ssh_key"
 require "./cloud_init_generator"
-require "../../util"
-require "../../util/ssh"
-require "../../util/shell"
+require "./find"
 require "../../kubernetes/util"
-
-require "compress/gzip"
+require "../../util"
+require "../../util/shell"
+require "../../util/ssh"
 
 class Hetzner::Instance::Create
   include Util
@@ -19,9 +16,10 @@ class Hetzner::Instance::Create
   INITIAL_DELAY =  1 # 1 second
   MAX_DELAY     = 60
 
+  getter instance_name : String
+
   private getter settings : Configuration::Main
   private getter legacy_instance_name : String
-  getter instance_name : String
   private getter hetzner_client : Hetzner::Client
   private getter cluster_name : String
   private getter instance_type : String
@@ -35,17 +33,15 @@ class Hetzner::Instance::Create
   private getter additional_packages : Array(String)
   private getter additional_pre_k3s_commands : Array(String)
   private getter additional_post_k3s_commands : Array(String)
-  private getter instance_finder : Hetzner::Instance::Find?
   private getter snapshot_os : String
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
-  private getter settings : Configuration::Main
-  private getter private_ssh_key_path : String
-  private getter public_ssh_key_path : String
   private getter mutex : Mutex
   private getter ssh_client : Util::SSH do
     Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
   end
-  private getter instance_existed : Bool = false
+  private property instance_existed : Bool = false
+  private property powering_on_count : Int32 = 0
+  private property attaching_to_network_count : Int32 = 0
 
   def initialize(
     @settings,
@@ -68,8 +64,6 @@ class Hetzner::Instance::Create
     @ssh = settings.networking.ssh
     @enable_public_net_ipv4 = settings.networking.public_network.ipv4
     @enable_public_net_ipv6 = settings.networking.public_network.ipv6
-    @private_ssh_key_path = settings.networking.ssh.private_key_path
-    @public_ssh_key_path = settings.networking.ssh.public_key_path
   end
 
   def run
@@ -127,8 +121,8 @@ class Hetzner::Instance::Create
 
   private def ensure_instance_is_ready
     ready = false
-    powering_on_count = 0
-    attaching_to_network_count = 0
+    self.powering_on_count = 0
+    self.attaching_to_network_count = 0
 
     until ready
       sleep 10.seconds if !instance_existed && private_network_enabled?
@@ -138,11 +132,11 @@ class Hetzner::Instance::Create
 
       log_line "Instance status: #{instance.status}"
 
-      next unless powered_on?(instance, powering_on_count)
+      next unless powered_on?(instance)
 
       sleep 5.seconds
 
-      next unless attached_to_network?(instance, attaching_to_network_count)
+      next unless attached_to_network?(instance)
 
       ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
       ready = true
@@ -151,18 +145,18 @@ class Hetzner::Instance::Create
     instance
   end
 
-  private def powered_on?(instance, powering_on_count)
+  private def powered_on?(instance)
     return true unless needs_powering_on?(instance)
 
-    power_on_instance(instance, powering_on_count)
+    power_on_instance(instance)
 
     false
   end
 
-  private def attached_to_network?(instance, attaching_to_network_count)
+  private def attached_to_network?(instance)
     return true unless needs_attaching_to_private_network?(instance)
 
-    attach_instance_to_network(instance, attaching_to_network_count)
+    attach_instance_to_network(instance)
 
     false
   end
@@ -179,16 +173,16 @@ class Hetzner::Instance::Create
     private_network_enabled? && !instance.try(&.private_ip_address)
   end
 
-  private def power_on_instance(instance, powering_on_count)
-    powering_on_count += 1
+  private def power_on_instance(instance)
+    self.powering_on_count += 1
 
     log_line "Powering on instance (attempt #{powering_on_count})"
     hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
     log_line "Waiting for instance to be powered on..."
   end
 
-  private def attach_instance_to_network(instance, attaching_to_network_count)
-    attaching_to_network_count += 1
+  private def attach_instance_to_network(instance)
+    self.attaching_to_network_count += 1
 
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
@@ -254,9 +248,6 @@ class Hetzner::Instance::Create
     return nil unless api_server_ready?(settings.kubeconfig_path)
 
     command = build_kubectl_command(instance_name)
-
-    debug = ENV.fetch("DEBUG", "false") == "true"
-
     result = run_shell_command(command, settings.kubeconfig_path, settings.hetzner_token, print_output: false, abort_on_error: false)
 
     return nil unless result.success?

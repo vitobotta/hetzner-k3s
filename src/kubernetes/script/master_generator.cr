@@ -1,13 +1,14 @@
 require "crinja"
-require "base64"
 
 require "../../configuration/main"
 require "../../configuration/loader"
+require "../deployment_helper"
 require "../util"
 require "./labels_and_taints_generator"
 
 class Kubernetes::Script::MasterGenerator
   include Util
+  include Kubernetes::DeploymentHelper
 
   MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/master_install_script.sh") }}
 
@@ -57,7 +58,7 @@ class Kubernetes::Script::MasterGenerator
     })
   end
 
-  def kubelet_args_list
+  private def kubelet_args_list
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", @settings.all_kubelet_args)
   end
 
@@ -101,11 +102,7 @@ class Kubernetes::Script::MasterGenerator
     K3s.k3s_token(@settings, masters)
   end
 
-  private def api_server_ip_address(first_master : Hetzner::Instance)
-    first_master.private_ip_address || first_master.public_ip_address
-  end
-
-  def default_log_prefix
+  private def default_log_prefix
     "Kubernetes Script Master"
   end
 end

@@ -1,7 +1,6 @@
-require "../hetzner/instance"
-require "../util/shell"
 require "../kubernetes/util"
 require "../util"
+require "../util/shell"
 
 module Cluster
   module NodeDetection

@@ -1,4 +1,4 @@
-require "./client"
+require "json"
 
 class Hetzner::Location
   include JSON::Serializable

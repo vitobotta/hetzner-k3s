@@ -21,6 +21,10 @@ module Kubernetes::Resources
           self.tolerations = [toleration]
         end
       end
+
+      def add_critical_addons_only_toleration
+        add_toleration(key: "CriticalAddonsOnly", value: "true", effect: "NoExecute")
+      end
     end
   end
 end

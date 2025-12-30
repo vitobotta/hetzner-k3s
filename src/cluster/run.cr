@@ -1,5 +1,4 @@
 require "../configuration/loader"
-require "../hetzner/instance"
 require "../util/ssh"
 require "./node_detection"
 
@@ -8,17 +7,6 @@ class Cluster::Run
   include Util::Shell
   include Kubernetes::Util
   include NodeDetection
-
-  private getter configuration : Configuration::Loader
-  private getter hetzner_client : Hetzner::Client do
-    configuration.hetzner_client
-  end
-  private getter settings : Configuration::Main do
-    configuration.settings
-  end
-
-  def initialize(@configuration)
-  end
 
   def run_command(command : String)
     run_command_internal(command, nil)
