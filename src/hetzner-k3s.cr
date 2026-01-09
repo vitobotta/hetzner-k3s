@@ -15,7 +15,7 @@ module Hetzner::K3s
     def self.print_banner
       puts "╭─────────────────────────────────────────╮".colorize(:green)
       puts "│            hetzner-k3s                  │".colorize(:green)
-      puts "│   Production-ready K8s on Hetzner      │".colorize(:green)
+      puts "│   Production-ready K8s on Hetzner       │".colorize(:green)
       puts "╰─────────────────────────────────────────╯".colorize(:green)
       puts
       puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
