@@ -13,11 +13,10 @@ module Hetzner::K3s
     VERSION = "2.4.4"
 
     def self.print_banner
-      puts " _          _                            _    _____     ".colorize(:green)
-      puts "| |__   ___| |_ _____ __   ___ _ __     | | _|___ / ___ ".colorize(:green)
-      puts "| '_ \\ / _ \\ __|_  / '_ \\ / _ \\ '__|____| |/ / |_ \\/ __|".colorize(:green)
-      puts "| | | |  __/ |_ / /| | | |  __/ | |_____|   < ___) \\__ \\".colorize(:green)
-      puts "|_| |_|\\___|\\__/___|_| |_|\\___|_|       |_|\\_\\____/|___/".colorize(:green)
+      puts "╭─────────────────────────────────────────╮".colorize(:green)
+      puts "│            hetzner-k3s                  │".colorize(:green)
+      puts "│   Production-ready K8s on Hetzner      │".colorize(:green)
+      puts "╰─────────────────────────────────────────╯".colorize(:green)
       puts
       puts "Version: #{Hetzner::K3s::CLI::VERSION}".colorize(:blue)
       puts
@@ -26,7 +25,7 @@ module Hetzner::K3s
     def self.print_sponsor_message
       puts
       puts "───────────────────────────────────────────────────────".colorize(:blue)
-      puts "  Enjoying hetzner-k3s? Support its development:".colorize(:blue)
+      puts "  ❤️  Enjoying hetzner-k3s? Support its development:".colorize(:blue)
       puts "  https://github.com/sponsors/vitobotta".colorize(:blue)
       puts "───────────────────────────────────────────────────────".colorize(:blue)
       puts
