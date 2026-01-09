@@ -40,14 +40,14 @@ If you prefer not to use Homebrew, install the required dependencies first:
 
 **Apple Silicon:**
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.4/hetzner-k3s-macos-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.5/hetzner-k3s-macos-arm64
 chmod +x hetzner-k3s-macos-arm64
 sudo mv hetzner-k3s-macos-arm64 /usr/local/bin/hetzner-k3s
 ```
 
 **Intel:**
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.4/hetzner-k3s-macos-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.5/hetzner-k3s-macos-amd64
 chmod +x hetzner-k3s-macos-amd64
 sudo mv hetzner-k3s-macos-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -67,7 +67,7 @@ brew install vitobotta/tap/hetzner_k3s
 ### amd64 (x86_64)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.4/hetzner-k3s-linux-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.5/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64
 sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -75,7 +75,7 @@ sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ### arm64 (ARM)
 
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.4/hetzner-k3s-linux-arm64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.4.5/hetzner-k3s-linux-arm64
 chmod +x hetzner-k3s-linux-arm64
 sudo mv hetzner-k3s-linux-arm64 /usr/local/bin/hetzner-k3s
 ```
