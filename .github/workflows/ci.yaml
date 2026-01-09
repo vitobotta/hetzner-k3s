@@ -13,10 +13,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - runs_on_tag: macos-14
+          - runs_on_tag: macos-15-intel
             binary_os_suffix: macos
             binary_arch_suffix: amd64
-          - runs_on_tag: macos-14
+          - runs_on_tag: macos-15
             binary_os_suffix: macos
             binary_arch_suffix: arm64
             architecture: arm
@@ -51,12 +51,12 @@ jobs:
           brew install openssl@3
           brew unlink openssl@1.1 || true
           brew link --force --overwrite openssl@3
-          
+
           export PATH="/usr/local/opt/openssl@3/bin:$PATH"
           export LDFLAGS="-L/usr/local/opt/openssl@3/lib"
           export CPPFLAGS="-I/usr/local/opt/openssl@3/include"
           export PKG_CONFIG_PATH="/usr/local/opt/openssl@3/lib/pkgconfig"
-          
+
           shards install --without-development
           crystal build src/hetzner-k3s.cr --release
           chmod +x hetzner-k3s
