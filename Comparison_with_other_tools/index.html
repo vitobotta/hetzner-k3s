@@ -1,0 +1,2155 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="The easiest and fastest way to create production-ready Kubernetes clusters on Hetzner Cloud">
+      
+      
+      
+      
+        <link rel="prev" href="../Resizing_root_partition_with_post_create_commands/">
+      
+      
+        <link rel="next" href="../Troubleshooting/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Why hetzner-k3s - hetzner-k3s documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#why-hetzner-k3s-stands-out" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="hetzner-k3s documentation" class="md-header__button md-logo" aria-label="hetzner-k3s documentation" data-md-component="logo">
+      
+  <img src="https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            hetzner-k3s documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Why hetzner-k3s
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/vitobotta/hetzner-k3s" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vitobotta/hetzner-k3s
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Maintenance/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Operations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../Recommendations/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Advanced
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../Contributing_and_support/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="hetzner-k3s documentation" class="md-nav__button md-logo" aria-label="hetzner-k3s documentation" data-md-component="logo">
+      
+  <img src="https://github.com/vitobotta/hetzner-k3s/raw/main/logo-v2.png" alt="logo">
+
+    </a>
+    hetzner-k3s documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/vitobotta/hetzner-k3s" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    vitobotta/hetzner-k3s
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Creating_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating a Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Setting_up_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Complete Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Maintenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster Maintenance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Load_balancers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Load Balancers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Deleting_a_cluster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deleting a Cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Run_command/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Advanced
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Recommendations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Recommendations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Masters_in_different_locations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Masters in Different Locations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Private_clusters_with_public_network_interface_disabled/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Private Clusters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Floating_IP_egress/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Floating IP Egress
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Resizing_root_partition_with_post_create_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resizing Root Partition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why hetzner-k3s
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why hetzner-k3s
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        At a Glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-hetzner-k3s-offers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What hetzner-k3s Offers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What hetzner-k3s Offers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Speed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minimal-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lightweight-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lightweight Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-data-sovereignty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Data Sovereignty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-efficiency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost Efficiency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-alternatives-compare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How Alternatives Compare
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How Alternatives Compare">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#managed-services-cloudfleet-edka-syself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managed Services (Cloudfleet, Edka, Syself)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managed Services (Cloudfleet, Edka, Syself)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terraform-based-solutions-terraform-hcloud-kube-hetzner-etc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terraform-based Solutions (terraform-hcloud-kube-hetzner, etc.)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Terraform-based Solutions (terraform-hcloud-kube-hetzner, etc.)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claudie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claudie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Claudie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#talos-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Talos Linux
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Talos Linux">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cluster-api-caph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster API (CAPH)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cluster API (CAPH)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-world-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-World Considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Real-World Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#development-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development and Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#small-to-medium-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Small to Medium Production
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#large-scale-100-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large Scale (100+ nodes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-cloud-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Cloud Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-bottom-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Bottom Line
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Important_upgrade_notes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Important Upgrade Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Upgrading_a_cluster_from_1x_to_2x/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Upgrading from v1.x to v2.x
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Contributing_and_support/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        At a Glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-hetzner-k3s-offers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What hetzner-k3s Offers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What hetzner-k3s Offers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Speed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#minimal-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lightweight-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lightweight Kubernetes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#full-data-sovereignty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Data Sovereignty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cost-efficiency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost Efficiency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-alternatives-compare" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How Alternatives Compare
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="How Alternatives Compare">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#managed-services-cloudfleet-edka-syself" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managed Services (Cloudfleet, Edka, Syself)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Managed Services (Cloudfleet, Edka, Syself)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#terraform-based-solutions-terraform-hcloud-kube-hetzner-etc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terraform-based Solutions (terraform-hcloud-kube-hetzner, etc.)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Terraform-based Solutions (terraform-hcloud-kube-hetzner, etc.)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#claudie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Claudie
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Claudie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#talos-linux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Talos Linux
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Talos Linux">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cluster-api-caph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cluster API (CAPH)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cluster API (CAPH)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#considerations_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Considerations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#real-world-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-World Considerations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Real-World Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#development-and-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development and Testing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#small-to-medium-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Small to Medium Production
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#large-scale-100-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Large Scale (100+ nodes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-cloud-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-Cloud Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-bottom-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Bottom Line
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="why-hetzner-k3s-stands-out">Why hetzner-k3s Stands Out</h1>
+<p>There are several ways to run Kubernetes on Hetzner Cloud. This page explains why hetzner-k3s might be the right choice for your needs, with an honest look at how it compares to alternatives.</p>
+<hr />
+<h2 id="at-a-glance">At a Glance</h2>
+<table>
+<thead>
+<tr>
+<th>Factor</th>
+<th>hetzner-k3s</th>
+<th>Managed Services</th>
+<th>Terraform-based</th>
+<th>Cluster API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Setup time</strong></td>
+<td>2-3 minutes</td>
+<td>5-10 minutes</td>
+<td>15-30+ minutes</td>
+<td>20+ minutes</td>
+</tr>
+<tr>
+<td><strong>Dependencies</strong></td>
+<td>CLI only</td>
+<td>Account signup</td>
+<td>Terraform, Packer, HCL</td>
+<td>Management cluster</td>
+</tr>
+<tr>
+<td><strong>Data privacy</strong></td>
+<td>Full control</td>
+<td>Third-party access</td>
+<td>Full control</td>
+<td>Full control</td>
+</tr>
+<tr>
+<td><strong>Monthly cost</strong></td>
+<td>Infrastructure only</td>
+<td>Infrastructure + platform fees (scale with cluster size)</td>
+<td>Infrastructure only</td>
+<td>Infrastructure only</td>
+</tr>
+<tr>
+<td><strong>Credential exposure</strong></td>
+<td>None</td>
+<td>API tokens to third party</td>
+<td>None</td>
+<td>None</td>
+</tr>
+<tr>
+<td><strong>Learning curve</strong></td>
+<td>Low</td>
+<td>Low</td>
+<td>Medium-High</td>
+<td>High</td>
+</tr>
+<tr>
+<td><strong>Best for</strong></td>
+<td>Most Hetzner users</td>
+<td>Zero-ops teams</td>
+<td>Terraform-native teams</td>
+<td>Multi-cloud standardization</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="what-hetzner-k3s-offers">What hetzner-k3s Offers</h2>
+<h3 id="speed">Speed</h3>
+<p>Creating a highly available cluster with 3 masters and 3 workers takes <strong>2-3 minutes</strong>. This includes:</p>
+<ul>
+<li>Provisioning all infrastructure (instances, load balancer, private network, firewall)</li>
+<li>Deploying k3s to all nodes</li>
+<li>Installing Cloud Controller Manager, CSI driver, System Upgrade Controller, and Cluster Autoscaler</li>
+</ul>
+<p>In stress testing, a 500-node cluster was created in under 11 minutes.</p>
+<h3 id="minimal-dependencies">Minimal Dependencies</h3>
+<p>You need exactly three things:</p>
+<ol>
+<li>A Hetzner Cloud API token</li>
+<li>An SSH key pair</li>
+<li>The hetzner-k3s CLI tool</li>
+</ol>
+<p>No Terraform, Packer, Ansible, or existing Kubernetes cluster. No need to learn HCL or manage Terraform state.</p>
+<h3 id="lightweight-kubernetes">Lightweight Kubernetes</h3>
+<p>k3s uses significantly less memory and CPU than standard Kubernetes, leaving more resources for your workloads. It's a single binary, making deployments and upgrades fast and reliable.</p>
+<h3 id="full-data-sovereignty">Full Data Sovereignty</h3>
+<ul>
+<li>Run the tool on your own machine</li>
+<li>Your Hetzner API token never leaves your system</li>
+<li>No third party gains access to your clusters, credentials, or data</li>
+<li>Complete control with no intermediary</li>
+</ul>
+<h3 id="cost-efficiency">Cost Efficiency</h3>
+<ul>
+<li>The tool is free and open source</li>
+<li>You only pay for Hetzner infrastructure</li>
+<li>No per-user fees, per-cluster fees, or management fees</li>
+<li>No surprise charges as your team or infrastructure grows</li>
+</ul>
+<hr />
+<h2 id="how-alternatives-compare">How Alternatives Compare</h2>
+<h3 id="managed-services-cloudfleet-edka-syself">Managed Services (Cloudfleet, Edka, Syself)</h3>
+<p>Managed services handle cluster operations for you, which is valuable if you want zero operational overhead.</p>
+<h4 id="considerations">Considerations</h4>
+<p><strong>Credential sharing</strong>: You provide your Hetzner API token to the service. The provider has ongoing access to your cloud account and can see your workloads. For regulated industries or security-conscious teams, this may be a concern.</p>
+<p><strong>Pricing structure</strong>: Managed services typically charge:
+- A base cluster management fee
+- Per-vCPU fees for worker nodes
+- Sometimes per-user fees for enterprise tiers</p>
+<p>These platform fees add up quickly as clusters grow. A small development cluster might have modest fees, but production clusters with dozens of nodes can see platform costs that rival or exceed the underlying Hetzner infrastructure costs.</p>
+<p>For example, Cloudfleet's free tier limits you to 24 vCPUs with standard availability. Beyond that, costs scale with each additional vCPU. The difference between hetzner-k3s (infrastructure only) and managed services becomes substantial at scale—potentially saving hundreds or thousands of euros per month on larger deployments.</p>
+<p><strong>Vendor dependency</strong>: Your cluster management depends on the service's availability. If the provider changes pricing, terms, or discontinues service, you're affected. Migration requires effort.</p>
+<p><strong>When managed services make sense</strong>: Teams that prioritize zero operational overhead over cost or data privacy. Organizations where someone else handling infrastructure is worth the ongoing fees.</p>
+<hr />
+<h3 id="terraform-based-solutions-terraform-hcloud-kube-hetzner-etc">Terraform-based Solutions (terraform-hcloud-kube-hetzner, etc.)</h3>
+<p>Terraform-based solutions are powerful and flexible, especially for teams already using Terraform.</p>
+<h4 id="considerations_1">Considerations</h4>
+<p><strong>Multiple dependencies</strong>: You need:
+- Terraform or OpenTofu
+- Packer (for custom images)
+- kubectl CLI
+- hcloud CLI</p>
+<p>Each tool requires installation, configuration, and learning.</p>
+<p><strong>Learning curve</strong>: You need to understand:
+- Terraform state management
+- HCL syntax
+- How changes propagate through Terraform plans
+- Debugging across multiple tools</p>
+<p><strong>Ongoing maintenance</strong>: Terraform state must be stored and managed carefully. Upgrades require understanding how Terraform handles infrastructure drift.</p>
+<p><strong>What you gain</strong>: More flexibility, infrastructure-as-code patterns familiar to platform teams, integration with existing Terraform workflows.</p>
+<p><strong>When Terraform-based solutions make sense</strong>: Teams already using Terraform extensively. Organizations with platform engineering teams comfortable with IaC tooling.</p>
+<hr />
+<h3 id="claudie">Claudie</h3>
+<p>Claudie is designed for multi-cloud and hybrid deployments. It provisions clusters across different cloud providers from a single management interface.</p>
+<h4 id="considerations_2">Considerations</h4>
+<p><strong>Requires a management cluster</strong>: Claudie runs on an existing Kubernetes cluster. You need Kubernetes to create Kubernetes.</p>
+<p>For production use, this management cluster needs to be resilient since Claudie maintains state for all clusters it provisions.</p>
+<p><strong>Significant dependencies</strong>: The management cluster needs:
+- cert-manager
+- Multiple Claudie components (ansible, builder, claudie-operator, dynamodb, kube-eleven, kuber, minio, mongodb, scheduler, terraformer)</p>
+<p><strong>Operational overhead</strong>: You're responsible for keeping the management cluster healthy. If it has issues, you can't manage your provisioned clusters.</p>
+<p><strong>When Claudie makes sense</strong>: Organizations running clusters across multiple cloud providers who need unified management. Hybrid cloud scenarios where Hetzner is one of several providers.</p>
+<hr />
+<h3 id="talos-linux">Talos Linux</h3>
+<p>Talos is an immutable, secure operating system built specifically for Kubernetes.</p>
+<h4 id="considerations_3">Considerations</h4>
+<p><strong>More complex setup</strong>: Deploying Talos on Hetzner requires:
+- Manually creating network components
+- Setting up a NAT gateway VM
+- Generating Talos-specific configuration files
+- Bootstrapping nodes individually</p>
+<p><strong>Different operational model</strong>: Talos has no SSH access and is managed entirely via API. This provides enhanced security but requires adapting your workflows.</p>
+<p><strong>When Talos makes sense</strong>: Organizations prioritizing immutable infrastructure and maximum security. Teams comfortable with the Talos operational model.</p>
+<hr />
+<h3 id="cluster-api-caph">Cluster API (CAPH)</h3>
+<p>Cluster API provides declarative, Kubernetes-style management of cluster infrastructure.</p>
+<h4 id="considerations_4">Considerations</h4>
+<p><strong>Requires a management cluster</strong>: Like Claudie, you need an existing Kubernetes cluster (often a local kind cluster) to provision your workload cluster.</p>
+<p><strong>Steeper learning curve</strong>: Understanding Cluster API concepts and CAPH-specific resources takes time.</p>
+<p><strong>Kubernetes-native approach</strong>: If you're comfortable with Kubernetes operators and CRDs, this model may feel natural.</p>
+<p><strong>When CAPH makes sense</strong>: Organizations standardizing on Cluster API across multiple providers. Teams that want to manage infrastructure with kubectl and GitOps.</p>
+<hr />
+<h2 id="real-world-considerations">Real-World Considerations</h2>
+<h3 id="development-and-testing">Development and Testing</h3>
+<p>For quick iteration, hetzner-k3s excels. Creating and destroying clusters in minutes enables:
+- Ephemeral test environments
+- Rapid prototyping
+- Cost-effective experimentation (pay only for what you use)</p>
+<h3 id="small-to-medium-production">Small to Medium Production</h3>
+<p>Most teams running 1-50 node clusters on Hetzner find hetzner-k3s sufficient. You get:
+- High availability with multi-location masters
+- Autoscaling for variable workloads
+- Zero recurring platform fees</p>
+<h3 id="large-scale-100-nodes">Large Scale (100+ nodes)</h3>
+<p>hetzner-k3s has been tested with 500 nodes and is designed to scale beyond. Clusters over 100 nodes require some configuration changes—see the <a href="../Recommendations/">Recommendations</a> page for setup details.</p>
+<h3 id="multi-cloud-requirements">Multi-Cloud Requirements</h3>
+<p>If you need clusters across AWS, GCP, and Hetzner with unified management, consider Claudie or Cluster API. hetzner-k3s is designed specifically for Hetzner.</p>
+<hr />
+<h2 id="the-bottom-line">The Bottom Line</h2>
+<p><strong>hetzner-k3s</strong> is designed for teams who want:</p>
+<ul>
+<li>Production-ready clusters in minutes, not hours</li>
+<li>Complete control over credentials and data</li>
+<li>No ongoing platform fees</li>
+<li>Minimal tooling complexity</li>
+</ul>
+<p>It's not the right choice if you:</p>
+<ul>
+<li>Want someone else to handle all operations (consider managed services)</li>
+<li>Need multi-cloud standardization (consider Cluster API or Claudie)</li>
+<li>Already have extensive Terraform infrastructure (consider terraform-hcloud-kube-hetzner)</li>
+</ul>
+<p>For most teams running Kubernetes on Hetzner Cloud, hetzner-k3s provides the best balance of speed, simplicity, and control.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.tooltips", "content.code.annotate", "content.code.copy", "navigation.expand", "navigation.indexes", "navigation.sections", "navigation.tabs", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
