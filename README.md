@@ -305,6 +305,10 @@ If hetzner-k3s saves you time or money, please consider [supporting its developm
 
 ### Platinum Sponsors
 
+<a href="https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme"><img src="SprintPulse.svg" alt="SprintPulse" height="80"></a>
+
+[SprintPulse](https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme) — the retrospective tool teams actually love. Run engaging retros with real-time collaboration, AI-powered insights, and actionable outcomes. Set up in 60 seconds, no training required.
+
 <a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="80"></a>
 
 A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the development of key features!
