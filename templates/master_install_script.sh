@@ -17,7 +17,7 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
     NETWORK_INTERFACE=$(
       ip -o link show |
         awk -F': ' '/mtu (1450|1280)/ {print $2}' |
-        grep -Ev 'cilium|br|flannel|docker|veth' |
+        grep -Ev 'cilium|lxc|br|flannel|docker|veth' |
         head -n1
     )
 
