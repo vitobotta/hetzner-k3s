@@ -34,6 +34,16 @@ module Kubernetes::Util
     execute_kubectl_command(command, error_message)
   end
 
+  def apply_manifest_server_side(yaml : String, error_message = "Failed to apply manifest") : Util::Shell::CommandResult
+    command = <<-BASH
+    kubectl apply --server-side --force-conflicts -f - <<-'EOF'
+    #{yaml}
+    EOF
+    BASH
+
+    execute_kubectl_command(command, error_message)
+  end
+
   def apply_manifest_from_url(url : String, error_message = "Failed to apply manifest") : Util::Shell::CommandResult
     command = "kubectl apply -f #{url}"
     execute_kubectl_command(command, error_message)
