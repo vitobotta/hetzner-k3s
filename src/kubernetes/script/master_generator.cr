@@ -50,6 +50,7 @@ class Kubernetes::Script::MasterGenerator
       datastore_endpoint:               datastore_endpoint,
       etcd_arguments:                   etcd_arguments,
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
+      private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
       local_path_storage_class_enabled: @settings.addons.local_path_storage_class.enabled.to_s,
       traefik_enabled: @settings.addons.traefik.enabled.to_s,
       servicelb_enabled: @settings.addons.servicelb.enabled.to_s,
