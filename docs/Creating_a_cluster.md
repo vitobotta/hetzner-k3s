@@ -14,6 +14,7 @@ hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.32.0+k3s1
+placement_group: true # set to false to disable placement groups
 
 networking:
   ssh:

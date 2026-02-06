@@ -37,6 +37,7 @@
 - **System Upgrade Controller** — zero-downtime k3s upgrades
 - **Cluster Autoscaler** — automatic node scaling based on demand
 - **Private networking and firewall** — secure cluster communication
+- **Placement groups** — spread nodes across hosts for resilience
 
 ---
 

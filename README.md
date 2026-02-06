@@ -262,6 +262,9 @@ Mix instance types and locations for different workloads. Hetzner offers x86 and
 ### Private Networking
 Cluster communication over Hetzner's private network by default.
 
+### Placement Groups
+Spread master and worker nodes across hosts to reduce correlated failures.
+
 ### CNI Options
 Choose Flannel (simple) or Cilium (advanced networking features).
 
