@@ -101,7 +101,7 @@ class Configuration::Models::DatastoreConfig::Etcd
       args << "--etcd-s3-secret-key=#{s3_secret_key_with_env_fallback}"
 
       if s3_force_path_style
-        args << "--etcd-s3-force-path-style"
+        args << "--etcd-s3-bucket-lookup-type=path"
       end
 
       unless s3_folder.empty?
