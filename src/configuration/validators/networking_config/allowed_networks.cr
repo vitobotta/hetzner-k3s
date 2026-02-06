@@ -7,8 +7,9 @@ require "./firewall_rule"
 class Configuration::Validators::NetworkingConfig::AllowedNetworks
   getter errors : Array(String) = [] of String
   getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
+  getter skip_current_ip_validation : Bool = false
 
-  def initialize(@errors, @allowed_networks)
+  def initialize(@errors, @allowed_networks, @skip_current_ip_validation = false)
   end
 
   def validate
@@ -50,7 +51,9 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
         errors << "#{network_type} allowed network #{cidr} is not a valid network in CIDR notation"
       end
     end
-    
+
+    return if skip_current_ip_validation
+
     validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
   end
 
