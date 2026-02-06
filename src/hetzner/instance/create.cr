@@ -36,7 +36,7 @@ class Hetzner::Instance::Create
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter mutex : Mutex
   private getter ssh_client : Util::SSH do
-    Util::SSH.new(ssh.private_key_path, ssh.public_key_path)
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip)
   end
   private property instance_existed : Bool = false
   private property powering_on_count : Int32 = 0

@@ -16,6 +16,7 @@ class Configuration::Validators::CommandSpecificSettings
   getter instance_types : Array(Hetzner::InstanceType)
   getter all_locations : Array(Hetzner::Location)
   getter new_k3s_version : String?
+  getter skip_current_ip_validation : Bool = false
 
   def initialize(
     @errors,
@@ -25,7 +26,8 @@ class Configuration::Validators::CommandSpecificSettings
     @masters_pool,
     @instance_types,
     @all_locations,
-    @new_k3s_version
+    @new_k3s_version,
+    @skip_current_ip_validation = false
   )
   end
 
@@ -50,7 +52,8 @@ class Configuration::Validators::CommandSpecificSettings
       hetzner_client: hetzner_client,
       masters_pool: masters_pool,
       instance_types: instance_types,
-      all_locations: all_locations
+      all_locations: all_locations,
+      skip_current_ip_validation: skip_current_ip_validation
     ).validate
   end
 
