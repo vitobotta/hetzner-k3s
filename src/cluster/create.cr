@@ -6,13 +6,20 @@ require "./firewall_manager"
 require "./instance_builder"
 require "./load_balancer_manager"
 require "./network_manager"
+require "./placement_group_manager"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
   private getter hetzner_client : Hetzner::Client { configuration.hetzner_client }
   private getter settings : Configuration::Main { configuration.settings }
   private getter autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool) { settings.worker_node_pools.select(&.autoscaling_enabled) }
-  private getter ssh_client : Util::SSH { Util::SSH.new(settings.networking.ssh.private_key_path, settings.networking.ssh.public_key_path) }
+  private getter ssh_client : Util::SSH do
+    Util::SSH.new(
+      settings.networking.ssh.private_key_path,
+      settings.networking.ssh.public_key_path,
+      settings.networking.ssh.use_private_ip
+    )
+  end
   private getter network : Hetzner::Network?
   private getter ssh_key : Hetzner::SSHKey
   private getter load_balancer : Hetzner::LoadBalancer?
@@ -33,19 +40,26 @@ class Cluster::Create
   private getter network_manager : NetworkManager
   private getter load_balancer_manager : LoadBalancerManager
   private getter firewall_manager : FirewallManager
+  private getter placement_group_manager : PlacementGroupManager?
 
   def initialize(@configuration)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
     @firewall_manager = FirewallManager.new(settings, hetzner_client)
+    @placement_group_manager = if settings.placement_group
+      existing_placement_groups = Hetzner::PlacementGroup::All.new(settings, hetzner_client).run
+      PlacementGroupManager.new(settings, hetzner_client, mutex, existing_placement_groups)
+    end
 
     @network = network_manager.find_or_create if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
     @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network)
-    @master_instances = instance_builder.initialize_master_instances(masters_locations)
+    placement_group_manager.try(&.delete_unused)
+    @master_instances = instance_builder.initialize_master_instances(masters_locations, placement_group_manager.try(&.create_for_masters))
 
     static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
-    @worker_instances = create_worker_instances(static_worker_node_pools)
+    placement_group_manager.try(&.create_for_worker_node_pools(static_worker_node_pools))
+    @worker_instances = placement_group_manager ? create_worker_instances_with_placement_groups(static_worker_node_pools) : create_worker_instances(static_worker_node_pools)
   end
 
   def run
@@ -60,6 +74,8 @@ class Cluster::Create
     create_instances_concurrently(worker_instances, kubernetes_workers_installation_queue_channel)
 
     completed_channel.receive
+
+    placement_group_manager.try(&.delete_unused)
 
     warn_if_not_protected
   end
@@ -106,7 +122,34 @@ class Cluster::Create
 
     node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
-        factories << instance_builder.create_worker_instance(i, node_pool)
+        factories << instance_builder.create_worker_instance(i, node_pool, nil)
+      end
+    end
+
+    factories
+  end
+
+  private def create_worker_instances_with_placement_groups(node_pools) : Array(Hetzner::Instance::Create)
+    factories = Array(Hetzner::Instance::Create).new
+    manager = placement_group_manager
+
+    return factories unless manager
+
+    node_pools.each do |node_pool|
+      node_pool_name = node_pool.name.not_nil!
+      node_pool_placement_groups = manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool_name}-") }
+
+      # Ensure we have placement groups for this pool
+      if node_pool_placement_groups.empty?
+        static_worker_node_pools = [node_pool]
+        manager.create_for_worker_node_pools(static_worker_node_pools)
+        node_pool_placement_groups = manager.all_placement_groups.select { |pg| pg.name.includes?("#{settings.cluster_name}-#{node_pool_name}-") }
+      end
+
+      # Use synchronized placement group assignment with round-robin
+      node_pool.instance_count.times do |i|
+        placement_group = manager.assign_placement_group(node_pool_placement_groups, i)
+        factories << instance_builder.create_worker_instance(i, node_pool, placement_group)
       end
     end
 

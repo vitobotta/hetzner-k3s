@@ -177,7 +177,8 @@ class Cluster::Run
   private def setup_ssh_connection
     Util::SSH.new(
       settings.networking.ssh.private_key_path,
-      settings.networking.ssh.public_key_path
+      settings.networking.ssh.public_key_path,
+      settings.networking.ssh.use_private_ip
     )
   end
 
