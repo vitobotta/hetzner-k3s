@@ -33,6 +33,7 @@ class Configuration::Main
   getter datastore : Configuration::Models::Datastore = Configuration::Models::Datastore.new
   getter addons : Configuration::Models::Addons = Configuration::Models::Addons.new
   getter include_instance_type_in_instance_name : Bool = false
+  getter placement_group : Bool = true
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1

@@ -27,11 +27,13 @@ hetzner_token: ...
 cluster_name: hello-world
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
 k3s_version: v1.32.0+k3s1
+placement_group: true
 
 networking:
   ssh:
     port: 22
     use_agent: false
+    use_private_ip: false
     public_key_path: "~/.ssh/id_rsa.pub"
     private_key_path: "~/.ssh/id_rsa"
   allowed_networks:

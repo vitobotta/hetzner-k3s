@@ -15,7 +15,7 @@ class Cluster::InstanceBuilder
     "#{settings.cluster_name}-#{instance_type_part}#{prefix}#{index + 1}"
   end
 
-  def create_master_instance(index : Int32, location : String) : Hetzner::Instance::Create
+  def create_master_instance(index : Int32, placement_group : Hetzner::PlacementGroup?, location : String) : Hetzner::Instance::Create
     masters_pool = settings.masters_pool
     legacy_instance_type = masters_pool.legacy_instance_type
     instance_type = masters_pool.instance_type
@@ -39,6 +39,7 @@ class Cluster::InstanceBuilder
       image: image,
       ssh_key: ssh_key,
       network: network,
+      placement_group: placement_group,
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
       additional_post_k3s_commands: additional_post_k3s_commands,
@@ -47,7 +48,7 @@ class Cluster::InstanceBuilder
     )
   end
 
-  def create_worker_instance(index : Int32, node_pool) : Hetzner::Instance::Create
+  def create_worker_instance(index : Int32, node_pool, placement_group : Hetzner::PlacementGroup?) : Hetzner::Instance::Create
     legacy_instance_type = node_pool.legacy_instance_type
     instance_type = node_pool.instance_type
 
@@ -71,6 +72,7 @@ class Cluster::InstanceBuilder
       location: node_pool.location || default_masters_location,
       ssh_key: ssh_key,
       network: network,
+      placement_group: placement_group,
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
       additional_post_k3s_commands: additional_post_k3s_commands,
@@ -78,9 +80,9 @@ class Cluster::InstanceBuilder
     )
   end
 
-  def initialize_master_instances(masters_locations) : Array(Hetzner::Instance::Create)
+  def initialize_master_instances(masters_locations, placement_group : Hetzner::PlacementGroup?) : Array(Hetzner::Instance::Create)
     Array(Hetzner::Instance::Create).new(settings.masters_pool.instance_count) do |i|
-      create_master_instance(i, masters_locations[i])
+      create_master_instance(i, placement_group, masters_locations[i])
     end
   end
 
@@ -90,7 +92,7 @@ class Cluster::InstanceBuilder
 
     static_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
-        factories << create_worker_instance(i, node_pool)
+        factories << create_worker_instance(i, node_pool, nil)
       end
     end
 

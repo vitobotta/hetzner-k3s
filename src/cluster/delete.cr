@@ -1,4 +1,6 @@
 require "../configuration/loader"
+require "../hetzner/placement_group/delete"
+require "../hetzner/placement_group/all"
 require "../hetzner/ssh_key/delete"
 require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
@@ -59,6 +61,7 @@ class Cluster::Delete
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
     delete_instances
+    delete_placement_groups if settings.placement_group
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
@@ -99,6 +102,10 @@ class Cluster::Delete
     unless errors.empty?
       errors.each { |e| puts "Error deleting instance: #{e.message}".colorize(:red) }
     end
+  end
+
+  private def delete_placement_groups
+    Hetzner::PlacementGroup::All.new(settings, hetzner_client).delete_all
   end
 
   private def delete_network

@@ -47,8 +47,20 @@ module Hetzner::K3s
         required: false,
         default: false
 
+      define_flag skip_current_ip_validation : Bool,
+        description: "Skip validation that your current IP is included in allowed SSH/API networks",
+        long: "skip-current-ip-validation",
+        required: false,
+        default: false
+
       def run
-        configuration = ::Hetzner::K3s::CLI.load_configuration(flags.configuration_file_path, nil, true, :create)
+        configuration = ::Hetzner::K3s::CLI.load_configuration(
+          flags.configuration_file_path,
+          nil,
+          true,
+          :create,
+          skip_current_ip_validation: flags.skip_current_ip_validation
+        )
         Cluster::Create.new(configuration: configuration).run
         ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
@@ -208,9 +220,9 @@ module Hetzner::K3s
       puts help
     end
 
-    def self.load_configuration(file_path, new_k3s_version = nil, force = true, action = nil)
+    def self.load_configuration(file_path, new_k3s_version = nil, force = true, action = nil, skip_current_ip_validation = false)
       ::Hetzner::K3s::CLI.print_banner
-      configuration = Configuration::Loader.new(file_path, new_k3s_version, force)
+      configuration = Configuration::Loader.new(file_path, new_k3s_version, force, skip_current_ip_validation)
       configuration.validate(action) if action
       configuration
     end

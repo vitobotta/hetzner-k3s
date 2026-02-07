@@ -4,6 +4,7 @@ class Configuration::Models::NetworkingConfig::SSH
 
   getter port : Int32 = 22
   getter use_agent : Bool = false
+  getter use_private_ip : Bool = false
   getter private_key_path : String = "~/.ssh/id_rsa"
   getter public_key_path : String = "~/.ssh/id_rsa.pub"
 
