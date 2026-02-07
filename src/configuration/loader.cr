@@ -68,10 +68,11 @@ class Configuration::Loader
 
   getter new_k3s_version : String?
   getter configuration_file_path : String
+  getter skip_current_ip_validation : Bool = false
 
   private property force : Bool = false
 
-  def initialize(@configuration_file_path, @new_k3s_version, @force)
+  def initialize(@configuration_file_path, @new_k3s_version, @force, @skip_current_ip_validation = false)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
 
     Configuration::Validators::ConfigurationFilePath.new(errors, configuration_file_path).validate
@@ -98,7 +99,8 @@ class Configuration::Loader
       masters_pool: masters_pool,
       instance_types: instance_types,
       all_locations: all_locations,
-      new_k3s_version: new_k3s_version
+      new_k3s_version: new_k3s_version,
+      skip_current_ip_validation: skip_current_ip_validation
     ).validate(command)
   end
 

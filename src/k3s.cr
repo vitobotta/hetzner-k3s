@@ -58,7 +58,8 @@ module K3s
     begin
       ssh_client = ::Util::SSH.new(
         settings.networking.ssh.private_key_path,
-        settings.networking.ssh.public_key_path
+        settings.networking.ssh.public_key_path,
+        settings.networking.ssh.use_private_ip
       )
 
       result = ssh_client.run(
@@ -80,7 +81,8 @@ module K3s
     begin
       ssh_client = ::Util::SSH.new(
         settings.networking.ssh.private_key_path,
-        settings.networking.ssh.public_key_path
+        settings.networking.ssh.public_key_path,
+        settings.networking.ssh.use_private_ip
       )
 
       result = ssh_client.run(
