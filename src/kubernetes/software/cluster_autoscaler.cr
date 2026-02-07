@@ -25,12 +25,17 @@ class Kubernetes::Software::ClusterAutoscaler
   VOLUME_ATTACHMENTS_RESOURCE         = "volumeattachments"
   HCLOUD_CLOUD_INIT_VAR               = "HCLOUD_CLOUD_INIT"
   HCLOUD_CLUSTER_CONFIG_VAR           = "HCLOUD_CLUSTER_CONFIG"
+  HCLOUD_CLUSTER_CONFIG_FILE_VAR      = "HCLOUD_CLUSTER_CONFIG_FILE"
   HCLOUD_FIREWALL_VAR                 = "HCLOUD_FIREWALL"
   HCLOUD_SSH_KEY_VAR                  = "HCLOUD_SSH_KEY"
   HCLOUD_NETWORK_VAR                  = "HCLOUD_NETWORK"
   HCLOUD_PUBLIC_IPV4_VAR              = "HCLOUD_PUBLIC_IPV4"
   HCLOUD_PUBLIC_IPV6_VAR              = "HCLOUD_PUBLIC_IPV6"
   CERT_CHECK_COMMAND                  = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
+  CLUSTER_CONFIG_CONFIGMAP_NAME       = "cluster-autoscaler-config"
+  CLUSTER_CONFIG_VOLUME_NAME          = "cluster-config"
+  CLUSTER_CONFIG_MOUNT_PATH           = "/etc/cluster-autoscaler"
+  CLUSTER_CONFIG_FILE_NAME            = "config.json"
 
   private getter configuration : Configuration::Loader
   private getter settings : Configuration::Main { configuration.settings }
@@ -52,7 +57,8 @@ class Kubernetes::Software::ClusterAutoscaler
   def install : Nil
     log_line "Installing Cluster Autoscaler...", log_prefix: default_log_prefix
 
-    apply_manifest_from_yaml(manifest, "Failed to install Cluster Autoscaler")
+    apply_manifest_server_side(configmap_manifest, "Failed to create Cluster Autoscaler ConfigMap")
+    apply_manifest_server_side(manifest, "Failed to install Cluster Autoscaler")
 
     log_line "...Cluster Autoscaler installed", log_prefix: default_log_prefix
   end
@@ -256,8 +262,9 @@ class Kubernetes::Software::ClusterAutoscaler
     env_vars = container.env || [] of Kubernetes::Resources::Pod::Spec::Container::EnvVariable
 
     remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
+    remove_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR)
 
-    set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR, Base64.strict_encode(build_config_json))
+    set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_FILE_VAR, "#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}")
     set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.cluster_name)
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
@@ -272,6 +279,13 @@ class Kubernetes::Software::ClusterAutoscaler
 
     ssl_mount = volume_mounts.find { |mount| mount.name == SSL_CERTS_VOLUME_NAME }
     ssl_mount.mountPath = certificate_path if ssl_mount
+
+    config_mount = Kubernetes::Resources::Pod::Spec::Container::VolumeMount.new(
+      name: CLUSTER_CONFIG_VOLUME_NAME,
+      mountPath: CLUSTER_CONFIG_MOUNT_PATH,
+      readOnly: true
+    )
+    volume_mounts << config_mount
 
     container.volumeMounts = volume_mounts
   end
@@ -302,10 +316,18 @@ class Kubernetes::Software::ClusterAutoscaler
     return unless volumes
 
     ssl_volume = volumes.find { |v| v.name == SSL_CERTS_VOLUME_NAME }
-    return unless ssl_volume
+    if ssl_volume
+      host_path = ssl_volume.hostPath
+      host_path.path = certificate_path if host_path
+    end
 
-    host_path = ssl_volume.hostPath
-    host_path.path = certificate_path if host_path
+    config_volume = Kubernetes::Resources::Pod::Spec::Volume.new(
+      name: CLUSTER_CONFIG_VOLUME_NAME,
+      configMap: Kubernetes::Resources::Pod::Spec::Volume::ConfigMap.new(
+        name: CLUSTER_CONFIG_CONFIGMAP_NAME
+      )
+    )
+    volumes << config_volume
   end
 
   private def manifest : String
@@ -316,6 +338,21 @@ class Kubernetes::Software::ClusterAutoscaler
     patched_resources = patch_resources(resources)
 
     patched_resources.map(&.to_yaml).join("---\n")
+  end
+
+  private def configmap_manifest : String
+    config_json = build_config_json
+    {
+      "apiVersion" => "v1",
+      "kind"       => "ConfigMap",
+      "metadata"   => {
+        "name"      => CLUSTER_CONFIG_CONFIGMAP_NAME,
+        "namespace" => "kube-system",
+      },
+      "data" => {
+        CLUSTER_CONFIG_FILE_NAME => config_json,
+      },
+    }.to_yaml
   end
 
   private def default_log_prefix : String
