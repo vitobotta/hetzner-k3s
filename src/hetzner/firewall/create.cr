@@ -14,6 +14,8 @@ class Hetzner::Firewall::Create
   private getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
+  private getter node_port_range : String
+  private getter node_port_firewall_enabled : Bool
 
   def initialize(
     @settings,
@@ -24,6 +26,8 @@ class Hetzner::Firewall::Create
     @private_network = settings.networking.private_network
     @ssh = settings.networking.ssh
     @allowed_networks = settings.networking.allowed_networks
+    @node_port_range = settings.networking.node_port_range
+    @node_port_firewall_enabled = settings.networking.node_port_firewall_enabled
     @firewall_finder = Hetzner::Firewall::Find.new(hetzner_client, firewall_name)
   end
 
@@ -89,29 +93,35 @@ class Hetzner::Firewall::Create
         ],
         :destination_ips => [] of String,
       },
-      {
-        :description => "Node port range TCP",
-        :direction   => "in",
-        :protocol    => "tcp",
-        :port        => "30000-32767",
-        :source_ips  => [
-          "0.0.0.0/0",
-          "::/0",
-        ],
-        :destination_ips => [] of String,
-      },
-      {
-        :description => "Node port range UDP",
-        :direction   => "in",
-        :protocol    => "udp",
-        :port        => "30000-32767",
-        :source_ips  => [
-          "0.0.0.0/0",
-          "::/0",
-        ],
-        :destination_ips => [] of String,
-      },
+      # NodePort rules are optional and can be disabled via config.
     ]
+
+    if node_port_firewall_enabled
+      rules += [
+        {
+          :description => "Node port range TCP",
+          :direction   => "in",
+          :protocol    => "tcp",
+          :port        => node_port_range,
+          :source_ips  => [
+            "0.0.0.0/0",
+            "::/0",
+          ],
+          :destination_ips => [] of String,
+        },
+        {
+          :description => "Node port range UDP",
+          :direction   => "in",
+          :protocol    => "udp",
+          :port        => node_port_range,
+          :source_ips  => [
+            "0.0.0.0/0",
+            "::/0",
+          ],
+          :destination_ips => [] of String,
+        },
+      ]
+    end
 
     if private_network.try(&.enabled)
       rules += [

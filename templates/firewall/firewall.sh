@@ -12,6 +12,8 @@ readonly HETZNER_IPS_URL="{{ hetzner_ips_query_server_url }}/ips"
 readonly SSH_PORT="{{ ssh_port }}"
 readonly CLUSTER_CIDR="{{ cluster_cidr }}"
 readonly SERVICE_CIDR="{{ service_cidr }}"
+readonly NODEPORT_RANGE="{{ node_port_range_iptables }}"
+readonly NODEPORT_FIREWALL_ENABLED="{{ node_port_firewall_enabled }}"
 
 # Constants
 readonly IPSET_NODES="nodes"
@@ -19,7 +21,6 @@ readonly IPSET_SSH="allowed_networks_ssh"
 readonly IPSET_API="allowed_networks_k8s_api"
 readonly IPSET_TYPE="hash:net"
 readonly API_PORT=6443
-readonly NODEPORT_RANGE="30000:32767"
 readonly POLL_INTERVAL=30
 readonly API_TIMEOUT=10
 readonly API_RETRIES=3
@@ -181,7 +182,10 @@ setup_iptables() {
     iptables -A INPUT -p icmp -j ACCEPT
 
     # NodePort range
-    iptables -A INPUT -p tcp --match multiport --dports $NODEPORT_RANGE -j ACCEPT
+    if [ "$NODEPORT_FIREWALL_ENABLED" = "true" ]; then
+        iptables -A INPUT -p tcp --match multiport --dports $NODEPORT_RANGE -j ACCEPT
+        iptables -A INPUT -p udp --match multiport --dports $NODEPORT_RANGE -j ACCEPT
+    fi
 
     # Pod and service networks
     iptables -A INPUT -s "$CLUSTER_CIDR" -j ACCEPT

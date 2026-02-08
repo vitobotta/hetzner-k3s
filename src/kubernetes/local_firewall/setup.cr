@@ -125,6 +125,8 @@ class Kubernetes::LocalFirewall::Setup
       ssh_port:                     settings.networking.ssh.port,
       cluster_cidr:                 settings.networking.cluster_cidr,
       service_cidr:                 settings.networking.service_cidr,
+      node_port_range_iptables:     settings.networking.node_port_range_iptables,
+      node_port_firewall_enabled:   settings.networking.node_port_firewall_enabled,
     })
   end
 
