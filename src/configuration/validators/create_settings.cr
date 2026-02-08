@@ -12,6 +12,7 @@ require "./masters_pool"
 require "./worker_node_pools"
 require "./kubectl_presence"
 require "./helm_presence"
+require "../../hetzner/ssh_key/find"
 
 class Configuration::Validators::CreateSettings
   getter errors : Array(String) = [] of String
@@ -40,6 +41,8 @@ class Configuration::Validators::CreateSettings
 
     Configuration::Validators::Datastore.new(errors, settings.datastore).validate
 
+    validate_autoscaler_ssh_key_name
+
     Configuration::Validators::Networking.new(errors, settings.networking, settings, hetzner_client, settings.networking.private_network).validate
 
     Configuration::Validators::MastersPool.new(
@@ -66,5 +69,23 @@ class Configuration::Validators::CreateSettings
     Configuration::Validators::KubectlPresence.new(errors).validate
 
     Configuration::Validators::HelmPresence.new(errors).validate
+  end
+
+  private def validate_autoscaler_ssh_key_name
+    autoscaling_worker_node_pools = settings.worker_node_pools.select(&.autoscaling_enabled)
+    return if autoscaling_worker_node_pools.empty?
+    return unless settings.addons.cluster_autoscaler.enabled?
+
+    begin
+      existing_ssh_key = Hetzner::SSHKey::Find.new(hetzner_client, settings.cluster_name, settings.networking.ssh.public_key_path).run
+    rescue ex
+      errors << "Unable to verify SSH key for autoscaler: #{ex.message}"
+      return
+    end
+
+    return unless existing_ssh_key
+    return if existing_ssh_key.name == settings.cluster_name
+
+    errors << "Cluster autoscaler requires an SSH key named '#{settings.cluster_name}' in Hetzner. A key with the same fingerprint exists as '#{existing_ssh_key.name}', so hetzner-k3s will not create '#{settings.cluster_name}'. Autoscaled nodes will be created without SSH keys. Rename or delete the existing key, or change cluster_name."
   end
 end
