@@ -18,7 +18,6 @@ class Hetzner::Instance::CloudInitGenerator
     @snapshot_os : String,
     @additional_packages : Array(String),
     @additional_pre_k3s_commands : Array(String),
-    @additional_post_k3s_commands : Array(String),
     @init_commands : Array(String),
     @grow_root_partition_automatically : Bool
   )
