@@ -210,14 +210,13 @@ class Hetzner::Instance::CloudInitGenerator
     add_microos_commands(mandatory_commands) if @snapshot_os == "microos"
 
     formatted_pre_commands = format_additional_commands(@additional_pre_k3s_commands)
-    formatted_post_commands = format_additional_commands(@additional_post_k3s_commands)
 
     script_commands = Array(String).new
     @init_commands.each_with_index do |cmd, index|
       script_commands << "/etc/init-#{index}.sh"
     end
 
-    combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten
+    combined_commands = [formatted_pre_commands, mandatory_commands, script_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
   end
