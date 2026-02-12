@@ -62,6 +62,7 @@ class Kubernetes::Software::ClusterAutoscaler
       configuration,
       settings
     ).generate_script(masters, first_master, pool)
+    grow_root_partition_automatically = pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
 
     ::Hetzner::Instance::Create.cloud_init(
       settings,
@@ -70,7 +71,8 @@ class Kubernetes::Software::ClusterAutoscaler
       settings.additional_packages,
       settings.additional_pre_k3s_commands,
       settings.additional_post_k3s_commands,
-      [worker_install_script]
+      [worker_install_script],
+      grow_root_partition_automatically
     )
   end
 
