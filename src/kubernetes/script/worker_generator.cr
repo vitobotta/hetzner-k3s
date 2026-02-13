@@ -16,7 +16,9 @@ class Kubernetes::Script::WorkerGenerator
   end
 
   def generate_script(masters, first_master, worker_pool)
-    labels_and_taints = ::Kubernetes::Script::LabelsAndTaintsGenerator.labels_and_taints(@settings, worker_pool)
+    pool = worker_pool.not_nil!
+    labels_and_taints = ::Kubernetes::Script::LabelsAndTaintsGenerator.labels_and_taints(@settings, pool)
+    post_k3s_commands = format_post_k3s_commands(pool.additional_post_k3s_commands || @settings.additional_post_k3s_commands)
 
     Crinja.render(WORKER_INSTALL_SCRIPT, {
       cluster_name:            @settings.cluster_name,
@@ -29,6 +31,7 @@ class Kubernetes::Script::WorkerGenerator
       service_cidr:            @settings.networking.service_cidr,
       extra_args:              kubelet_args_list,
       labels_and_taints:       labels_and_taints,
+      additional_post_k3s_commands: post_k3s_commands,
     })
   end
 
@@ -42,5 +45,11 @@ class Kubernetes::Script::WorkerGenerator
 
   private def default_log_prefix
     "Kubernetes Script Worker"
+  end
+
+  private def format_post_k3s_commands(commands : Array(String)) : String
+    return "" if commands.empty?
+
+    commands.join("\n")
   end
 end

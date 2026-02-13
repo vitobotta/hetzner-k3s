@@ -63,13 +63,14 @@ class Kubernetes::Software::ClusterAutoscaler
       settings
     ).generate_script(masters, first_master, pool)
 
+    additional_packages = pool.additional_packages || settings.additional_packages
+    additional_pre_k3s_commands = pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
     ::Hetzner::Instance::Create.cloud_init(
       settings,
       settings.networking.ssh.port,
       settings.snapshot_os,
-      settings.additional_packages,
-      settings.additional_pre_k3s_commands,
-      settings.additional_post_k3s_commands,
+      additional_packages,
+      additional_pre_k3s_commands,
       [worker_install_script]
     )
   end
