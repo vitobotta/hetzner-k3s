@@ -26,7 +26,6 @@ class Cluster::InstanceBuilder
     image = masters_pool.image || settings.image
     additional_packages = masters_pool.additional_packages || settings.additional_packages
     additional_pre_k3s_commands = masters_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
-    additional_post_k3s_commands = masters_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
     grow_root_partition_automatically = masters_pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
 
     Hetzner::Instance::Create.new(
@@ -41,7 +40,6 @@ class Cluster::InstanceBuilder
       network: network,
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
-      additional_post_k3s_commands: additional_post_k3s_commands,
       location: location,
       grow_root_partition_automatically: grow_root_partition_automatically
     )
@@ -57,7 +55,6 @@ class Cluster::InstanceBuilder
     image = node_pool.image || settings.image
     additional_packages = node_pool.additional_packages || settings.additional_packages
     additional_pre_k3s_commands = node_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
-    additional_post_k3s_commands = node_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
     grow_root_partition_automatically = node_pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
 
     Hetzner::Instance::Create.new(
@@ -73,7 +70,6 @@ class Cluster::InstanceBuilder
       network: network,
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
-      additional_post_k3s_commands: additional_post_k3s_commands,
       grow_root_partition_automatically: grow_root_partition_automatically
     )
   end

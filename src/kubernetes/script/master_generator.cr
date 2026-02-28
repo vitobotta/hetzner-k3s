@@ -30,6 +30,7 @@ class Kubernetes::Script::MasterGenerator
     extra_args = "#{kube_api_server_args_list} #{kube_scheduler_args_list} #{kube_controller_manager_args_list} #{kube_cloud_controller_manager_args_list} #{kubelet_args_list} #{kube_proxy_args_list}"
     master_taint = @settings.schedule_workloads_on_masters ? " " : " --node-taint CriticalAddonsOnly=true:NoExecute "
     labels_and_taints = ::Kubernetes::Script::LabelsAndTaintsGenerator.labels_and_taints(@settings, @settings.masters_pool)
+    post_k3s_commands = format_post_k3s_commands(@settings.masters_pool.additional_post_k3s_commands || @settings.additional_post_k3s_commands)
 
     Crinja.render(MASTER_INSTALL_SCRIPT, {
       cluster_name:                     @settings.cluster_name,
@@ -54,7 +55,8 @@ class Kubernetes::Script::MasterGenerator
       traefik_enabled: @settings.addons.traefik.enabled.to_s,
       servicelb_enabled: @settings.addons.servicelb.enabled.to_s,
       metrics_server_enabled: @settings.addons.metrics_server.enabled.to_s,
-      labels_and_taints: labels_and_taints
+      labels_and_taints: labels_and_taints,
+      additional_post_k3s_commands: post_k3s_commands
     })
   end
 
@@ -104,5 +106,11 @@ class Kubernetes::Script::MasterGenerator
 
   private def default_log_prefix
     "Kubernetes Script Master"
+  end
+
+  private def format_post_k3s_commands(commands : Array(String)) : String
+    return "" if commands.empty?
+
+    commands.join("\n")
   end
 end

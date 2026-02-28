@@ -31,7 +31,6 @@ class Hetzner::Instance::Create
   private getter enable_public_net_ipv6 : Bool
   private getter additional_packages : Array(String)
   private getter additional_pre_k3s_commands : Array(String)
-  private getter additional_post_k3s_commands : Array(String)
   private getter snapshot_os : String
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter mutex : Mutex
@@ -54,7 +53,6 @@ class Hetzner::Instance::Create
     @network,
     @additional_packages = [] of String,
     @additional_pre_k3s_commands = [] of String,
-    @additional_post_k3s_commands = [] of String,
     @location = "fsn1",
     @grow_root_partition_automatically = true
   )
@@ -75,14 +73,13 @@ class Hetzner::Instance::Create
     instance
   end
 
-  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, additional_post_k3s_commands = [] of String, init_commands = [] of String, grow_root_partition_automatically = true)
+  def self.cloud_init(settings, ssh_port = 22, snapshot_os = "default", additional_packages = [] of String, additional_pre_k3s_commands = [] of String, init_commands = [] of String, grow_root_partition_automatically = true)
     CloudInitGenerator.new(
       settings: settings,
       ssh_port: ssh_port,
       snapshot_os: snapshot_os,
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
-      additional_post_k3s_commands: additional_post_k3s_commands,
       init_commands: init_commands,
       grow_root_partition_automatically: grow_root_partition_automatically
     ).generate
@@ -191,7 +188,7 @@ class Hetzner::Instance::Create
   end
 
   private def instance_config
-    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, additional_post_k3s_commands, [] of String, @grow_root_partition_automatically)
+    user_data = Hetzner::Instance::Create.cloud_init(settings, ssh.port, snapshot_os, additional_packages, additional_pre_k3s_commands, [] of String, @grow_root_partition_automatically)
 
     base_config = {
       :name       => instance_name,
