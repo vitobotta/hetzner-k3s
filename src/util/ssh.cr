@@ -82,6 +82,10 @@ class Util::SSH
     host_ip_address = instance.host_ip_address(prefer_private_ip)
     raise "Instance #{instance.name} has no IP address" unless host_ip_address
 
+    if prefer_private_ip && instance.private_net.try(&.first?).try(&.ip).nil?
+      log_line "WARNING: Instance #{instance.name} has no private IP, falling back to public IP", log_prefix: "Instance #{instance.name}"
+    end
+
     debug = ENV.fetch("DEBUG", "false") == "true"
     log_level = debug ? "DEBUG" : "ERROR"
 
