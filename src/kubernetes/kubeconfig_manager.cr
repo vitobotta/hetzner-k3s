@@ -35,7 +35,11 @@ class Kubernetes::KubeconfigManager
     end
 
     masters.each_with_index do |master, index|
-      master_ip_address = @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
+      master_ip_address = if @settings.networking.ssh.use_private_ip
+        master.private_ip_address
+      else
+        @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
+      end
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
       master_kubeconfig = kubeconfig
         .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
@@ -78,7 +82,9 @@ class Kubernetes::KubeconfigManager
   end
 
   private def load_balancer_ip_address(load_balancer : Hetzner::LoadBalancer?)
-    load_balancer.try(&.public_ip_address)
+    return nil unless load_balancer
+
+    @settings.networking.ssh.use_private_ip ? load_balancer.private_ip_address : load_balancer.public_ip_address
   end
 
   private def switch_to_context(context_name : String, kubeconfig_path : String)

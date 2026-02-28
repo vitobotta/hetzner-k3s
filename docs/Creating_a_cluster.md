@@ -19,6 +19,7 @@ networking:
   ssh:
     port: 22
     use_agent: false # set to true if your key has a passphrase
+    use_private_ip: false # set to true to connect to nodes via their private IPs
     public_key_path: "~/.ssh/id_ed25519.pub"
     private_key_path: "~/.ssh/id_ed25519"
   allowed_networks:
@@ -244,6 +245,8 @@ To create the cluster run:
 ```bash
 hetzner-k3s create --config cluster_config.yaml | tee create.log
 ```
+
+If you need to bypass the validation that your current IP is included in the allowed SSH/API networks, add `--skip-current-ip-validation`.
 
 This process will take a few minutes, depending on how many master and worker nodes you have.
 
