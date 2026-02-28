@@ -62,9 +62,8 @@ fi
 mkdir -p /etc/rancher/k3s
 
 # Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<EOF
-mirrors:
-  "*":
+cat >/etc/rancher/k3s/registries.yaml <<\EOF
+{{ private_registry_config | trim }}
 EOF
 
 # Get instance ID for public network
@@ -101,4 +100,10 @@ if [ ${PIPESTATUS[0]} -ne 0 ]; then
 fi
 
 echo "k3s worker installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+{% if additional_post_k3s_commands != "" %}
+# Additional post-k3s commands
+{{ additional_post_k3s_commands }}
+{% endif %}
+
 echo true >/etc/initialized

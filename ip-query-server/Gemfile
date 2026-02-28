@@ -1,6 +1,7 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
-gem 'sinatra'
-gem 'json'
-gem 'puma'
-gem 'rackup'
+gem "sinatra"
+gem "json"
+gem "puma"
+gem "rackup"
+gem "concurrent-ruby"
