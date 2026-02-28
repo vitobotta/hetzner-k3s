@@ -19,8 +19,10 @@ class Hetzner::Instance
     private_net.try(&.first?).try(&.ip) || public_ip_address
   end
 
-  def host_ip_address : String?
-    public_ip_address || private_ip_address
+  def host_ip_address(prefer_private_ip : Bool = false) : String?
+    private_ip = private_net.try(&.first?).try(&.ip)
+    public_ip = public_ip_address
+    prefer_private_ip ? (private_ip || public_ip) : (public_ip || private_ip)
   end
 
   def master?

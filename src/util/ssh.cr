@@ -19,8 +19,9 @@ class Util::SSH
 
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
+  getter prefer_private_ip : Bool = false
 
-  def initialize(@private_ssh_key_path, @public_ssh_key_path)
+  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false)
   end
 
   def self.calculate_fingerprint(public_ssh_key_path)
@@ -78,7 +79,7 @@ class Util::SSH
 
   # Run a command on a remote instance via SSH
   def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
-    host_ip_address = instance.host_ip_address
+    host_ip_address = instance.host_ip_address(prefer_private_ip)
     raise "Instance #{instance.name} has no IP address" unless host_ip_address
 
     debug = ENV.fetch("DEBUG", "false") == "true"

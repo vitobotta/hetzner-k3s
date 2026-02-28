@@ -150,8 +150,9 @@ class Cluster::Run
 
     puts "Nodes that will be affected:"
     instances.each do |instance|
-      if instance.host_ip_address
-        puts "  - #{instance.name} (#{instance.host_ip_address})"
+      host_ip_address = instance.host_ip_address(settings.networking.ssh.use_private_ip)
+      if host_ip_address
+        puts "  - #{instance.name} (#{host_ip_address})"
       else
         puts "  - #{instance.name} (no IP address - will be skipped)"
       end
@@ -165,8 +166,9 @@ class Cluster::Run
     puts
 
     puts "Node that will be affected:"
-    if instance.host_ip_address
-      puts "  - #{instance.name} (#{instance.host_ip_address})"
+    host_ip_address = instance.host_ip_address(settings.networking.ssh.use_private_ip)
+    if host_ip_address
+      puts "  - #{instance.name} (#{host_ip_address})"
     else
       puts "  - #{instance.name} (no IP address - will be skipped)"
     end
@@ -188,7 +190,8 @@ class Cluster::Run
   private def setup_ssh_connection
     Util::SSH.new(
       settings.networking.ssh.private_key_path,
-      settings.networking.ssh.public_key_path
+      settings.networking.ssh.public_key_path,
+      settings.networking.ssh.use_private_ip
     )
   end
 
@@ -228,8 +231,9 @@ class Cluster::Run
     output_lines = [] of String
     success = true
 
-    if instance.host_ip_address
-      output_lines << "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
+    host_ip_address = instance.host_ip_address(settings.networking.ssh.use_private_ip)
+    if host_ip_address
+      output_lines << "=== Instance: #{instance.name} (#{host_ip_address}) ==="
 
       begin
         success_message = block.call(ssh, instance)

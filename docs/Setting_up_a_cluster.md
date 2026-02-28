@@ -32,6 +32,7 @@ networking:
   ssh:
     port: 22
     use_agent: false
+    use_private_ip: false
     public_key_path: "~/.ssh/id_rsa.pub"
     private_key_path: "~/.ssh/id_rsa"
   allowed_networks:
