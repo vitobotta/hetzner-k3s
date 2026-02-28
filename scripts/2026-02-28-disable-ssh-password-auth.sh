@@ -8,9 +8,15 @@
 # key-based authentication only. Run this on each node in your cluster.
 #
 # Usage: sudo bash 2026-02-28-disable-ssh-password-auth.sh
+#        VERBOSE=1 sudo bash 2026-02-28-disable-ssh-password-auth.sh  # Enable verbose output
 #
 
-set -euo pipefail
+# Enable verbose output if VERBOSE or DEBUG is set
+if [[ -n "${VERBOSE:-}" || -n "${DEBUG:-}" ]]; then
+  set -euo pipefail -x
+else
+  set -euo pipefail
+fi
 
 readonly SSHD_CONFIG="/etc/ssh/sshd_config"
 SSHD_SERVICE="ssh"
@@ -105,17 +111,14 @@ verify_ssh_session() {
   # Get current SSH daemon settings
   local password_auth
   local kbd_auth
-  local challenge_auth
   local root_login
   
-  password_auth=$(sshd -T | grep -i "^passwordauthentication" | awk '{print $2}')
-  kbd_auth=$(sshd -T | grep -i "^kbdinteractiveauthentication" | awk '{print $2}')
-  challenge_auth=$(sshd -T | grep -i "^challengeresponseauthentication" | awk '{print $2}')
-  root_login=$(sshd -T | grep -i "^permitrootlogin" | awk '{print $2}')
+  password_auth=$(sshd -T 2>/dev/null | grep -i "^passwordauthentication" | awk '{print $2}' || echo "unknown")
+  kbd_auth=$(sshd -T 2>/dev/null | grep -i "^kbdinteractiveauthentication" | awk '{print $2}' || echo "unknown")
+  root_login=$(sshd -T 2>/dev/null | grep -i "^permitrootlogin" | awk '{print $2}' || echo "unknown")
   
   log "  - PasswordAuthentication: ${password_auth}"
   log "  - KbdInteractiveAuthentication: ${kbd_auth}"
-  log "  - ChallengeResponseAuthentication: ${challenge_auth}"
   log "  - PermitRootLogin: ${root_login}"
   
   if [[ "${password_auth}" != "no" ]]; then

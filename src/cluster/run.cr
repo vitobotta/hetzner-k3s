@@ -61,6 +61,7 @@ class Cluster::Run
 
   private def execute_script_block(ssh : Util::SSH, instance, script_content : String, remote_script_path : String)
     all_output = [] of String
+    errors = [] of String
 
     # Uploading script...
     upload_command = "cat > #{remote_script_path} << 'EOF'\n#{script_content}\nEOF"
@@ -71,10 +72,15 @@ class Cluster::Run
     chmod_output = ssh.run(instance, settings.networking.ssh.port.to_s, "chmod +x #{remote_script_path}", settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
     all_output << chmod_output unless chmod_output.empty?
 
-    # Executing script...
-    execute_command = "#{remote_script_path}"
+    # Executing script with error output capture...
+    execute_command = "bash #{remote_script_path} 2>&1; echo \"Exit code: $?\""
     script_output = ssh.run(instance, settings.networking.ssh.port.to_s, execute_command, settings.networking.ssh.use_agent, false, disable_log_prefix: true, capture_output: true)
-    all_output << script_output unless script_output.empty?
+    all_output << script_output
+
+    # Check if script failed
+    if script_output.includes?("Exit code: ") && !script_output.includes?("Exit code: 0")
+      errors << "Script execution failed on #{instance.name}"
+    end
 
     # Cleaning up...
     # Don't capture cleanup output since print_output=false
@@ -82,7 +88,12 @@ class Cluster::Run
 
     # Combine all captured output
     combined_output = all_output.join("\n")
-    combined_output.empty? ? "\nScript execution completed successfully" : combined_output + "\nScript execution completed successfully"
+    
+    if errors.empty?
+      combined_output.empty? ? "\nScript execution completed successfully" : combined_output + "\nScript execution completed successfully"
+    else
+      errors.join("\n") + "\n\n" + combined_output
+    end
   end
 
   private def validate_script_file(script_path : String)
@@ -186,20 +197,36 @@ class Cluster::Run
   end
 
   private def execute_on_each_instance(ssh : Util::SSH, instances, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
-    channel = Channel(Nil).new
+    channel = Channel({Bool, String}).new
+    successful_count = 0
+    failed_count = 0
 
     instances.each do |instance|
       spawn do
-        execute_on_single_instance(ssh, instance, action_type, &block)
-        channel.send(nil)
+        success = execute_on_single_instance_with_result(ssh, instance, action_type, &block)
+        channel.send({success, instance.name})
       end
     end
 
-    instances.size.times { channel.receive }
+    instances.size.times do
+      success, instance_name = channel.receive
+      if success
+        successful_count += 1
+      else
+        failed_count += 1
+      end
+    end
+
+    print_execution_summary(successful_count, failed_count, instances.size)
   end
 
   private def execute_on_single_instance(ssh : Util::SSH, instance, action_type : String, &block : Util::SSH, Hetzner::Instance -> String)
+    execute_on_single_instance_with_result(ssh, instance, action_type, &block)
+  end
+
+  private def execute_on_single_instance_with_result(ssh : Util::SSH, instance, action_type : String, &block : Util::SSH, Hetzner::Instance -> String) : Bool
     output_lines = [] of String
+    success = true
 
     if instance.host_ip_address
       output_lines << "=== Instance: #{instance.name} (#{instance.host_ip_address}) ==="
@@ -209,18 +236,21 @@ class Cluster::Run
         output_lines << success_message
       rescue ex : IO::Error
         output_lines << "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red).to_s
+        success = false
       rescue ex
         output_lines << "Unexpected error: #{ex.message}".colorize(:red).to_s
+        success = false
       end
 
       output_lines << ""
     else
       print_skipped_instance(instance)
-      return
+      return false
     end
 
     # Print all lines for this instance together
     output_lines.each { |line| puts line }
+    success
   end
 
   private def print_skipped_instance(instance)
@@ -230,6 +260,33 @@ class Cluster::Run
       ""
     ]
     output_lines.each { |line| puts line }
+  end
+
+  private def print_execution_summary(successful : Int32, failed : Int32, total : Int32)
+    puts
+    puts "=" * 50
+    puts "Execution Summary"
+    puts "=" * 50
+    puts "Total nodes:     #{total}"
+    puts "Successful:      #{successful} #{successful_color(successful, total)}"
+    puts "Failed:          #{failed} #{failed_color(failed)}"
+    puts "=" * 50
+  end
+
+  private def successful_color(successful : Int32, total : Int32) : String
+    if successful == total
+      "(#{'✓'.colorize(:green)})"
+    else
+      "(#{'⚠'.colorize(:yellow)})"
+    end
+  end
+
+  private def failed_color(failed : Int32) : String
+    if failed > 0
+      "(#{'✗'.colorize(:red)})"
+    else
+      ""
+    end
   end
 
   private def detect_instances
