@@ -29,6 +29,7 @@ class Kubernetes::Script::WorkerGenerator
       service_cidr:            @settings.networking.service_cidr,
       extra_args:              kubelet_args_list,
       labels_and_taints:       labels_and_taints,
+      private_registry_config: @settings.addons.embedded_registry_mirror.private_registry_config,
     })
   end
 
