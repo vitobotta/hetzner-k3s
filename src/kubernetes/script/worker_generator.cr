@@ -28,10 +28,10 @@ class Kubernetes::Script::WorkerGenerator
       private_network_enabled: @settings.networking.private_network.enabled.to_s,
       private_network_subnet:  @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
       cluster_cidr:            @settings.networking.cluster_cidr,
-      service_cidr:            @settings.networking.service_cidr,
-      extra_args:                   kubelet_args_list,
-      labels_and_taints:            labels_and_taints,
-      private_registry_config:      @settings.addons.embedded_registry_mirror.private_registry_config,
+      service_cidr:               @settings.networking.service_cidr,
+      extra_args:                 kubelet_args_list,
+      labels_and_taints:          labels_and_taints,
+      private_registry_config:    @settings.addons.embedded_registry_mirror.private_registry_config,
       additional_post_k3s_commands: post_k3s_commands,
     })
   end
