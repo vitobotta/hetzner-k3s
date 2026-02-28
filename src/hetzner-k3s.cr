@@ -10,7 +10,7 @@ require "./cluster/run"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.4.5"
+    VERSION = "2.4.6"
 
     def self.print_banner
       puts "╭─────────────────────────────────────────╮".colorize(:green)
