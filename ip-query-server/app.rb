@@ -14,6 +14,7 @@ class HetznerApp < Sinatra::Base
     set :max_retries, ENV.fetch("MAX_RETRIES", 3).to_i
     set :retry_base_delay, ENV.fetch("RETRY_BASE_DELAY", 0.5).to_f
     set :valid_roles, %w[master worker loadbalancer]
+    set :host_authorization, { permitted_hosts: [/.*/] }
   end
 
   CACHE = Concurrent::Map.new
