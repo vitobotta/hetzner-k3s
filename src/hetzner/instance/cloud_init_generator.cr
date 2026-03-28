@@ -191,12 +191,50 @@ class Hetzner::Instance::CloudInitGenerator
   end
 
   private def mandatory_post_create_commands
-    commands = [
+    commands = [] of String
+
+    # Configure custom DNS servers by replacing the cloud-init netplan nameservers.
+    # Netplan uses the FIRST file's nameservers for each interface, so we must
+    # modify 50-cloud-init.yaml directly rather than creating an overlay file.
+    dns_servers = @settings.networking.dns_servers
+    unless dns_servers.empty?
+      servers_repr = dns_servers.inspect
+      commands << "python3 -c \"import yaml; d=yaml.safe_load(open('/etc/netplan/50-cloud-init.yaml')); addrs=d.get('network',{}).get('ethernets',{}).get('eth0',{}).get('nameservers',{}).get('addresses',[]); [addrs.remove(a) for a in list(addrs) if ':' in a]; addrs.extend(#{servers_repr}); yaml.dump(d,open('/etc/netplan/50-cloud-init.yaml','w'),default_flow_style=False)\" && netplan apply"
+    end
+
+    commands.concat([
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
+    ])
+
+    # Ensure admin user exists with the configured SSH public key.
+    # The Hetzner Ubuntu 24.04 image has cloud-init configured with
+    # disable_root: true, but cc_users_groups skips creating the default
+    # non-root user when root already exists. This causes hetzner-k3s SSH
+    # to fail because the admin user's authorized_keys is never populated.
+    pub_key = File.read(File.expand_path(@settings.networking.ssh.public_key_path)).chomp
+    commands << "id admin &>/dev/null || useradd -m -s /bin/bash -G sudo admin"
+    commands << "mkdir -p /home/admin/.ssh && chmod 700 /home/admin/.ssh"
+    commands << "echo '#{pub_key}' > /home/admin/.ssh/authorized_keys && chmod 600 /home/admin/.ssh/authorized_keys && chown -R admin:admin /home/admin"
+    commands << "echo 'admin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/admin && chmod 440 /etc/sudoers.d/admin"
+
+    if @settings.networking.ssh.use_tailscale
+      auth_key = @settings.networking.ssh.tailscale_auth_key
+      commands << "curl -fsSL https://tailscale.com/install.sh | sh"
+      commands << "tailscale up --authkey=#{auth_key} --hostname=$(hostname) --accept-routes"
+
+      # Disable Tailscale's built-in DNS so custom DNS servers (e.g. NAT64 resolvers)
+      # can handle all queries. Without this, Tailscale's MagicDNS intercepts queries
+      # and returns IPv4 addresses for domains like github.com, which IPv6-only nodes
+      # cannot reach. Note: this means MagicDNS hostnames (node.tailnet.ts.net) will
+      # only resolve via the Hetzner metadata API during provisioning.
+      commands << "tailscale set --accept-dns=false"
+    end
+
+    commands.concat([
       "/etc/configure_ssh.sh",
       "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf",
-    ]
+    ])
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
       commands << "/usr/local/bin/firewall.sh setup"
@@ -212,6 +250,7 @@ class Hetzner::Instance::CloudInitGenerator
     add_microos_commands(mandatory_commands) if @snapshot_os == "microos"
 
     formatted_pre_commands = format_additional_commands(@additional_pre_k3s_commands)
+    formatted_mandatory_commands = format_additional_commands(mandatory_commands)
     formatted_post_commands = format_additional_commands(@additional_post_k3s_commands)
 
     script_commands = Array(String).new
@@ -219,7 +258,7 @@ class Hetzner::Instance::CloudInitGenerator
       script_commands << "/etc/init-#{index}.sh"
     end
 
-    combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten
+    combined_commands = [formatted_pre_commands, formatted_mandatory_commands, script_commands, formatted_post_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
   end

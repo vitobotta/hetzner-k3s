@@ -8,8 +8,17 @@ class Configuration::Models::NetworkingConfig::SSH
   getter private_key_path : String = "~/.ssh/id_rsa"
   getter public_key_path : String = "~/.ssh/id_rsa.pub"
   getter existing_ssh_key_name : String = ""
+  getter use_tailscale : Bool = false
+  getter tailscale_hostname_suffix : String = ""
+  @[YAML::Field(key: "tailscale_auth_key")]
+  getter tailscale_auth_key_yaml : String = ""
 
   def initialize
+  end
+
+  def tailscale_auth_key : String
+    env_key = ENV.fetch("TAILSCALE_AUTH_KEY", "")
+    env_key.empty? ? tailscale_auth_key_yaml : env_key
   end
 
   def private_key_path

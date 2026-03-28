@@ -191,7 +191,8 @@ class Cluster::Run
     Util::SSH.new(
       settings.networking.ssh.private_key_path,
       settings.networking.ssh.public_key_path,
-      settings.networking.ssh.use_private_ip
+      settings.networking.ssh.use_private_ip,
+      settings.networking.ssh.tailscale_hostname_suffix
     )
   end
 

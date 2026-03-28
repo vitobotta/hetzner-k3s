@@ -20,8 +20,9 @@ class Util::SSH
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
   getter prefer_private_ip : Bool = false
+  getter tailscale_hostname_suffix : String = ""
 
-  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false)
+  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false, @tailscale_hostname_suffix = "")
   end
 
   def self.calculate_fingerprint(public_ssh_key_path)
@@ -79,18 +80,24 @@ class Util::SSH
 
   # Run a command on a remote instance via SSH
   def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
-    host_ip_address = instance.host_ip_address(prefer_private_ip)
-    raise "Instance #{instance.name} has no IP address" unless host_ip_address
+    host = if !tailscale_hostname_suffix.empty?
+      instance.tailscale_host(tailscale_hostname_suffix)
+    else
+      host_ip = instance.host_ip_address(prefer_private_ip)
+      raise "Instance #{instance.name} has no IP address" unless host_ip
 
-    if prefer_private_ip && instance.private_net.try(&.first?).try(&.ip).nil?
-      log_line "WARNING: Instance #{instance.name} has no private IP, falling back to public IP", log_prefix: "Instance #{instance.name}"
+      if prefer_private_ip && instance.private_net.try(&.first?).try(&.ip).nil?
+        log_line "WARNING: Instance #{instance.name} has no private IP, falling back to public IP", log_prefix: "Instance #{instance.name}"
+      end
+
+      host_ip
     end
 
     debug = ENV.fetch("DEBUG", "false") == "true"
     log_level = debug ? "DEBUG" : "ERROR"
 
     ssh_args = build_ssh_args(
-      host_ip_address: host_ip_address,
+      host_ip_address: host,
       port: port,
       command: command,
       use_ssh_agent: use_ssh_agent,
