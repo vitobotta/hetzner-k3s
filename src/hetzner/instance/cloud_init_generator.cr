@@ -198,8 +198,12 @@ class Hetzner::Instance::CloudInitGenerator
     # modify 50-cloud-init.yaml directly rather than creating an overlay file.
     dns_servers = @settings.networking.dns_servers
     unless dns_servers.empty?
-      servers_repr = dns_servers.inspect
-      commands << "python3 -c \"import yaml; d=yaml.safe_load(open('/etc/netplan/50-cloud-init.yaml')); addrs=d.get('network',{}).get('ethernets',{}).get('eth0',{}).get('nameservers',{}).get('addresses',[]); [addrs.remove(a) for a in list(addrs) if ':' in a]; addrs.extend(#{servers_repr}); yaml.dump(d,open('/etc/netplan/50-cloud-init.yaml','w'),default_flow_style=False)\" && netplan apply"
+      # Build python list with single quotes to avoid breaking the outer shell double-quote context.
+      # Crystal's Array#inspect uses double-quotes which would terminate the shell string early.
+      servers_py = "[" + dns_servers.map { |s| "'#{s}'" }.join(",") + "]"
+      # Single-line python command to avoid heredoc indentation issues in cloud-init runcmd.
+      # Iterates over all ethernet interfaces (works for both eth0 on Intel and enp1s0 on ARM).
+      commands << "python3 -c \"import yaml; path='/etc/netplan/50-cloud-init.yaml'; d=yaml.safe_load(open(path)); [cfg.setdefault('nameservers',{}).setdefault('addresses',[]) for cfg in d.get('network',{}).get('ethernets',{}).values()]; [[cfg['nameservers']['addresses'].remove(a) for a in list(cfg['nameservers']['addresses']) if ':' in a] for cfg in d.get('network',{}).get('ethernets',{}).values()]; [[cfg['nameservers']['addresses'].append(s) for s in #{servers_py} if s not in cfg['nameservers']['addresses']] for cfg in d.get('network',{}).get('ethernets',{}).values()]; yaml.dump(d,open(path,'w'),default_flow_style=False)\" && netplan apply"
     end
 
     commands.concat([
@@ -216,7 +220,7 @@ class Hetzner::Instance::CloudInitGenerator
     commands << "id admin &>/dev/null || useradd -m -s /bin/bash -G sudo admin"
     commands << "mkdir -p /home/admin/.ssh && chmod 700 /home/admin/.ssh"
     commands << "echo '#{pub_key}' > /home/admin/.ssh/authorized_keys && chmod 600 /home/admin/.ssh/authorized_keys && chown -R admin:admin /home/admin"
-    commands << "echo 'admin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/admin && chmod 440 /etc/sudoers.d/admin"
+    commands << "echo 'admin ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/admin && chmod 440 /etc/sudoers.d/admin"
 
     if @settings.networking.ssh.use_tailscale
       auth_key = @settings.networking.ssh.tailscale_auth_key
