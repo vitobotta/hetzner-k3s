@@ -66,6 +66,27 @@ The Tailscale auth key can be provided in two ways (env var takes precedence):
 
 When `ipv4: false`, nodes need `ipv6: true` so they can reach the Tailscale coordination server (`controlplane.tailscale.com`) during boot. hetzner-k3s will validate this and report an error if both are disabled with Tailscale enabled.
 
+### DNS servers (NAT64 for IPv6-only nodes)
+
+When running IPv6-only nodes (`ipv4: false, ipv6: true`), some upstream services like GitHub only have IPv4 addresses. The k3s installer downloads binaries from GitHub, so IPv6-only nodes need **NAT64 DNS resolvers** that synthesize AAAA records for IPv4-only hosts.
+
+Use the `dns_servers` field under `networking:` to configure custom DNS servers. These are injected into the existing netplan config (`/etc/netplan/50-cloud-init.yaml`) during cloud-init and applied with `netplan apply`, so they survive reboots and network reconfigurations:
+
+```yaml
+networking:
+  dns_servers:
+    - 2a01:4f9:c010:3f02::1   # NAT64 resolver
+    - 2a00:1098:2c::1          # NAT64 resolver
+    - 2a00:1098:2b::1          # NAT64 resolver
+  public_network:
+    ipv4: false
+    ipv6: true
+```
+
+> **Note:** Tailscale's own installation (`tailscale.com` and `pkgs.tailscale.com`) supports IPv6 natively, so Tailscale will install correctly even before NAT64 DNS is active. The NAT64 resolvers are primarily needed for the k3s installer which downloads from GitHub.
+
+When both Tailscale and IPv6-only are enabled, hetzner-k3s runs `tailscale set --accept-dns=false` to disable Tailscale's MagicDNS. Without this, MagicDNS intercepts DNS queries and returns IPv4 A records that IPv6-only nodes cannot use. With MagicDNS disabled, the NAT64 resolvers in `dns_servers` handle all queries, including synthesising IPv6 addresses for IPv4-only hosts like `github.com`. Note that tailnet MagicDNS hostnames (`node.tailnet.ts.net`) are still reachable via Tailscale's overlay network — only DNS resolution is affected.
+
 ## Full example cluster.yaml (IPv6-only nodes)
 
 ```yaml
@@ -93,6 +114,10 @@ networking:
       - 0.0.0.0/0
     api:
       - 0.0.0.0/0
+  dns_servers:
+    - 2a01:4f9:c010:3f02::1
+    - 2a00:1098:2c::1
+    - 2a00:1098:2b::1
 
 masters_pool:
   instance_type: cpx21
@@ -117,12 +142,14 @@ hetzner-k3s create --config cluster.yaml
 
 For reference, here is the order of operations during node provisioning when Tailscale is enabled:
 
-1. `hostnamectl set-hostname <name>` — sets the hostname from Hetzner metadata
-2. `update-crypto-policies --set DEFAULT:SHA1 || true`
-3. `curl -fsSL https://tailscale.com/install.sh | sh` — installs Tailscale
-4. `tailscale up --authkey=... --hostname=$(hostname) --accept-routes` — joins the tailnet
-5. `/etc/configure_ssh.sh` — configures SSH port
-6. DNS resolver setup
-7. (Optional) local firewall setup
+1. DNS servers netplan update — modifies `/etc/netplan/50-cloud-init.yaml` and runs `netplan apply` (if `dns_servers` is configured)
+2. `hostnamectl set-hostname <name>` — sets the hostname from Hetzner metadata
+3. `update-crypto-policies --set DEFAULT:SHA1 || true`
+4. `curl -fsSL https://tailscale.com/install.sh | sh` — installs Tailscale
+5. `tailscale up --authkey=... --hostname=$(hostname) --accept-routes` — joins the tailnet
+6. `tailscale set --accept-dns=false` — disables MagicDNS so NAT64 resolvers handle all DNS queries (when `ipv4: false`)
+7. `/etc/configure_ssh.sh` — configures SSH port
+8. DNS resolver setup (`/etc/k8s-resolv.conf`)
+9. (Optional) local firewall setup
 
-After step 4, the node is reachable on the tailnet as `<instance-name>.<tailnet-name>.ts.net`. hetzner-k3s retries SSH in a loop (step `wait_for_instance`) which naturally handles the short delay while steps 3–4 complete.
+After step 5, the node is reachable on the tailnet as `<instance-name>.<tailnet-name>.ts.net`. hetzner-k3s retries SSH in a loop (up to 60 attempts for Tailscale mode) which naturally handles the short delay while steps 4–5 complete.
