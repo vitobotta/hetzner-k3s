@@ -42,12 +42,24 @@ class Util::SSH
   )
     result_str = ""
     debug = ENV.fetch("DEBUG", "false") == "true"
+    using_tailscale = !tailscale_hostname_suffix.empty?
+
+    on_retry = ->(ex : Exception, attempt : Int32, _elapsed : Time::Span, _next : Time::Span) {
+      if using_tailscale && attempt % 10 == 0
+        puts "\n[Instance #{instance.name}] Still waiting for Tailscale registration (attempt #{attempt}/#{max_attempts})..."
+        puts "  Tailscale status:"
+        ts_status = `tailscale status 2>/dev/null`.strip
+        ts_status.each_line { |l| puts "    #{l}" }
+        puts ""
+      end
+    }
 
     Retriable.retry(
       max_attempts: max_attempts,
       on: [Tasker::Timeout, IO::Error],
       backoff: false,
-      sleep_timer: retry_delay
+      sleep_timer: retry_delay,
+      on_retry: on_retry
     ) do
       result = nil
       begin
@@ -81,7 +93,13 @@ class Util::SSH
   # Run a command on a remote instance via SSH
   def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
     host = if !tailscale_hostname_suffix.empty?
-      instance.tailscale_host(tailscale_hostname_suffix)
+      tailscale_hostname = instance.tailscale_host(tailscale_hostname_suffix)
+      if tailscale_peer_online?(tailscale_hostname)
+        tailscale_hostname
+      else
+        log_line "Waiting for #{tailscale_hostname} to register with Tailscale...", log_prefix: "Instance #{instance.name}"
+        raise IO::Error.new("Tailscale peer #{tailscale_hostname} not yet online")
+      end
     else
       host_ip = instance.host_ip_address(prefer_private_ip)
       raise "Instance #{instance.name} has no IP address" unless host_ip
@@ -184,5 +202,20 @@ class Util::SSH
 
   private def default_log_prefix
     "+"
+  end
+
+  private def tailscale_peer_online?(hostname : String) : Bool
+    status_output = `tailscale status --json 2>/dev/null`
+    return false if !$?.success?
+
+    json = JSON.parse(status_output)
+    json["Peer"].as_h.each do |_key, peer|
+      dns_name = peer["DNSName"]?.try &.as_s
+      next unless dns_name && dns_name.starts_with?(hostname)
+      return peer["Online"]?.try(&.as_bool) == true
+    end
+    false
+  rescue
+    false
   end
 end
