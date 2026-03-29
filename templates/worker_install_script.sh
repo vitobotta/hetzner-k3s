@@ -3,6 +3,8 @@ touch /etc/initialized
 HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
+IPV4_ENABLED="{{ ipv4_enabled }}"
+
 # Network configuration
 if [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
@@ -75,6 +77,50 @@ if [ "{{ private_network_enabled }}" = "false" ]; then
   else
     echo "WARNING: Could not retrieve instance ID" 2>&1 | tee -a /var/log/hetzner-k3s.log
   fi
+fi
+
+# DNS configuration for /etc/k8s-resolv.conf (used by kubelet --resolv-conf)
+# On IPv6-only nodes, 8.8.8.8 is unreachable. CoreDNS runs in the flannel pod
+# network (IPv4-only) and cannot reach IPv6 DNS servers directly. We solve this
+# by making systemd-resolved listen on the node's private IP, so both CoreDNS
+# (from the pod network) and host-network pods can forward DNS through it.
+# systemd-resolved then uses the host's IPv6 upstream DNS servers.
+if [ "$IPV4_ENABLED" = "false" ]; then
+  echo "IPv6-only node: configuring systemd-resolved DNS proxy on $PRIVATE_IP" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  mkdir -p /etc/systemd/resolved.conf.d
+  cat > /etc/systemd/resolved.conf.d/k8s-dns-proxy.conf <<DNSEOF
+[Resolve]
+DNSStubListenerExtra=$PRIVATE_IP
+DNSEOF
+  systemctl restart systemd-resolved
+  echo "nameserver $PRIVATE_IP" > /etc/k8s-resolv.conf
+  echo "DNS proxy configured: pods will use $PRIVATE_IP:53 -> systemd-resolved -> IPv6 upstream" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+  # Add IPv4 default route so ClusterIP DNAT works on IPv6-only nodes.
+  # IPv6-only Hetzner nodes have no IPv4 default route. Without one, the kernel
+  # returns ENETUNREACH immediately for any IPv4 destination (including ClusterIPs
+  # like 10.43.0.0/16). Packets never reach nftables, so kube-proxy DNAT rules
+  # in the OUTPUT chain cannot rewrite them to local pod endpoints.
+  # Hetzner's gateway 172.31.1.1 is always present but doesn't forward IPv4
+  # internet traffic — adding it as default just prevents ENETUNREACH so that
+  # nftables can process the packets.
+  if ! ip route show default 2>/dev/null | grep -q 'default'; then
+    # Detect the public-facing interface (eth0 on Intel, enp1s0 on ARM, etc.)
+    PUBLIC_IFACE=$(ip -4 -o addr show | grep "$PUBLIC_IP" | awk '{print $2}' | head -1)
+    if [ -z "$PUBLIC_IFACE" ]; then
+      PUBLIC_IFACE=$(ip route show 172.31.1.1 2>/dev/null | awk '{print $3}' | head -1)
+    fi
+    if [ -n "$PUBLIC_IFACE" ]; then
+      ip route add default via 172.31.1.1 dev "$PUBLIC_IFACE" src "$PUBLIC_IP" metric 500 || true
+      echo "Added IPv4 default route via 172.31.1.1 dev $PUBLIC_IFACE for ClusterIP DNAT" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    else
+      echo "WARNING: Could not detect public interface for IPv4 default route" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    fi
+  else
+    echo "IPv4 default route already exists, skipping" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  fi
+else
+  echo "nameserver 8.8.8.8" > /etc/k8s-resolv.conf
 fi
 
 # Install k3s worker

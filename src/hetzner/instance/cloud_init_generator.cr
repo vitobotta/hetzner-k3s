@@ -31,6 +31,7 @@ class Hetzner::Instance::CloudInitGenerator
       eth1_str:                               eth1,
       firewall_files:                         firewall_files,
       ssh_files:                              ssh_files,
+      tailscale_files:                        tailscale_files,
       init_files:                             init_file_content,
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config,
       allowed_ssh_networks_config:            allowed_ssh_networks_config,
@@ -134,6 +135,76 @@ class Hetzner::Instance::CloudInitGenerator
     YAML
   end
 
+  private def tailscale_files
+    return "" unless @settings.networking.ssh.use_tailscale
+
+    <<-YAML
+    - content: #{tailscale_nftables_fix_script}
+      permissions: '0755'
+      path: /usr/local/bin/tailscale-nftables-fix.sh
+      encoding: gzip+base64
+    - content: #{tailscale_nftables_fix_service}
+      path: /etc/systemd/system/tailscale-nftables-fix.service
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def tailscale_nftables_fix_script
+    # On IPv6-only Hetzner nodes, the primary IPv4 address is a CGNAT address
+    # in 100.64.0.0/10. Tailscale's firewall adds an nftables rule in its
+    # ts-input chain that drops all traffic from 100.64.0.0/10 on any interface
+    # except tailscale0. When a host-network pod sends traffic to a ClusterIP
+    # (e.g. 10.43.0.1:443), kube-proxy DNATs it to a local endpoint and the
+    # packet loops through the loopback interface. The ts-input chain then sees
+    # source 100.64.0.0/10 on interface lo (not tailscale0) and drops it.
+    #
+    # Fix: insert a rule at the top of ts-input that accepts loopback traffic
+    # which has been DNAT'd (conntrack status). This script waits for the
+    # ts-input chain to exist, inserts the rule, then monitors periodically
+    # in case Tailscale rewrites its firewall rules.
+    format_file_content(<<-SCRIPT)
+#!/bin/bash
+# Wait for Tailscale to create the ts-input chain
+while ! nft list chain ip filter ts-input &>/dev/null; do
+  sleep 2
+done
+
+apply_fix() {
+  # Check if our rule already exists (look for "lo" + "ct status dnat" + "accept")
+  if ! nft list chain ip filter ts-input 2>/dev/null | grep -q 'iifname "lo" ct status dnat accept'; then
+    nft insert rule ip filter ts-input iifname lo ct status dnat accept
+    echo "$(date): Inserted ts-input DNAT accept rule" >> /var/log/tailscale-nftables-fix.log
+  fi
+}
+
+apply_fix
+
+# Monitor: re-apply if Tailscale rewrites its firewall rules
+while true; do
+  sleep 30
+  apply_fix
+done
+SCRIPT
+  end
+
+  private def tailscale_nftables_fix_service
+    format_file_content(<<-SERVICE)
+[Unit]
+Description=Fix Tailscale nftables ts-input chain for DNAT/ClusterIP traffic
+After=tailscaled.service
+Wants=tailscaled.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tailscale-nftables-fix.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+  end
+
   private def growpart
     @snapshot_os == "microos" ? <<-YAML
     growpart:
@@ -233,11 +304,14 @@ class Hetzner::Instance::CloudInitGenerator
       # cannot reach. Note: this means MagicDNS hostnames (node.tailnet.ts.net) will
       # only resolve via the Hetzner metadata API during provisioning.
       commands << "tailscale set --accept-dns=false"
+
+      # Enable the nftables fix service to handle Tailscale's ts-input chain
+      # dropping DNAT'd ClusterIP traffic on IPv6-only nodes with CGNAT addresses
+      commands << "systemctl daemon-reload && systemctl enable --now tailscale-nftables-fix.service"
     end
 
     commands.concat([
       "/etc/configure_ssh.sh",
-      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf",
     ])
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
