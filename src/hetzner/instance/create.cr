@@ -137,8 +137,7 @@ class Hetzner::Instance::Create
 
       next unless attached_to_network?(instance)
 
-      max_attempts = ssh.use_tailscale ? 60 : Util::SSH::DEFAULT_MAX_ATTEMPTS
-      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready", max_attempts
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready", ssh.ssh_wait_attempts
       ready = true
     end
 

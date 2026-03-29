@@ -23,6 +23,7 @@ networking:
     public_key_path: "~/.ssh/id_ed25519.pub"
     private_key_path: "~/.ssh/id_ed25519"
     # existing_ssh_key_name: "my-existing-key" # optional: use an existing SSH key in Hetzner instead of creating a new one
+    # ssh_wait_attempts: 20 # how many SSH attempts to make while waiting for a node (5s between each)
   allowed_networks:
     ssh:
       - 0.0.0.0/0

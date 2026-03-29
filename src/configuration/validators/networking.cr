@@ -11,6 +11,7 @@ require "./networking_config/node_port_range"
 require "./networking_config/private_network"
 require "./networking_config/public_network"
 require "./networking_config/ssh"
+require "./networking_config/tailscale"
 
 class Configuration::Validators::Networking
   getter errors : Array(String)
@@ -34,23 +35,6 @@ class Configuration::Validators::Networking
     Configuration::Validators::NetworkingConfig::PrivateNetwork.new(errors, private_network, hetzner_client).validate
     Configuration::Validators::NetworkingConfig::PublicNetwork.new(errors, networking.public_network, settings).validate
     Configuration::Validators::NetworkingConfig::SSH.new(errors, networking.ssh, hetzner_client, settings.cluster_name).validate
-    validate_tailscale
-  end
-
-  private def validate_tailscale
-    ssh = networking.ssh
-    return unless ssh.use_tailscale
-
-    if ssh.tailscale_hostname_suffix.empty?
-      errors << "tailscale_hostname_suffix is required when use_tailscale is true (e.g. \"my-tailnet.ts.net\")"
-    end
-
-    if ssh.tailscale_auth_key.empty?
-      errors << "A Tailscale auth key is required when use_tailscale is true. Set tailscale_auth_key in the configuration or the TAILSCALE_AUTH_KEY environment variable."
-    end
-
-    if !networking.public_network.ipv4 && !networking.public_network.ipv6
-      errors << "When use_tailscale is true and ipv4 is disabled, ipv6 must be enabled so nodes can reach the Tailscale coordination server."
-    end
+    Configuration::Validators::NetworkingConfig::Tailscale.new(errors, networking.ssh, networking.public_network).validate
   end
 end

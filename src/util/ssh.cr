@@ -42,14 +42,17 @@ class Util::SSH
   )
     result_str = ""
     debug = ENV.fetch("DEBUG", "false") == "true"
-    using_tailscale = !tailscale_hostname_suffix.empty?
 
     on_retry = ->(ex : Exception, attempt : Int32, _elapsed : Time::Span, _next : Time::Span) {
-      if using_tailscale && attempt % 10 == 0
+      if tailscale? && attempt % 10 == 0
         puts "\n[Instance #{instance.name}] Still waiting for Tailscale registration (attempt #{attempt}/#{max_attempts})..."
         puts "  Tailscale status:"
-        ts_status = `tailscale status 2>/dev/null`.strip
-        ts_status.each_line { |l| puts "    #{l}" }
+        ts_status = `which tailscale > /dev/null 2>&1 && tailscale status 2>/dev/null`.strip
+        if ts_status.empty?
+          puts "    (tailscale not available on this machine)"
+        else
+          ts_status.each_line { |l| puts "    #{l}" }
+        end
         puts ""
       end
     }
@@ -79,10 +82,6 @@ class Util::SSH
           log_line "Instance #{instance.name} not ready, retrying...", log_prefix: "Instance #{instance.name}"
           raise IO::Error.new("Result mismatch")
         end
-      rescue ex : Tasker::Timeout
-        raise ex
-      rescue ex
-        raise ex
       end
     end
 
@@ -92,7 +91,7 @@ class Util::SSH
 
   # Run a command on a remote instance via SSH
   def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
-    host = if !tailscale_hostname_suffix.empty?
+    host = if tailscale?
       tailscale_hostname = instance.tailscale_host(tailscale_hostname_suffix)
       if tailscale_peer_online?(tailscale_hostname)
         tailscale_hostname
@@ -204,9 +203,13 @@ class Util::SSH
     "+"
   end
 
+  private def tailscale? : Bool
+    !tailscale_hostname_suffix.empty?
+  end
+
   private def tailscale_peer_online?(hostname : String) : Bool
     status_output = `tailscale status --json 2>/dev/null`
-    return false if !$?.success?
+    return false unless $?.success?
 
     json = JSON.parse(status_output)
     json["Peer"].as_h.each do |_key, peer|
@@ -215,7 +218,7 @@ class Util::SSH
       return peer["Online"]?.try(&.as_bool) == true
     end
     false
-  rescue
+  rescue JSON::ParseException | TypeCastError
     false
   end
 end

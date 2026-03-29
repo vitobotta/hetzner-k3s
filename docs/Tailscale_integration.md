@@ -9,7 +9,7 @@ This is the recommended approach for hardened clusters where you want nodes to b
 When `use_tailscale: true` is set, hetzner-k3s injects the following into each node's cloud-init bootstrap sequence (immediately after `hostnamectl` sets the hostname):
 
 1. Installs Tailscale via the official install script (`curl -fsSL https://tailscale.com/install.sh | sh`)
-2. Authenticates and registers the node with your tailnet (`tailscale up --authkey=... --hostname=$(hostname) --accept-routes`)
+2. Authenticates and registers the node with your tailnet — the auth key is written to `/run/tailscale-authkey` (mode `0600`, cleared on reboot) and read by `tailscale up --authkey=$(cat /run/tailscale-authkey) --hostname=$(hostname) --accept-routes`, then immediately deleted
 3. Disables Tailscale's MagicDNS (`tailscale set --accept-dns=false`) so NAT64 resolvers handle all DNS on IPv6-only nodes
 4. Deploys a persistent nftables fix service for ClusterIP DNAT compatibility (see [IPv6-only runtime fixes](#ipv6-only-runtime-fixes))
 
@@ -41,6 +41,7 @@ networking:
     use_tailscale: true
     tailscale_hostname_suffix: "my-tailnet.ts.net"
     # tailscale_auth_key: "tskey-auth-..."  # prefer TAILSCALE_AUTH_KEY env var instead
+    # ssh_wait_attempts: 20  # increase if nodes take longer to register with Tailscale
   public_network:
     ipv4: false
     ipv6: true   # required when ipv4 is disabled so nodes can reach the Tailscale coordination server
@@ -57,12 +58,15 @@ The Tailscale auth key can be provided in two ways (env var takes precedence):
 | Environment variable (recommended) | `export TAILSCALE_AUTH_KEY="tskey-auth-..."` |
 | Config file | `tailscale_auth_key: "tskey-auth-..."` in the `ssh:` block |
 
-### Required fields when `use_tailscale: true`
+The auth key is written to `/run/tailscale-authkey` (mode `0600`) on each node during cloud-init and deleted immediately after `tailscale up` runs. `/run` is a tmpfs mount, so the file does not persist across reboots. This avoids exposing the key in the process list or cloud-init logs.
 
-| Field | Description |
-|-------|-------------|
-| `tailscale_hostname_suffix` | Your tailnet's MagicDNS domain, e.g. `my-tailnet.ts.net`. Find it in the Tailscale admin console under DNS. |
-| `tailscale_auth_key` / `TAILSCALE_AUTH_KEY` | A reusable pre-approved auth key. |
+### Fields when `use_tailscale: true`
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `tailscale_hostname_suffix` | Yes | — | Your tailnet's MagicDNS domain, e.g. `my-tailnet.ts.net`. Find it in the Tailscale admin console under DNS. |
+| `tailscale_auth_key` / `TAILSCALE_AUTH_KEY` | Yes | — | A reusable pre-approved auth key. |
+| `ssh_wait_attempts` | No | `20` | How many SSH connection attempts to make while waiting for a node to become reachable. Each attempt waits 5 seconds, so the default allows ~100 seconds. Increase this (e.g. to `60`) if Tailscale registration consistently takes longer on your tailnet. |
 
 ### IPv6 requirement
 
@@ -133,6 +137,7 @@ networking:
     private_key_path: "~/.ssh/id_ed25519"
     use_tailscale: true
     tailscale_hostname_suffix: "my-tailnet.ts.net"
+    # ssh_wait_attempts: 20  # increase if registration takes longer
   public_network:
     ipv4: false
     ipv6: true
@@ -174,17 +179,16 @@ For reference, here is the order of operations during node provisioning when Tai
 
 1. **DNS servers netplan update** -- modifies `/etc/netplan/50-cloud-init.yaml` and runs `netplan apply` (if `dns_servers` is configured)
 2. **Hostname** -- `hostnamectl set-hostname <name>` from Hetzner metadata
-3. **Admin user** -- creates `admin` user with SSH key and passwordless sudo
-4. **Tailscale install** -- `curl -fsSL https://tailscale.com/install.sh | sh`
-5. **Tailscale join** -- `tailscale up --authkey=... --hostname=$(hostname) --accept-routes`
-6. **Disable MagicDNS** -- `tailscale set --accept-dns=false` so NAT64 resolvers handle all DNS
-7. **nftables fix service** -- `systemctl enable --now tailscale-nftables-fix.service`
-8. **SSH configuration** -- `/etc/configure_ssh.sh`
-9. **DNS proxy** (IPv6-only) -- configures `systemd-resolved` to listen on private IP, writes `/etc/k8s-resolv.conf`
-10. **IPv4 default route** (IPv6-only) -- adds route via `172.31.1.1` for ClusterIP DNAT
-11. **k3s installation** -- downloads and starts k3s
+3. **Tailscale install** -- `curl -fsSL https://tailscale.com/install.sh | sh`
+4. **Tailscale join** -- reads auth key from `/run/tailscale-authkey`, runs `tailscale up --authkey=... --hostname=$(hostname) --accept-routes`, then deletes the key file
+5. **Disable MagicDNS** -- `tailscale set --accept-dns=false` so NAT64 resolvers handle all DNS
+6. **nftables fix service** -- `systemctl enable --now tailscale-nftables-fix.service`
+7. **SSH configuration** -- `/etc/configure_ssh.sh`
+8. **DNS proxy** (IPv6-only) -- configures `systemd-resolved` to listen on private IP, writes `/etc/k8s-resolv.conf`
+9. **IPv4 default route** (IPv6-only) -- adds route via `172.31.1.1` for ClusterIP DNAT
+10. **k3s installation** -- downloads and starts k3s
 
-After step 5, the node is reachable on the tailnet as `<instance-name>.<tailnet-name>.ts.net`. hetzner-k3s retries SSH in a loop (up to 60 attempts for Tailscale mode) which naturally handles the short delay while steps 4-5 complete.
+After step 4, the node is reachable on the tailnet as `<instance-name>.<tailnet-name>.ts.net`. hetzner-k3s retries SSH in a loop (controlled by `ssh_wait_attempts`, default 20 × 5s = ~100 seconds) which naturally handles the short delay while steps 3–4 complete. Increase `ssh_wait_attempts` if nodes on your tailnet take longer to register.
 
 ## Cleanup note
 

@@ -8,6 +8,7 @@ class Configuration::Models::NetworkingConfig::SSH
   getter private_key_path : String = "~/.ssh/id_rsa"
   getter public_key_path : String = "~/.ssh/id_rsa.pub"
   getter existing_ssh_key_name : String = ""
+  getter ssh_wait_attempts : Int32 = 20
   getter use_tailscale : Bool = false
   getter tailscale_hostname_suffix : String = ""
   @[YAML::Field(key: "tailscale_auth_key")]

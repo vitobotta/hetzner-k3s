@@ -12,6 +12,11 @@ class Hetzner::Instance::CloudInitGenerator
   SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
 
+  TAILSCALE_NFTABLES_FIX_SCRIPT  = {{ read_file("#{__DIR__}/../../../templates/tailscale/tailscale_nftables_fix.sh") }}
+  TAILSCALE_NFTABLES_FIX_SERVICE = {{ read_file("#{__DIR__}/../../../templates/tailscale/tailscale_nftables_fix.service") }}
+
+  CONFIGURE_DNS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/configure_dns.sh") }}
+
   def initialize(
     @settings : Configuration::Main,
     @ssh_port : Int32,
@@ -30,6 +35,7 @@ class Hetzner::Instance::CloudInitGenerator
       post_create_commands_str:               generate_post_create_commands_str,
       eth1_str:                               eth1,
       firewall_files:                         firewall_files,
+      dns_files:                              dns_files,
       ssh_files:                              ssh_files,
       tailscale_files:                        tailscale_files,
       init_files:                             init_file_content,
@@ -135,10 +141,37 @@ class Hetzner::Instance::CloudInitGenerator
     YAML
   end
 
+  private def dns_files
+    return "" if @settings.networking.dns_servers.empty?
+
+    <<-YAML
+    - content: #{configure_dns_script}
+      permissions: '0755'
+      path: /usr/local/bin/configure-dns.sh
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def configure_dns_script
+    # Build a Python list literal using single quotes so the Crinja-rendered
+    # value is valid Python without conflicting with outer shell quoting.
+    servers_list = "[" + @settings.networking.dns_servers.map { |s| "'#{s}'" }.join(", ") + "]"
+    script = Crinja.render(CONFIGURE_DNS_SCRIPT, {
+      dns_servers_list: servers_list,
+    })
+    format_file_content(script)
+  end
+
   private def tailscale_files
     return "" unless @settings.networking.ssh.use_tailscale
 
+    auth_key = @settings.networking.ssh.tailscale_auth_key
+
     <<-YAML
+    - content: |
+        #{auth_key}
+      path: /run/tailscale-authkey
+      permissions: '0600'
     - content: #{tailscale_nftables_fix_script}
       permissions: '0755'
       path: /usr/local/bin/tailscale-nftables-fix.sh
@@ -150,59 +183,11 @@ class Hetzner::Instance::CloudInitGenerator
   end
 
   private def tailscale_nftables_fix_script
-    # On IPv6-only Hetzner nodes, the primary IPv4 address is a CGNAT address
-    # in 100.64.0.0/10. Tailscale's firewall adds an nftables rule in its
-    # ts-input chain that drops all traffic from 100.64.0.0/10 on any interface
-    # except tailscale0. When a host-network pod sends traffic to a ClusterIP
-    # (e.g. 10.43.0.1:443), kube-proxy DNATs it to a local endpoint and the
-    # packet loops through the loopback interface. The ts-input chain then sees
-    # source 100.64.0.0/10 on interface lo (not tailscale0) and drops it.
-    #
-    # Fix: insert a rule at the top of ts-input that accepts loopback traffic
-    # which has been DNAT'd (conntrack status). This script waits for the
-    # ts-input chain to exist, inserts the rule, then monitors periodically
-    # in case Tailscale rewrites its firewall rules.
-    format_file_content(<<-SCRIPT)
-#!/bin/bash
-# Wait for Tailscale to create the ts-input chain
-while ! nft list chain ip filter ts-input &>/dev/null; do
-  sleep 2
-done
-
-apply_fix() {
-  # Check if our rule already exists (look for "lo" + "ct status dnat" + "accept")
-  if ! nft list chain ip filter ts-input 2>/dev/null | grep -q 'iifname "lo" ct status dnat accept'; then
-    nft insert rule ip filter ts-input iifname lo ct status dnat accept
-    echo "$(date): Inserted ts-input DNAT accept rule" >> /var/log/tailscale-nftables-fix.log
-  fi
-}
-
-apply_fix
-
-# Monitor: re-apply if Tailscale rewrites its firewall rules
-while true; do
-  sleep 30
-  apply_fix
-done
-SCRIPT
+    format_file_content(TAILSCALE_NFTABLES_FIX_SCRIPT)
   end
 
   private def tailscale_nftables_fix_service
-    format_file_content(<<-SERVICE)
-[Unit]
-Description=Fix Tailscale nftables ts-input chain for DNAT/ClusterIP traffic
-After=tailscaled.service
-Wants=tailscaled.service
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/tailscale-nftables-fix.sh
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-SERVICE
+    format_file_content(TAILSCALE_NFTABLES_FIX_SERVICE)
   end
 
   private def growpart
@@ -264,39 +249,13 @@ SERVICE
   private def mandatory_post_create_commands
     commands = [] of String
 
-    # Configure custom DNS servers by replacing the cloud-init netplan nameservers.
-    # Netplan uses the FIRST file's nameservers for each interface, so we must
-    # modify 50-cloud-init.yaml directly rather than creating an overlay file.
-    dns_servers = @settings.networking.dns_servers
-    unless dns_servers.empty?
-      # Build python list with single quotes to avoid breaking the outer shell double-quote context.
-      # Crystal's Array#inspect uses double-quotes which would terminate the shell string early.
-      servers_py = "[" + dns_servers.map { |s| "'#{s}'" }.join(",") + "]"
-      # Single-line python command to avoid heredoc indentation issues in cloud-init runcmd.
-      # Iterates over all ethernet interfaces (works for both eth0 on Intel and enp1s0 on ARM).
-      commands << "python3 -c \"import yaml; path='/etc/netplan/50-cloud-init.yaml'; d=yaml.safe_load(open(path)); [cfg.setdefault('nameservers',{}).setdefault('addresses',[]) for cfg in d.get('network',{}).get('ethernets',{}).values()]; [[cfg['nameservers']['addresses'].remove(a) for a in list(cfg['nameservers']['addresses']) if ':' in a] for cfg in d.get('network',{}).get('ethernets',{}).values()]; [[cfg['nameservers']['addresses'].append(s) for s in #{servers_py} if s not in cfg['nameservers']['addresses']] for cfg in d.get('network',{}).get('ethernets',{}).values()]; yaml.dump(d,open(path,'w'),default_flow_style=False)\" && netplan apply"
-    end
+    commands << "/usr/local/bin/configure-dns.sh" unless @settings.networking.dns_servers.empty?
 
-    commands.concat([
-      "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
-      "update-crypto-policies --set DEFAULT:SHA1 || true",
-    ])
-
-    # Ensure admin user exists with the configured SSH public key.
-    # The Hetzner Ubuntu 24.04 image has cloud-init configured with
-    # disable_root: true, but cc_users_groups skips creating the default
-    # non-root user when root already exists. This causes hetzner-k3s SSH
-    # to fail because the admin user's authorized_keys is never populated.
-    pub_key = File.read(File.expand_path(@settings.networking.ssh.public_key_path)).chomp
-    commands << "id admin &>/dev/null || useradd -m -s /bin/bash -G sudo admin"
-    commands << "mkdir -p /home/admin/.ssh && chmod 700 /home/admin/.ssh"
-    commands << "echo '#{pub_key}' > /home/admin/.ssh/authorized_keys && chmod 600 /home/admin/.ssh/authorized_keys && chown -R admin:admin /home/admin"
-    commands << "echo 'admin ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/admin && chmod 440 /etc/sudoers.d/admin"
+    commands << "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)"
 
     if @settings.networking.ssh.use_tailscale
-      auth_key = @settings.networking.ssh.tailscale_auth_key
       commands << "curl -fsSL https://tailscale.com/install.sh | sh"
-      commands << "tailscale up --authkey=#{auth_key} --hostname=$(hostname) --accept-routes"
+      commands << "tailscale up --authkey=$(cat /run/tailscale-authkey) --hostname=$(hostname) --accept-routes && rm -f /run/tailscale-authkey"
 
       # Disable Tailscale's built-in DNS so custom DNS servers (e.g. NAT64 resolvers)
       # can handle all queries. Without this, Tailscale's MagicDNS intercepts queries
