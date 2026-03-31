@@ -29,7 +29,8 @@ class Configuration::Validators::Networking
     Configuration::Validators::NetworkingConfig::AllowedNetworks.new(
       errors,
       networking.allowed_networks,
-      skip_current_ip_validation: skip_current_ip_validation
+      skip_current_ip_validation: skip_current_ip_validation,
+      use_tailscale: networking.ssh.use_tailscale
     ).validate
     Configuration::Validators::NetworkingConfig::NodePortRange.new(errors, networking.node_port_range).validate
     Configuration::Validators::NetworkingConfig::PrivateNetwork.new(errors, private_network, hetzner_client).validate
