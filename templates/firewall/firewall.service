@@ -1,6 +1,8 @@
 [Unit]
 Description=K3s Node Firewall Service
-After=network-online.target
+# Start AFTER k3s so kube-router has already set up its iptables chains
+# This prevents race condition where kube-router modifies INPUT after firewall restore
+After=network-online.target k3s.service
 Wants=network-online.target
 
 [Service]
