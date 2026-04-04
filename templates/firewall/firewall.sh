@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+trap 'log "ERROR: Command failed at line $LINENO: $BASH_COMMAND"; exit 1' ERR
+
 # =============================================================================
 # Unified Firewall Script for hetzner-k3s
 # Handles initial setup, ongoing updates, and restoration on boot
@@ -45,12 +47,13 @@ validate_ip_network() {
 }
 
 normalise_networks() {
-    grep -v '^[[:space:]]*$' | \
-    grep -v '^[[:space:]]*#' | \
+    # Use || true to handle empty input gracefully with pipefail
+    { grep -v '^[[:space:]]*$' || true; } | \
+    { grep -v '^[[:space:]]*#' || true; } | \
     tr -d '\r' | \
     sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
     sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)$/\1\/32/' | \
-    sort -u
+    sort -u || true
 }
 
 # =============================================================================
@@ -112,15 +115,13 @@ update_ipset() {
     local networks=$2
     local temp_name="${name}_temp"
 
-    # Get current networks
     local current=""
     if ipset list -n 2>/dev/null | grep -q "^${name}$"; then
-        current=$(ipset list "$name" 2>/dev/null | sed -n '/^Members:/,$p' | tail -n +2 | normalise_networks)
+        current=$(ipset list "$name" 2>/dev/null | sed -n '/^Members:/,$p' | tail -n +2 | normalise_networks || echo "")
     fi
 
-    # Normalise new networks
     local new
-    new=$(echo "$networks" | normalise_networks)
+    new=$(echo "$networks" | normalise_networks || echo "")
 
     # Check for changes
     if [ "$current" = "$new" ]; then
@@ -135,7 +136,7 @@ update_ipset() {
     while IFS= read -r network; do
         if [ -n "$network" ] && validate_ip_network "$network"; then
             if ipset add "$temp_name" "$network" 2>/dev/null; then
-                ((count++))
+                count=$((count + 1))
             fi
         fi
     done <<< "$new"
@@ -202,13 +203,27 @@ setup_iptables() {
 
 save_iptables() {
     mkdir -p "$(dirname "$IPTABLES_RULES_FILE")"
-    iptables-save > "$IPTABLES_RULES_FILE"
+    iptables -P INPUT DROP 2>/dev/null || true
+    iptables-save | grep -v -E 'KUBE-|FLANNEL-|CNI-' > "$IPTABLES_RULES_FILE"
 }
 
 restore_iptables() {
+    # First ensure ipsets exist (rules reference them)
+    create_ipset_if_missing "$IPSET_NODES"
+    create_ipset_if_missing "$IPSET_SSH"
+    create_ipset_if_missing "$IPSET_API"
+    
     if [ -f "$IPTABLES_RULES_FILE" ]; then
         iptables-restore -w < "$IPTABLES_RULES_FILE" 2>/dev/null || true
         log "Restored iptables from $IPTABLES_RULES_FILE"
+    fi
+    
+    # Ensure INPUT policy is DROP (defense in depth)
+    local current_policy
+    current_policy=$(iptables -S INPUT 2>/dev/null | head -1)
+    if [[ ! "$current_policy" =~ "-P INPUT DROP" ]]; then
+        iptables -P INPUT DROP
+        log "Set INPUT policy is DROP (was: $current_policy)"
     fi
 }
 
@@ -259,6 +274,15 @@ read_networks_file() {
 # =============================================================================
 # Update Loop
 # =============================================================================
+
+populate_ssh_ipset() {
+    local ssh_networks
+    ssh_networks=$(read_networks_file "$SSH_NETWORKS_FILE")
+    if [ -n "$ssh_networks" ]; then
+        update_ipset "$IPSET_SSH" "$ssh_networks"
+        log "Populated SSH ipset from $SSH_NETWORKS_FILE"
+    fi
+}
 
 update_ipsets() {
     # Fetch node IPs from Hetzner API
@@ -325,25 +349,41 @@ main() {
             initial_setup
             ;;
         restore)
+            create_ipset_if_missing "$IPSET_NODES"
+            create_ipset_if_missing "$IPSET_SSH"
+            create_ipset_if_missing "$IPSET_API"
+            populate_ssh_ipset
             restore_ipsets
             restore_iptables
+            update_ipsets
             ;;
         update)
             update_ipsets
             ;;
         daemon)
             log "Starting firewall daemon..."
+            # Create ipsets first (rules reference them)
+            create_ipset_if_missing "$IPSET_NODES"
+            create_ipset_if_missing "$IPSET_SSH"
+            create_ipset_if_missing "$IPSET_API"
+            # Populate SSH ipset BEFORE iptables restore (so SSH works immediately)
+            populate_ssh_ipset
             restore_ipsets
             restore_iptables
+            update_ipsets
             run_update_loop
             ;;
         *)
-            # Default: setup then daemon mode
             if [ ! -f "$IPTABLES_RULES_FILE" ]; then
                 initial_setup
             else
+                create_ipset_if_missing "$IPSET_NODES"
+                create_ipset_if_missing "$IPSET_SSH"
+                create_ipset_if_missing "$IPSET_API"
+                populate_ssh_ipset
                 restore_ipsets
                 restore_iptables
+                update_ipsets
             fi
             run_update_loop
             ;;
