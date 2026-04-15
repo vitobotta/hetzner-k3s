@@ -11,11 +11,11 @@ If you already have a cluster with a single master or three masters in the same 
 Before you begin, make sure to back up all your applications and data! This is crucial. While the migration process is relatively simple, there is always some level of risk involved.
 
 - Set the `instance_count` for the masters pool to 3 if your cluster currently has only one master.
-- Update the `locations` setting for the masters pool to include `fns1`, `hel1`, and `nbg1` like this:
+- Update the `locations` setting for the masters pool to include `fsn1`, `hel1`, and `nbg1` like this:
 
 ```yaml
 locations:
-- fns1
+- fsn1
 - hel1
 - nbg1
 ```
@@ -23,7 +23,7 @@ locations:
 The locations are always processed in alphabetical order, regardless of how you list them in the `locations` property. This ensures consistency, especially when replacing a master due to node failure or other issues.
 
 - If your cluster currently has a single master, run the `create` command with the updated configuration. This will create `master2` in Helsinki and `master3` in Nuremberg. Wait for the operation to complete and confirm that all three masters are in a ready state.
-- If `master1` is not in Falkenstein (fns1):
+- If `master1` is not in Falkenstein (fsn1):
   - Drain `master1`.
   - Delete `master1` using the command `kubectl delete node {cluster-name}-master1`.
   - Remove the `master1` instance via the Hetzner Console or the `hcloud` utility.
