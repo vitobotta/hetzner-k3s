@@ -303,15 +303,21 @@ This project is maintained by a single developer in my spare time. Sponsorship h
 
 If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta).
 
-### Platinum Sponsors
+### Diamond Sponsors
 
 <a href="https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme"><img src="SprintPulse.svg" alt="SprintPulse" height="80"></a>
 
 [SprintPulse](https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme) — the retrospective tool teams actually love. Run engaging retros with real-time collaboration, AI-powered insights, and actionable outcomes. Set up in 60 seconds, no training required.
 
-<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="80"></a>
+<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="70"></a>
 
 A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the development of key features!
+
+### Bronze Sponsors
+
+<a href="https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme"><img src="devopssquad-logo-small.png" alt="DevOps Squad" height="80"></a>
+
+[DevOps Squad](https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme) — Deploying is easy; Day 2 is hard. Cut your AWS bill by 60% with fully-managed Hetzner infrastructure ($2,995/mo). Run the **Cloud Exit Calculator** to see your savings.
 
 ### Backers
 
