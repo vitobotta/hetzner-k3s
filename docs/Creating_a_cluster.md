@@ -159,8 +159,8 @@ worker_node_pools:
 #     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.28.0/ccm-networks.yaml"
 #   system_upgrade_controller:
 #     enabled: true   # System Upgrade Controller (default true). Set to false to omit autoscaling.
-#     deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.18.0/system-upgrade-controller.yaml"
-#     crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.18.0/crd.yaml"
+#     deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/system-upgrade-controller.yaml"
+#     crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/crd.yaml"
 #   embedded_registry_mirror:
 #     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
 
