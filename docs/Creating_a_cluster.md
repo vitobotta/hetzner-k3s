@@ -138,7 +138,7 @@ worker_node_pools:
 # addons:
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
-#     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.18.3/deploy/kubernetes/hcloud-csi.yml"
+#     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.20.2/deploy/kubernetes/hcloud-csi.yml"
 #   traefik:
 #     enabled: false  # built-in Traefik ingress controller. Disabled by default.
 #   servicelb:
