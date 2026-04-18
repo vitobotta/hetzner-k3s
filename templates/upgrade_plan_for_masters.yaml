@@ -11,6 +11,8 @@ spec:
   nodeSelector:
     matchExpressions:
       - {key: node-role.kubernetes.io/master, operator: In, values: ["true"]}
+    matchExpressions:
+      - {key: node-role.kubernetes.io/control-plane, operator: In, values: ["true"]}
   serviceAccountName: system-upgrade
   tolerations:
   - key: "CriticalAddonsOnly"
