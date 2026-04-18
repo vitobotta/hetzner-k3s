@@ -156,7 +156,7 @@ worker_node_pools:
 #     max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
-#     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.28.0/ccm-networks.yaml"
+#     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.30.1/ccm-networks.yaml"
 #   system_upgrade_controller:
 #     enabled: true   # System Upgrade Controller (default true). Set to false to omit autoscaling.
 #     deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/system-upgrade-controller.yaml"
