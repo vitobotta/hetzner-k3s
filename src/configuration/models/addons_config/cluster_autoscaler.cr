@@ -15,7 +15,7 @@ class Configuration::Models::AddonsConfig::ClusterAutoscaler
 
   # Manifest URL and image tag moved from global manifests block
   property manifest_url : String = "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
-  property container_image_tag : String = "v1.34.2"
+  property container_image_tag : String = "v1.35.0"
 
   def initialize(@enabled : Bool = true)
   end
