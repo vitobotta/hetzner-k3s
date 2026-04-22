@@ -163,7 +163,7 @@ A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the dev
 
 ### Backers
 
-Thanks to [@deubert-it](https://github.com/deubert-it), [@mitja](https://github.com/mitja), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
+Thanks to [@deubert-it](https://github.com/deubert-it), [@mitja](https://github.com/mitja), [@elderapo](https://github.com/elderapo), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
 
 ---
 
