@@ -11,9 +11,12 @@ spec:
   nodeSelector:
     matchExpressions:
       - {key: node-role.kubernetes.io/master, operator: NotIn, values: ["true"]}
+    matchExpressions:
+      - {key: node-role.kubernetes.io/control-plane, operator: NotIn, values: ["true"]}
   serviceAccountName: system-upgrade
   tolerations:
   - {key: '', effect: NoSchedule, operator: Exists, value: ''}
+  - {key: "CriticalAddonsOnly", effect: "NoExecute", operator: "Equal", value: "true"}
   prepare:
     image: rancher/k3s-upgrade
     args: ["prepare", "k3s-server"]
