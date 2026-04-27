@@ -137,6 +137,7 @@ curl -sfL https://get.k3s.io | \
     --cluster-cidr={{ cluster_cidr }} \
     --service-cidr={{ service_cidr }} \
     --cluster-dns={{ cluster_dns }} \
+    --cluster-domain={{ cluster_domain }} \
     --kube-controller-manager-arg="bind-address=0.0.0.0" \
     --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
     --kube-scheduler-arg="bind-address=0.0.0.0" \
