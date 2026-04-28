@@ -118,6 +118,13 @@ if [ "{{ private_network_enabled }}" = "false" ]; then
   fi
 fi
 
+# Cluster domain override (cluster.local default)
+if [ -n "{{ cluster_domain }}" ]; then
+  CLUSTER_DOMAIN="--cluster-domain={{ cluster_domain }}"
+else
+  CLUSTER_DOMAIN=""
+fi
+
 # Install k3s
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
@@ -137,7 +144,7 @@ curl -sfL https://get.k3s.io | \
     --cluster-cidr={{ cluster_cidr }} \
     --service-cidr={{ service_cidr }} \
     --cluster-dns={{ cluster_dns }} \
-    --cluster-domain={{ cluster_domain }} \
+    $CLUSTER_DOMAIN \
     --kube-controller-manager-arg="bind-address=0.0.0.0" \
     --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
     --kube-scheduler-arg="bind-address=0.0.0.0" \
