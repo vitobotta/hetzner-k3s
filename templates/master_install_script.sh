@@ -137,29 +137,24 @@ DNSEOF
   echo "nameserver $PRIVATE_IP" > /etc/k8s-resolv.conf
   echo "DNS proxy configured: pods will use $PRIVATE_IP:53 -> systemd-resolved -> IPv6 upstream" 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-  # Add IPv4 default route so ClusterIP DNAT works on IPv6-only nodes.
-  # IPv6-only Hetzner nodes have no IPv4 default route. Without one, the kernel
-  # returns ENETUNREACH immediately for any IPv4 destination (including ClusterIPs
-  # like 10.43.0.0/16). Packets never reach nftables, so kube-proxy DNAT rules
-  # in the OUTPUT chain cannot rewrite them to local pod endpoints.
-  # Hetzner's gateway 172.31.1.1 is always present but doesn't forward IPv4
-  # internet traffic — adding it as default just prevents ENETUNREACH so that
-  # nftables can process the packets.
-  if ! ip route show default 2>/dev/null | grep -q 'default'; then
-    # Detect the public-facing interface (eth0 on Intel, enp1s0 on ARM, etc.)
-    PUBLIC_IFACE=$(ip -4 -o addr show | grep "$PUBLIC_IP" | awk '{print $2}' | head -1)
-    if [ -z "$PUBLIC_IFACE" ]; then
-      PUBLIC_IFACE=$(ip route show 172.31.1.1 2>/dev/null | awk '{print $3}' | head -1)
-    fi
-    if [ -n "$PUBLIC_IFACE" ]; then
-      ip route add default via 172.31.1.1 dev "$PUBLIC_IFACE" src "$PUBLIC_IP" metric 500 || true
-      echo "Added IPv4 default route via 172.31.1.1 dev $PUBLIC_IFACE for ClusterIP DNAT" 2>&1 | tee -a /var/log/hetzner-k3s.log
-    else
-      echo "WARNING: Could not detect public interface for IPv4 default route" 2>&1 | tee -a /var/log/hetzner-k3s.log
-    fi
-  else
-    echo "IPv4 default route already exists, skipping" 2>&1 | tee -a /var/log/hetzner-k3s.log
-  fi
+  # Install clatd (464XLAT) to provide outbound IPv4 connectivity on IPv6-only nodes.
+  # Without this, pods using flannel's IPv4 network (10.244.0.0/16) cannot reach
+  # IPv4-only services (e.g. github.com) because the node has no IPv4 internet route.
+  # clatd creates a clat interface that translates IPv4 packets into IPv6 via
+  # Hetzner's NAT64 gateway, which then translates them back to IPv4.
+  # The PLAT prefix is auto-detected via RFC 7050 (ipv4only.arpa DNS64 discovery).
+  # This also provides the IPv4 default route that ClusterIP DNAT requires.
+  echo "IPv6-only node: installing clatd (464XLAT) for outbound IPv4 connectivity" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  DEBIAN_FRONTEND=noninteractive apt-get install -y make tayga perl libnet-ip-perl libnet-dns-perl libjson-perl 2>&1 | tee -a /var/log/hetzner-k3s.log
+  curl -fsSL https://github.com/toreanderson/clatd/archive/refs/tags/v2.1.0.tar.gz | tar -xz -C /tmp 2>&1 | tee -a /var/log/hetzner-k3s.log
+  make -C /tmp/clatd-2.1.0 install 2>&1 | tee -a /var/log/hetzner-k3s.log
+  rm -rf /tmp/clatd-2.1.0
+  cat > /etc/clatd.conf <<CLATEOF
+v4-conncheck-enable=no
+v4-defaultroute-replace=yes
+CLATEOF
+  systemctl enable --now clatd 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo "clatd installed and started — IPv4 default route via clat0 (NAT64)" 2>&1 | tee -a /var/log/hetzner-k3s.log
 else
   echo "nameserver 8.8.8.8" > /etc/k8s-resolv.conf
 fi

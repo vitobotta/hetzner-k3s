@@ -114,11 +114,17 @@ Running k3s on IPv6-only Hetzner nodes with Tailscale requires three automatic f
 - `systemd-resolved` answers using the host's IPv6 upstream DNS servers (the NAT64 resolvers)
 - Host-network pods with `dnsPolicy: Default` also use this path
 
-### 3. IPv4 default route for ClusterIP DNAT
+### 3. Outbound IPv4 connectivity via 464XLAT (clatd)
 
-**Problem:** IPv6-only Hetzner nodes have no IPv4 default route. The kernel returns `ENETUNREACH` immediately for any IPv4 destination without a specific route, including ClusterIP addresses (`10.43.0.0/16`). Packets never reach nftables, so kube-proxy's DNAT rules in the OUTPUT chain cannot rewrite them to local pod endpoints. This causes all pods that contact the API server (CCM, CoreDNS, etc.) to fail with `dial tcp 10.43.0.1:443: connect: network is unreachable`.
+**Problem:** IPv6-only Hetzner nodes have no IPv4 internet route. Pods use flannel's IPv4 network (`10.244.0.0/16`) and resolve hostnames like `github.com` to A records (IPv4). Without an IPv4 internet route, two things fail:
+1. **ClusterIP DNAT**: the kernel returns `ENETUNREACH` immediately for any IPv4 destination (including ClusterIPs like `10.43.0.0/16`), so packets never reach nftables and kube-proxy DNAT rules cannot rewrite them to local endpoints.
+2. **Outbound internet**: pods cannot reach IPv4-only services such as GitHub (used by Flux, Helm, image pulls from non-IPv6 registries, etc.).
 
-**Fix:** Before k3s installation, hetzner-k3s adds a default IPv4 route via Hetzner's standard gateway (`172.31.1.1`) with a high metric (500). This gateway is always present on IPv6-only nodes but doesn't forward IPv4 internet traffic -- it only handles local/metadata routing. The route prevents `ENETUNREACH` so that nftables can process packets and DNAT ClusterIP traffic to local endpoints. The public interface is auto-detected (Intel servers use `eth0`, ARM servers use `enp1s0`).
+**Fix:** hetzner-k3s installs [clatd](https://github.com/toreanderson/clatd) — a 464XLAT CLAT implementation — on every IPv6-only node. clatd creates a virtual `clat` interface that translates outbound IPv4 packets into IPv6 using Hetzner's NAT64 gateway. Hetzner's gateway then translates them back to IPv4 before forwarding to the internet. The correct NAT64 prefix is auto-detected via RFC 7050 (`ipv4only.arpa` DNS64 discovery) so no manual prefix configuration is needed.
+
+clatd also installs an IPv4 default route via `clat`, which resolves both the ENETUNREACH issue for ClusterIP DNAT and provides full outbound IPv4 internet access for pods. Note that Hetzner uses custom NAT64 prefixes (not the well-known `64:ff9b::/96`), so prefix auto-detection is essential.
+
+Dependencies installed: `tayga`, `make`, `perl`, `libnet-ip-perl`, `libnet-dns-perl`, `libjson-perl`.
 
 ## Full example cluster.yaml (IPv6-only nodes)
 
@@ -185,7 +191,7 @@ For reference, here is the order of operations during node provisioning when Tai
 6. **nftables fix service** -- `systemctl enable --now tailscale-nftables-fix.service`
 7. **SSH configuration** -- `/etc/configure_ssh.sh`
 8. **DNS proxy** (IPv6-only) -- configures `systemd-resolved` to listen on private IP, writes `/etc/k8s-resolv.conf`
-9. **IPv4 default route** (IPv6-only) -- adds route via `172.31.1.1` for ClusterIP DNAT
+9. **464XLAT / clatd** (IPv6-only) -- installs clatd + TAYGA, auto-detects Hetzner NAT64 prefix, starts `clatd.service`; provides IPv4 default route via `clat` interface for ClusterIP DNAT and outbound internet
 10. **k3s installation** -- downloads and starts k3s
 
 After step 4, the node is reachable on the tailnet as `<instance-name>.<tailnet-name>.ts.net`. hetzner-k3s retries SSH in a loop (controlled by `ssh_wait_attempts`, default 20 × 5s = ~100 seconds) which naturally handles the short delay while steps 3–4 complete. Increase `ssh_wait_attempts` if nodes on your tailnet take longer to register.
