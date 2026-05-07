@@ -48,6 +48,7 @@ class Kubernetes::Script::MasterGenerator
       cluster_cidr:                     @settings.networking.cluster_cidr,
       service_cidr:                     @settings.networking.service_cidr,
       cluster_dns:                      @settings.networking.cluster_dns,
+      cluster_domain:                   @settings.networking.cluster_domain || "",
       datastore_endpoint:               datastore_endpoint,
       etcd_arguments:                   etcd_arguments,
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
