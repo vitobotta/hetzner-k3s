@@ -7,6 +7,7 @@ class Configuration::Models::NetworkingConfig::SSH
   getter use_private_ip : Bool = false
   getter private_key_path : String = "~/.ssh/id_rsa"
   getter public_key_path : String = "~/.ssh/id_rsa.pub"
+  getter existing_ssh_key_name : String = ""
 
   def initialize
   end
@@ -17,6 +18,14 @@ class Configuration::Models::NetworkingConfig::SSH
 
   def public_key_path
     absolute_path(@public_key_path)
+  end
+
+  def ssh_key_name(cluster_name : String) : String
+    @existing_ssh_key_name.empty? ? cluster_name : @existing_ssh_key_name
+  end
+
+  def using_existing_ssh_key? : Bool
+    !@existing_ssh_key_name.empty?
   end
 
   private def absolute_path(path)

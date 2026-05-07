@@ -15,7 +15,12 @@ class Configuration::Validators::NetworkingConfig::SSH
   def validate
     validate_path(errors, ssh.private_key_path, "private")
     validate_path(errors, ssh.public_key_path, "public")
-    validate_ssh_key_fingerprint(errors, hetzner_client, cluster_name)
+
+    if ssh.using_existing_ssh_key?
+      validate_existing_ssh_key(errors, hetzner_client)
+    else
+      validate_ssh_key_fingerprint(errors, hetzner_client, cluster_name)
+    end
   end
 
   private def validate_path(errors, path, key_type)
@@ -36,13 +41,41 @@ class Configuration::Validators::NetworkingConfig::SSH
     end
   end
 
+  private def validate_existing_ssh_key(errors, hetzner_client)
+    unless File.exists?(ssh.public_key_path)
+      errors << "public_key_path is required to validate the fingerprint of existing_ssh_key_name '#{ssh.existing_ssh_key_name}'"
+      return
+    end
+
+    begin
+      existing_ssh_key = Hetzner::SSHKey::Find.new(hetzner_client.not_nil!, ssh.existing_ssh_key_name, ssh.public_key_path).run
+    rescue e
+      errors << "Unable to verify existing SSH key '#{ssh.existing_ssh_key_name}': #{e.message}"
+      return
+    end
+
+    unless existing_ssh_key
+      errors << "The SSH key '#{ssh.existing_ssh_key_name}' specified in existing_ssh_key_name does not exist in Hetzner"
+      return
+    end
+
+    unless existing_ssh_key.name == ssh.existing_ssh_key_name
+      errors << "SSH key mismatch: the key '#{ssh.existing_ssh_key_name}' was not found by name in Hetzner. A key with the same fingerprint exists as '#{existing_ssh_key.name}', but existing_ssh_key_name must match the key name exactly."
+      return
+    end
+
+    config_fingerprint = Util::SSH.calculate_fingerprint(ssh.public_key_path)
+
+    if existing_ssh_key.fingerprint != config_fingerprint
+      errors << "SSH key fingerprint mismatch: the existing key '#{ssh.existing_ssh_key_name}' in Hetzner has a different fingerprint than the local public key at '#{ssh.public_key_path}'. Please ensure the public_key_path points to the corresponding public key."
+    end
+  end
+
   private def find_existing_ssh_key(hetzner_client, cluster_name)
     return nil unless hetzner_client && cluster_name
     ssh_key_finder = Hetzner::SSHKey::Find.new(hetzner_client, cluster_name, ssh.public_key_path)
     ssh_key_finder.run
   rescue e
-    # If we can't fetch existing SSH keys, we'll skip validation
-    # This allows the create command to proceed and handle any API errors
     nil
   end
 end

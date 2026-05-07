@@ -268,7 +268,7 @@ class Kubernetes::Software::ClusterAutoscaler
 
     set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_FILE_VAR, "#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}")
     set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
-    set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.cluster_name)
+    set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.networking.ssh.ssh_key_name(settings.cluster_name))
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV4_VAR, settings.networking.public_network.ipv4.to_s)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV6_VAR, settings.networking.public_network.ipv6.to_s)

@@ -22,6 +22,7 @@ networking:
     use_private_ip: false # set to true to connect to nodes via their private IPs
     public_key_path: "~/.ssh/id_ed25519.pub"
     private_key_path: "~/.ssh/id_ed25519"
+    # existing_ssh_key_name: "my-existing-key" # optional: use an existing SSH key in Hetzner instead of creating a new one
   allowed_networks:
     ssh:
       - 0.0.0.0/0
@@ -369,7 +370,7 @@ The `create` command can be run multiple times with the same configuration witho
 - The `networking`.`allowed_networks`.`api` setting specifies which networks can access the Kubernetes API. This works with both single-master and multi-master clusters, but only when `create_load_balancer_for_the_kubernetes_api` is disabled. If the API load balancer is enabled, Hetzner's firewalls do not yet support load balancers, so the API would be exposed to the public internet regardless of the allowed networks configuration.
 - If you enable autoscaling for a nodepool, avoid changing this setting later, as it can cause issues with the autoscaler.
 - Autoscaling is only supported with Ubuntu or other default images, not snapshots.
-- If you already have SSH keys in your Hetzner project, it's best to use a different key for your cluster—unless there's already a key with the same name and fingerprint as the one in your config file.  Hetzner doesn't allow two keys with the same fingerprint in one project. So if you've already added the key from your config but under a different name, Hetzner won't let you add it again. In that case, hetzner-k3s will skip creating the key and won't inject any SSH key into the cluster nodes.  Without an SSH key, Hetzner sets up the nodes with password login instead. That means you'll get an email for each node with its root password. Managing several nodes this way can get tricky. To avoid this, just use a new keypair for your cluster—unless the project already has a key that matches both the name and fingerprint in your config.
+- If you already have SSH keys in your Hetzner project, it's best to use a different key for your cluster—unless there's already a key with the same name and fingerprint as the one in your config file.  Hetzner doesn't allow two keys with the same fingerprint in one project. So if you've already added the key from your config but under a different name, Hetzner won't let you add it again. In that case, hetzner-k3s will skip creating the key and won't inject any SSH key into the cluster nodes.  Without an SSH key, Hetzner sets up the nodes with password login instead. That means you'll get an email for each node with its root password. Managing several nodes this way can get tricky. To avoid this, you can either use a new keypair for your cluster, or set `existing_ssh_key_name` in the SSH config to reference the existing key by name. When using `existing_ssh_key_name`, hetzner-k3s will use the specified key instead of creating a new one, and it won't delete the key when you delete the cluster.
 - SSH keys with passphrases can only be used if you set `networking`.`ssh`.`use_ssh_agent` to `true` and use an SSH agent to access your key. For example, on macOS, you can start an agent like this:
 
 ```bash

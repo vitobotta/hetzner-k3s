@@ -12,7 +12,7 @@ class Hetzner::SSHKey::Create
   getter ssh_key_finder : Hetzner::SSHKey::Find
 
   def initialize(@hetzner_client, @settings)
-    @ssh_key_name = settings.cluster_name
+    @ssh_key_name = settings.networking.ssh.ssh_key_name(settings.cluster_name)
     @public_ssh_key_path = settings.networking.ssh.public_key_path
     @ssh_key_finder = Hetzner::SSHKey::Find.new(hetzner_client, ssh_key_name, public_ssh_key_path)
   end
@@ -21,6 +21,11 @@ class Hetzner::SSHKey::Create
     ssh_key = ssh_key_finder.run
 
     return ssh_key if ssh_key
+
+    if settings.networking.ssh.using_existing_ssh_key?
+      STDERR.puts "[#{default_log_prefix}] Existing SSH key '#{ssh_key_name}' not found in Hetzner"
+      exit 1
+    end
 
     log_line "Creating SSH key..."
     create_ssh_key

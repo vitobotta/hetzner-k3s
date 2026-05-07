@@ -8,18 +8,26 @@ class Hetzner::SSHKey::Delete
   getter hetzner_client : Hetzner::Client
   getter ssh_key_name : String
   getter ssh_key_finder : Hetzner::SSHKey::Find
+  getter using_existing_ssh_key : Bool
 
-  def initialize(@hetzner_client, @ssh_key_name, public_ssh_key_path)
+  def initialize(@hetzner_client, @ssh_key_name, public_ssh_key_path, @using_existing_ssh_key = false)
     @ssh_key_finder = Hetzner::SSHKey::Find.new(hetzner_client, ssh_key_name, public_ssh_key_path)
   end
 
   def run
+    return handle_existing_ssh_key_skip if using_existing_ssh_key
+
     ssh_key = ssh_key_finder.run
 
     return handle_no_ssh_key unless ssh_key
     return handle_existing_ssh_key(ssh_key) if ssh_key.name == ssh_key_name
 
     log_line "An SSH key with the expected fingerprint existed before creating the cluster, so I won't delete it"
+    ssh_key_name
+  end
+
+  private def handle_existing_ssh_key_skip
+    log_line "Using existing SSH key '#{ssh_key_name}', skipping delete"
     ssh_key_name
   end
 
