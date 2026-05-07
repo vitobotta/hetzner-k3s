@@ -118,8 +118,9 @@ class Cluster::Delete
   private def delete_ssh_key
     Hetzner::SSHKey::Delete.new(
       hetzner_client: hetzner_client,
-      ssh_key_name: settings.cluster_name,
-      public_ssh_key_path: settings.networking.ssh.public_key_path
+      ssh_key_name: settings.networking.ssh.ssh_key_name(settings.cluster_name),
+      public_ssh_key_path: settings.networking.ssh.public_key_path,
+      using_existing_ssh_key: settings.networking.ssh.using_existing_ssh_key?
     ).run
   end
 

@@ -6,17 +6,21 @@ require "../../util/ssh"
 class Hetzner::SSHKey::Find
   private getter hetzner_client : Hetzner::Client
   private getter ssh_key_name : String
-  private getter public_ssh_key_path : String
+  private getter public_ssh_key_path : String?
 
   def initialize(@hetzner_client, @ssh_key_name, @public_ssh_key_path)
   end
 
   def run
     ssh_keys = fetch_ssh_keys
-    fingerprint = Util::SSH.calculate_fingerprint(public_ssh_key_path)
 
-    ssh_keys.find { |ssh_key| ssh_key.fingerprint == fingerprint } ||
+    if public_ssh_key_path && File.exists?(public_ssh_key_path.not_nil!)
+      fingerprint = Util::SSH.calculate_fingerprint(public_ssh_key_path.not_nil!)
+      ssh_keys.find { |ssh_key| ssh_key.fingerprint == fingerprint } ||
+        ssh_keys.find { |ssh_key| ssh_key.name == ssh_key_name }
+    else
       ssh_keys.find { |ssh_key| ssh_key.name == ssh_key_name }
+    end
   end
 
   private def fetch_ssh_keys

@@ -13,17 +13,19 @@ class Configuration::Validators::AutoscalerSSHKey
   def validate
     return unless autoscaling_in_use?
 
+    ssh_key_name = settings.networking.ssh.ssh_key_name(settings.cluster_name)
+
     begin
-      existing_ssh_key = Hetzner::SSHKey::Find.new(hetzner_client, settings.cluster_name, settings.networking.ssh.public_key_path).run
+      existing_ssh_key = Hetzner::SSHKey::Find.new(hetzner_client, ssh_key_name, settings.networking.ssh.public_key_path).run
     rescue ex
       errors << "Unable to verify SSH key for autoscaler: #{ex.message}"
       return
     end
 
     return unless existing_ssh_key
-    return if existing_ssh_key.name == settings.cluster_name
+    return if existing_ssh_key.name == ssh_key_name
 
-    errors << "Cluster autoscaler requires an SSH key named '#{settings.cluster_name}' in Hetzner. A key with the same fingerprint exists as '#{existing_ssh_key.name}', so hetzner-k3s will not create '#{settings.cluster_name}'. Autoscaled nodes will be created without SSH keys. Rename or delete the existing key, or change cluster_name."
+    errors << "Cluster autoscaler requires an SSH key named '#{ssh_key_name}' in Hetzner. A key with the same fingerprint exists as '#{existing_ssh_key.name}', so hetzner-k3s will not create '#{ssh_key_name}'. Autoscaled nodes will be created without SSH keys. Rename or delete the existing key, or use the existing_ssh_key_name setting to reference it."
   end
 
   private def autoscaling_in_use?
