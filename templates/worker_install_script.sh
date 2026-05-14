@@ -60,6 +60,27 @@ fi
 
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
+mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+
+# Configure gVisor (runsc) if enabled
+{% if gvisor_enabled == "true" %}
+echo "Configuring containerd for gVisor..." 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# Install gVisor (runsc)
+apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && apt-get install -y runsc
+
+# Create containerd config template for gVisor
+cat >/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl <<\GVCONF
+{{ "{{ template \"base\" . }}" }}
+
+[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+GVCONF
+
+echo "gVisor containerd configuration created" 2>&1 | tee -a /var/log/hetzner-k3s.log{% endif %}
 
 # Create registries.yaml
 cat >/etc/rancher/k3s/registries.yaml <<\EOF

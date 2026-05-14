@@ -3,6 +3,7 @@ require "./addons_config/csi_driver"
 require "./addons_config/cloud_controller_manager"
 require "./addons_config/system_upgrade_controller"
 require "./addons_config/embedded_registry_mirror"
+require "./addons_config/gvisor"
 
 module Configuration
   module Models
@@ -37,6 +38,7 @@ module Configuration
       getter cloud_controller_manager : Configuration::Models::AddonsConfig::CloudControllerManager = Configuration::Models::AddonsConfig::CloudControllerManager.new
       getter system_upgrade_controller : Configuration::Models::AddonsConfig::SystemUpgradeController = Configuration::Models::AddonsConfig::SystemUpgradeController.new
       getter embedded_registry_mirror : Configuration::Models::AddonsConfig::EmbeddedRegistryMirror = Configuration::Models::AddonsConfig::EmbeddedRegistryMirror.new
+      getter gvisor : Configuration::Models::AddonsConfig::GVisor = Configuration::Models::AddonsConfig::GVisor.new
 
       def initialize
       end
