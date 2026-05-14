@@ -117,7 +117,7 @@ apt-get update && apt-get install -y runsc
 cat >/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl <<\GVCONF
 {{ "{{ template \"base\" . }}" }}
 
-[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
   runtime_type = "io.containerd.runsc.v1"
 GVCONF
 
