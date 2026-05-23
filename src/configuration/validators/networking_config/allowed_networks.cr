@@ -8,8 +8,9 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
   getter errors : Array(String) = [] of String
   getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
   getter skip_current_ip_validation : Bool = false
+  getter use_tailscale : Bool = false
 
-  def initialize(@errors, @allowed_networks, @skip_current_ip_validation = false)
+  def initialize(@errors, @allowed_networks, @skip_current_ip_validation = false, @use_tailscale = false)
   end
 
   def validate
@@ -52,7 +53,7 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
       end
     end
 
-    return if skip_current_ip_validation
+    return if skip_current_ip_validation || use_tailscale
 
     validate_current_ip_must_be_included_in_at_least_one_network(errors, networks, network_type)
   end

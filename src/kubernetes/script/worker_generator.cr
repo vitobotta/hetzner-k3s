@@ -29,6 +29,7 @@ class Kubernetes::Script::WorkerGenerator
       private_network_subnet:  @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
       cluster_cidr:            @settings.networking.cluster_cidr,
       service_cidr:               @settings.networking.service_cidr,
+      ipv4_enabled:               @settings.networking.public_network.ipv4.to_s,
       extra_args:                 kubelet_args_list,
       labels_and_taints:          labels_and_taints,
       private_registry_config:    @settings.addons.embedded_registry_mirror.private_registry_config,

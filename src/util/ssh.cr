@@ -20,8 +20,9 @@ class Util::SSH
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
   getter prefer_private_ip : Bool = false
+  getter tailscale_hostname_suffix : String = ""
 
-  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false)
+  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false, @tailscale_hostname_suffix = "")
   end
 
   def self.calculate_fingerprint(public_ssh_key_path)
@@ -42,11 +43,26 @@ class Util::SSH
     result_str = ""
     debug = ENV.fetch("DEBUG", "false") == "true"
 
+    on_retry = ->(ex : Exception, attempt : Int32, _elapsed : Time::Span, _next : Time::Span) {
+      if tailscale? && attempt % 10 == 0
+        puts "\n[Instance #{instance.name}] Still waiting for Tailscale registration (attempt #{attempt}/#{max_attempts})..."
+        puts "  Tailscale status:"
+        ts_status = `which tailscale > /dev/null 2>&1 && tailscale status 2>/dev/null`.strip
+        if ts_status.empty?
+          puts "    (tailscale not available on this machine)"
+        else
+          ts_status.each_line { |l| puts "    #{l}" }
+        end
+        puts ""
+      end
+    }
+
     Retriable.retry(
       max_attempts: max_attempts,
       on: [Tasker::Timeout, IO::Error],
       backoff: false,
-      sleep_timer: retry_delay
+      sleep_timer: retry_delay,
+      on_retry: on_retry
     ) do
       result = nil
       begin
@@ -66,10 +82,6 @@ class Util::SSH
           log_line "Instance #{instance.name} not ready, retrying...", log_prefix: "Instance #{instance.name}"
           raise IO::Error.new("Result mismatch")
         end
-      rescue ex : Tasker::Timeout
-        raise ex
-      rescue ex
-        raise ex
       end
     end
 
@@ -79,18 +91,30 @@ class Util::SSH
 
   # Run a command on a remote instance via SSH
   def run(instance, port, command, use_ssh_agent, print_output = true, disable_log_prefix = false, capture_output = false)
-    host_ip_address = instance.host_ip_address(prefer_private_ip)
-    raise "Instance #{instance.name} has no IP address" unless host_ip_address
+    host = if tailscale?
+      tailscale_hostname = instance.tailscale_host(tailscale_hostname_suffix)
+      if tailscale_peer_online?(tailscale_hostname)
+        tailscale_hostname
+      else
+        log_line "Waiting for #{tailscale_hostname} to register with Tailscale...", log_prefix: "Instance #{instance.name}"
+        raise IO::Error.new("Tailscale peer #{tailscale_hostname} not yet online")
+      end
+    else
+      host_ip = instance.host_ip_address(prefer_private_ip)
+      raise "Instance #{instance.name} has no IP address" unless host_ip
 
-    if prefer_private_ip && instance.private_net.try(&.first?).try(&.ip).nil?
-      log_line "WARNING: Instance #{instance.name} has no private IP, falling back to public IP", log_prefix: "Instance #{instance.name}"
+      if prefer_private_ip && instance.private_net.try(&.first?).try(&.ip).nil?
+        log_line "WARNING: Instance #{instance.name} has no private IP, falling back to public IP", log_prefix: "Instance #{instance.name}"
+      end
+
+      host_ip
     end
 
     debug = ENV.fetch("DEBUG", "false") == "true"
     log_level = debug ? "DEBUG" : "ERROR"
 
     ssh_args = build_ssh_args(
-      host_ip_address: host_ip_address,
+      host_ip_address: host,
       port: port,
       command: command,
       use_ssh_agent: use_ssh_agent,
@@ -177,5 +201,24 @@ class Util::SSH
 
   private def default_log_prefix
     "+"
+  end
+
+  private def tailscale? : Bool
+    !tailscale_hostname_suffix.empty?
+  end
+
+  private def tailscale_peer_online?(hostname : String) : Bool
+    status_output = `tailscale status --json 2>/dev/null`
+    return false unless $?.success?
+
+    json = JSON.parse(status_output)
+    json["Peer"].as_h.each do |_key, peer|
+      dns_name = peer["DNSName"]?.try &.as_s
+      next unless dns_name && dns_name.starts_with?(hostname)
+      return peer["Online"]?.try(&.as_bool) == true
+    end
+    false
+  rescue JSON::ParseException | TypeCastError
+    false
   end
 end

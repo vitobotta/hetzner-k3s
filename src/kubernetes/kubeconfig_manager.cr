@@ -35,7 +35,9 @@ class Kubernetes::KubeconfigManager
     end
 
     masters.each_with_index do |master, index|
-      master_ip_address = if @settings.networking.ssh.use_private_ip
+      master_ip_address = if @settings.networking.ssh.use_tailscale
+        master.tailscale_host(@settings.networking.ssh.tailscale_hostname_suffix)
+      elsif @settings.networking.ssh.use_private_ip
         master.private_ip_address
       else
         @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
@@ -74,8 +76,11 @@ class Kubernetes::KubeconfigManager
     sans << "--tls-san=#{@settings.api_server_hostname}" if @settings.api_server_hostname
 
     masters.each do |master|
-      sans << "--tls-san=#{master.private_ip_address}"
-      sans << "--tls-san=#{master.public_ip_address}"
+      sans << "--tls-san=#{master.private_ip_address}" if master.private_ip_address
+      sans << "--tls-san=#{master.public_ip_address}" if master.public_ip_address
+      if @settings.networking.ssh.use_tailscale
+        sans << "--tls-san=#{master.tailscale_host(@settings.networking.ssh.tailscale_hostname_suffix)}"
+      end
     end
 
     sans.uniq.sort.join(" ")

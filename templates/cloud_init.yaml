@@ -10,7 +10,11 @@ write_files:
 
 {{ firewall_files }}
 
+{{ dns_files }}
+
 {{ ssh_files }}
+
+{{ tailscale_files }}
 
 {{ init_files }}
 
