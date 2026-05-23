@@ -25,6 +25,7 @@ apply_fix() {
     nft insert rule ip filter ts-input iifname lo ct status dnat accept
     echo "$(date): Inserted ts-input DNAT accept rule" >> /var/log/tailscale-nftables-fix.log
   fi
+  return 0
 }
 
 apply_fix
