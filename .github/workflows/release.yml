@@ -13,6 +13,8 @@ jobs:
     name: Publish GitHub Release Assets
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       VERSION: ${{ github.ref_name }}
