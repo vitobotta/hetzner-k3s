@@ -11,6 +11,7 @@ require "./cluster/run"
 module Hetzner::K3s
   class CLI < Admiral::Command
     VERSION = "2.5.0"
+    CONFIG_FORMAT_VERSION = "1"
 
     def self.print_banner
       puts "╭─────────────────────────────────────────╮".colorize(:green)
