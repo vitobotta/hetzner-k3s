@@ -149,6 +149,7 @@ worker_node_pools:
 #   cluster_autoscaler:
 #     enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
 #     manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+#     # local_manifest_path: "./cluster-autoscaler.yaml" # optional: use a local manifest file instead of fetching from manifest_url
 #     container_image_tag: "v1.35.0"
 #     scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
 #     scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes

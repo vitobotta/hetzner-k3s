@@ -20,22 +20,22 @@ class Kubernetes::Software::ClusterAutoscaler
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
   FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
 
-  CLOUD_PROVIDER              = "hetzner"
-  STORAGE_API_GROUP           = "storage.k8s.io"
-  VOLUME_ATTACHMENTS_RESOURCE         = "volumeattachments"
-  HCLOUD_CLOUD_INIT_VAR               = "HCLOUD_CLOUD_INIT"
-  HCLOUD_CLUSTER_CONFIG_VAR           = "HCLOUD_CLUSTER_CONFIG"
-  HCLOUD_CLUSTER_CONFIG_FILE_VAR      = "HCLOUD_CLUSTER_CONFIG_FILE"
-  HCLOUD_FIREWALL_VAR                 = "HCLOUD_FIREWALL"
-  HCLOUD_SSH_KEY_VAR                  = "HCLOUD_SSH_KEY"
-  HCLOUD_NETWORK_VAR                  = "HCLOUD_NETWORK"
-  HCLOUD_PUBLIC_IPV4_VAR              = "HCLOUD_PUBLIC_IPV4"
-  HCLOUD_PUBLIC_IPV6_VAR              = "HCLOUD_PUBLIC_IPV6"
-  CERT_CHECK_COMMAND                  = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
-  CLUSTER_CONFIG_CONFIGMAP_NAME       = "cluster-autoscaler-config"
-  CLUSTER_CONFIG_VOLUME_NAME          = "cluster-config"
-  CLUSTER_CONFIG_MOUNT_PATH           = "/etc/cluster-autoscaler"
-  CLUSTER_CONFIG_FILE_NAME            = "config.json"
+  CLOUD_PROVIDER                 = "hetzner"
+  STORAGE_API_GROUP              = "storage.k8s.io"
+  VOLUME_ATTACHMENTS_RESOURCE    = "volumeattachments"
+  HCLOUD_CLOUD_INIT_VAR          = "HCLOUD_CLOUD_INIT"
+  HCLOUD_CLUSTER_CONFIG_VAR      = "HCLOUD_CLUSTER_CONFIG"
+  HCLOUD_CLUSTER_CONFIG_FILE_VAR = "HCLOUD_CLUSTER_CONFIG_FILE"
+  HCLOUD_FIREWALL_VAR            = "HCLOUD_FIREWALL"
+  HCLOUD_SSH_KEY_VAR             = "HCLOUD_SSH_KEY"
+  HCLOUD_NETWORK_VAR             = "HCLOUD_NETWORK"
+  HCLOUD_PUBLIC_IPV4_VAR         = "HCLOUD_PUBLIC_IPV4"
+  HCLOUD_PUBLIC_IPV6_VAR         = "HCLOUD_PUBLIC_IPV6"
+  CERT_CHECK_COMMAND             = "[ -f /etc/ssl/certs/ca-certificates.crt ] && echo 1 || echo 2"
+  CLUSTER_CONFIG_CONFIGMAP_NAME  = "cluster-autoscaler-config"
+  CLUSTER_CONFIG_VOLUME_NAME     = "cluster-config"
+  CLUSTER_CONFIG_MOUNT_PATH      = "/etc/cluster-autoscaler"
+  CLUSTER_CONFIG_FILE_NAME       = "config.json"
 
   private getter configuration : Configuration::Loader
   private getter settings : Configuration::Main { configuration.settings }
@@ -333,8 +333,13 @@ class Kubernetes::Software::ClusterAutoscaler
   end
 
   private def manifest : String
-    manifest_url = settings.addons.cluster_autoscaler.manifest_url
-    raw_manifest = fetch_manifest(manifest_url)
+    autoscaler_config = settings.addons.cluster_autoscaler
+    raw_manifest = if local_path = autoscaler_config.local_manifest_path
+                     log_line "Reading Cluster Autoscaler manifest from local path: #{local_path}", log_prefix: default_log_prefix
+                     File.read(local_path)
+                   else
+                     fetch_manifest(autoscaler_config.manifest_url)
+                   end
 
     resources = YAML.parse_all(raw_manifest)
     patched_resources = patch_resources(resources)
