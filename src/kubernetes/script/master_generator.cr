@@ -58,6 +58,7 @@ class Kubernetes::Script::MasterGenerator
       metrics_server_enabled: @settings.addons.metrics_server.enabled.to_s,
       labels_and_taints:      labels_and_taints,
       additional_post_k3s_commands: post_k3s_commands,
+      kube_proxy_enabled:             @settings.networking.cni.kube_proxy?.to_s,
     })
   end
 
@@ -82,6 +83,7 @@ class Kubernetes::Script::MasterGenerator
   end
 
   private def kube_proxy_args_list
+    return "" unless @settings.networking.cni.kube_proxy?
     ::Kubernetes::Util.kubernetes_component_args_list("kube-proxy", @settings.kube_proxy_args)
   end
 

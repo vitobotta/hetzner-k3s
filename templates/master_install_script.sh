@@ -99,6 +99,13 @@ else
   METRICS_SERVER_PLUGIN="--disable metrics-server"
 fi
 
+# Kube-proxy arguments
+if [ "{{ kube_proxy_enabled }}" = "true" ]; then
+  KUBE_PROXY_ARG='--kube-proxy-arg="metrics-bind-address=0.0.0.0"'
+else
+  KUBE_PROXY_ARG=""
+fi
+
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
 
@@ -138,7 +145,7 @@ curl -sfL https://get.k3s.io | \
     --service-cidr={{ service_cidr }} \
     --cluster-dns={{ cluster_dns }} \
     --kube-controller-manager-arg="bind-address=0.0.0.0" \
-    --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
+    $KUBE_PROXY_ARG \
     --kube-scheduler-arg="bind-address=0.0.0.0" \
     {{ master_taint }} {{ labels_and_taints }} {{ extra_args }} {{ etcd_arguments }} \
     $KUBELET_INSTANCE_ID \
