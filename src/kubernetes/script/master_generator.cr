@@ -54,11 +54,12 @@ class Kubernetes::Script::MasterGenerator
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
       private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
       local_path_storage_class_enabled: @settings.addons.local_path_storage_class.enabled.to_s,
-      traefik_enabled:        @settings.addons.traefik.enabled.to_s,
-      servicelb_enabled:      @settings.addons.servicelb.enabled.to_s,
-      metrics_server_enabled: @settings.addons.metrics_server.enabled.to_s,
-      labels_and_taints:      labels_and_taints,
-      additional_post_k3s_commands: post_k3s_commands,
+      traefik_enabled:                  @settings.addons.traefik.enabled.to_s,
+      servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
+      metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
+      labels_and_taints:                labels_and_taints,
+      gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
+      additional_post_k3s_commands:     post_k3s_commands,
     })
   end
 
