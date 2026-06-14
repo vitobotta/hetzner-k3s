@@ -1,3 +1,4 @@
+#!/bin/bash
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
