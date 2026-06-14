@@ -101,7 +101,7 @@ fi
 
 # Kube-proxy arguments
 if [ "{{ kube_proxy_enabled }}" = "true" ]; then
-  KUBE_PROXY_ARG='--kube-proxy-arg="metrics-bind-address=0.0.0.0"'
+  KUBE_PROXY_ARG='--kube-proxy-arg=metrics-bind-address=0.0.0.0'
 else
   KUBE_PROXY_ARG=""
 fi
