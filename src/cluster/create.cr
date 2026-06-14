@@ -6,6 +6,7 @@ require "./firewall_manager"
 require "./instance_builder"
 require "./load_balancer_manager"
 require "./network_manager"
+require "./placement_group_manager"
 
 class Cluster::Create
   private getter configuration : Configuration::Loader
@@ -39,18 +40,23 @@ class Cluster::Create
   private getter network_manager : NetworkManager
   private getter load_balancer_manager : LoadBalancerManager
   private getter firewall_manager : FirewallManager
+  private getter placement_group_manager : PlacementGroupManager
+  private getter placement_groups : PlacementGroupManager::PlacementGroups
 
   def initialize(@configuration)
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
     @firewall_manager = FirewallManager.new(settings, hetzner_client)
+    @placement_group_manager = PlacementGroupManager.new(settings, hetzner_client)
 
     @network = network_manager.find_or_create if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
-    @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network)
-    @master_instances = instance_builder.initialize_master_instances(masters_locations)
 
     static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+    @placement_groups = placement_group_manager.create(settings.masters_pool.instance_count, static_worker_node_pools)
+    @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network, placement_groups)
+
+    @master_instances = instance_builder.initialize_master_instances(masters_locations)
     @worker_instances = create_worker_instances(static_worker_node_pools)
   end
 
