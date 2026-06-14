@@ -4,6 +4,8 @@ require "../hetzner/firewall/delete"
 require "../hetzner/network/delete"
 require "../hetzner/instance/delete"
 require "../hetzner/load_balancer/delete"
+require "../hetzner/placement_group/delete"
+require "./placement_group_manager"
 require "../kubernetes/util"
 require "../util/shell"
 require "../util"
@@ -17,6 +19,10 @@ class Cluster::Delete
 
   private getter force : Bool = false
   private property instance_deletors : Array(Hetzner::Instance::Delete) = [] of Hetzner::Instance::Delete
+
+  private getter placement_group_manager : PlacementGroupManager do
+    PlacementGroupManager.new(settings, hetzner_client)
+  end
 
   def initialize(@configuration, @force)
     super(@configuration)
@@ -59,6 +65,7 @@ class Cluster::Delete
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
     delete_instances
+    delete_placement_groups
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
@@ -99,6 +106,10 @@ class Cluster::Delete
     unless errors.empty?
       errors.each { |e| puts "Error deleting instance: #{e.message}".colorize(:red) }
     end
+  end
+
+  private def delete_placement_groups
+    placement_group_manager.delete
   end
 
   private def delete_network

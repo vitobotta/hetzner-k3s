@@ -1,4 +1,5 @@
 require "../hetzner/instance/create"
+require "./placement_group_manager"
 
 class Cluster::InstanceBuilder
   private getter settings : Configuration::Main
@@ -6,8 +7,9 @@ class Cluster::InstanceBuilder
   private getter mutex : Mutex
   private getter ssh_key : Hetzner::SSHKey
   private getter network : Hetzner::Network?
+  private getter placement_groups : Cluster::PlacementGroupManager::PlacementGroups
 
-  def initialize(@settings, @hetzner_client, @mutex, @ssh_key, @network)
+  def initialize(@settings, @hetzner_client, @mutex, @ssh_key, @network, @placement_groups)
   end
 
   def build_instance_name(instance_type, index, include_instance_type, prefix = "master") : String
@@ -28,6 +30,7 @@ class Cluster::InstanceBuilder
     additional_pre_k3s_commands = masters_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
     additional_post_k3s_commands = masters_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
     grow_root_partition_automatically = masters_pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
+    placement_group = master_placement_group(index)
 
     Hetzner::Instance::Create.new(
       settings: settings,
@@ -43,7 +46,8 @@ class Cluster::InstanceBuilder
       additional_pre_k3s_commands: additional_pre_k3s_commands,
       additional_post_k3s_commands: additional_post_k3s_commands,
       location: location,
-      grow_root_partition_automatically: grow_root_partition_automatically
+      grow_root_partition_automatically: grow_root_partition_automatically,
+      placement_group: placement_group
     )
   end
 
@@ -59,6 +63,7 @@ class Cluster::InstanceBuilder
     additional_pre_k3s_commands = node_pool.additional_pre_k3s_commands || settings.additional_pre_k3s_commands
     additional_post_k3s_commands = node_pool.additional_post_k3s_commands || settings.additional_post_k3s_commands
     grow_root_partition_automatically = node_pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
+    placement_group = worker_placement_group(index, node_pool)
 
     Hetzner::Instance::Create.new(
       settings: settings,
@@ -74,7 +79,8 @@ class Cluster::InstanceBuilder
       additional_packages: additional_packages,
       additional_pre_k3s_commands: additional_pre_k3s_commands,
       additional_post_k3s_commands: additional_post_k3s_commands,
-      grow_root_partition_automatically: grow_root_partition_automatically
+      grow_root_partition_automatically: grow_root_partition_automatically,
+      placement_group: placement_group
     )
   end
 
@@ -95,6 +101,20 @@ class Cluster::InstanceBuilder
     end
 
     factories
+  end
+
+  private def master_placement_group(index : Int32) : Hetzner::PlacementGroup?
+    group_index = index // PlacementGroupManager::MAX_SERVERS_PER_PLACEMENT_GROUP
+    masters = placement_groups.masters
+    group_index < masters.size ? masters[group_index] : nil
+  end
+
+  private def worker_placement_group(index : Int32, node_pool) : Hetzner::PlacementGroup?
+    group_index = index // PlacementGroupManager::MAX_SERVERS_PER_PLACEMENT_GROUP
+    pool_name = node_pool.name || "default"
+    pool_groups = placement_groups.workers[pool_name]?
+    return nil unless pool_groups
+    group_index < pool_groups.size ? pool_groups[group_index] : nil
   end
 
   private def default_masters_location
