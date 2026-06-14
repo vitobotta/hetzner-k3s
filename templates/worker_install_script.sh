@@ -1,3 +1,4 @@
+#!/bin/bash
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
@@ -13,11 +14,15 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
   DELAY=10
 
   for i in $(seq 1 $MAX_ATTEMPTS); do
-    # Simplified network interface detection
+    # Simplified network interface detection.
+    # NOTE: MTU 1280 matches WireGuard's default — mesh agents like NetBird,
+    # Tailscale, or raw wg-quick create interfaces (wt0, wg0, tailscale0,
+    # netbird0, ...) that would otherwise be picked here over the real
+    # Hetzner private vlan (enp7s0, MTU 1450). Exclude them by name.
     NETWORK_INTERFACE=$(
       ip -o link show |
         awk -F': ' '/mtu (1450|1280)/ {print $2}' |
-        grep -Ev 'cilium|lxc|br|flannel|docker|veth' |
+        grep -Ev 'cilium|lxc|br|flannel|docker|veth|wt|wg|tailscale|netbird' |
         head -n1
     )
 
