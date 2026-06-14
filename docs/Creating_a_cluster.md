@@ -14,6 +14,7 @@ hetzner_token: <your token>
 cluster_name: test
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.32.0+k3s1
+config_format_version: 1
 
 networking:
   ssh:
@@ -139,7 +140,7 @@ worker_node_pools:
 # addons:
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
-#     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.20.2/deploy/kubernetes/hcloud-csi.yml"
+#     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.21.2/deploy/kubernetes/hcloud-csi.yml"
 #   traefik:
 #     enabled: false  # built-in Traefik ingress controller. Disabled by default.
 #   servicelb:
@@ -149,6 +150,7 @@ worker_node_pools:
 #   cluster_autoscaler:
 #     enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
 #     manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+#     # local_manifest_path: "./cluster-autoscaler.yaml" # optional: use a local manifest file instead of fetching from manifest_url
 #     container_image_tag: "v1.35.0"
 #     scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
 #     scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
@@ -157,7 +159,7 @@ worker_node_pools:
 #     max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
-#     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.30.1/ccm-networks.yaml"
+#     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.32.0/ccm-networks.yaml"
 #   system_upgrade_controller:
 #     enabled: true   # System Upgrade Controller (default true). Set to false to omit autoscaling.
 #     deployment_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/system-upgrade-controller.yaml"

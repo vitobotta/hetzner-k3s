@@ -82,11 +82,9 @@ class Configuration::Loader
 
   def validate(command)
     log_line "Validating configuration..."
-
+    check_config_format_version
     Configuration::Validators::ClusterName.new(errors, settings.cluster_name).validate
-
     validate_command_specific_settings(command)
-
     print_validation_result
   end
 
@@ -125,5 +123,16 @@ class Configuration::Loader
 
   private def default_log_prefix
     "Configuration"
+  end
+
+  private def check_config_format_version
+    file_version = settings.config_format_version
+
+    if file_version != Hetzner::K3s::CLI::CONFIG_FORMAT_VERSION
+      STDERR.puts "[Configuration] The configuration file does not have the expected config_format_version #{Hetzner::K3s::CLI::CONFIG_FORMAT_VERSION} (found: #{file_version.nil? ? "missing" : file_version})."
+      STDERR.puts "[Configuration] Please ensure the configuration file format is correct for the version of hetzner-k3s you are using."
+      STDERR.puts "[Configuration] If the format is already correct, set config_format_version to #{Hetzner::K3s::CLI::CONFIG_FORMAT_VERSION} in the configuration file and try again."
+      exit 1
+    end
   end
 end

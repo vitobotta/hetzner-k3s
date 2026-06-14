@@ -1,6 +1,7 @@
 require "../client"
 require "../network"
 require "../ssh_key"
+require "../placement_group"
 require "./cloud_init_generator"
 require "./find"
 require "../../kubernetes/util"
@@ -56,7 +57,8 @@ class Hetzner::Instance::Create
     @additional_pre_k3s_commands = [] of String,
     @additional_post_k3s_commands = [] of String,
     @location = "fsn1",
-    @grow_root_partition_automatically = true
+    @grow_root_partition_automatically = true,
+    @placement_group : Hetzner::PlacementGroup? = nil
   )
     @cluster_name = settings.cluster_name
     @snapshot_os = settings.snapshot_os
@@ -214,8 +216,10 @@ class Hetzner::Instance::Create
     }
 
     network = @network
-
     base_config = base_config.merge({:networks => [network.id]}) unless network.nil?
+
+    pg = @placement_group
+    base_config = base_config.merge({:placement_group => pg.id}) if pg
 
     base_config
   end

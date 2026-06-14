@@ -12,6 +12,7 @@ class Configuration::Main
   getter cluster_name : String
   getter kubeconfig_path : String
   getter k3s_version : String
+  getter config_format_version : String?
   getter api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
   getter masters_pool : Configuration::Models::MasterNodePool
