@@ -23,6 +23,11 @@ class Configuration::Validators::MastersPool
   end
 
   def validate
+    if masters_pool.instance_type == "external"
+      errors << "The masters pool cannot use the external instance type. External nodes can only be workers."
+      return
+    end
+
     Configuration::Validators::NodePool.new(
       errors: errors,
       pool: masters_pool,

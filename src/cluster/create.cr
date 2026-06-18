@@ -2,6 +2,7 @@ require "../configuration/loader"
 require "../hetzner/ssh_key/create"
 require "../kubernetes/installer"
 require "../util/ssh"
+require "./external_node_validator"
 require "./firewall_manager"
 require "./instance_builder"
 require "./load_balancer_manager"
@@ -51,8 +52,7 @@ class Cluster::Create
 
     @network = network_manager.find_or_create if settings.networking.private_network.enabled
     @ssh_key = create_ssh_key
-
-    static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+    static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled).reject(&.external?)
     @placement_groups = placement_group_manager.create(settings.masters_pool.instance_count, static_worker_node_pools)
     @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network, placement_groups)
 
@@ -61,6 +61,8 @@ class Cluster::Create
   end
 
   def run
+    validate_external_nodes
+
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
     @load_balancer = load_balancer_manager.handle(master_instances.size, network)
@@ -74,6 +76,10 @@ class Cluster::Create
     completed_channel.receive
 
     warn_if_not_protected
+  end
+
+  private def validate_external_nodes
+    Cluster::ExternalNodeValidator.new(settings).validate
   end
 
   private def create_ssh_key

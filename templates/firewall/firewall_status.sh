@@ -5,7 +5,7 @@
 readonly SSH_PORT="{{ ssh_port }}"
 readonly API_PORT=6443
 
-readonly IPSETS=("nodes:Node IPs" "allowed_networks_ssh:SSH access" "allowed_networks_k8s_api:API access (port $API_PORT)")
+readonly IPSETS=("nodes:Node IPs" "external_nodes:External node IPs" "allowed_networks_ssh:SSH access" "allowed_networks_k8s_api:API access (port $API_PORT)")
 readonly NETWORK_FILES=("/etc/allowed-networks-kubernetes-api.conf" "/etc/allowed-networks-ssh.conf")
 
 print_section() {

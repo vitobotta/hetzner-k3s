@@ -20,8 +20,9 @@ class Util::SSH
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
   getter prefer_private_ip : Bool = false
+  getter user : String = "root"
 
-  def initialize(@private_ssh_key_path, @public_ssh_key_path, @prefer_private_ip = false)
+  def initialize(@private_ssh_key_path, @public_ssh_key_path = "", @prefer_private_ip = false, @user = "root")
   end
 
   def self.calculate_fingerprint(public_ssh_key_path)
@@ -102,13 +103,13 @@ class Util::SSH
 
     # Setup output streams based on capture mode
     output_streams = if capture_output
-      {
-        out: stdout,
-        err: stderr,
-      }
-    else
-      setup_output_streams(instance.name, stdout, stderr, print_output, debug, disable_log_prefix)
-    end
+                       {
+                         out: stdout,
+                         err: stderr,
+                       }
+                     else
+                       setup_output_streams(instance.name, stdout, stderr, print_output, debug, disable_log_prefix)
+                     end
 
     # Run the SSH command
     status = Process.run("ssh",
@@ -149,7 +150,7 @@ class Util::SSH
     end
 
     # Add port, user@host, and command
-    args.concat(["-p", port.to_s, "root@#{host_ip_address}", command])
+    args.concat(["-p", port.to_s, "#{@user}@#{host_ip_address}", command])
 
     args
   end

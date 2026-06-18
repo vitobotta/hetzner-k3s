@@ -361,6 +361,108 @@ These settings apply globally to all autoscaling worker node pools in your clust
 
 ---
 
+### External Node Pools
+
+External node pools let you attach worker nodes from **any provider** (not just Hetzner Cloud) to your cluster. You provision and own these nodes; hetzner-k3s performs the same setup steps that cloud-init would on a Hetzner node (firewall, packages, k3s install) but via SSH instead.
+
+#### Configuration
+
+An external node pool uses `instance_type: external` and defines its nodes in the `external` section:
+
+```yaml
+worker_node_pools:
+- name: external-workers
+  instance_type: external
+  instance_count: 2
+  external:
+    nodes:
+      - host: 203.0.113.10
+        ssh_user: root
+        ssh_port: 22
+        ssh_private_key_path: ~/.ssh/external_node_key
+        manage_hostname: true
+        index: 1
+      - host: 198.51.100.20
+        ssh_user: ubuntu
+        ssh_port: 2222
+        ssh_private_key_path: ~/.ssh/external_node_key
+        manage_hostname: true
+        index: 2
+```
+
+#### Node properties
+
+| Property | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `host` | String | yes | — | IP address or hostname of the external node |
+| `ssh_user` | String | yes | — | SSH username for the node (e.g. `root`, `ubuntu`) |
+| `ssh_port` | Int32 | no | `22` | SSH port |
+| `ssh_private_key_path` | String | yes | — | Path to the SSH private key (supports `~/` expansion) |
+| `manage_hostname` | Bool | no | `true` | If true, hetzner-k3s sets the node's hostname to match its naming convention |
+| `index` | Int32 | yes | — | 1-based slot index; ties a node config to a specific hostname slot |
+
+#### The `index` field
+
+The `index` property ties a node config entry to a specific hostname slot. When `manage_hostname: true`, the hostname is derived from the index (not the array position), so reordering the `nodes` array does not change hostnames. Indices must be:
+
+- **Unique** within a pool (no duplicates)
+- **In the range `1..instance_count`**
+
+For example, if `instance_count: 3`, valid indices are `1`, `2`, `3`. The `instance_count` must equal the number of nodes in `external.nodes`.
+
+#### Requirements
+
+External nodes must:
+
+- Run a **Debian-based OS** (Debian or Ubuntu). Package installation uses `apt-get`. No other package managers (dnf, zypper, pacman) are supported.
+- Be accessible via SSH from the machine running hetzner-k3s, using the specified private key and user.
+- Have **root access** — either the SSH user is `root`, or the user has **passwordless sudo**.
+
+#### Required cluster settings
+
+External node pools require the following cluster-wide settings:
+
+- `networking.private_network.enabled: false` — external nodes cannot join a Hetzner private network.
+- `networking.public_network.use_local_firewall: true` — the local firewall is deployed to each external node via SSH.
+- `networking.public_network.hetzner_ips_query_server_url` must be set (required by the local firewall to fetch Hetzner node IPs).
+
+#### Validation rules
+
+The following rules are enforced at config validation time:
+
+1. Private network must be disabled.
+2. Local firewall must be enabled.
+3. No Hetzner-specific fields allowed in the pool (`image`, `autoscaling`, `grow_root_partition_automatically`, `legacy_instance_type`).
+4. Masters pool cannot use `instance_type: external`.
+5. `instance_count` must equal the number of nodes in `external.nodes`.
+6. Node indices must be unique and in range `1..instance_count`.
+7. Node hosts must be unique within a pool.
+
+At runtime, before cluster creation begins, hetzner-k3s also validates:
+
+- **SSH accessibility** — can it connect to each node?
+- **Root/sudo access** — does the SSH user have root or passwordless sudo?
+- **Hostname conflicts** — if `manage_hostname: false`, does the existing hostname conflict with any hostname hetzner-k3s will generate?
+
+#### Setup behavior
+
+When you run `hetzner-k3s create`, for each external node hetzner-k3s will:
+
+1. Set the hostname (if `manage_hostname: true`).
+2. Install packages (`fail2ban`, `wireguard`, plus any `additional_packages`).
+3. Configure the DNS resolver.
+4. Deploy the local firewall (rendered with the node's own SSH port).
+5. Run pre-k3s commands (`additional_pre_k3s_commands`).
+6. Install k3s worker and join it to the cluster.
+7. Run post-k3s commands (`additional_post_k3s_commands`).
+
+The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3s and removing firewall files via SSH.
+
+#### `hetzner-k3s run` support
+
+The `run` command detects external nodes by matching their IP against the `external.nodes[].host` entries. If a match is found, it uses the node's per-node SSH settings (key, user, port) instead of the cluster-wide SSH settings. This allows you to run commands and scripts on external nodes just like on Hetzner nodes.
+
+---
 ### Idempotency
 
 The `create` command can be run multiple times with the same configuration without causing issues, as the process is idempotent. If the process gets stuck or encounters errors (e.g., due to Hetzner API unavailability or timeouts), you can stop the command and rerun it with the same configuration to continue where it left off. Note that the kubeconfig will be overwritten each time you rerun the command.

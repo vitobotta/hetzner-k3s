@@ -4,6 +4,8 @@ require "../models/datastore"
 require "../../hetzner/instance_type"
 require "../../hetzner/location"
 require "./node_pool"
+require "./external_node_pool"
+require "../main"
 
 class Configuration::Validators::WorkerNodePools
   getter errors : Array(String) = [] of String
@@ -14,6 +16,7 @@ class Configuration::Validators::WorkerNodePools
   getter all_locations : Array(Hetzner::Location)
   getter datastore : Configuration::Models::Datastore
   getter private_network_enabled : Bool
+  getter settings : Configuration::Main
 
   def initialize(
     @errors,
@@ -23,7 +26,8 @@ class Configuration::Validators::WorkerNodePools
     @instance_types,
     @all_locations,
     @datastore,
-    @private_network_enabled
+    @private_network_enabled,
+    @settings
   )
   end
 
@@ -48,5 +52,36 @@ class Configuration::Validators::WorkerNodePools
         private_network_enabled: private_network_enabled
       ).validate
     end
+
+    all_generated_hostnames = generate_all_hostnames
+    worker_node_pools.each do |pool|
+      next unless pool.external?
+      Configuration::Validators::ExternalNodePool.new(errors, pool, settings, all_generated_hostnames).validate
+    end
+  end
+
+  private def generate_all_hostnames : Array(String)
+    hostnames = [] of String
+    cluster_name = settings.cluster_name
+    include_type = settings.include_instance_type_in_instance_name
+
+    settings.masters_pool.instance_count.times do |i|
+      hostnames << "#{cluster_name}-#{include_type ? "#{settings.masters_pool.instance_type}-" : ""}master#{i + 1}"
+    end
+
+    settings.worker_node_pools.each do |pool|
+      next if pool.autoscaling_enabled
+      if pool.external?
+        pool.external.try(&.nodes.each do |node|
+          hostnames << "#{cluster_name}-#{include_type ? "#{pool.instance_type}-" : ""}pool-#{pool.name}-worker#{node.index}"
+        end)
+      else
+        pool.instance_count.times do |i|
+          hostnames << "#{cluster_name}-#{include_type ? "#{pool.instance_type}-" : ""}pool-#{pool.name}-worker#{i + 1}"
+        end
+      end
+    end
+
+    hostnames
   end
 end

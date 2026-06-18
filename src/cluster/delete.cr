@@ -9,6 +9,7 @@ require "./placement_group_manager"
 require "../kubernetes/util"
 require "../util/shell"
 require "../util"
+require "../util/ssh"
 require "./node_detection"
 
 class Cluster::Delete
@@ -64,11 +65,47 @@ class Cluster::Delete
 
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
+    cleanup_external_nodes
     delete_instances
     delete_placement_groups
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
+  end
+
+  private def cleanup_external_nodes
+    external_pools = settings.worker_node_pools.select(&.external?)
+    return if external_pools.empty?
+
+    external_pools.each do |pool|
+      pool.external.not_nil!.nodes.each do |node|
+        cleanup_external_node(node)
+      end
+    end
+  end
+
+  private def cleanup_external_node(node)
+    ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
+    instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+
+    begin
+      # 1. Uninstall k3s
+      ssh.run(instance, node.ssh_port, "/usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true", false, print_output: false)
+
+      # 2. Remove firewall
+      ssh.run(instance, node.ssh_port, <<-CMD, false, print_output: false)
+        systemctl stop firewall.service 2>/dev/null || true
+        systemctl disable firewall.service 2>/dev/null || true
+        rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
+        rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
+        rm -f /etc/iptables/rules.v4 /etc/iptables/ipsets.v4 2>/dev/null || true
+        rm -f /tmp/last_node_ips.txt 2>/dev/null || true
+      CMD
+
+      log_line "Cleaned up external node #{node.host}"
+    rescue ex
+      log_line "Warning: Failed to clean up external node #{node.host}: #{ex.message}"
+    end
   end
 
   private def delete_load_balancer
@@ -156,7 +193,7 @@ class Cluster::Delete
   end
 
   private def initialize_worker_nodes
-    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled).reject(&.external?)
 
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|

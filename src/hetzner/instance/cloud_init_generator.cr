@@ -69,8 +69,18 @@ class Hetzner::Instance::CloudInitGenerator
       service_cidr:                 @settings.networking.service_cidr,
       node_port_range_iptables:     @settings.networking.node_port_range_iptables,
       node_port_firewall_enabled:   @settings.networking.node_port_firewall_enabled,
+      external_node_ips:            external_node_ips,
     })
     format_file_content(script)
+  end
+
+  private def external_node_ips
+    ips = [] of String
+    @settings.worker_node_pools.each do |pool|
+      next unless pool.external?
+      pool.external.try(&.nodes.each { |node| ips << node.host })
+    end
+    ips.join("\n")
   end
 
   private def firewall_service

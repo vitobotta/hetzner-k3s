@@ -73,8 +73,8 @@ EOF
 
 # Get instance ID for public network
 KUBELET_INSTANCE_ID=""
-if [ "{{ private_network_enabled }}" = "false" ]; then
-  INSTANCE_ID=$(curl -s http://169.254.169.254/hetzner/v1/metadata/instance-id)
+if [ "{{ private_network_enabled }}" = "false" ] && [ "{{ is_external }}" = "false" ]; then
+  INSTANCE_ID=$(curl -s --max-time 2 http://169.254.169.254/hetzner/v1/metadata/instance-id 2>/dev/null || true)
   if [ -n "$INSTANCE_ID" ]; then
     KUBELET_INSTANCE_ID="--kubelet-arg=provider-id=hcloud://$INSTANCE_ID"
   else
