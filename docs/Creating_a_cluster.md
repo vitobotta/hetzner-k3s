@@ -170,6 +170,8 @@ worker_node_pools:
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
+placement_groups_enabled: false # when true, automatically creates Hetzner spread placement groups so that masters and workers run on different physical hosts; note: not all server types or locations support placement groups (e.g. cpx31 in ash/hil may not)
+
 create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
 k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability

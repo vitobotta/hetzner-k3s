@@ -20,7 +20,16 @@ class Hetzner::Network::Create
   def run
     network = network_finder.run
 
-    return network if network
+    if network
+      existing_zone = network.network_zone
+      if existing_zone && existing_zone != network_zone
+        STDERR.puts "[#{default_log_prefix}] ERROR: A network named '#{network_name}' already exists but its zone '#{existing_zone}' does not match the required zone '#{network_zone}' for this cluster's location."
+        STDERR.puts "[#{default_log_prefix}] This typically happens when a previous cluster creation attempt left a stale network in a different region."
+        STDERR.puts "[#{default_log_prefix}] To fix: delete the stale network '#{network_name}' via `hcloud network delete #{network_name}` and retry."
+        exit 1
+      end
+      return network
+    end
 
     log_line "Creating private network..."
     create_network

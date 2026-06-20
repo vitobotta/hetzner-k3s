@@ -109,7 +109,7 @@ class Cluster::Delete
   end
 
   private def delete_placement_groups
-    placement_group_manager.delete
+    placement_group_manager.delete if settings.placement_groups_enabled
   end
 
   private def delete_network

@@ -105,7 +105,14 @@ class Hetzner::Instance::Create
         break
       else
         log_line "Creating instance #{instance_name} failed: #{response}"
-        delay = [INITIAL_DELAY * (2 ** (attempts - 1)), MAX_DELAY].min
+
+        if response.includes?("\"invalid_input\"")
+          log_line "Aborting: Hetzner API rejected the request as invalid input — retrying will not help.\n#{response}"
+          log_line "Hint: if the error is \"unsupported location for server type\", the server type may not be available in the target location. Common causes: (1) the server type is not offered in that datacenter, (2) the private network's zone does not cover the server's location (e.g. an eu-central network cannot host servers in ash/hil). See the README for details."
+          exit 1
+        end
+
+        delay = [INITIAL_DELAY.to_i64 * (2_i64 ** (attempts - 1)), MAX_DELAY.to_i64].min
         log_line "Waiting #{delay} seconds before retry..."
         sleep delay.seconds
       end

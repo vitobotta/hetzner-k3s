@@ -38,6 +38,7 @@ class Configuration::Main
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
+  getter placement_groups_enabled : Bool = false
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
