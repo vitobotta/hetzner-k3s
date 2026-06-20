@@ -53,7 +53,11 @@ class Cluster::Create
     @ssh_key = create_ssh_key
 
     static_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
-    @placement_groups = placement_group_manager.create(settings.masters_pool.instance_count, static_worker_node_pools)
+    @placement_groups = if settings.placement_groups_enabled
+      placement_group_manager.create(settings.masters_pool.instance_count, static_worker_node_pools)
+    else
+      PlacementGroupManager::PlacementGroups.new
+    end
     @instance_builder = InstanceBuilder.new(settings, hetzner_client, mutex, ssh_key, network, placement_groups)
 
     @master_instances = instance_builder.initialize_master_instances(masters_locations)
