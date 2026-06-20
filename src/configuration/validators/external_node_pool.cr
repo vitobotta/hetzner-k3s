@@ -47,9 +47,14 @@ class Configuration::Validators::ExternalNodePool
     unless invalid_indices.empty?
       errors << "External node pool '#{pool.name}' has out-of-range node indices: #{invalid_indices.join(", ")}. Indices must be in range 1..#{pool.instance_count}."
     end
+    # Host IPs must be valid IPv4 addresses (firewall ipset only accepts IP/CIDR, not DNS names)
+    hosts = external_config.nodes.map(&.host)
+    invalid_hosts = hosts.reject { |host| host =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ && $~.captures.all? { |octet| octet.try(&.to_i).try { |n| n >= 0 && n <= 255 } } }
+    unless invalid_hosts.empty?
+      errors << "External node pool '#{pool.name}' has invalid host values (must be valid IPv4 addresses): #{invalid_hosts.join(", ")}"
+    end
 
     # Host IPs must be unique within the pool
-    hosts = external_config.nodes.map(&.host)
     if hosts.uniq.size != hosts.size
       errors << "External node pool '#{pool.name}' has duplicate node hosts: #{hosts.tally.select { |_, c| c > 1 }.keys.join(", ")}"
     end

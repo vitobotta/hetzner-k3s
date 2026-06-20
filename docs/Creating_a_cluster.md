@@ -394,7 +394,7 @@ worker_node_pools:
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `host` | String | yes | — | IP address or hostname of the external node |
+| `host` | String | yes | — | IP address of the external node (must be a valid IPv4 address, not a DNS hostname) |
 | `ssh_user` | String | yes | — | SSH username for the node (e.g. `root`, `ubuntu`) |
 | `ssh_port` | Int32 | no | `22` | SSH port |
 | `ssh_private_key_path` | String | yes | — | Path to the SSH private key (supports `~/` expansion) |

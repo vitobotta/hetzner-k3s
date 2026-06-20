@@ -22,17 +22,17 @@ class Kubernetes::LocalFirewall::Setup
     return unless local_firewall_enabled?
 
     log_line "Deploying local firewall...", instance.name
-    deploy_firewall_files_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent)
-    ensure_firewall_running_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent)
+    deploy_firewall_files_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false)
+    ensure_firewall_running_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false)
     log_line "...local firewall deployed", instance.name
   end
 
-  def deploy_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32) : Nil
+  def deploy_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32, use_sudo : Bool = false) : Nil
     return unless local_firewall_enabled?
 
     log_line "Deploying local firewall...", instance.name
-    deploy_firewall_files_with_ssh(instance, ssh, port, false)
-    ensure_firewall_running_with_ssh(instance, ssh, port, false)
+    deploy_firewall_files_with_ssh(instance, ssh, port, false, use_sudo)
+    ensure_firewall_running_with_ssh(instance, ssh, port, false, use_sudo)
     log_line "...local firewall deployed", instance.name
   end
 
@@ -41,9 +41,9 @@ class Kubernetes::LocalFirewall::Setup
 
     all_node_ips = fetch_all_node_ips(first_master)
     return if all_node_ips.empty?
-
     known_ips = known_instances.flat_map { |i| [i.public_ip_address, i.private_ip_address].compact }
-    autoscaled_ips = all_node_ips - known_ips
+    external_ips = external_node_ips_list
+    autoscaled_ips = (all_node_ips - known_ips) - external_ips
 
     return if autoscaled_ips.empty?
 
@@ -58,8 +58,8 @@ class Kubernetes::LocalFirewall::Setup
         begin
           Tasker.timeout(AUTOSCALED_NODE_TIMEOUT) do
             instance = create_instance_from_ip(ip)
-            deploy_firewall_files_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent)
-            ensure_firewall_running_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent)
+            deploy_firewall_files_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false)
+            ensure_firewall_running_with_ssh(instance, ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false)
           end
         rescue Tasker::Timeout
           log_line "Timeout deploying firewall to #{ip}, skipping"
@@ -80,14 +80,14 @@ class Kubernetes::LocalFirewall::Setup
     !settings.networking.private_network.enabled && settings.networking.public_network.use_local_firewall
   end
 
-  private def deploy_firewall_files_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32, use_ssh_agent : Bool) : Nil
+  private def deploy_firewall_files_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32, use_ssh_agent : Bool, use_sudo : Bool = false) : Nil
     firewall_script_b64 = Base64.strict_encode(render_firewall_script(port))
     firewall_service_b64 = Base64.strict_encode(FIREWALL_SERVICE)
     firewall_status_b64 = Base64.strict_encode(render_firewall_status(port))
     ssh_networks_b64 = Base64.strict_encode(allowed_ssh_networks)
     api_networks_b64 = Base64.strict_encode(allowed_api_networks)
 
-    script = <<-SCRIPT
+    inner_script = <<-SCRIPT
       # Remove old firewall-status symlink if it exists (old version used a symlink)
       if [ -L /usr/local/bin/firewall-status ]; then
         rm -f /usr/local/bin/firewall-status
@@ -105,11 +105,12 @@ class Kubernetes::LocalFirewall::Setup
       echo '#{api_networks_b64}' | base64 -d > /etc/allowed-networks-kubernetes-api.conf
     SCRIPT
 
+    script = use_sudo ? "sudo bash -c '#{inner_script.gsub("'", "'\\''")}'" : inner_script
     ssh.run(instance, port, script, use_ssh_agent)
   end
 
-  private def ensure_firewall_running_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32, use_ssh_agent : Bool) : Nil
-    script = <<-SCRIPT
+  private def ensure_firewall_running_with_ssh(instance : Hetzner::Instance, ssh : ::Util::SSH, port : Int32, use_ssh_agent : Bool, use_sudo : Bool = false) : Nil
+    inner_script = <<-SCRIPT
       # Stop and disable old firewall services if they exist
       for svc in firewall_updater iptables_restore ipset_restore; do
         if systemctl list-unit-files | grep -q "${svc}.service"; then
@@ -128,6 +129,7 @@ class Kubernetes::LocalFirewall::Setup
       systemctl restart firewall.service
     SCRIPT
 
+    script = use_sudo ? "sudo bash -c '#{inner_script.gsub("'", "'\\''")}'" : inner_script
     ssh.run(instance, port, script, use_ssh_agent)
   end
 
@@ -151,12 +153,16 @@ class Kubernetes::LocalFirewall::Setup
   end
 
   private def external_node_ips : String
+    external_node_ips_list.join("\n")
+  end
+
+  private def external_node_ips_list : Array(String)
     ips = [] of String
     settings.worker_node_pools.each do |pool|
       next unless pool.external?
       pool.external.try(&.nodes.each { |node| ips << node.host })
     end
-    ips.join("\n")
+    ips
   end
 
   private def allowed_ssh_networks : String

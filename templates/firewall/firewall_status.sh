@@ -110,6 +110,7 @@ check_iptables() {
     local checks=(
         "ICMP:-p icmp"
         "Nodes ipset:--match-set nodes"
+        "External nodes ipset:--match-set external_nodes"
         "API ipset:--match-set allowed_networks_k8s_api"
         "SSH ipset:--match-set allowed_networks_ssh"
     )

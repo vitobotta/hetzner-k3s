@@ -21,6 +21,7 @@ readonly EXTERNAL_NODE_IPS="{{ external_node_ips }}"
 # Constants
 readonly IPSET_NODES="nodes"
 readonly IPSET_SSH="allowed_networks_ssh"
+readonly IPSET_API="allowed_networks_k8s_api"
 readonly IPSET_TYPE="hash:net"
 readonly IPSET_EXTERNAL_NODES="external_nodes"
 readonly API_PORT=6443
@@ -214,6 +215,7 @@ restore_iptables() {
     create_ipset_if_missing "$IPSET_NODES"
     create_ipset_if_missing "$IPSET_SSH"
     create_ipset_if_missing "$IPSET_API"
+    create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
     
     if [ -f "$IPTABLES_RULES_FILE" ]; then
         iptables-restore -w < "$IPTABLES_RULES_FILE" 2>/dev/null || true
@@ -304,11 +306,8 @@ update_ipsets() {
     update_ipset "$IPSET_SSH" "$ssh_networks"
     update_ipset "$IPSET_API" "$api_networks"
 
-    # Update external node IPs from static list
-    if [ -n "$EXTERNAL_NODE_IPS" ]; then
-        update_ipset "$IPSET_EXTERNAL_NODES" "$EXTERNAL_NODE_IPS"
-    fi
-    update_ipset "$IPSET_API" "$api_networks"
+    # Update external node IPs from static list (always call — empty list clears stale entries)
+    update_ipset "$IPSET_EXTERNAL_NODES" "$EXTERNAL_NODE_IPS"
 
     # Save for persistence
     save_ipsets
@@ -329,7 +328,7 @@ run_update_loop() {
 initial_setup() {
     log "Starting firewall setup..."
 
-    create_ipset_if_missing "$IPSET_API"
+    install_packages
     disable_ufw
 
     # Create ipsets first (iptables rules reference them)
@@ -394,6 +393,8 @@ main() {
                 restore_ipsets
                 restore_iptables
                 update_ipsets
+                run_update_loop
+            fi
             ;;
     esac
 }

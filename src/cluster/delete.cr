@@ -87,25 +87,30 @@ class Cluster::Delete
   private def cleanup_external_node(node)
     ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
     instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+    use_sudo = node.ssh_user != "root"
 
     begin
       # 1. Uninstall k3s
-      ssh.run(instance, node.ssh_port, "/usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true", false, print_output: false)
+      ssh.run(instance, node.ssh_port, "#{sudo_prefix(use_sudo)}bash -c '/usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true'", false, print_output: false)
 
       # 2. Remove firewall
       ssh.run(instance, node.ssh_port, <<-CMD, false, print_output: false)
-        systemctl stop firewall.service 2>/dev/null || true
-        systemctl disable firewall.service 2>/dev/null || true
-        rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
-        rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
-        rm -f /etc/iptables/rules.v4 /etc/iptables/ipsets.v4 2>/dev/null || true
-        rm -f /tmp/last_node_ips.txt 2>/dev/null || true
+        #{sudo_prefix(use_sudo)}bash -c 'systemctl stop firewall.service 2>/dev/null || true'
+        #{sudo_prefix(use_sudo)}bash -c 'systemctl disable firewall.service 2>/dev/null || true'
+        #{sudo_prefix(use_sudo)}bash -c 'rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status'
+        #{sudo_prefix(use_sudo)}bash -c 'rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf'
+        #{sudo_prefix(use_sudo)}bash -c 'rm -f /etc/iptables/rules.v4 /etc/iptables/ipsets.v4 2>/dev/null || true'
+        #{sudo_prefix(use_sudo)}bash -c 'rm -f /tmp/last_node_ips.txt 2>/dev/null || true'
       CMD
 
       log_line "Cleaned up external node #{node.host}"
     rescue ex
       log_line "Warning: Failed to clean up external node #{node.host}: #{ex.message}"
     end
+  end
+
+  private def sudo_prefix(use_sudo : Bool) : String
+    use_sudo ? "sudo " : ""
   end
 
   private def delete_load_balancer

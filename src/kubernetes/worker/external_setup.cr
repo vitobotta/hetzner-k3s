@@ -1,3 +1,5 @@
+require "base64"
+
 require "../../configuration/loader"
 require "../../configuration/main"
 require "../../hetzner/instance"
@@ -39,33 +41,39 @@ class Kubernetes::Worker::ExternalSetup
   private def set_up_external_worker(node, pool, masters, first_master)
     node_ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
     instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+    use_sudo = node.ssh_user != "root"
 
     log_line "Setting up external node #{node.host}...", node.host
 
     # a. Hostname management
     if node.manage_hostname
       hostname = build_external_hostname(pool, node.index)
-      run_ssh(node_ssh, instance, node.ssh_port, "hostnamectl set-hostname #{hostname}")
+      run_ssh(node_ssh, instance, node.ssh_port, sudo_command("hostnamectl set-hostname #{hostname}", use_sudo))
     end
 
     # d. Package installation
-    install_packages(node_ssh, instance, node.ssh_port, pool)
+    install_packages(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     # DNS resolver (same as cloud-init)
-    run_ssh(node_ssh, instance, node.ssh_port, "echo 'nameserver 8.8.8.8' > /etc/k8s-resolv.conf")
+    run_ssh(node_ssh, instance, node.ssh_port, sudo_command("echo nameserver 8.8.8.8 > /etc/k8s-resolv.conf", use_sudo))
 
-    # b. Custom firewall (always required for external nodes)
-    deploy_firewall(instance, node_ssh, node.ssh_port)
+    deploy_firewall(instance, node_ssh, node.ssh_port, use_sudo)
 
     # e. Pre-k3s commands
-    run_pre_k3s_commands(node_ssh, instance, node.ssh_port, pool)
+    run_pre_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     # f. k3s installation — generate and deploy worker install script
     script = generate_worker_script(masters, first_master, pool)
-    run_ssh(node_ssh, instance, node.ssh_port, script)
+    if use_sudo
+      # The worker install script writes to /etc, runs the k3s installer, etc.
+      # Pipe it to sudo bash so it runs as root.
+      run_ssh(node_ssh, instance, node.ssh_port, "echo '#{Base64.strict_encode(script)}' | base64 -d | sudo bash")
+    else
+      run_ssh(node_ssh, instance, node.ssh_port, script)
+    end
 
     # g. Post-k3s commands
-    run_post_k3s_commands(node_ssh, instance, node.ssh_port, pool)
+    run_post_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     log_line "...external node #{node.host} set up", node.host
   end
@@ -76,33 +84,39 @@ class Kubernetes::Worker::ExternalSetup
     "#{settings.cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{index}"
   end
 
-  private def install_packages(ssh, instance, port, pool)
+  private def install_packages(ssh, instance, port, pool, use_sudo)
     packages = ["fail2ban", "wireguard"] + (pool.additional_packages || [] of String)
     packages_str = packages.join(" ")
-    run_ssh(ssh, instance, port, <<-CMD)
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get update -qq
-      apt-get install -y -qq #{packages_str}
-    CMD
+    run_ssh(ssh, instance, port, sudo_command("export DEBIAN_FRONTEND=noninteractive && apt-get update -qq && apt-get install -y -qq #{packages_str}", use_sudo))
   end
 
-  private def deploy_firewall(instance, ssh, port)
-    @local_firewall_setup.deploy_with_ssh(instance, ssh, port)
+  private def deploy_firewall(instance, ssh, port, use_sudo)
+    @local_firewall_setup.deploy_with_ssh(instance, ssh, port, use_sudo)
   end
 
-  private def run_pre_k3s_commands(ssh, instance, port, pool)
+  private def run_pre_k3s_commands(ssh, instance, port, pool, use_sudo)
     commands = pool.additional_pre_k3s_commands || [] of String
     return if commands.empty?
     commands.each do |cmd|
-      run_ssh(ssh, instance, port, cmd)
+      run_ssh(ssh, instance, port, sudo_command(cmd, use_sudo))
     end
   end
 
-  private def run_post_k3s_commands(ssh, instance, port, pool)
+  private def run_post_k3s_commands(ssh, instance, port, pool, use_sudo)
     commands = pool.additional_post_k3s_commands || [] of String
     return if commands.empty?
     commands.each do |cmd|
-      run_ssh(ssh, instance, port, cmd)
+      run_ssh(ssh, instance, port, sudo_command(cmd, use_sudo))
+    end
+  end
+
+  # Wrap a command so it runs as root when use_sudo is true.
+  # Uses base64 encoding + sudo bash to handle redirections, pipes, &&, etc.
+  private def sudo_command(command : String, use_sudo : Bool) : String
+    if use_sudo
+      "echo '#{Base64.strict_encode(command)}' | base64 -d | sudo bash"
+    else
+      command
     end
   end
 
