@@ -1,6 +1,7 @@
 require "../configuration/loader"
 require "../util/ssh"
 require "../hetzner/instance"
+require "../hetzner/robot/client"
 
 class Cluster::ExternalNodeValidator
   def initialize(@settings : Configuration::Main)
@@ -35,6 +36,7 @@ class Cluster::ExternalNodeValidator
   private def validate_node(node, pool, generated_hostnames, errors, warnings)
     ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
     instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+    external_config = pool.external.not_nil!
 
     # Rule #3: SSH accessibility
     begin
@@ -70,6 +72,8 @@ class Cluster::ExternalNodeValidator
       # Non-blocking, ignore errors
     end
 
+    validate_robot_node(node, pool, ssh, instance, external_config, errors) if external_config.robot?
+
     # Rule #7: hostname uniqueness for manage_hostname=false
     unless node.manage_hostname
       begin
@@ -85,6 +89,41 @@ class Cluster::ExternalNodeValidator
         errors << "Cannot retrieve hostname from external node #{node.host}: #{ex.message}"
       end
     end
+  end
+
+  private def validate_robot_node(node, pool, ssh, instance, external_config, errors)
+    robot_server_number = node.robot_server_number
+    return unless robot_server_number
+
+    robot_client = Hetzner::Robot::Client.new(external_config.robot_user, external_config.robot_password)
+    robot_server = robot_client.server(robot_server_number)
+
+    unless node.host.strip == robot_server.ip.strip
+      errors << "External Robot node #{node.host} uses robot_server_number #{robot_server_number}, but Robot reports server #{robot_server_number} has IP #{robot_server.ip}. Set host to #{robot_server.ip} or use the matching robot_server_number."
+      return
+    end
+
+    if node.manage_hostname
+      expected_hostname = build_external_hostname(pool, node.index)
+      unless kubernetes_node_name?(expected_hostname)
+        errors << "External Robot node #{node.host} would use generated hostname '#{expected_hostname}', which is not a valid Kubernetes node name."
+      end
+      return
+    end
+
+    unless kubernetes_node_name?(robot_server.name)
+      errors << "External Robot node #{node.host} uses Robot server name '#{robot_server.name}', which is not a valid Kubernetes node name. Enable manage_hostname or rename the server in Robot."
+      return
+    end
+
+    hostname = ssh.run(instance, node.ssh_port, "hostname -f", false, print_output: false).strip
+    if hostname != robot_server.name
+      errors << "External Robot node #{node.host} has OS hostname '#{hostname}' but Robot server name '#{robot_server.name}'. With manage_hostname: false these must match so HCCM can initialize the node."
+    end
+  rescue ex : Hetzner::Robot::Client::Error
+    errors << "Cannot validate Robot server #{node.robot_server_number} for external node #{node.host}: #{ex.message}"
+  rescue ex
+    errors << "Cannot validate Robot metadata for external node #{node.host}: #{ex.message}"
   end
 
   private def build_external_hostname(pool, index) : String
@@ -117,6 +156,15 @@ class Cluster::ExternalNodeValidator
     end
 
     hostnames
+  end
+
+  private def kubernetes_node_name?(name : String) : Bool
+    return false if name.empty? || name.size > 253
+    return false unless name =~ /^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/
+
+    name.split(".").all? do |label|
+      label.size <= 63 && !!(label =~ /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/)
+    end
   end
 
   private def log_line(message)

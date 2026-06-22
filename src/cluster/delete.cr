@@ -93,15 +93,8 @@ class Cluster::Delete
       # 1. Uninstall k3s
       ssh.run(instance, node.ssh_port, "#{sudo_prefix(use_sudo)}bash -c '/usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true'", false, print_output: false)
 
-      # 2. Remove firewall
-      ssh.run(instance, node.ssh_port, <<-CMD, false, print_output: false)
-        #{sudo_prefix(use_sudo)}bash -c 'systemctl stop firewall.service 2>/dev/null || true'
-        #{sudo_prefix(use_sudo)}bash -c 'systemctl disable firewall.service 2>/dev/null || true'
-        #{sudo_prefix(use_sudo)}bash -c 'rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status'
-        #{sudo_prefix(use_sudo)}bash -c 'rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf'
-        #{sudo_prefix(use_sudo)}bash -c 'rm -f /etc/iptables/rules.v4 /etc/iptables/ipsets.v4 2>/dev/null || true'
-        #{sudo_prefix(use_sudo)}bash -c 'rm -f /tmp/last_node_ips.txt 2>/dev/null || true'
-      CMD
+      # 2. Remove firewall and reset packet filtering so the node is left open.
+      ssh.run(instance, node.ssh_port, firewall_cleanup_command(use_sudo), false, print_output: false)
 
       log_line "Cleaned up external node #{node.host}"
     rescue ex
@@ -111,6 +104,49 @@ class Cluster::Delete
 
   private def sudo_prefix(use_sudo : Bool) : String
     use_sudo ? "sudo " : ""
+  end
+
+  private def firewall_cleanup_command(use_sudo : Bool) : String
+    inner_script = <<-SCRIPT
+      set +e
+
+      systemctl stop firewall.service 2>/dev/null || true
+      systemctl disable firewall.service 2>/dev/null || true
+
+      reset_packet_filter() {
+        local command="$1"
+
+        if ! command -v "$command" >/dev/null 2>&1; then
+          return 0
+        fi
+
+        "$command" -w -P INPUT ACCEPT 2>/dev/null || true
+        "$command" -w -P FORWARD ACCEPT 2>/dev/null || true
+        "$command" -w -P OUTPUT ACCEPT 2>/dev/null || true
+
+        for table in filter nat mangle raw security; do
+          "$command" -w -t "$table" -F 2>/dev/null || true
+          "$command" -w -t "$table" -X 2>/dev/null || true
+        done
+      }
+
+      reset_packet_filter iptables
+      reset_packet_filter ip6tables
+
+      if command -v ipset >/dev/null 2>&1; then
+        for set_name in nodes nodes_temp allowed_networks_ssh allowed_networks_ssh_temp allowed_networks_k8s_api allowed_networks_k8s_api_temp external_nodes external_nodes_temp; do
+          ipset destroy "$set_name" 2>/dev/null || true
+        done
+      fi
+
+      rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
+      rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
+      rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6 /etc/iptables/ipsets.v4 /etc/iptables/ipsets.v6 2>/dev/null || true
+      rm -f /tmp/last_node_ips.txt 2>/dev/null || true
+      systemctl daemon-reload 2>/dev/null || true
+    SCRIPT
+
+    "#{sudo_prefix(use_sudo)}bash -c '#{inner_script.gsub("'", "'\\''")}'"
   end
 
   private def delete_load_balancer

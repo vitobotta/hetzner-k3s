@@ -9,6 +9,7 @@ class Configuration::Models::ExternalNode
   property ssh_private_key_path : String
   property manage_hostname : Bool = true
   property index : Int32
+  property robot_server_number : Int32?
 
   def ssh_private_key_path
     absolute_path(@ssh_private_key_path)

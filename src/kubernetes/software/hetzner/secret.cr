@@ -23,9 +23,13 @@ class Kubernetes::Software::Hetzner::Secret
   end
 
   private def build_secret_manifest : String
+    robot_credentials = settings.robot_credentials
     Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network: network_name_for_secret,
-      token:   settings.hetzner_token,
+      network:                   network_name_for_secret,
+      token:                     settings.hetzner_token,
+      robot_credentials_enabled: !robot_credentials.nil?,
+      robot_user:                robot_credentials.try(&.[:user]) || "",
+      robot_password:            robot_credentials.try(&.[:password]) || "",
     })
   end
 

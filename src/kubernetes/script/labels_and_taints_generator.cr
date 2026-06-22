@@ -2,13 +2,21 @@ require "../../configuration/main"
 require "crinja"
 
 class Kubernetes::Script::LabelsAndTaintsGenerator
-  def self.build_labels(label_collection)
+  EXTERNAL_NODE_LABEL          = "hetzner-k3s.io/external"
+  EXTERNAL_NODE_PROVIDER_LABEL = "hetzner-k3s.io/external-provider"
+
+  def self.build_labels(label_collection, automatic_labels = [] of Tuple(String, String))
     labels = label_collection.compact_map do |label|
       next if label.key.nil? || label.value.nil?
       key = escape(label.key.not_nil!)
       value = escape(label.value.not_nil!)
       "--node-label \"#{key}=#{value}\""
     end
+
+    automatic_labels.each do |key, value|
+      labels << "--node-label \"#{escape(key)}=#{escape(value)}\""
+    end
+
     result = labels.empty? ? "" : " #{labels.join(" ")} "
     Crinja::SafeString.new(result)
   end
@@ -25,10 +33,20 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
 
   def self.labels_and_taints(settings, pool)
     pool = pool.not_nil!
-    labels = build_labels(pool.labels)
+    labels = build_labels(pool.labels, automatic_labels(pool))
     taints = build_taints(pool.taints)
     result = " #{labels} #{taints} "
     Crinja::SafeString.new(result)
+  end
+
+  private def self.automatic_labels(pool) : Array(Tuple(String, String))
+    return [] of Tuple(String, String) unless pool.external?
+
+    external_config = pool.external.not_nil!
+    [
+      {EXTERNAL_NODE_LABEL, "true"},
+      {EXTERNAL_NODE_PROVIDER_LABEL, external_config.provider},
+    ]
   end
 
   private def self.parse_taint(taint)

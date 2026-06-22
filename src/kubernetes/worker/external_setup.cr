@@ -3,6 +3,7 @@ require "base64"
 require "../../configuration/loader"
 require "../../configuration/main"
 require "../../hetzner/instance"
+require "../../hetzner/robot/client"
 require "../../util/ssh"
 require "../deployment_helper"
 require "../local_firewall/setup"
@@ -48,6 +49,7 @@ class Kubernetes::Worker::ExternalSetup
     # a. Hostname management
     if node.manage_hostname
       hostname = build_external_hostname(pool, node.index)
+      sync_robot_hostname(node, pool, hostname) if pool.external.not_nil!.robot?
       run_ssh(node_ssh, instance, node.ssh_port, sudo_command("hostnamectl set-hostname #{hostname}", use_sudo))
     end
 
@@ -63,7 +65,7 @@ class Kubernetes::Worker::ExternalSetup
     run_pre_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     # f. k3s installation — generate and deploy worker install script
-    script = generate_worker_script(masters, first_master, pool)
+    script = generate_worker_script(masters, first_master, pool, node)
     if use_sudo
       # The worker install script writes to /etc, runs the k3s installer, etc.
       # Pipe it to sudo bash so it runs as root.
@@ -82,6 +84,22 @@ class Kubernetes::Worker::ExternalSetup
     include_type = settings.include_instance_type_in_instance_name
     instance_type_part = include_type ? "#{pool.instance_type}-" : ""
     "#{settings.cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{index}"
+  end
+
+  private def sync_robot_hostname(node, pool, hostname) : Nil
+    robot_server_number = node.robot_server_number
+    return unless robot_server_number
+
+    external_config = pool.external.not_nil!
+    robot_client = Hetzner::Robot::Client.new(external_config.robot_user, external_config.robot_password)
+    robot_server = robot_client.server(robot_server_number)
+    return if robot_server.name == hostname
+
+    log_line "Updating Robot server #{robot_server_number} name to #{hostname}...", node.host
+    robot_client.update_server_name(robot_server_number, hostname)
+  rescue ex : Hetzner::Robot::Client::Error
+    log_line "Failed to update Robot server #{node.robot_server_number} name: #{ex.message}", node.host
+    exit 1
   end
 
   private def install_packages(ssh, instance, port, pool, use_sudo)
@@ -120,8 +138,8 @@ class Kubernetes::Worker::ExternalSetup
     end
   end
 
-  private def generate_worker_script(masters, first_master, pool) : String
-    @worker_generator.generate_script(masters, first_master, pool)
+  private def generate_worker_script(masters, first_master, pool, node) : String
+    @worker_generator.generate_script(masters, first_master, pool, node)
   end
 
   private def run_ssh(ssh, instance, port, script)

@@ -375,6 +375,7 @@ worker_node_pools:
   instance_type: external
   instance_count: 2
   external:
+    provider: generic
     nodes:
       - host: 203.0.113.10
         ssh_user: root
@@ -390,6 +391,43 @@ worker_node_pools:
         index: 2
 ```
 
+For Hetzner Robot dedicated servers, use `provider: robot` at the pool level:
+
+```yaml
+worker_node_pools:
+- name: robot-workers
+  instance_type: external
+  instance_count: 2
+  external:
+    provider: robot
+    robot_user: your-robot-webservice-user
+    robot_password: your-robot-webservice-password
+    nodes:
+      - host: 203.0.113.30
+        robot_server_number: 123456
+        ssh_user: root
+        ssh_private_key_path: ~/.ssh/robot_node_key
+        manage_hostname: true
+        index: 1
+      - host: 203.0.113.31
+        robot_server_number: 123457
+        ssh_user: root
+        ssh_private_key_path: ~/.ssh/robot_node_key
+        manage_hostname: true
+        index: 2
+```
+
+If `robot_user` and `robot_password` are omitted, hetzner-k3s reads them from `ROBOT_USER` and `ROBOT_PASSWORD`.
+
+Robot credentials are Robot Webservice credentials, created in the Robot UI under **Settings** -> **Web service and app settings**.
+
+#### External provider modes
+
+| Provider | Description |
+|---|---|
+| `generic` | Default. Use for external nodes from any provider, including Robot servers that should behave as unmanaged external workers. hetzner-k3s does not ask the Hetzner Cloud Controller Manager to initialize these nodes. |
+| `robot` | Use for Hetzner Robot dedicated servers that should be known to the Hetzner Cloud Controller Manager as Robot nodes. Requires Robot Webservice credentials and `robot_server_number` for every node. |
+
 #### Node properties
 
 | Property | Type | Required | Default | Description |
@@ -400,6 +438,7 @@ worker_node_pools:
 | `ssh_private_key_path` | String | yes | — | Path to the SSH private key (supports `~/` expansion) |
 | `manage_hostname` | Bool | no | `true` | If true, hetzner-k3s sets the node's hostname to match its naming convention |
 | `index` | Int32 | yes | — | 1-based slot index; ties a node config to a specific hostname slot |
+| `robot_server_number` | Int32 | yes for `provider: robot` | — | Robot server number used for the `hrobot://` provider ID and Robot API lookups |
 
 #### The `index` field
 
@@ -437,12 +476,15 @@ The following rules are enforced at config validation time:
 5. `instance_count` must equal the number of nodes in `external.nodes`.
 6. Node indices must be unique and in range `1..instance_count`.
 7. Node hosts must be unique within a pool.
+8. Robot pools must define Robot credentials and `robot_server_number` for every node.
+9. Robot server numbers must be unique across Robot external pools.
 
 At runtime, before cluster creation begins, hetzner-k3s also validates:
 
 - **SSH accessibility** — can it connect to each node?
 - **Root/sudo access** — does the SSH user have root or passwordless sudo?
 - **Hostname conflicts** — if `manage_hostname: false`, does the existing hostname conflict with any hostname hetzner-k3s will generate?
+- **Robot metadata** — for `provider: robot`, `host` must match the Robot server IP returned for `robot_server_number`. If `manage_hostname: false`, the Robot server name must be a valid Kubernetes node name and must match the node's OS hostname.
 
 #### Setup behavior
 
@@ -456,7 +498,15 @@ When you run `hetzner-k3s create`, for each external node hetzner-k3s will:
 6. Install k3s worker and join it to the cluster.
 7. Run post-k3s commands (`additional_post_k3s_commands`).
 
-The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3s and removing firewall files via SSH.
+With `provider: generic`, external workers are not initialized by the Hetzner Cloud Controller Manager. hetzner-k3s installs them without kubelet's `cloud-provider=external` argument, and assigns a synthetic `external://<public-ip>` provider ID so the cloud node lifecycle controller will not delete them when they are temporarily NotReady.
+
+With `provider: robot`, hetzner-k3s installs workers with kubelet's `cloud-provider=external` argument and assigns `hrobot://<server-number>` provider IDs. It also enables Robot support in the Hetzner Cloud Controller Manager manifest and adds the Robot credentials to the `hcloud` secret. If `manage_hostname: true`, hetzner-k3s updates the Robot server name through the Robot Webservice API before setting the OS hostname. If `manage_hostname: false`, the existing Robot server name and OS hostname must already match.
+
+Robot nodes can be used as Hetzner Load Balancer IP targets through the Hetzner Cloud Controller Manager. Public-IP targets work with Robot API credentials. Private-IP targets require a Robot vSwitch/InternalIP setup and service annotation `load-balancer.hetzner.cloud/use-private-ip: "true"`.
+
+External nodes are labeled with `hetzner-k3s.io/external=true` and `hetzner-k3s.io/external-provider=<provider>`. The Hetzner CSI node driver is configured not to run on external nodes, because Hetzner Cloud Volumes can be attached only to Hetzner Cloud servers. When external pools are present, hetzner-k3s also sets the CSI controller's default volume location to the first master location so the controller does not depend on the Hetzner metadata service. Keep workloads that use the `hcloud-volumes` StorageClass on Hetzner Cloud nodes, or use a storage backend that supports your external nodes.
+
+The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3s, removing firewall files, and resetting iptables/ip6tables policies to accept traffic again via SSH.
 
 #### `hetzner-k3s run` support
 
