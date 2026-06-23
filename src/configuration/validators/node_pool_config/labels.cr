@@ -4,6 +4,7 @@ class Configuration::Validators::NodePoolConfig::Labels
   RESERVED_LABEL_KEYS = [
     "hetzner-k3s.io/external",
     "hetzner-k3s.io/external-provider",
+    "node.kubernetes.io/exclude-from-external-load-balancers",
   ]
 
   getter errors : Array(String)

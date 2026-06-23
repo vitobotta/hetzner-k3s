@@ -4,6 +4,7 @@ require "crinja"
 class Kubernetes::Script::LabelsAndTaintsGenerator
   EXTERNAL_NODE_LABEL          = "hetzner-k3s.io/external"
   EXTERNAL_NODE_PROVIDER_LABEL = "hetzner-k3s.io/external-provider"
+  EXCLUDE_FROM_LB_LABEL        = "node.kubernetes.io/exclude-from-external-load-balancers"
 
   def self.build_labels(label_collection, automatic_labels = [] of Tuple(String, String))
     labels = label_collection.compact_map do |label|
@@ -38,15 +39,20 @@ class Kubernetes::Script::LabelsAndTaintsGenerator
     result = " #{labels} #{taints} "
     Crinja::SafeString.new(result)
   end
-
   private def self.automatic_labels(pool) : Array(Tuple(String, String))
     return [] of Tuple(String, String) unless pool.external?
 
     external_config = pool.external.not_nil!
-    [
+    labels = [
       {EXTERNAL_NODE_LABEL, "true"},
       {EXTERNAL_NODE_PROVIDER_LABEL, external_config.provider},
-    ]
+    ] of Tuple(String, String)
+
+    # Generic external nodes use a provider ID that HCCM does not understand,
+    # so they cannot be LoadBalancer targets. Exclude them to avoid warnings.
+    labels << {EXCLUDE_FROM_LB_LABEL, "true"} if external_config.generic?
+
+    labels
   end
 
   private def self.parse_taint(taint)
