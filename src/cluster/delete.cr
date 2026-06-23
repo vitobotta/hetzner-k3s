@@ -78,7 +78,12 @@ class Cluster::Delete
     return if external_pools.empty?
 
     external_pools.each do |pool|
-      pool.external.not_nil!.nodes.each do |node|
+      external = pool.external
+      if external.nil?
+        log_line "Warning: external pool '#{pool.name}' has no external section, skipping cleanup"
+        next
+      end
+      external.nodes.each do |node|
         cleanup_external_node(node)
       end
     end
