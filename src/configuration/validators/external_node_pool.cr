@@ -59,6 +59,12 @@ class Configuration::Validators::ExternalNodePool
       errors << "External node pool '#{pool.name}' has duplicate node hosts: #{hosts.tally.select { |_, c| c > 1 }.keys.join(", ")}"
     end
 
+    # Host IPs must be unique across all external pools
+    duplicate_hosts_across_pools = external_hosts_in_other_pools & hosts
+    unless duplicate_hosts_across_pools.empty?
+      errors << "External node pool '#{pool.name}' reuses host values already used by another external pool: #{duplicate_hosts_across_pools.join(", ")}"
+    end
+
     validate_robot_config(external_config) if external_config.robot?
   end
 
@@ -118,6 +124,16 @@ class Configuration::Validators::ExternalNodePool
       next [] of Int32 unless other_pool.external? && external && external.robot?
 
       external.nodes.compact_map(&.robot_server_number)
+    end
+  end
+
+  private def external_hosts_in_other_pools : Array(String)
+    settings.worker_node_pools.flat_map do |other_pool|
+      next [] of String if other_pool == pool
+      external = other_pool.external
+      next [] of String unless other_pool.external? && external
+
+      external.nodes.map(&.host)
     end
   end
 
