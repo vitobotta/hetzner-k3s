@@ -158,6 +158,7 @@ class Cluster::ExternalNodeValidator
       next if pool.autoscaling_enabled
       if pool.external?
         pool.external.try(&.nodes.each do |node|
+          next unless node.manage_hostname
           hostnames << @settings.external_worker_hostname(pool, node.index)
         end)
       else
