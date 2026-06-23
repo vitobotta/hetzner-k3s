@@ -1,4 +1,5 @@
 require "../configuration/loader"
+require "base64"
 require "../configuration/models/external_node"
 require "../util/ssh"
 require "./node_detection"
@@ -19,18 +20,19 @@ class Cluster::Run
 
   private def run_command_internal(command : String, instance_name : String?)
     if instance_name
-      execute_on_single_instance("Command to execute: #{command}", "execute this command on instance", "Command execution cancelled.", "Command", instance_name) do |ssh, instance, port, use_agent|
-        execute_command_block(ssh, instance, port, use_agent, command)
+      execute_on_single_instance("Command to execute: #{command}", "execute this command on instance", "Command execution cancelled.", "Command", instance_name) do |ssh, instance, port, use_agent, use_sudo|
+        execute_command_block(ssh, instance, port, use_agent, use_sudo, command)
       end
     else
-      execute_on_instances("Command to execute: #{command}", "execute this command on all nodes", "Command execution cancelled.", "Command") do |ssh, instance, port, use_agent|
-        execute_command_block(ssh, instance, port, use_agent, command)
+      execute_on_instances("Command to execute: #{command}", "execute this command on all nodes", "Command execution cancelled.", "Command") do |ssh, instance, port, use_agent, use_sudo|
+        execute_command_block(ssh, instance, port, use_agent, use_sudo, command)
       end
     end
   end
 
-  private def execute_command_block(ssh : Util::SSH, instance, port : Int32, use_agent : Bool, command : String)
-    ssh_output = ssh.run(instance, port, command, use_agent, false, disable_log_prefix: true, capture_output: true)
+  private def execute_command_block(ssh : Util::SSH, instance, port : Int32, use_agent : Bool, use_sudo : Bool, command : String)
+    effective_command = use_sudo ? "echo '#{Base64.strict_encode(command)}' | base64 -d | sudo bash" : command
+    ssh_output = ssh.run(instance, port, effective_command, use_agent, false, disable_log_prefix: true, capture_output: true)
     ssh_output + "\nCommand completed successfully"
   end
 
@@ -50,19 +52,21 @@ class Cluster::Run
     remote_script_path = "/tmp/#{script_name}"
 
     if instance_name
-      execute_on_single_instance("Script to upload and execute: #{script_path}", "upload and execute this script on instance", "Script execution cancelled.", "Script", instance_name) do |ssh, instance, port, use_agent|
-        execute_script_block(ssh, instance, port, use_agent, script_content, remote_script_path)
+      execute_on_single_instance("Script to upload and execute: #{script_path}", "upload and execute this script on instance", "Script execution cancelled.", "Script", instance_name) do |ssh, instance, port, use_agent, use_sudo|
+        execute_script_block(ssh, instance, port, use_agent, use_sudo, script_content, remote_script_path)
       end
     else
-      execute_on_instances("Script to upload and execute: #{script_path}", "upload and execute this script on all nodes", "Script execution cancelled.", "Script") do |ssh, instance, port, use_agent|
-        execute_script_block(ssh, instance, port, use_agent, script_content, remote_script_path)
+      execute_on_instances("Script to upload and execute: #{script_path}", "upload and execute this script on all nodes", "Script execution cancelled.", "Script") do |ssh, instance, port, use_agent, use_sudo|
+        execute_script_block(ssh, instance, port, use_agent, use_sudo, script_content, remote_script_path)
       end
     end
   end
 
-  private def execute_script_block(ssh : Util::SSH, instance, port : Int32, use_agent : Bool, script_content : String, remote_script_path : String)
+  private def execute_script_block(ssh : Util::SSH, instance, port : Int32, use_agent : Bool, use_sudo : Bool, script_content : String, remote_script_path : String)
     all_output = [] of String
     errors = [] of String
+
+    sudo = use_sudo ? "sudo " : ""
 
     # Uploading script...
     upload_command = "cat > #{remote_script_path} << 'EOF'\n#{script_content}\nEOF"
@@ -70,11 +74,11 @@ class Cluster::Run
     all_output << upload_output unless upload_output.empty?
 
     # Making script executable...
-    chmod_output = ssh.run(instance, port, "chmod +x #{remote_script_path}", use_agent, false, disable_log_prefix: true, capture_output: true)
+    chmod_output = ssh.run(instance, port, "#{sudo}chmod +x #{remote_script_path}", use_agent, false, disable_log_prefix: true, capture_output: true)
     all_output << chmod_output unless chmod_output.empty?
 
     # Executing script with error output capture...
-    execute_command = "bash #{remote_script_path} 2>&1; echo \"Exit code: $?\""
+    execute_command = "#{sudo}bash #{remote_script_path} 2>&1; echo \"Exit code: $?\""
     script_output = ssh.run(instance, port, execute_command, use_agent, false, disable_log_prefix: true, capture_output: true)
     all_output << script_output
 
@@ -85,7 +89,7 @@ class Cluster::Run
 
     # Cleaning up...
     # Don't capture cleanup output since print_output=false
-    ssh.run(instance, port, "rm #{remote_script_path}", use_agent, false, disable_log_prefix: true, capture_output: true)
+    ssh.run(instance, port, "#{sudo}rm #{remote_script_path}", use_agent, false, disable_log_prefix: true, capture_output: true)
 
     # Combine all captured output
     combined_output = all_output.join("\n")
@@ -114,7 +118,7 @@ class Cluster::Run
     end
   end
 
-  private def execute_on_instances(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool -> String)
+  private def execute_on_instances(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool, Bool -> String)
     instances = detect_instances
 
     print_execution_summary(instances, action_description)
@@ -123,7 +127,7 @@ class Cluster::Run
     execute_on_each_instance(instances, action_type, &block)
   end
 
-  private def execute_on_single_instance(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, instance_name : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool -> String)
+  private def execute_on_single_instance(action_description : String, confirmation_prompt : String, cancellation_message : String, action_type : String, instance_name : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool, Bool -> String)
     instances = detect_instances
 
     # Find the specific instance by name
@@ -185,7 +189,7 @@ class Cluster::Run
     puts
   end
 
-  private def execute_on_each_instance(instances, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool -> String)
+  private def execute_on_each_instance(instances, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool, Bool -> String)
     channel = Channel({Bool, String}).new
     successful_count = 0
     failed_count = 0
@@ -209,7 +213,7 @@ class Cluster::Run
     print_execution_summary(successful_count, failed_count, instances.size)
   end
 
-  private def execute_on_single_instance_with_result(instance, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool -> String) : Bool
+  private def execute_on_single_instance_with_result(instance, action_type : String, &block : Util::SSH, Hetzner::Instance, Int32, Bool, Bool -> String) : Bool
     output_lines = [] of String
     success = true
 
@@ -217,10 +221,10 @@ class Cluster::Run
     if host_ip_address
       output_lines << "=== Instance: #{instance.name} (#{host_ip_address}) ==="
 
-      ssh, port, use_agent = resolve_ssh_for_instance(instance, host_ip_address)
+      ssh, port, use_agent, use_sudo = resolve_ssh_for_instance(instance, host_ip_address)
 
       begin
-        success_message = block.call(ssh, instance, port, use_agent)
+        success_message = block.call(ssh, instance, port, use_agent, use_sudo)
         output_lines << success_message
       rescue ex : IO::Error
         output_lines << "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red).to_s
@@ -241,18 +245,19 @@ class Cluster::Run
     success
   end
 
-  private def resolve_ssh_for_instance(instance, host_ip_address) : {Util::SSH, Int32, Bool}
+  private def resolve_ssh_for_instance(instance, host_ip_address) : {Util::SSH, Int32, Bool, Bool}
     external_node = find_external_node(instance, host_ip_address)
     if external_node
       ssh = Util::SSH.new(external_node.ssh_private_key_path, "", false, external_node.ssh_user)
-      {ssh, external_node.ssh_port, false}
+      use_sudo = external_node.ssh_user != "root"
+      {ssh, external_node.ssh_port, false, use_sudo}
     else
       ssh = Util::SSH.new(
         settings.networking.ssh.private_key_path,
         settings.networking.ssh.public_key_path,
         settings.networking.ssh.use_private_ip
       )
-      {ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent}
+      {ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false}
     end
   end
 
