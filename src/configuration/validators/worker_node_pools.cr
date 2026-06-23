@@ -54,6 +54,12 @@ class Configuration::Validators::WorkerNodePools
     end
 
     worker_node_pools.each do |pool|
+      if pool.external && !pool.external?
+        errors << "Worker node pool '#{pool.name}' has an external section but instance_type is '#{pool.instance_type}'. Set instance_type: external to use external nodes."
+      end
+    end
+
+    worker_node_pools.each do |pool|
       next unless pool.external?
       Configuration::Validators::ExternalNodePool.new(errors, pool, settings).validate
     end
