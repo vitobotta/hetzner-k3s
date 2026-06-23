@@ -112,7 +112,35 @@ module Cluster
         find_instances_by_label("hcloud/node-group=#{node_group_name}", instances)
       end
 
+      merge_external_nodes(instances)
+
       instances
+    end
+
+    # When kubectl is unavailable, external nodes are not found via the Hetzner
+    # Cloud API. Merge configured external nodes into the fallback result so
+    # `hetzner-k3s run` can still target them.
+    private def merge_external_nodes(instances : Array(Hetzner::Instance))
+      existing_names = instances.map(&.name).to_set
+
+      settings.worker_node_pools.each do |pool|
+        next unless pool.external?
+        pool.external.try(&.nodes.each do |node|
+          name = external_node_name(pool, node)
+          next if existing_names.includes?(name)
+
+          instances << Hetzner::Instance.new(0, "running", name, node.host, node.host)
+          existing_names << name
+        end)
+      end
+    end
+
+    private def external_node_name(pool, node) : String
+      if node.manage_hostname
+        settings.external_worker_hostname(pool, node.index)
+      else
+        node.host
+      end
     end
 
     private def find_instance_names_by_label(label_selector, instance_names)
