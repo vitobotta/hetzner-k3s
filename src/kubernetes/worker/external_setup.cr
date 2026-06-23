@@ -114,7 +114,7 @@ class Kubernetes::Worker::ExternalSetup
   end
 
   private def node_initialized?(ssh, instance, port, use_sudo) : Bool
-    check = sudo_command("test -f /etc/initialized && echo yes || echo no", use_sudo)
+    check = sudo_command("grep -qx true /etc/initialized 2>/dev/null && echo yes || echo no", use_sudo)
     output = ssh.run(instance, port, check, false, print_output: false).strip
     output == "yes"
   rescue

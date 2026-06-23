@@ -61,11 +61,10 @@ class Cluster::Delete
   end
 
   private def delete_resources
-    delete_load_balancer if settings.create_load_balancer_for_the_kubernetes_api
-
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
     cleanup_external_nodes
+    delete_load_balancer if settings.create_load_balancer_for_the_kubernetes_api
     delete_instances
     delete_placement_groups
     delete_network if settings.networking.private_network.enabled
@@ -77,6 +76,8 @@ class Cluster::Delete
     external_pools = settings.worker_node_pools.select(&.external?)
     return if external_pools.empty?
 
+    cleanup_errors = [] of String
+
     external_pools.each do |pool|
       external = pool.external
       if external.nil?
@@ -84,12 +85,16 @@ class Cluster::Delete
         next
       end
       external.nodes.each do |node|
-        cleanup_external_node(node)
+        if error = cleanup_external_node(node)
+          cleanup_errors << error
+        end
       end
     end
+
+    handle_external_cleanup_errors(cleanup_errors)
   end
 
-  private def cleanup_external_node(node)
+  private def cleanup_external_node(node) : String?
     ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
     instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
     use_sudo = node.ssh_user != "root"
@@ -103,8 +108,22 @@ class Cluster::Delete
 
       log_line "Cleaned up external node #{node.host}"
     rescue ex
-      log_line "Warning: Failed to clean up external node #{node.host}: #{ex.message}"
+      "Failed to clean up external node #{node.host}: #{ex.message}"
     end
+  end
+
+  private def handle_external_cleanup_errors(cleanup_errors : Array(String)) : Nil
+    return if cleanup_errors.empty?
+
+    severity = force ? "Warning" : "Error"
+    cleanup_errors.each do |error|
+      log_line "#{severity}: #{error}"
+    end
+
+    return if force
+
+    puts "\nAborting deletion because one or more external nodes could not be cleaned up. Re-run with --force to continue deleting Hetzner resources anyway.".colorize(:red)
+    exit 1
   end
 
   private def sudo_prefix(use_sudo : Bool) : String

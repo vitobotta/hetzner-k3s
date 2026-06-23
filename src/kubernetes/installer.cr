@@ -69,10 +69,9 @@ class Kubernetes::Installer
     @external_worker_setup.set_up_external_workers(@masters, first_master) if has_external_workers?
 
     if worker_count > 0
-      workers = @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
-    elsif has_external_workers?
-      @external_worker_setup.wait_for_external_workers_to_be_ready(first_master)
+      @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
     end
+    @external_worker_setup.wait_for_external_workers_to_be_ready(first_master) if has_external_workers?
 
     switch_to_context(default_context)
   end
