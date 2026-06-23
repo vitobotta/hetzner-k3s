@@ -53,35 +53,9 @@ class Configuration::Validators::WorkerNodePools
       ).validate
     end
 
-    all_generated_hostnames = generate_all_hostnames
     worker_node_pools.each do |pool|
       next unless pool.external?
-      Configuration::Validators::ExternalNodePool.new(errors, pool, settings, all_generated_hostnames).validate
+      Configuration::Validators::ExternalNodePool.new(errors, pool, settings).validate
     end
-  end
-
-  private def generate_all_hostnames : Array(String)
-    hostnames = [] of String
-    cluster_name = settings.cluster_name
-    include_type = settings.include_instance_type_in_instance_name
-
-    settings.masters_pool.instance_count.times do |i|
-      hostnames << "#{cluster_name}-#{include_type ? "#{settings.masters_pool.instance_type}-" : ""}master#{i + 1}"
-    end
-
-    settings.worker_node_pools.each do |pool|
-      next if pool.autoscaling_enabled
-      if pool.external?
-        pool.external.try(&.nodes.each do |node|
-          hostnames << "#{cluster_name}-#{include_type ? "#{pool.instance_type}-" : ""}pool-#{pool.name}-worker#{node.index}"
-        end)
-      else
-        pool.instance_count.times do |i|
-          hostnames << "#{cluster_name}-#{include_type ? "#{pool.instance_type}-" : ""}pool-#{pool.name}-worker#{i + 1}"
-        end
-      end
-    end
-
-    hostnames
   end
 end

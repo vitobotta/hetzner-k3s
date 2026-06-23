@@ -1,4 +1,5 @@
 require "../../../util"
+require "base64"
 require "../../util"
 
 class Kubernetes::Software::Hetzner::Secret
@@ -24,12 +25,17 @@ class Kubernetes::Software::Hetzner::Secret
 
   private def build_secret_manifest : String
     robot_credentials = settings.robot_credentials
+    network = network_name_for_secret
+    token = settings.hetzner_token
+    robot_user = robot_credentials.try(&.[:user]) || ""
+    robot_password = robot_credentials.try(&.[:password]) || ""
+
     Crinja.render(HETZNER_CLOUD_SECRET_MANIFEST, {
-      network:                   network_name_for_secret,
-      token:                     settings.hetzner_token,
       robot_credentials_enabled: !robot_credentials.nil?,
-      robot_user:                robot_credentials.try(&.[:user]) || "",
-      robot_password:            robot_credentials.try(&.[:password]) || "",
+      network_b64:               Base64.strict_encode(network),
+      token_b64:                 Base64.strict_encode(token),
+      robot_user_b64:            Base64.strict_encode(robot_user),
+      robot_password_b64:        Base64.strict_encode(robot_password),
     })
   end
 

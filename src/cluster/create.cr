@@ -45,6 +45,8 @@ class Cluster::Create
   private getter placement_groups : PlacementGroupManager::PlacementGroups
 
   def initialize(@configuration)
+    validate_external_nodes
+
     @network_manager = NetworkManager.new(settings, hetzner_client)
     @load_balancer_manager = LoadBalancerManager.new(settings, hetzner_client)
     @firewall_manager = FirewallManager.new(settings, hetzner_client)
@@ -61,8 +63,6 @@ class Cluster::Create
   end
 
   def run
-    validate_external_nodes
-
     create_instances_concurrently(master_instances, kubernetes_masters_installation_queue_channel, wait: true)
 
     @load_balancer = load_balancer_manager.handle(master_instances.size, network)

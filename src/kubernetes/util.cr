@@ -26,7 +26,7 @@ module Kubernetes::Util
 
   def apply_manifest_from_yaml(yaml : String, error_message = "Failed to apply manifest") : Util::Shell::CommandResult
     command = <<-BASH
-    kubectl apply -f  - <<-EOF
+    kubectl apply -f  - <<-'EOF'
     #{yaml}
     EOF
     BASH

@@ -28,14 +28,14 @@ class Hetzner::Robot::Client
 
   def server(server_number : Int32) : Server
     success, response = get("/server/#{server_number}")
-    raise Error.new("Robot server #{server_number} was not found or could not be fetched") unless success
+    raise Error.new("Failed to fetch Robot server #{server_number}: #{response.strip}") unless success
 
     parse_server(response)
   end
 
   def update_server_name(server_number : Int32, server_name : String) : Server
     success, response = post("/server/#{server_number}", {"server_name" => server_name})
-    raise Error.new("Robot server #{server_number} name could not be updated") unless success
+    raise Error.new("Failed to update Robot server #{server_number} name: #{response.strip}") unless success
 
     parse_server(response)
   end

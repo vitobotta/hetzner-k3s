@@ -63,4 +63,9 @@ class Configuration::Main
     external = pool.external.not_nil!
     {user: external.robot_user, password: external.robot_password}
   end
+
+  def external_worker_hostname(pool : Configuration::Models::NodePool, index : Int32) : String
+    instance_type_part = include_instance_type_in_instance_name ? "#{pool.instance_type}-" : ""
+    "#{cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{index}"
+  end
 end

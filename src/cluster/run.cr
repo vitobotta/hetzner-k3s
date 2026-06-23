@@ -280,16 +280,11 @@ class Cluster::Run
   end
 
   private def find_external_node_by_instance_name(instance_name : String) : Configuration::Models::ExternalNode?
-    cluster_name = settings.cluster_name
-    include_type = settings.include_instance_type_in_instance_name
-
     settings.worker_node_pools.each do |pool|
       next unless pool.external?
       pool.external.try(&.nodes.each do |node|
         next unless node.manage_hostname
-        instance_type_part = include_type ? "#{pool.instance_type}-" : ""
-        expected_hostname = "#{cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{node.index}"
-        if expected_hostname == instance_name
+        if settings.external_worker_hostname(pool, node.index) == instance_name
           return node
         end
       end)

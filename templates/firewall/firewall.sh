@@ -393,8 +393,8 @@ main() {
                 restore_ipsets
                 restore_iptables
                 update_ipsets
-                run_update_loop
             fi
+            run_update_loop
             ;;
     esac
 }

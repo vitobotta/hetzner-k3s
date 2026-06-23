@@ -6,9 +6,7 @@ class Configuration::Validators::ExternalNodePool
   getter errors : Array(String)
   getter pool : Configuration::Models::WorkerNodePool
   getter settings : Configuration::Main
-  getter all_generated_hostnames : Array(String)
-
-  def initialize(@errors, @pool, @settings, @all_generated_hostnames)
+  def initialize(@errors, @pool, @settings)
   end
 
   def validate

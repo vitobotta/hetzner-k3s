@@ -48,7 +48,7 @@ class Kubernetes::Worker::ExternalSetup
 
     # a. Hostname management
     if node.manage_hostname
-      hostname = build_external_hostname(pool, node.index)
+      hostname = settings.external_worker_hostname(pool, node.index)
       sync_robot_hostname(node, pool, hostname) if pool.external.not_nil!.robot?
       run_ssh(node_ssh, instance, node.ssh_port, sudo_command("hostnamectl set-hostname #{hostname}", use_sudo))
     end
@@ -64,26 +64,17 @@ class Kubernetes::Worker::ExternalSetup
     # e. Pre-k3s commands
     run_pre_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
-    # f. k3s installation — generate and deploy worker install script
+    # f. k3s installation — generate and deploy worker install script.
+    # Base64-encode and pipe to bash (via sudo when the SSH user is not root)
+    # so the script content is transmitted verbatim without shell interpretation.
     script = generate_worker_script(masters, first_master, pool, node)
-    if use_sudo
-      # The worker install script writes to /etc, runs the k3s installer, etc.
-      # Pipe it to sudo bash so it runs as root.
-      run_ssh(node_ssh, instance, node.ssh_port, "echo '#{Base64.strict_encode(script)}' | base64 -d | sudo bash")
-    else
-      run_ssh(node_ssh, instance, node.ssh_port, script)
-    end
+    runner = use_sudo ? "sudo bash" : "bash"
+    run_ssh(node_ssh, instance, node.ssh_port, "echo '#{Base64.strict_encode(script)}' | base64 -d | #{runner}")
 
     # g. Post-k3s commands
     run_post_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     log_line "...external node #{node.host} set up", node.host
-  end
-
-  private def build_external_hostname(pool, index) : String
-    include_type = settings.include_instance_type_in_instance_name
-    instance_type_part = include_type ? "#{pool.instance_type}-" : ""
-    "#{settings.cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{index}"
   end
 
   private def sync_robot_hostname(node, pool, hostname) : Nil
