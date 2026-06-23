@@ -72,6 +72,16 @@ class Kubernetes::Worker::ExternalSetup
 
     log_line "Setting up external node #{node.host}...", node.host
 
+    # Idempotency: if the node is already initialized, skip the destructive
+    # setup steps (hostname, packages, pre/post commands, k3s install) but
+    # still reconcile the firewall, which is safe to redeploy.
+    if node_initialized?(node_ssh, instance, node.ssh_port, use_sudo)
+      log_line "External node #{node.host} is already initialized, reconciling firewall only", node.host
+      deploy_firewall(instance, node_ssh, node.ssh_port, use_sudo)
+      log_line "...external node #{node.host} set up", node.host
+      return
+    end
+
     # a. Hostname management
     if node.manage_hostname
       hostname = settings.external_worker_hostname(pool, node.index)
@@ -101,6 +111,14 @@ class Kubernetes::Worker::ExternalSetup
     run_post_k3s_commands(node_ssh, instance, node.ssh_port, pool, use_sudo)
 
     log_line "...external node #{node.host} set up", node.host
+  end
+
+  private def node_initialized?(ssh, instance, port, use_sudo) : Bool
+    check = sudo_command("test -f /etc/initialized && echo yes || echo no", use_sudo)
+    output = ssh.run(instance, port, check, false, print_output: false).strip
+    output == "yes"
+  rescue
+    false
   end
 
   private def sync_robot_hostname(node, pool, hostname) : Nil
