@@ -75,8 +75,6 @@ class Kubernetes::Installer
     end
 
     switch_to_context(default_context)
-
-    completed_channel.send(nil)
   end
 
   private def has_external_workers?

@@ -34,7 +34,7 @@ class Cluster::Create
   private property kubernetes_workers_installation_queue_channel do
     Channel(Hetzner::Instance).new(10)
   end
-  private property completed_channel : Channel(Nil) = Channel(Nil).new
+  private property completed_channel : Channel(Exception?) = Channel(Exception?).new
   private property mutex : Mutex = Mutex.new
 
   private getter instance_builder : InstanceBuilder
@@ -73,7 +73,11 @@ class Cluster::Create
 
     create_instances_concurrently(worker_instances, kubernetes_workers_installation_queue_channel)
 
-    completed_channel.receive
+    result = completed_channel.receive
+    if result
+      puts "Error during k3s setup: #{result.message}".colorize(:red)
+      exit 1
+    end
 
     warn_if_not_protected
   end
@@ -103,13 +107,18 @@ class Cluster::Create
     )
 
     spawn do
-      kubernetes_installer.run(
-        masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
-        workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
-        completed_channel: completed_channel,
-        master_count: master_instances.size,
-        worker_count: worker_instances.size
-      )
+      begin
+        kubernetes_installer.run(
+          masters_installation_queue_channel: kubernetes_masters_installation_queue_channel,
+          workers_installation_queue_channel: kubernetes_workers_installation_queue_channel,
+          completed_channel: completed_channel,
+          master_count: master_instances.size,
+          worker_count: worker_instances.size
+        )
+        completed_channel.send(nil)
+      rescue ex : Exception
+        completed_channel.send(ex)
+      end
     end
   end
 
