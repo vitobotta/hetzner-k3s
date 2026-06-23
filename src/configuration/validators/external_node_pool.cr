@@ -47,6 +47,12 @@ class Configuration::Validators::ExternalNodePool
     unless invalid_indices.empty?
       errors << "External node pool '#{pool.name}' has out-of-range node indices: #{invalid_indices.join(", ")}. Indices must be in range 1..#{pool.instance_count}."
     end
+
+    # SSH port validation: must be in valid range 1..65535
+    invalid_ports = external_config.nodes.reject { |node| (1..65535).includes?(node.ssh_port) }.map { |node| "#{node.host}:#{node.ssh_port}" }
+    unless invalid_ports.empty?
+      errors << "External node pool '#{pool.name}' has invalid ssh_port values (must be in range 1..65535): #{invalid_ports.join(", ")}"
+    end
     # Host IPs must be valid IPv4 addresses (firewall ipset only accepts IP/CIDR, not DNS names)
     hosts = external_config.nodes.map(&.host)
     invalid_hosts = hosts.reject { |host| host =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ && $~.captures.all? { |octet| octet.try(&.to_i).try { |n| n >= 0 && n <= 255 } } }
