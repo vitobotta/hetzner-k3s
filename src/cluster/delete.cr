@@ -255,8 +255,53 @@ class Cluster::Delete
 
   private def detect_nodes_with_kubectl
     node_names = detect_instances_node_names_only
-    node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
+    external_node_names = detect_external_node_names
+
+    node_names.each do |node_name|
+      next if external_node_names.includes?(node_name)
+      add_instance_deletor(node_name) unless instance_deletor_exists?(node_name)
+    end
+
+    delete_external_node_objects(external_node_names)
     detect_nodes_with_hetzner_api if node_names.empty?
+  end
+
+  # Query Kubernetes for nodes labeled hetzner-k3s.io/external=true so they
+  # can be excluded from Hetzner Cloud deletion. These nodes are not Hetzner
+  # Cloud servers — adding them to instance_deletors could delete an unrelated
+  # Hetzner server that happens to share the name.
+  private def detect_external_node_names : Array(String)
+    result = run_shell_command(
+      "kubectl get nodes -l hetzner-k3s.io/external=true -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null",
+      configuration.kubeconfig_path,
+      settings.hetzner_token,
+      abort_on_error: false,
+      print_output: false
+    )
+    return [] of String unless result.success?
+
+    lines = result.output.split("\n")
+    lines = lines[1..] if lines.size > 1 && lines[0].includes?("NAME")
+    lines.reject(&.empty?)
+  end
+
+  # Delete the Kubernetes Node objects for external nodes as cluster cleanup.
+  # The nodes themselves are uninstalled via SSH in cleanup_external_nodes,
+  # but their Node objects may linger in the cluster.
+  private def delete_external_node_objects(node_names : Array(String))
+    return if node_names.empty?
+
+    node_names.each do |node_name|
+      run_shell_command(
+        "kubectl delete node #{node_name} --request-timeout=10s 2>/dev/null || true",
+        configuration.kubeconfig_path,
+        settings.hetzner_token,
+        abort_on_error: false,
+        print_output: false
+      )
+    end
+
+    log_line "Deleted #{node_names.size} external node object(s) from the cluster"
   end
 
   private def add_instance_deletor(instance_name)
