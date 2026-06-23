@@ -75,10 +75,24 @@ class Cluster::ExternalNodeValidator
 
     validate_robot_node(node, pool, ssh, instance, external_config, errors) if external_config.robot?
 
+    # Validate the generated hostname is a valid Kubernetes node name for all
+    # external nodes when manage_hostname is true (not only Robot nodes).
+    if node.manage_hostname
+      expected_hostname = @settings.external_worker_hostname(pool, node.index)
+      unless kubernetes_node_name?(expected_hostname)
+        errors << "External node #{node.host} would use generated hostname '#{expected_hostname}', which is not a valid Kubernetes node name."
+      end
+    end
+
     # Rule #7: hostname uniqueness for manage_hostname=false
     unless node.manage_hostname
       begin
         hostname = ssh.run(instance, node.ssh_port, "hostname -f", false, print_output: false).strip
+
+        unless kubernetes_node_name?(hostname)
+          errors << "External node #{node.host} has hostname '#{hostname}', which is not a valid Kubernetes node name. Set manage_hostname: true or change the node's hostname."
+        end
+
         # Exclude this node's own expected hostname from the conflict check —
         # the operator may have pre-set it to the exact name hetzner-k3s would use.
         own_expected = @settings.external_worker_hostname(pool, node.index)
@@ -113,13 +127,7 @@ class Cluster::ExternalNodeValidator
       return
     end
 
-    if node.manage_hostname
-      expected_hostname = @settings.external_worker_hostname(pool, node.index)
-      unless kubernetes_node_name?(expected_hostname)
-        errors << "External Robot node #{node.host} would use generated hostname '#{expected_hostname}', which is not a valid Kubernetes node name."
-      end
-      return
-    end
+    return if node.manage_hostname
 
     unless kubernetes_node_name?(robot_server.name)
       errors << "External Robot node #{node.host} uses Robot server name '#{robot_server.name}', which is not a valid Kubernetes node name. Enable manage_hostname or rename the server in Robot."
