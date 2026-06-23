@@ -70,7 +70,7 @@ class Kubernetes::Worker::Setup
     timeout = Time.monotonic + 5.minutes
 
     loop do
-      output = @ssh.run(first_master, @settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -o=custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status --no-headers 2>/dev/null", @settings.networking.ssh.use_agent, print_output: false)
+      output = @ssh.run(first_master, @settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -o='custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status' --no-headers 2>/dev/null", @settings.networking.ssh.use_agent, print_output: false)
 
       ready = output.lines.any? do |line|
         name = line.split.first?

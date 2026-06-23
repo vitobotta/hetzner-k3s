@@ -104,9 +104,10 @@ curl -sfL https://get.k3s.io | \
     --node-external-ip=$PUBLIC_IP \
     $KUBELET_PROVIDER_ID \
     $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
+install_status=("${PIPESTATUS[@]}")
 
 # Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
   exit 1
 fi

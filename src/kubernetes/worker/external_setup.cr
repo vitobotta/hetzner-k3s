@@ -48,7 +48,7 @@ class Kubernetes::Worker::ExternalSetup
     timeout = Time.monotonic + 5.minutes
 
     loop do
-      output = ssh.run(first_master, settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -l hetzner-k3s.io/external=true -o=custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status --no-headers 2>/dev/null", settings.networking.ssh.use_agent, print_output: false)
+      output = ssh.run(first_master, settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -l hetzner-k3s.io/external=true -o='custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status' --no-headers 2>/dev/null", settings.networking.ssh.use_agent, print_output: false)
 
       ready_count = output.lines.count { |line| line.includes?("True") }
 
@@ -114,7 +114,7 @@ class Kubernetes::Worker::ExternalSetup
   end
 
   private def node_initialized?(ssh, instance, port, use_sudo) : Bool
-    check = sudo_command("grep -qx true /etc/initialized 2>/dev/null && echo yes || echo no", use_sudo)
+    check = sudo_command("grep -qx true /etc/initialized 2>/dev/null && systemctl is-active --quiet k3s-agent && echo yes || echo no", use_sudo)
     output = ssh.run(instance, port, check, false, print_output: false).strip
     output == "yes"
   rescue
