@@ -53,6 +53,12 @@ class Configuration::Validators::ExternalNodePool
     unless invalid_ports.empty?
       errors << "External node pool '#{pool.name}' has invalid ssh_port values (must be in range 1..65535): #{invalid_ports.join(", ")}"
     end
+
+    # SSH user validation: must be a non-empty Unix-style username, not starting with -
+    invalid_users = external_config.nodes.reject { |node| node.ssh_user =~ /^[a-z_][a-z0-9_-]*$/ }.map { |node| "#{node.host}:#{node.ssh_user}" }
+    unless invalid_users.empty?
+      errors << "External node pool '#{pool.name}' has invalid ssh_user values (must be non-empty Unix usernames, not starting with '-'): #{invalid_users.join(", ")}"
+    end
     # Host IPs must be valid IPv4 addresses (firewall ipset only accepts IP/CIDR, not DNS names)
     hosts = external_config.nodes.map(&.host)
     invalid_hosts = hosts.reject { |host| host =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ && $~.captures.all? { |octet| octet.try(&.to_i).try { |n| n >= 0 && n <= 255 } } }

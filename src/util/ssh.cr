@@ -150,7 +150,7 @@ class Util::SSH
     end
 
     # Add port, user@host, and command
-    args.concat(["-p", port.to_s, "#{@user}@#{host_ip_address}", command])
+    args.concat(["-p", port.to_s, "--", "#{@user}@#{host_ip_address}", command])
 
     args
   end
