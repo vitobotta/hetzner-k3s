@@ -39,6 +39,32 @@ class Kubernetes::Worker::ExternalSetup
     end
   end
 
+  def wait_for_external_workers_to_be_ready(first_master : Hetzner::Instance) : Nil
+    expected_count = settings.worker_node_pools.select(&.external?).sum { |pool| pool.external.not_nil!.nodes.size }
+    return if expected_count == 0
+
+    log_line "Waiting for #{expected_count} external worker node(s) to be ready...", nil
+
+    timeout = Time.monotonic + 5.minutes
+
+    loop do
+      output = ssh.run(first_master, settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -l hetzner-k3s.io/external=true -o=custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status --no-headers 2>/dev/null", settings.networking.ssh.use_agent, print_output: false)
+
+      ready_count = output.lines.count { |line| line.includes?("True") }
+
+      break if ready_count >= expected_count
+
+      if Time.monotonic > timeout
+        log_line "Timeout waiting for external worker nodes to be ready (#{ready_count}/#{expected_count} ready), aborting", nil
+        exit 1
+      end
+
+      sleep 5.seconds
+    end
+
+    log_line "...all external worker nodes are ready", nil
+  end
+
   private def set_up_external_worker(node, pool, masters, first_master)
     node_ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
     instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
