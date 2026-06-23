@@ -42,6 +42,7 @@ class Kubernetes::Script::WorkerGenerator
       additional_post_k3s_commands: post_k3s_commands,
       is_external:                  is_external.to_s,
       kubelet_provider_id:          kubelet_provider_id(pool, external_node),
+      external_node_name:           external_node_name(pool, external_node),
     })
   end
 
@@ -64,6 +65,14 @@ class Kubernetes::Script::WorkerGenerator
     else
       "external://$PUBLIC_IP"
     end
+  end
+
+  # For external nodes with manage_hostname: true, return the computed hostname
+  # so the worker script can use it directly for --node-name instead of relying
+  # on hostname -f which may not reflect the hostnamectl change immediately.
+  private def external_node_name(pool, external_node : Configuration::Models::ExternalNode?) : String
+    return "" unless pool.external? && external_node && external_node.manage_hostname
+    @settings.external_worker_hostname(pool, external_node.index)
   end
 
   private def generate_k3s_token(masters, first_master)

@@ -2,6 +2,10 @@
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
+EXTERNAL_NODE_NAME="{{ external_node_name }}"
+if [ -n "$EXTERNAL_NODE_NAME" ]; then
+  HOSTNAME="$EXTERNAL_NODE_NAME"
+fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 # Network configuration
