@@ -63,6 +63,18 @@ class Cluster::ExternalNodeValidator
       return
     end
 
+    # Rule #6: OS compatibility — setup uses apt-get, so Debian/Ubuntu is required
+    begin
+      output = ssh.run(instance, node.ssh_port, ". /etc/os-release 2>/dev/null && echo \"$ID\" || echo unknown", false, print_output: false).strip
+      unless {"debian", "ubuntu", "linuxmint"}.includes?(output)
+        errors << "External node #{node.host} runs OS '#{output}' which is not supported. External nodes must run Debian or Ubuntu (apt-get is required for package installation)."
+        return
+      end
+    rescue
+      errors << "Cannot determine OS on external node #{node.host}. Ensure /etc/os-release exists and is readable."
+      return
+    end
+
     # Rule #5: password authentication warning (non-blocking)
     begin
       output = ssh.run(instance, node.ssh_port, "grep -E '^PasswordAuthentication yes' /etc/ssh/sshd_config 2>/dev/null || true", false, print_output: false).strip
