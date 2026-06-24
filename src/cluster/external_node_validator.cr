@@ -1,0 +1,198 @@
+require "../configuration/loader"
+require "../util/ssh"
+require "../hetzner/instance"
+require "../hetzner/robot/client"
+
+class Cluster::ExternalNodeValidator
+  def initialize(@settings : Configuration::Main)
+  end
+
+  def validate : Nil
+    external_pools = @settings.worker_node_pools.select(&.external?)
+    return if external_pools.empty?
+
+    log_line "Validating external nodes..."
+
+    errors = [] of String
+    warnings = [] of String
+    generated_hostnames = generate_all_hostnames
+    existing_hostnames = {} of String => String
+
+    external_pools.each do |pool|
+      pool.external.not_nil!.nodes.each do |node|
+        validate_node(node, pool, generated_hostnames, existing_hostnames, errors, warnings)
+      end
+    end
+
+    warnings.each { |w| puts w.colorize(:yellow) }
+
+    unless errors.empty?
+      errors.each { |e| puts e.colorize(:red) }
+      exit 1
+    end
+
+    log_line "...all external nodes validated"
+  end
+
+  private def validate_node(node, pool, generated_hostnames, existing_hostnames, errors, warnings)
+    ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
+    instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+    external_config = pool.external.not_nil!
+
+    # Rule #3: SSH accessibility
+    begin
+      ssh.run(instance, node.ssh_port, "echo ready", false, print_output: false)
+    rescue ex
+      errors << "Cannot connect to external node #{node.host} (user: #{node.ssh_user}, port: #{node.ssh_port}, key: #{node.ssh_private_key_path}): #{ex.message}"
+      return
+    end
+
+    # Rule #4: root or passwordless sudo
+    begin
+      output = ssh.run(instance, node.ssh_port, "id -u", false, print_output: false).strip
+      is_root = output == "0"
+      unless is_root
+        sudo_check = ssh.run(instance, node.ssh_port, "sudo -n true 2>/dev/null && echo ok || echo fail", false, print_output: false).strip
+        if sudo_check == "fail"
+          errors << "SSH user '#{node.ssh_user}' on external node #{node.host} is not root and does not have passwordless sudo. Root access is required for setup."
+          return
+        end
+      end
+    rescue ex
+      errors << "Cannot verify root/sudo access on external node #{node.host}: #{ex.message}"
+      return
+    end
+
+    # Rule #6: OS compatibility — setup uses apt-get, so Debian/Ubuntu is required
+    begin
+      output = ssh.run(instance, node.ssh_port, ". /etc/os-release 2>/dev/null && echo \"$ID\" || echo unknown", false, print_output: false).strip
+      unless {"debian", "ubuntu", "linuxmint"}.includes?(output)
+        errors << "External node #{node.host} runs OS '#{output}' which is not supported. External nodes must run Debian or Ubuntu (apt-get is required for package installation)."
+        return
+      end
+    rescue
+      errors << "Cannot determine OS on external node #{node.host}. Ensure /etc/os-release exists and is readable."
+      return
+    end
+
+    # Rule #5: password authentication warning (non-blocking)
+    begin
+      output = ssh.run(instance, node.ssh_port, "grep -E '^PasswordAuthentication yes' /etc/ssh/sshd_config 2>/dev/null || true", false, print_output: false).strip
+      unless output.empty?
+        warnings << "WARNING: Password authentication is enabled on external node #{node.host}. It is recommended to disable it for security."
+      end
+    rescue
+      # Non-blocking, ignore errors
+    end
+
+    validate_robot_node(node, pool, ssh, instance, external_config, errors) if external_config.robot?
+
+    # Validate the generated hostname is a valid Kubernetes node name for all
+    # external nodes when manage_hostname is true (not only Robot nodes).
+    if node.manage_hostname
+      expected_hostname = @settings.external_worker_hostname(pool, node.index)
+      unless kubernetes_node_name?(expected_hostname)
+        errors << "External node #{node.host} would use generated hostname '#{expected_hostname}', which is not a valid Kubernetes node name."
+      end
+    end
+
+    # Rule #7: hostname uniqueness for manage_hostname=false
+    unless node.manage_hostname
+      begin
+        hostname = ssh.run(instance, node.ssh_port, "hostname -f", false, print_output: false).strip
+
+        unless kubernetes_node_name?(hostname)
+          errors << "External node #{node.host} has hostname '#{hostname}', which is not a valid Kubernetes node name. Set manage_hostname: true or change the node's hostname."
+        end
+
+        # Exclude this node's own expected hostname from the conflict check —
+        # the operator may have pre-set it to the exact name hetzner-k3s would use.
+        own_expected = @settings.external_worker_hostname(pool, node.index)
+        conflicting_hostnames = generated_hostnames.reject { |h| h == own_expected }
+        if conflicting_hostnames.includes?(hostname)
+          errors << "External node #{node.host} has hostname '#{hostname}' which conflicts with a hostname generated by hetzner-k3s for another node. Set manage_hostname: true or change the node's hostname."
+        end
+
+        # Check for collisions between existing hostnames of manage_hostname=false nodes.
+        # Two nodes with the same pre-existing hostname would both register with k3s
+        # as --node-name=<hostname>, causing a node name collision.
+        if existing_hostnames[hostname]?
+          errors << "External node #{node.host} has hostname '#{hostname}' which is already used by external node #{existing_hostnames[hostname]}. With manage_hostname: false each node must have a unique hostname."
+        else
+          existing_hostnames[hostname] = node.host
+        end
+      rescue ex
+        errors << "Cannot retrieve hostname from external node #{node.host}: #{ex.message}"
+      end
+    end
+  end
+
+  private def validate_robot_node(node, pool, ssh, instance, external_config, errors)
+    robot_server_number = node.robot_server_number
+    return unless robot_server_number
+
+    robot_client = Hetzner::Robot::Client.new(external_config.robot_user, external_config.robot_password)
+    robot_server = robot_client.server(robot_server_number)
+
+    unless node.host.strip == robot_server.ip.strip
+      errors << "External Robot node #{node.host} uses robot_server_number #{robot_server_number}, but Robot reports server #{robot_server_number} has IP #{robot_server.ip}. Set host to #{robot_server.ip} or use the matching robot_server_number."
+      return
+    end
+
+    return if node.manage_hostname
+
+    unless kubernetes_node_name?(robot_server.name)
+      errors << "External Robot node #{node.host} uses Robot server name '#{robot_server.name}', which is not a valid Kubernetes node name. Enable manage_hostname or rename the server in Robot."
+      return
+    end
+
+    hostname = ssh.run(instance, node.ssh_port, "hostname -f", false, print_output: false).strip
+    if hostname != robot_server.name
+      errors << "External Robot node #{node.host} has OS hostname '#{hostname}' but Robot server name '#{robot_server.name}'. With manage_hostname: false these must match so HCCM can initialize the node."
+    end
+  rescue ex : Hetzner::Robot::Client::Error
+    errors << "Cannot validate Robot server #{node.robot_server_number} for external node #{node.host}: #{ex.message}"
+  rescue ex
+    errors << "Cannot validate Robot metadata for external node #{node.host}: #{ex.message}"
+  end
+
+
+  private def generate_all_hostnames : Array(String)
+    hostnames = [] of String
+    cluster_name = @settings.cluster_name
+    include_type = @settings.include_instance_type_in_instance_name
+
+    @settings.masters_pool.instance_count.times do |i|
+      hostnames << "#{cluster_name}-#{include_type ? "#{@settings.masters_pool.instance_type}-" : ""}master#{i + 1}"
+    end
+
+    @settings.worker_node_pools.each do |pool|
+      next if pool.autoscaling_enabled
+      if pool.external?
+        pool.external.try(&.nodes.each do |node|
+          next unless node.manage_hostname
+          hostnames << @settings.external_worker_hostname(pool, node.index)
+        end)
+      else
+        pool.instance_count.times do |i|
+          hostnames << "#{cluster_name}-#{include_type ? "#{pool.instance_type}-" : ""}pool-#{pool.name}-worker#{i + 1}"
+        end
+      end
+    end
+
+    hostnames
+  end
+
+  private def kubernetes_node_name?(name : String) : Bool
+    return false if name.empty? || name.size > 253
+    return false unless name =~ /^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$/
+
+    name.split(".").all? do |label|
+      label.size <= 63 && !!(label =~ /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/)
+    end
+  end
+
+  private def log_line(message)
+    puts "[External Node Validator] #{message}"
+  end
+end

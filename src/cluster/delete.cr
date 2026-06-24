@@ -9,6 +9,7 @@ require "./placement_group_manager"
 require "../kubernetes/util"
 require "../util/shell"
 require "../util"
+require "../util/ssh"
 require "./node_detection"
 
 class Cluster::Delete
@@ -60,15 +61,116 @@ class Cluster::Delete
   end
 
   private def delete_resources
-    delete_load_balancer if settings.create_load_balancer_for_the_kubernetes_api
-
     switch_to_context("#{settings.cluster_name}-master1", abort_on_error: false, request_timeout: 10, print_output: false)
 
+    cleanup_external_nodes
+    delete_load_balancer if settings.create_load_balancer_for_the_kubernetes_api
     delete_instances
     delete_placement_groups
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
+  end
+
+  private def cleanup_external_nodes
+    external_pools = settings.worker_node_pools.select(&.external?)
+    return if external_pools.empty?
+
+    cleanup_errors = [] of String
+
+    external_pools.each do |pool|
+      external = pool.external
+      if external.nil?
+        log_line "Warning: external pool '#{pool.name}' has no external section, skipping cleanup"
+        next
+      end
+      external.nodes.each do |node|
+        if error = cleanup_external_node(node)
+          cleanup_errors << error
+        end
+      end
+    end
+
+    handle_external_cleanup_errors(cleanup_errors)
+  end
+
+  private def cleanup_external_node(node) : String?
+    ssh = Util::SSH.new(node.ssh_private_key_path, "", false, node.ssh_user)
+    instance = Hetzner::Instance.new(0, "running", node.host, node.host, node.host)
+    use_sudo = node.ssh_user != "root"
+
+    begin
+      # 1. Uninstall k3s
+      ssh.run(instance, node.ssh_port, "#{sudo_prefix(use_sudo)}bash -c '/usr/local/bin/k3s-agent-uninstall.sh 2>/dev/null || /usr/local/bin/k3s-uninstall.sh 2>/dev/null || true'", false, print_output: false)
+
+      # 2. Remove firewall and reset packet filtering so the node is left open.
+      ssh.run(instance, node.ssh_port, firewall_cleanup_command(use_sudo), false, print_output: false)
+
+      log_line "Cleaned up external node #{node.host}"
+    rescue ex
+      "Failed to clean up external node #{node.host}: #{ex.message}"
+    end
+  end
+
+  private def handle_external_cleanup_errors(cleanup_errors : Array(String)) : Nil
+    return if cleanup_errors.empty?
+
+    severity = force ? "Warning" : "Error"
+    cleanup_errors.each do |error|
+      log_line "#{severity}: #{error}"
+    end
+
+    return if force
+
+    puts "\nAborting deletion because one or more external nodes could not be cleaned up. Re-run with --force to continue deleting Hetzner resources anyway.".colorize(:red)
+    exit 1
+  end
+
+  private def sudo_prefix(use_sudo : Bool) : String
+    use_sudo ? "sudo " : ""
+  end
+
+  private def firewall_cleanup_command(use_sudo : Bool) : String
+    inner_script = <<-SCRIPT
+      set +e
+
+      systemctl stop firewall.service 2>/dev/null || true
+      systemctl disable firewall.service 2>/dev/null || true
+
+      reset_packet_filter() {
+        local command="$1"
+
+        if ! command -v "$command" >/dev/null 2>&1; then
+          return 0
+        fi
+
+        "$command" -w -P INPUT ACCEPT 2>/dev/null || true
+        "$command" -w -P FORWARD ACCEPT 2>/dev/null || true
+        "$command" -w -P OUTPUT ACCEPT 2>/dev/null || true
+
+        for table in filter nat mangle raw security; do
+          "$command" -w -t "$table" -F 2>/dev/null || true
+          "$command" -w -t "$table" -X 2>/dev/null || true
+        done
+      }
+
+      reset_packet_filter iptables
+      reset_packet_filter ip6tables
+
+      if command -v ipset >/dev/null 2>&1; then
+        for set_name in nodes nodes_temp allowed_networks_ssh allowed_networks_ssh_temp allowed_networks_k8s_api allowed_networks_k8s_api_temp external_nodes external_nodes_temp; do
+          ipset destroy "$set_name" 2>/dev/null || true
+        done
+      fi
+
+      rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
+      rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
+      rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6 /etc/iptables/ipsets.v4 /etc/iptables/ipsets.v6 2>/dev/null || true
+      rm -f /tmp/last_node_ips.txt 2>/dev/null || true
+      systemctl daemon-reload 2>/dev/null || true
+    SCRIPT
+
+    "#{sudo_prefix(use_sudo)}bash -c '#{inner_script.gsub("'", "'\\''")}'"
   end
 
   private def delete_load_balancer
@@ -156,7 +258,7 @@ class Cluster::Delete
   end
 
   private def initialize_worker_nodes
-    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled)
+    no_autoscaling_worker_node_pools = settings.worker_node_pools.reject(&.autoscaling_enabled).reject(&.external?)
 
     no_autoscaling_worker_node_pools.each do |node_pool|
       node_pool.instance_count.times do |i|
@@ -177,8 +279,53 @@ class Cluster::Delete
 
   private def detect_nodes_with_kubectl
     node_names = detect_instances_node_names_only
-    node_names.each { |node_name| add_instance_deletor(node_name) unless instance_deletor_exists?(node_name) }
+    external_node_names = detect_external_node_names
+
+    node_names.each do |node_name|
+      next if external_node_names.includes?(node_name)
+      add_instance_deletor(node_name) unless instance_deletor_exists?(node_name)
+    end
+
+    delete_external_node_objects(external_node_names)
     detect_nodes_with_hetzner_api if node_names.empty?
+  end
+
+  # Query Kubernetes for nodes labeled hetzner-k3s.io/external=true so they
+  # can be excluded from Hetzner Cloud deletion. These nodes are not Hetzner
+  # Cloud servers — adding them to instance_deletors could delete an unrelated
+  # Hetzner server that happens to share the name.
+  private def detect_external_node_names : Array(String)
+    result = run_shell_command(
+      "kubectl get nodes -l hetzner-k3s.io/external=true -o=custom-columns=NAME:.metadata.name --request-timeout=10s 2>/dev/null",
+      configuration.kubeconfig_path,
+      settings.hetzner_token,
+      abort_on_error: false,
+      print_output: false
+    )
+    return [] of String unless result.success?
+
+    lines = result.output.split("\n")
+    lines = lines[1..] if lines.size > 1 && lines[0].includes?("NAME")
+    lines.reject(&.empty?)
+  end
+
+  # Delete the Kubernetes Node objects for external nodes as cluster cleanup.
+  # The nodes themselves are uninstalled via SSH in cleanup_external_nodes,
+  # but their Node objects may linger in the cluster.
+  private def delete_external_node_objects(node_names : Array(String))
+    return if node_names.empty?
+
+    node_names.each do |node_name|
+      run_shell_command(
+        "kubectl delete node #{node_name} --request-timeout=10s 2>/dev/null || true",
+        configuration.kubeconfig_path,
+        settings.hetzner_token,
+        abort_on_error: false,
+        print_output: false
+      )
+    end
+
+    log_line "Deleted #{node_names.size} external node object(s) from the cluster"
   end
 
   private def add_instance_deletor(instance_name)

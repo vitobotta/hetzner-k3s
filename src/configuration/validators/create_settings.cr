@@ -70,7 +70,8 @@ class Configuration::Validators::CreateSettings
       instance_types: instance_types,
       all_locations: all_locations,
       datastore: settings.datastore,
-      private_network_enabled: settings.networking.private_network.enabled
+      private_network_enabled: settings.networking.private_network.enabled,
+      settings: settings
     ).validate
 
     Configuration::Validators::KubectlPresence.new(errors).validate

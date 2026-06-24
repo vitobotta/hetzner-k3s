@@ -16,12 +16,14 @@ readonly CLUSTER_CIDR="{{ cluster_cidr }}"
 readonly SERVICE_CIDR="{{ service_cidr }}"
 readonly NODEPORT_RANGE="{{ node_port_range_iptables }}"
 readonly NODEPORT_FIREWALL_ENABLED="{{ node_port_firewall_enabled }}"
+readonly EXTERNAL_NODE_IPS="{{ external_node_ips }}"
 
 # Constants
 readonly IPSET_NODES="nodes"
 readonly IPSET_SSH="allowed_networks_ssh"
 readonly IPSET_API="allowed_networks_k8s_api"
 readonly IPSET_TYPE="hash:net"
+readonly IPSET_EXTERNAL_NODES="external_nodes"
 readonly API_PORT=6443
 readonly POLL_INTERVAL=30
 readonly API_TIMEOUT=10
@@ -194,6 +196,7 @@ setup_iptables() {
 
     # IPSet-based rules
     iptables -A INPUT -m set --match-set "$IPSET_NODES" src -j ACCEPT
+    iptables -A INPUT -m set --match-set "$IPSET_EXTERNAL_NODES" src -j ACCEPT
     iptables -A INPUT -p tcp --dport $API_PORT -m set --match-set "$IPSET_API" src -j ACCEPT
     iptables -A INPUT -p tcp --dport "$SSH_PORT" -m set --match-set "$IPSET_SSH" src -j ACCEPT
 
@@ -212,6 +215,7 @@ restore_iptables() {
     create_ipset_if_missing "$IPSET_NODES"
     create_ipset_if_missing "$IPSET_SSH"
     create_ipset_if_missing "$IPSET_API"
+    create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
     
     if [ -f "$IPTABLES_RULES_FILE" ]; then
         iptables-restore -w < "$IPTABLES_RULES_FILE" 2>/dev/null || true
@@ -298,10 +302,12 @@ update_ipsets() {
     local api_networks
     api_networks=$(read_networks_file "$API_NETWORKS_FILE")
 
-    # Update ipsets
     update_ipset "$IPSET_NODES" "$node_ips"
     update_ipset "$IPSET_SSH" "$ssh_networks"
     update_ipset "$IPSET_API" "$api_networks"
+
+    # Update external node IPs from static list (always call — empty list clears stale entries)
+    update_ipset "$IPSET_EXTERNAL_NODES" "$EXTERNAL_NODE_IPS"
 
     # Save for persistence
     save_ipsets
@@ -329,7 +335,7 @@ initial_setup() {
     create_ipset_if_missing "$IPSET_NODES"
     create_ipset_if_missing "$IPSET_SSH"
     create_ipset_if_missing "$IPSET_API"
-
+    create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
     # Initial population of ipsets
     update_ipsets
 
@@ -352,6 +358,7 @@ main() {
             create_ipset_if_missing "$IPSET_NODES"
             create_ipset_if_missing "$IPSET_SSH"
             create_ipset_if_missing "$IPSET_API"
+            create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
             populate_ssh_ipset
             restore_ipsets
             restore_iptables
@@ -366,6 +373,7 @@ main() {
             create_ipset_if_missing "$IPSET_NODES"
             create_ipset_if_missing "$IPSET_SSH"
             create_ipset_if_missing "$IPSET_API"
+            create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
             # Populate SSH ipset BEFORE iptables restore (so SSH works immediately)
             populate_ssh_ipset
             restore_ipsets
@@ -380,6 +388,7 @@ main() {
                 create_ipset_if_missing "$IPSET_NODES"
                 create_ipset_if_missing "$IPSET_SSH"
                 create_ipset_if_missing "$IPSET_API"
+                create_ipset_if_missing "$IPSET_EXTERNAL_NODES"
                 populate_ssh_ipset
                 restore_ipsets
                 restore_iptables

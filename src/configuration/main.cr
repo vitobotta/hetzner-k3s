@@ -42,4 +42,30 @@ class Configuration::Main
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
   end
+
+  def external_robot_node_pools : Array(Configuration::Models::WorkerNodePool)
+    worker_node_pools.select do |pool|
+      next false unless pool.external?
+
+      external = pool.external
+      external && external.robot?
+    end
+  end
+
+  def external_robot_node_pools? : Bool
+    external_robot_node_pools.any?
+  end
+
+  def robot_credentials : NamedTuple(user: String, password: String)?
+    pool = external_robot_node_pools.first?
+    return nil unless pool
+
+    external = pool.external.not_nil!
+    {user: external.robot_user, password: external.robot_password}
+  end
+
+  def external_worker_hostname(pool : Configuration::Models::NodePool, index : Int32) : String
+    instance_type_part = include_instance_type_in_instance_name ? "#{pool.instance_type}-" : ""
+    "#{cluster_name}-#{instance_type_part}pool-#{pool.name}-worker#{index}"
+  end
 end

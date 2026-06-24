@@ -16,6 +16,7 @@ require "./software/hetzner/csi_driver"
 require "./software/hetzner/secret"
 require "./software/installer"
 require "./software/system_upgrade_controller"
+require "./worker/external_setup"
 require "./worker/setup"
 
 class Kubernetes::Installer
@@ -34,6 +35,7 @@ class Kubernetes::Installer
   private getter software_installer : Kubernetes::Software::Installer
   private getter control_plane_setup : Kubernetes::ControlPlane::Setup
   private getter worker_setup : Kubernetes::Worker::Setup
+  private getter external_worker_setup : Kubernetes::Worker::ExternalSetup
   private getter local_firewall_setup : Kubernetes::LocalFirewall::Setup
 
   def initialize(
@@ -48,6 +50,7 @@ class Kubernetes::Installer
     @software_installer = Kubernetes::Software::Installer.new(@configuration, settings)
     @control_plane_setup = Kubernetes::ControlPlane::Setup.new(@configuration, settings, @ssh, @master_generator, @kubeconfig_manager)
     @worker_setup = Kubernetes::Worker::Setup.new(@configuration, settings, @ssh, @worker_generator)
+    @external_worker_setup = Kubernetes::Worker::ExternalSetup.new(@configuration, settings, @ssh, @worker_generator)
     @local_firewall_setup = Kubernetes::LocalFirewall::Setup.new(settings, @ssh)
   end
 
@@ -63,13 +66,18 @@ class Kubernetes::Installer
 
     @software_installer.install_all(@first_master_instance, @masters, ssh, autoscaling_worker_node_pools)
 
+    @external_worker_setup.set_up_external_workers(@masters, first_master) if has_external_workers?
+
     if worker_count > 0
-      workers = @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
+      @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
     end
+    @external_worker_setup.wait_for_external_workers_to_be_ready(first_master) if has_external_workers?
 
     switch_to_context(default_context)
+  end
 
-    completed_channel.send(nil)
+  private def has_external_workers?
+    settings.worker_node_pools.any?(&.external?)
   end
 
   private def default_context

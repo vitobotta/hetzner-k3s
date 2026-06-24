@@ -2,6 +2,10 @@
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
+EXTERNAL_NODE_NAME="{{ external_node_name }}"
+if [ -n "$EXTERNAL_NODE_NAME" ]; then
+  HOSTNAME="$EXTERNAL_NODE_NAME"
+fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 # Network configuration
@@ -71,12 +75,15 @@ cat >/etc/rancher/k3s/registries.yaml <<\EOF
 {{ private_registry_config | trim }}
 EOF
 
-# Get instance ID for public network
-KUBELET_INSTANCE_ID=""
-if [ "{{ private_network_enabled }}" = "false" ]; then
-  INSTANCE_ID=$(curl -s http://169.254.169.254/hetzner/v1/metadata/instance-id)
+# Set provider ID. Generic external nodes use a non-HCCM scheme; Robot nodes
+# use hrobot:// so HCCM can initialize them when Robot support is enabled.
+KUBELET_PROVIDER_ID=""
+if [ -n "{{ kubelet_provider_id }}" ]; then
+  KUBELET_PROVIDER_ID="--kubelet-arg=provider-id={{ kubelet_provider_id }}"
+elif [ "{{ private_network_enabled }}" = "false" ]; then
+  INSTANCE_ID=$(curl -s --max-time 2 http://169.254.169.254/hetzner/v1/metadata/instance-id 2>/dev/null || true)
   if [ -n "$INSTANCE_ID" ]; then
-    KUBELET_INSTANCE_ID="--kubelet-arg=provider-id=hcloud://$INSTANCE_ID"
+    KUBELET_PROVIDER_ID="--kubelet-arg=provider-id=hcloud://$INSTANCE_ID"
   else
     echo "WARNING: Could not retrieve instance ID" 2>&1 | tee -a /var/log/hetzner-k3s.log
   fi
@@ -95,11 +102,12 @@ curl -sfL https://get.k3s.io | \
     {{ extra_args }} {{ labels_and_taints }} \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
-    $KUBELET_INSTANCE_ID \
+    $KUBELET_PROVIDER_ID \
     $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
+install_status=("${PIPESTATUS[@]}")
 
 # Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
   exit 1
 fi
