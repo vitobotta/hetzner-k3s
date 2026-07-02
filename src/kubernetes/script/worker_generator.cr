@@ -28,20 +28,22 @@ class Kubernetes::Script::WorkerGenerator
                         end
 
     Crinja.render(WORKER_INSTALL_SCRIPT, {
-      cluster_name:                 @settings.cluster_name,
-      k3s_token:                    generate_k3s_token(masters, first_master),
-      k3s_version:                  @settings.k3s_version,
-      api_server_ip_address:        api_server_ip_address(first_master),
-      private_network_enabled:      @settings.networking.private_network.enabled.to_s,
-      private_network_subnet:       @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
-      cluster_cidr:                 @settings.networking.cluster_cidr,
-      service_cidr:                 @settings.networking.service_cidr,
-      extra_args:                   kubelet_args_list(external_config),
-      labels_and_taints:            labels_and_taints,
-      private_registry_config:      @settings.addons.embedded_registry_mirror.private_registry_config,
-      additional_post_k3s_commands: post_k3s_commands,
-      kubelet_provider_id:          kubelet_provider_id(pool, external_node),
-      external_node_name:           external_node_name(pool, external_node),
+      cluster_name:                     @settings.cluster_name,
+      k3s_token:                        generate_k3s_token(masters, first_master),
+      k3s_version:                      @settings.k3s_version,
+      api_server_ip_address:            api_server_ip_address(first_master),
+      private_network_enabled:          @settings.networking.private_network.enabled.to_s,
+      private_network_subnet:           @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
+      private_network_external_routing: @settings.networking.private_network.external_routing.to_s,
+      cluster_cidr:                     @settings.networking.cluster_cidr,
+      service_cidr:                     @settings.networking.service_cidr,
+      extra_args:                       kubelet_args_list(external_config),
+      labels_and_taints:                labels_and_taints,
+      private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
+      additional_post_k3s_commands:     post_k3s_commands,
+      kubelet_provider_id:              kubelet_provider_id(pool, external_node),
+      external_node_name:               external_node_name(pool, external_node),
+      is_external:                      is_external.to_s,
     })
   end
 
