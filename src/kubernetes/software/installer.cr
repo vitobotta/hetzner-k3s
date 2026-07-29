@@ -49,4 +49,3 @@ class Kubernetes::Software::Installer
     end
   end
 end
-

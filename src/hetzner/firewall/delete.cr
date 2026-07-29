@@ -47,9 +47,9 @@ class Hetzner::Firewall::Delete
             :label_selector => {
               :selector => "cluster=#{firewall_name}",
             },
-            :type => "label_selector"
-          }
-        ]
+            :type => "label_selector",
+          },
+        ],
       }
 
       success, response = hetzner_client.post(path, request_body)

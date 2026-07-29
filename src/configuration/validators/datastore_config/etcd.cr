@@ -20,7 +20,7 @@ class Configuration::Validators::DatastoreConfig::Etcd
     errors << "#{path_prefix}.s3_access_key is required when etcd S3 snapshots are enabled" if access_key.empty?
     errors << "#{path_prefix}.s3_secret_key is required when etcd S3 snapshots are enabled" if secret_key.empty?
     errors << "#{path_prefix}.s3_region is required when etcd S3 snapshots are enabled" if region.empty?
-    
+
     # Validate S3 folder name format if specified
     unless folder.empty?
       # S3 folder names should not start or end with slashes
