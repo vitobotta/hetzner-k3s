@@ -8,6 +8,8 @@ if [ -n "$EXTERNAL_NODE_NAME" ]; then
 fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
+IPV4_ENABLED="{{ ipv4_enabled }}"
+
 # Network configuration
 if [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
@@ -71,7 +73,7 @@ fi
 mkdir -p /etc/rancher/k3s
 
 # Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<\EOF
+cat >/etc/rancher/k3s/registries.yaml <<"EOF"
 {{ private_registry_config | trim }}
 EOF
 
@@ -88,6 +90,8 @@ elif [ "{{ private_network_enabled }}" = "false" ]; then
     echo "WARNING: Could not retrieve instance ID" 2>&1 | tee -a /var/log/hetzner-k3s.log
   fi
 fi
+
+{{ configure_ipv6_dns_and_clatd }}
 
 # Install k3s worker
 echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log

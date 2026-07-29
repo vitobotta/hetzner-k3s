@@ -1,0 +1,13 @@
+[Unit]
+Description=Fix Tailscale nftables ts-input chain for DNAT/ClusterIP traffic
+After=tailscaled.service
+Wants=tailscaled.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tailscale-nftables-fix.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
