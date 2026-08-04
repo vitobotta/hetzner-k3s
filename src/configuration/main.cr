@@ -36,11 +36,18 @@ class Configuration::Main
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
+  getter disable_public_interface_for_the_kubernetes_api_load_balancer : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
+  end
+
+  def use_private_ip_for_the_kubernetes_api_load_balancer? : Bool
+    return false unless networking.private_network.enabled
+
+    networking.ssh.use_private_ip || disable_public_interface_for_the_kubernetes_api_load_balancer
   end
 
   def external_robot_node_pools : Array(Configuration::Models::WorkerNodePool)
