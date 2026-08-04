@@ -4,6 +4,7 @@ require "./ipv4"
 class Hetzner::PublicNet
   include JSON::Serializable
 
+  property enabled : Bool?
   property ipv4 : Hetzner::Ipv4?
 
   def initialize(ipv4 : String) : Hetzner::Ipv4
