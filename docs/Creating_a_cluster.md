@@ -71,6 +71,7 @@ networking:
     enabled: true
     subnet: 10.0.0.0/16
     existing_network_name: ""
+    external_routing: false # set true if external nodes can reach the private network through your own VPN/routing
   cni:
     enabled: true
     encryption: false
@@ -461,16 +462,16 @@ External nodes must:
 
 External node pools require the following cluster-wide settings:
 
-- `networking.private_network.enabled: false` — external nodes cannot join a Hetzner private network.
-- `networking.public_network.use_local_firewall: true` — the local firewall is deployed to each external node via SSH.
-- `networking.public_network.hetzner_ips_query_server_url` must be set (required by the local firewall to fetch Hetzner node IPs).
+- `networking.private_network.enabled: false` and `networking.public_network.use_local_firewall: true` — external nodes use the public network and the local firewall is deployed to each external node via SSH.
+- Or `networking.private_network.enabled: true` and `networking.private_network.external_routing: true` — external nodes use your own VPN/routing connectivity to reach the private network.
+- `networking.public_network.hetzner_ips_query_server_url` must be set when using the public-network/local-firewall mode (required by the local firewall to fetch Hetzner node IPs).
 
 #### Validation rules
 
 The following rules are enforced at config validation time:
 
-1. Private network must be disabled.
-2. Local firewall must be enabled.
+1. Private network must be disabled unless `networking.private_network.external_routing` is enabled.
+2. Local firewall must be enabled when external nodes use the public network.
 3. No Hetzner-specific fields allowed in the pool (`image`, `autoscaling`, `grow_root_partition_automatically`, `legacy_instance_type`).
 4. Masters pool cannot use `instance_type: external`.
 5. `instance_count` must equal the number of nodes in `external.nodes`.

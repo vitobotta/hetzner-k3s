@@ -9,7 +9,11 @@ fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
 # Network configuration
-if [ "{{ private_network_enabled }}" = "true" ]; then
+if [ "{{ is_external }}" = "true" ] && [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_external_routing }}" = "true" ]; then
+  echo "Using externally routed private network" >/var/log/hetzner-k3s.log
+  PRIVATE_IP="${PUBLIC_IP}"
+  FLANNEL_SETTINGS=""
+elif [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
 
