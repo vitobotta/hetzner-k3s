@@ -18,7 +18,8 @@ class Cluster::Create
     Util::SSH.new(
       settings.networking.ssh.private_key_path,
       settings.networking.ssh.public_key_path,
-      settings.networking.ssh.use_private_ip
+      settings.networking.ssh.use_private_ip,
+      tailscale_hostname_suffix: settings.networking.tailscale.ssh_hostname_suffix
     )
   end
   private getter network : Hetzner::Network?

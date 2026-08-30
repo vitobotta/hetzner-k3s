@@ -29,6 +29,10 @@ class Hetzner::Instance
     /-master\d+/ =~ name
   end
 
+  def tailscale_host(suffix : String) : String
+    "#{name}.#{suffix}"
+  end
+
   def initialize(id : Int32, status : String, instance_name : String, internal_ip : String, external_ip : String)
     @id = id
     @status = status

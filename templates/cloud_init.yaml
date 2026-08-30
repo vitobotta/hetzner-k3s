@@ -12,6 +12,8 @@ write_files:
 
 {{ ssh_files }}
 
+{{ tailscale_files }}
+
 {{ init_files }}
 
 packages: [{{ packages_str }}]

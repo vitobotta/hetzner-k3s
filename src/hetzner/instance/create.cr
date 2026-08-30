@@ -17,6 +17,10 @@ class Hetzner::Instance::Create
   INITIAL_DELAY =  1 # 1 second
   MAX_DELAY     = 60
 
+  # Nodes take longer to become reachable via SSH when they first need to
+  # install Tailscale and register with the tailnet during cloud-init.
+  TAILSCALE_SSH_WAIT_ATTEMPTS = 60
+
   getter instance_name : String
 
   private getter settings : Configuration::Main
@@ -37,7 +41,8 @@ class Hetzner::Instance::Create
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter mutex : Mutex
   private getter ssh_client : Util::SSH do
-    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip)
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip,
+      tailscale_hostname_suffix: settings.networking.tailscale.ssh_hostname_suffix)
   end
   private property instance_existed : Bool = false
   private property powering_on_count : Int32 = 0
@@ -139,7 +144,7 @@ class Hetzner::Instance::Create
 
       next unless attached_to_network?(instance)
 
-      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready", ssh_wait_attempts
       ready = true
     end
 
@@ -164,6 +169,10 @@ class Hetzner::Instance::Create
 
   private def private_network_enabled?
     settings.networking.private_network.enabled
+  end
+
+  private def ssh_wait_attempts
+    settings.networking.tailscale.enabled ? TAILSCALE_SSH_WAIT_ATTEMPTS : Util::SSH::DEFAULT_MAX_ATTEMPTS
   end
 
   private def needs_powering_on?(instance)

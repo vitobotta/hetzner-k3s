@@ -35,11 +35,13 @@ class Kubernetes::KubeconfigManager
     end
 
     masters.each_with_index do |master, index|
-      master_ip_address = if @settings.networking.ssh.use_private_ip
-        master.private_ip_address
-      else
-        @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
-      end
+      master_ip_address = if @settings.networking.tailscale.enabled
+                            master.tailscale_host(@settings.networking.tailscale.hostname_suffix)
+                          elsif @settings.networking.ssh.use_private_ip
+                            master.private_ip_address
+                          else
+                            @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
+                          end
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
       master_kubeconfig = kubeconfig
         .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
@@ -76,6 +78,9 @@ class Kubernetes::KubeconfigManager
     masters.each do |master|
       sans << "--tls-san=#{master.private_ip_address}"
       sans << "--tls-san=#{master.public_ip_address}"
+      if @settings.networking.tailscale.enabled
+        sans << "--tls-san=#{master.tailscale_host(@settings.networking.tailscale.hostname_suffix)}"
+      end
     end
 
     sans.uniq.sort.join(" ")
