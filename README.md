@@ -159,6 +159,7 @@ See [Installation Guide](https://vitobotta.github.io/hetzner-k3s/Installation/) 
 Create `cluster.yaml`:
 
 ```yaml
+config_format_version: 1
 hetzner_token: <your-token>
 cluster_name: my-cluster
 kubeconfig_path: "./kubeconfig"
