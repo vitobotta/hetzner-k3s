@@ -49,7 +49,7 @@ Use `crystal build --no-codegen` for fast type/syntax checking instead.
 
 ## Gotchas
 
-- `shard.yml` lists Crystal 1.5.0 but CI builds with 1.14.1 — the `shard.yml` value is stale; use the Docker container's Crystal version as the effective target
+- `shard.yml` requires Crystal `>= 1.20.0`; CI builds with `1.20.2` — use the Docker container's Crystal version as the effective target
 - The dev container (Alpine-based) includes kubectl, helm, k9s, stern — useful for debugging running clusters
 - Linux release builds are statically linked (`--static`); macOS builds are not
 - Dependencies are installed with `shards install --without-development` in CI
