@@ -315,9 +315,9 @@ A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the dev
 
 ### Bronze Sponsors
 
-<a href="https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme"><img src="devopssquad-logo-small.png" alt="DevOps Squad" height="80"></a>
+<a href="https://github.com/devopssquaddev/zelkor-platform"><img src="zelkor-logo-small.png" alt="Zelkor" height="80"></a>
 
-[DevOps Squad](https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme) — Deploying is easy; Day 2 is hard. Cut your AWS bill by 60% with fully-managed Hetzner infrastructure ($2,995/mo). Run the **Cloud Exit Calculator** to see your savings.
+[Zelkor](https://github.com/devopssquaddev/zelkor-platform) — The self-hosted agent runtime on Kubernetes. Bring the agent you already wrote; it can't break out, reach unauthorized data or networks, its prompts are verified, budget controlled, and it is under observation; tenants stay isolated.
 
 ### Backers
 
