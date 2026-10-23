@@ -4,6 +4,8 @@ class Configuration::Models::NetworkingConfig::CNIConfig::Cilium
 
   getter chart_version : String = "v1.17.2"
   getter helm_values_path : String?
+  getter mtu : Int32?
+  getter underlay_mtu : Int32?
   getter encryption_type : String? = nil
   getter routing_mode : String? = nil
   getter tunnel_protocol : String? = nil

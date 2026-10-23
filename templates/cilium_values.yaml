@@ -10,6 +10,9 @@ encryption:
 # Routing and tunneling
 routingMode: {{ routing_mode }}
 tunnelProtocol: {{ tunnel_protocol }}
+{% if mtu %}
+MTU: {{ mtu }}
+{% endif %}
 
 # IPAM settings
 ipam:

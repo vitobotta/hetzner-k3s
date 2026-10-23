@@ -80,6 +80,8 @@ networking:
       # When specified, this file will be used instead of the default values
       # helm_values_path: "./cilium-values.yaml"
       # chart_version: "v1.17.2"
+      # mtu: 1450 # optional: Cilium underlay MTU; pod MTU is reduced by VXLAN overhead
+      # underlay_mtu: 1450 # optional: validation-only network path MTU constraint
 
   # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
   # service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
