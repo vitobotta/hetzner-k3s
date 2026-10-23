@@ -24,6 +24,10 @@ networking:
     public_key_path: "~/.ssh/id_ed25519.pub"
     private_key_path: "~/.ssh/id_ed25519"
     # existing_ssh_key_name: "my-existing-key" # optional: use an existing SSH key in Hetzner instead of creating a new one
+  # tailscale: # optional: private admin access to nodes and the Kubernetes API via a Tailscale tailnet, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Tailscale_integration.md
+  #   enabled: false
+  #   hostname_suffix: "my-tailnet.ts.net" # required when enabled
+  #   auth_key: "tskey-auth-..." # optional: defaults to the TAILSCALE_AUTH_KEY environment variable
   allowed_networks:
     ssh:
       - 0.0.0.0/0
