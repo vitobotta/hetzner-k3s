@@ -6,17 +6,18 @@ class Configuration::Validators::ExternalNodePool
   getter errors : Array(String)
   getter pool : Configuration::Models::WorkerNodePool
   getter settings : Configuration::Main
+
   def initialize(@errors, @pool, @settings)
   end
 
   def validate
-    # Rule #1: private network must be disabled
-    unless !settings.networking.private_network.enabled
-      errors << "External node pool '#{pool.name}' requires the private network to be disabled (set networking.private_network.enabled to false)"
+    # Rule #1: private network must be disabled unless external routing is available
+    if settings.networking.private_network.enabled && !settings.networking.private_network.external_routing
+      errors << "External node pool '#{pool.name}' requires the private network to be disabled (set networking.private_network.enabled to false) or external private network routing to be enabled (set networking.private_network.external_routing to true)"
     end
 
-    # Rule #2: local firewall must be enabled
-    unless settings.networking.public_network.use_local_firewall
+    # Rule #2: local firewall must be enabled when external nodes use the public network
+    if !settings.networking.private_network.enabled && !settings.networking.public_network.use_local_firewall
       errors << "External node pool '#{pool.name}' requires the local firewall (set networking.public_network.use_local_firewall to true)"
     end
 
