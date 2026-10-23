@@ -43,9 +43,14 @@
 - [Key Features](#key-features)
 - [Documentation](#documentation)
 - [Who am I?](#who-am-i)
-- [Sponsors](#sponsors)
+- [Sponsors](#why-sponsor)
+  - [Diamond Sponsors](#diamond-sponsors)
+  - [Bronze Sponsors](#bronze-sponsors)
+  - [Backers](#backers)
 - [Contributing](#contributing)
+- [Code of Conduct](#code-of-conduct)
 - [License](#license)
+- [Star History](#star-history)
 
 ---
 
