@@ -343,5 +343,3 @@ Open source under the [MIT License](https://github.com/vitobotta/hetzner-k3s/blo
 
 [![Stargazers over time](assets/star-history.svg)](https://github.com/vitobotta/hetzner-k3s/stargazers)
 
-The chart is generated from the GitHub API by [`scripts/generate_star_history.py`](scripts/generate_star_history.py) and refreshed daily by the [Star history workflow](.github/workflows/star-history.yml), so it does not depend on an external charting service.
-
