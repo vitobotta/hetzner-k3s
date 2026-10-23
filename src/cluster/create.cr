@@ -80,6 +80,8 @@ class Cluster::Create
     end
 
     warn_if_not_protected
+
+    print_access_instructions
   end
 
   private def validate_external_nodes
@@ -95,6 +97,15 @@ class Cluster::Create
 
     puts
     puts "WARNING!!! The cluster is not protected against deletion. If you want to protect the cluster against deletion, set `protect_against_deletion: true` in the configuration file.".colorize(:yellow)
+    puts
+  end
+
+  private def print_access_instructions
+    puts
+    puts "Your cluster is ready! To access it, run:".colorize(:green)
+    puts
+    puts "  export KUBECONFIG=#{configuration.kubeconfig_path}"
+    puts "  kubectl get nodes"
     puts
   end
 
