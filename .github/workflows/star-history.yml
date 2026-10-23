@@ -1,0 +1,55 @@
+name: Star history
+
+on:
+  schedule:
+    # Daily at 03:17 UTC. The chart is committed to the repository so the
+    # README never depends on a third-party charting service being up.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: star-history
+  cancel-in-progress: true
+
+jobs:
+  update:
+    name: Update star history chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+
+      - name: Generate star history chart
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/generate_star_history.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --output assets/star-history.svg
+
+      - name: Commit chart when it changed
+        # default_branch is repository metadata set by admins, not user input,
+        # and the workflow only runs on schedule/dispatch from that branch.
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if git diff --quiet -- assets/star-history.svg; then
+            echo "Star history chart is already up to date."
+            exit 0
+          fi
+
+          git add assets/star-history.svg
+          git commit -m "Update star history chart"
+          git push origin "HEAD:$DEFAULT_BRANCH"

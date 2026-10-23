@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    # The daily star history chart commit must not rebuild the binaries.
+    paths-ignore:
+      - "assets/**"
   pull_request:
 
 jobs:
