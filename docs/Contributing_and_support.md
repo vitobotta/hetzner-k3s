@@ -89,9 +89,9 @@ If you or your company find this project useful, please consider [becoming a spo
 
 ### Current Sponsors
 
-**Platinum:** [Alamos GmbH](https://alamos.gmbh)
+**Bronze:** [Zelkor](https://github.com/devopssquaddev/zelkor-platform)
 
-**Backers:** [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE)
+**Backers:** [@deubert-it](https://github.com/deubert-it), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian)
 
 ---
 

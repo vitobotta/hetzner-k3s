@@ -309,10 +309,6 @@ If hetzner-k3s saves you time or money, please consider [supporting its developm
 
 [SprintPulse](https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme) — the retrospective tool teams actually love. Run engaging retros with real-time collaboration, AI-powered insights, and actionable outcomes. Set up in 60 seconds, no training required.
 
-<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="70"></a>
-
-A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the development of key features!
-
 ### Bronze Sponsors
 
 <a href="https://github.com/devopssquaddev/zelkor-platform"><img src="zelkor-logo-small.png" alt="Zelkor" height="80"></a>
@@ -321,7 +317,7 @@ A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the dev
 
 ### Backers
 
-Thanks to [@deubert-it](https://github.com/deubert-it), [@mitja](https://github.com/mitja), [@elderapo](https://github.com/elderapo), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
+Thanks to [@deubert-it](https://github.com/deubert-it), [@elderapo](https://github.com/elderapo), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz) for their support!
 
 ---
 
