@@ -1,0 +1,51 @@
+---
+cluster_name: $NAME
+kubeconfig_path: $KUBECONFIG
+k3s_version: v1.35.4+k3s1
+config_format_version: 1
+
+networking:
+  ssh:
+    port: 22
+    use_agent: false
+    public_key_path: sshkey.pub
+    private_key_path: sshkey
+    use_tailscale: true
+    tailscale_hostname_suffix: $TAILSCALE_DOMAIN
+    ssh_wait_attempts: 60
+  allowed_networks:
+    ssh:
+      - 0.0.0.0/0
+    api:
+      - 0.0.0.0/0
+  public_network:
+    ipv4: true
+    ipv6: true
+  private_network:
+    enabled: true
+    subnet: 10.2.0.0/16
+
+datastore:
+  mode: etcd
+
+schedule_workloads_on_masters: false
+
+masters_pool:
+  instance_type: cx23
+  instance_count: 1
+  location: $LOCATION
+
+worker_node_pools:
+  - name: workers
+    instance_type: cx23
+    instance_count: 1
+    location: $LOCATION
+
+addons:
+  cluster_autoscaler:
+    enabled: false
+  metrics_server:
+    enabled: false
+
+protect_against_deletion: false
+create_load_balancer_for_the_kubernetes_api: false

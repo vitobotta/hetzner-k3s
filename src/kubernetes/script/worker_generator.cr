@@ -11,7 +11,8 @@ class Kubernetes::Script::WorkerGenerator
   include Util
   include Kubernetes::DeploymentHelper
 
-  WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/worker_install_script.sh") }}
+  WORKER_INSTALL_SCRIPT               = {{ read_file("#{__DIR__}/../../../templates/worker_install_script.sh") }}
+  CONFIGURE_IPV6_DNS_AND_CLATD_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/clatd/configure_ipv6_dns_and_clatd.sh") }}
 
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
   end
@@ -36,12 +37,20 @@ class Kubernetes::Script::WorkerGenerator
       private_network_subnet:       @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
       cluster_cidr:                 @settings.networking.cluster_cidr,
       service_cidr:                 @settings.networking.service_cidr,
+      ipv4_enabled:                 @settings.networking.public_network.ipv4.to_s,
+      configure_ipv6_dns_and_clatd: configure_ipv6_dns_and_clatd,
       extra_args:                   kubelet_args_list(external_config),
       labels_and_taints:            labels_and_taints,
       private_registry_config:      @settings.addons.embedded_registry_mirror.private_registry_config,
       additional_post_k3s_commands: post_k3s_commands,
       kubelet_provider_id:          kubelet_provider_id(pool, external_node),
       external_node_name:           external_node_name(pool, external_node),
+    })
+  end
+
+  private def configure_ipv6_dns_and_clatd
+    Crinja.render(CONFIGURE_IPV6_DNS_AND_CLATD_SCRIPT, {
+      k8s_resolv_nameservers: @settings.networking.effective_dns_servers.map { |s| "nameserver #{s}" }.join("\n"),
     })
   end
 

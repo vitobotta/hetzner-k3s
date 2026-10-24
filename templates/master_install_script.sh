@@ -4,6 +4,8 @@ touch /etc/initialized
 HOSTNAME=$(hostname -f)
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
 
+IPV4_ENABLED="{{ ipv4_enabled }}"
+
 # Network configuration
 if [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
@@ -115,7 +117,7 @@ fi
 mkdir -p /etc/rancher/k3s
 
 # Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<\EOF
+cat >/etc/rancher/k3s/registries.yaml <<"EOF"
 {{ private_registry_config | trim }}
 EOF
 
@@ -136,6 +138,8 @@ if [ -n "{{ cluster_domain }}" ]; then
 else
   CLUSTER_DOMAIN=""
 fi
+
+{{ configure_ipv6_dns_and_clatd }}
 
 # Install k3s
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
@@ -177,6 +181,19 @@ if [ ${PIPESTATUS[0]} -ne 0 ]; then
 fi
 
 echo "k3s installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# Disable Tailscale's built-in auto-update (Apply).
+# Tailscale ships its own updater that runs `apt-get install tailscale=<ver>`
+# independently of unattended-upgrades. An in-place daemon upgrade without a
+# subsequent reboot leaves kernel netfilter hooks in a broken state that
+# silently kills IPv6 NDP on eth0, taking down all internet connectivity and
+# cascading into DNS and tunnel failures. Tailscale must be upgraded manually
+# with a coordinated node reboot. Keep Check=true so new versions are visible
+# in `tailscale update` output without being applied automatically.
+if command -v tailscale >/dev/null 2>&1; then
+  tailscale set --auto-update=false 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo "Tailscale auto-update (Apply) disabled" 2>&1 | tee -a /var/log/hetzner-k3s.log
+fi
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

@@ -21,6 +21,24 @@ module Configuration
       getter service_cidr : String = "10.43.0.0/16"
       getter cluster_dns : String = "10.43.0.10"
       getter cluster_domain : String?
+      getter dns_servers : Array(String) = [] of String
+
+      # NAT64/DNS64 resolvers for IPv6-only nodes (Hetzner uses non-standard NAT64 prefix,
+      # so DNS64-capable resolvers are required to synthesise AAAA records for IPv4-only hosts).
+      DEFAULT_IPV6_DNS_SERVERS = [
+        "2a01:4f9:c010:3f02::1",
+        "2a00:1098:2c::1",
+        "2a00:1098:2b::1",
+      ]
+
+      DEFAULT_IPV4_DNS_SERVERS = ["8.8.8.8"]
+
+      # Returns the effective DNS server list, applying protocol-appropriate defaults
+      # when dns_servers is not explicitly configured.
+      def effective_dns_servers : Array(String)
+        return dns_servers unless dns_servers.empty?
+        public_network.ipv4 ? DEFAULT_IPV4_DNS_SERVERS : DEFAULT_IPV6_DNS_SERVERS
+      end
 
       def node_port_range_iptables : String
         node_port_range.includes?("-") ? node_port_range.gsub("-", ":") : node_port_range

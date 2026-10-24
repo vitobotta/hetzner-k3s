@@ -10,7 +10,8 @@ class Kubernetes::Script::MasterGenerator
   include Util
   include Kubernetes::DeploymentHelper
 
-  MASTER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/master_install_script.sh") }}
+  MASTER_INSTALL_SCRIPT               = {{ read_file("#{__DIR__}/../../../templates/master_install_script.sh") }}
+  CONFIGURE_IPV6_DNS_AND_CLATD_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/clatd/configure_ipv6_dns_and_clatd.sh") }}
 
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
   end
@@ -54,12 +55,20 @@ class Kubernetes::Script::MasterGenerator
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
       private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
       local_path_storage_class_enabled: @settings.addons.local_path_storage_class.enabled.to_s,
-      traefik_enabled:        @settings.addons.traefik.enabled.to_s,
-      servicelb_enabled:      @settings.addons.servicelb.enabled.to_s,
-      metrics_server_enabled: @settings.addons.metrics_server.enabled.to_s,
-      labels_and_taints:      labels_and_taints,
-      additional_post_k3s_commands: post_k3s_commands,
-      kube_proxy_enabled:             @settings.networking.cni.kube_proxy?.to_s,
+      traefik_enabled:                  @settings.addons.traefik.enabled.to_s,
+      servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
+      metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
+      ipv4_enabled:                     @settings.networking.public_network.ipv4.to_s,
+      configure_ipv6_dns_and_clatd:     configure_ipv6_dns_and_clatd,
+      labels_and_taints:                labels_and_taints,
+      additional_post_k3s_commands:     post_k3s_commands,
+      kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
+    })
+  end
+
+  private def configure_ipv6_dns_and_clatd
+    Crinja.render(CONFIGURE_IPV6_DNS_AND_CLATD_SCRIPT, {
+      k8s_resolv_nameservers: @settings.networking.effective_dns_servers.map { |s| "nameserver #{s}" }.join("\n"),
     })
   end
 

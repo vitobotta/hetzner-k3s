@@ -12,6 +12,15 @@ class Hetzner::Instance::CloudInitGenerator
   SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
 
+  TAILSCALE_NFTABLES_FIX_SCRIPT  = {{ read_file("#{__DIR__}/../../../templates/tailscale/tailscale_nftables_fix.sh") }}
+  TAILSCALE_NFTABLES_FIX_SERVICE = {{ read_file("#{__DIR__}/../../../templates/tailscale/tailscale_nftables_fix.service") }}
+
+  CONFIGURE_DNS_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/configure_dns.sh") }}
+
+  CLATD_CONF               = {{ read_file("#{__DIR__}/../../../templates/clatd/clatd.conf") }}
+  CLATD_NETWORKD_CONF      = {{ read_file("#{__DIR__}/../../../templates/clatd/10-clatd-foreign-rules.conf") }}
+  CLATD_SERVICE_RETRY_CONF = {{ read_file("#{__DIR__}/../../../templates/clatd/clatd-retry.conf") }}
+
   def initialize(
     @settings : Configuration::Main,
     @ssh_port : Int32,
@@ -30,7 +39,10 @@ class Hetzner::Instance::CloudInitGenerator
       post_create_commands_str:               generate_post_create_commands_str,
       eth1_str:                               eth1,
       firewall_files:                         firewall_files,
+      dns_files:                              dns_files,
+      clatd_files:                            clatd_files,
       ssh_files:                              ssh_files,
+      tailscale_files:                        tailscale_files,
       init_files:                             init_file_content,
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config,
       allowed_ssh_networks_config:            allowed_ssh_networks_config,
@@ -144,6 +156,81 @@ class Hetzner::Instance::CloudInitGenerator
     YAML
   end
 
+  private def dns_files
+    <<-YAML
+    - content: #{configure_dns_script}
+      permissions: '0755'
+      path: /usr/local/bin/configure-dns.sh
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def configure_dns_script
+    # Space-separated list consumed by the bash/awk script - safe since none
+    # of the supported DNS server addresses (IPv4/IPv6) contain whitespace.
+    servers_list = @settings.networking.effective_dns_servers.join(" ")
+    script = Crinja.render(CONFIGURE_DNS_SCRIPT, {
+      dns_servers_list: servers_list,
+    })
+    format_file_content(script)
+  end
+
+  private def clatd_files
+    return "" if @settings.networking.public_network.ipv4
+
+    <<-YAML
+    - content: #{clatd_conf}
+      path: /etc/clatd.conf
+      encoding: gzip+base64
+    - content: #{clatd_networkd_conf}
+      path: /etc/systemd/networkd.conf.d/10-clatd-foreign-rules.conf
+      encoding: gzip+base64
+    - content: #{clatd_service_retry_conf}
+      path: /etc/systemd/system/clatd.service.d/retry.conf
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def clatd_conf
+    format_file_content(CLATD_CONF)
+  end
+
+  private def clatd_networkd_conf
+    format_file_content(CLATD_NETWORKD_CONF)
+  end
+
+  private def clatd_service_retry_conf
+    format_file_content(CLATD_SERVICE_RETRY_CONF)
+  end
+
+  private def tailscale_files
+    return "" unless @settings.networking.ssh.use_tailscale
+
+    auth_key = @settings.networking.ssh.tailscale_auth_key
+
+    <<-YAML
+    - content: |
+        #{auth_key}
+      path: /run/tailscale-authkey
+      permissions: '0600'
+    - content: #{tailscale_nftables_fix_script}
+      permissions: '0755'
+      path: /usr/local/bin/tailscale-nftables-fix.sh
+      encoding: gzip+base64
+    - content: #{tailscale_nftables_fix_service}
+      path: /etc/systemd/system/tailscale-nftables-fix.service
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def tailscale_nftables_fix_script
+    format_file_content(TAILSCALE_NFTABLES_FIX_SCRIPT)
+  end
+
+  private def tailscale_nftables_fix_service
+    format_file_content(TAILSCALE_NFTABLES_FIX_SERVICE)
+  end
+
   private def growpart
     @snapshot_os == "microos" ? <<-YAML
     growpart:
@@ -201,12 +288,32 @@ class Hetzner::Instance::CloudInitGenerator
   end
 
   private def mandatory_post_create_commands
-    commands = [
-      "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
-      "update-crypto-policies --set DEFAULT:SHA1 || true",
+    commands = [] of String
+
+    commands << "/usr/local/bin/configure-dns.sh"
+
+    commands << "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)"
+    commands << "update-crypto-policies --set DEFAULT:SHA1 || true"
+
+    if @settings.networking.ssh.use_tailscale
+      commands << "curl -fsSL https://tailscale.com/install.sh | sh"
+      commands << "tailscale up --authkey=$(cat /run/tailscale-authkey) --hostname=$(hostname) --accept-routes && rm -f /run/tailscale-authkey"
+
+      # Disable Tailscale's built-in DNS so custom DNS servers (e.g. NAT64 resolvers)
+      # can handle all queries. Without this, Tailscale's MagicDNS intercepts queries
+      # and returns IPv4 addresses for domains like github.com, which IPv6-only nodes
+      # cannot reach. Note: this means MagicDNS hostnames (node.tailnet.ts.net) will
+      # only resolve via the Hetzner metadata API during provisioning.
+      commands << "tailscale set --accept-dns=false"
+
+      # Enable the nftables fix service to handle Tailscale's ts-input chain
+      # dropping DNAT'd ClusterIP traffic on IPv6-only nodes with CGNAT addresses
+      commands << "systemctl daemon-reload && systemctl enable --now tailscale-nftables-fix.service"
+    end
+
+    commands.concat([
       "/etc/configure_ssh.sh",
-      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf",
-    ]
+    ])
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
       commands << "/usr/local/bin/firewall.sh setup"
@@ -222,6 +329,7 @@ class Hetzner::Instance::CloudInitGenerator
     add_microos_commands(mandatory_commands) if @snapshot_os == "microos"
 
     formatted_pre_commands = format_additional_commands(@additional_pre_k3s_commands)
+    formatted_mandatory_commands = format_additional_commands(mandatory_commands)
     formatted_post_commands = format_additional_commands(@additional_post_k3s_commands)
 
     script_commands = Array(String).new
@@ -229,7 +337,7 @@ class Hetzner::Instance::CloudInitGenerator
       script_commands << "/etc/init-#{index}.sh"
     end
 
-    combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten
+    combined_commands = [formatted_pre_commands, formatted_mandatory_commands, script_commands, formatted_post_commands].flatten
 
     "- #{combined_commands.join("\n- ")}"
   end

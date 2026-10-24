@@ -37,7 +37,7 @@ class Hetzner::Instance::Create
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter mutex : Mutex
   private getter ssh_client : Util::SSH do
-    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip)
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip, tailscale_hostname_suffix: ssh.tailscale_hostname_suffix)
   end
   private property instance_existed : Bool = false
   private property powering_on_count : Int32 = 0
@@ -139,7 +139,7 @@ class Hetzner::Instance::Create
 
       next unless attached_to_network?(instance)
 
-      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready", max_attempts: ssh.ssh_wait_attempts
       ready = true
     end
 
