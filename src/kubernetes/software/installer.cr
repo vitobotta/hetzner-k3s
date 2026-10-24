@@ -2,6 +2,7 @@ require "../../configuration/loader"
 require "../../configuration/main"
 require "../../configuration/models/worker_node_pool"
 require "../../hetzner/instance"
+require "../../hetzner/load_balancer"
 require "../../util/ssh"
 require "./cilium"
 require "./hetzner/secret"
@@ -11,7 +12,7 @@ require "./system_upgrade_controller"
 require "./cluster_autoscaler"
 
 class Kubernetes::Software::Installer
-  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
+  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @load_balancer : ::Hetzner::LoadBalancer? = nil)
   end
 
   def install_all(first_master, masters, ssh, autoscaling_worker_node_pools)
@@ -45,7 +46,7 @@ class Kubernetes::Software::Installer
 
   private def install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
     if @settings.addons.cluster_autoscaler.enabled? && first_master
-      Kubernetes::Software::ClusterAutoscaler.new(@configuration, @settings, masters, first_master, ssh, autoscaling_worker_node_pools).install
+      Kubernetes::Software::ClusterAutoscaler.new(@configuration, @settings, masters, first_master, ssh, autoscaling_worker_node_pools, @load_balancer).install
     end
   end
 end
