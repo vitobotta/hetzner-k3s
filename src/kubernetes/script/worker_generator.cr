@@ -31,7 +31,7 @@ class Kubernetes::Script::WorkerGenerator
       cluster_name:                 @settings.cluster_name,
       k3s_token:                    generate_k3s_token(masters, first_master),
       k3s_version:                  @settings.k3s_version,
-      api_server_ip_address:        api_server_ip_address(first_master),
+      api_server_ip_address:        join_address(first_master, is_external),
       private_network_enabled:      @settings.networking.private_network.enabled.to_s,
       private_network_subnet:       @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
       cluster_cidr:                 @settings.networking.cluster_cidr,
@@ -72,6 +72,17 @@ class Kubernetes::Script::WorkerGenerator
   private def external_node_name(pool, external_node : Configuration::Models::ExternalNode?) : String
     return "" unless pool.external? && external_node && external_node.manage_hostname
     @settings.external_worker_hostname(pool, external_node.index)
+  end
+
+  # The address a worker registers against. With join_via_api_server_hostname, the
+  # api_server_hostname (already in the masters' TLS SANs), so that a DNS name resolving to every
+  # master, or to the API load balancer, lets a worker (an autoscaled one included) join while the
+  # first master is down. The first master otherwise. External nodes keep the first master.
+  private def join_address(first_master, is_external : Bool) : String
+    hostname = @settings.api_server_hostname.try(&.strip)
+    return hostname if @settings.join_via_api_server_hostname && hostname && !hostname.empty? && !is_external
+
+    api_server_ip_address(first_master)
   end
 
   private def generate_k3s_token(masters, first_master)
