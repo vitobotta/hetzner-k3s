@@ -74,10 +74,21 @@ class Configuration::Validators::CreateSettings
       settings: settings
     ).validate
 
+    validate_join_via_api_server_hostname
+
     Configuration::Validators::KubectlPresence.new(errors).validate
 
     Configuration::Validators::HelmPresence.new(errors).validate
 
     Configuration::Validators::AutoscalerSSHKey.new(errors, settings, hetzner_client).validate
+  end
+
+  private def validate_join_via_api_server_hostname
+    return unless settings.join_via_api_server_hostname
+
+    hostname = settings.api_server_hostname
+    if hostname.nil? || hostname.strip.empty?
+      errors << "join_via_api_server_hostname requires api_server_hostname to be set"
+    end
   end
 end
