@@ -43,6 +43,9 @@ class Hetzner::Instance::CloudInitGenerator
   private def encode(content)
     io = IO::Memory.new
     Compress::Gzip::Writer.open(io) do |gzip|
+      # A fixed timestamp keeps the output stable across runs, so an unchanged cloud-init (e.g. in
+      # the cluster autoscaler's config) does not look changed.
+      gzip.header.modification_time = Time.unix(0)
       gzip.write(content.to_slice)
     end
     Base64.strict_encode(io.to_s)
