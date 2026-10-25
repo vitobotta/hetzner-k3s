@@ -221,10 +221,10 @@ class Cluster::Run
     if host_ip_address
       output_lines << "=== Instance: #{instance.name} (#{host_ip_address}) ==="
 
-      ssh, port, use_agent, use_sudo = resolve_ssh_for_instance(instance, host_ip_address)
+      ssh, ssh_instance, port, use_agent, use_sudo = resolve_ssh_for_instance(instance, host_ip_address)
 
       begin
-        success_message = block.call(ssh, instance, port, use_agent, use_sudo)
+        success_message = block.call(ssh, ssh_instance, port, use_agent, use_sudo)
         output_lines << success_message
       rescue ex : IO::Error
         output_lines << "SSH #{action_type.downcase} failed: #{ex.message}".colorize(:red).to_s
@@ -245,26 +245,37 @@ class Cluster::Run
     success
   end
 
-  private def resolve_ssh_for_instance(instance, host_ip_address) : {Util::SSH, Int32, Bool, Bool}
+  private def resolve_ssh_for_instance(instance, host_ip_address) : {Util::SSH, Hetzner::Instance, Int32, Bool, Bool}
     external_node = find_external_node(instance, host_ip_address)
     if external_node
       ssh = Util::SSH.new(external_node.ssh_private_key_path, "", false, external_node.ssh_user)
       use_sudo = external_node.ssh_user != "root"
-      {ssh, external_node.ssh_port, false, use_sudo}
+      ssh_instance = Hetzner::Instance.new(instance.id, instance.status, instance.name, external_node.host, external_node.host)
+      {ssh, ssh_instance, external_node.ssh_port, false, use_sudo}
     else
       ssh = Util::SSH.new(
         settings.networking.ssh.private_key_path,
         settings.networking.ssh.public_key_path,
         settings.networking.ssh.use_private_ip
       )
-      {ssh, settings.networking.ssh.port, settings.networking.ssh.use_agent, false}
+      {ssh, instance, settings.networking.ssh.port, settings.networking.ssh.use_agent, false}
     end
   end
 
-  # Match external nodes by IP first, then by instance name (the k8s node name).
+  # Match routed cluster IPs before SSH endpoints, which may differ from InternalIP.
+  # Then match by host IP or instance name (the k8s node name).
   # When manage_hostname: true, the node name is the generated hostname.
   # When manage_hostname: false, we fall back to IP matching only.
   private def find_external_node(instance, host_ip_address) : Configuration::Models::ExternalNode?
+    if settings.networking.private_network.enabled && settings.networking.private_network.external_routing
+      settings.worker_node_pools.each do |pool|
+        next unless pool.external?
+        if node = pool.external.try(&.nodes.find { |n| n.cluster_ip == instance.private_ip_address })
+          return node
+        end
+      end
+    end
+
     # Try IP match first
     if node = find_external_node_by_ip(host_ip_address)
       return node

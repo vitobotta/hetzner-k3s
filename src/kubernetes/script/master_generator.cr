@@ -45,7 +45,6 @@ class Kubernetes::Script::MasterGenerator
       tls_sans:                         kubeconfig_manager.generate_tls_sans(masters, first_master, load_balancer),
       private_network_enabled:          @settings.networking.private_network.enabled.to_s,
       private_network_subnet:           @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
-      private_network_external_routing: @settings.networking.private_network.external_routing.to_s,
       cluster_cidr:                     @settings.networking.cluster_cidr,
       service_cidr:                     @settings.networking.service_cidr,
       cluster_dns:                      @settings.networking.cluster_dns,

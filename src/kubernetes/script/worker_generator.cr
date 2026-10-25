@@ -35,6 +35,10 @@ class Kubernetes::Script::WorkerGenerator
       private_network_enabled:          @settings.networking.private_network.enabled.to_s,
       private_network_subnet:           @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
       private_network_external_routing: @settings.networking.private_network.external_routing.to_s,
+      external_node_ip:                 external_node.try(&.cluster_ip) || "",
+      external_node_host:               external_node.try(&.host) || "",
+      cni:                              @settings.networking.cni.enabled.to_s,
+      cni_mode:                         @settings.networking.cni.mode,
       cluster_cidr:                     @settings.networking.cluster_cidr,
       service_cidr:                     @settings.networking.service_cidr,
       extra_args:                       kubelet_args_list(external_config),
@@ -64,7 +68,11 @@ class Kubernetes::Script::WorkerGenerator
 
       "hrobot://#{robot_server_number}"
     else
-      "external://$PUBLIC_IP"
+      if @settings.networking.private_network.enabled && @settings.networking.private_network.external_routing
+        "external://$PRIVATE_IP"
+      else
+        "external://$PUBLIC_IP"
+      end
     end
   end
 
