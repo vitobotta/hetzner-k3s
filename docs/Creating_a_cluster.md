@@ -170,7 +170,7 @@ worker_node_pools:
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
-create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access; note: Hetzner firewalls can't yet restrict access to load balancers by IP
+create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
 k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability
 
@@ -235,6 +235,8 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
+
+With `create_load_balancer_for_the_kubernetes_api` enabled (and more than one master), workers, static and autoscaled, register with the cluster through the load balancer instead of the first master, so a node can still join while that master is down. They use the same load balancer address as the kubeconfig: the private one with `networking.ssh.use_private_ip: true`, the public one otherwise, because that is the address in the masters' certificates. Masters and external nodes keep joining through the first master. On a cluster created with an earlier version, the next `create` restarts `k3s-agent` once on each static worker (running pods are not affected); existing autoscaled nodes keep the old address and new ones use the load balancer.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
