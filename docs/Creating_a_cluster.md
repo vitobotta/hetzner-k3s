@@ -204,6 +204,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 # - arg1
 # - ...
 # api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
+# join_via_api_server_hostname: false # optional: workers join through api_server_hostname instead of the first master's IP (see below). Requires the DNS record to exist before workers are created.
 ```
 
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
@@ -235,6 +236,10 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
+
+By default, every worker (static and autoscaled) registers with the cluster through the first master's IP address, so no new node can join while that master is down, even if the other masters are healthy. Set `join_via_api_server_hostname: true` to make workers join through `api_server_hostname` instead. The name must resolve, from the nodes, to the API load balancer or to all masters (for example, one A record per master's private IP: the agent tries the addresses in turn until one answers, paying a connect timeout on each dead one).
+
+The name must already resolve on the nodes when the setting takes effect: when you enable it on an existing cluster, the next `create` points every static worker's `k3s-agent` at the name and restarts it once (running pods are not affected), and a name that does not resolve leaves those workers unable to reach the API. On a new cluster that points the name at the API load balancer, whose address only exists after the first `create`, create the cluster first, add the DNS record, then enable the setting and run `create` again. If `api_server_hostname` is added at the same time as this setting, the masters' certificates change too. Existing autoscaled nodes keep the old address; new ones use the hostname. External nodes always join through the first master.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
