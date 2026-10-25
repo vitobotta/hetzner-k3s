@@ -71,6 +71,7 @@ networking:
     enabled: true
     subnet: 10.0.0.0/16
     existing_network_name: ""
+    external_routing: false # set true if external nodes can reach the private network through your own VPN/routing
   cni:
     enabled: true
     encryption: false
@@ -432,7 +433,8 @@ Robot credentials are Robot Webservice credentials, created in the Robot UI unde
 
 | Property | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `host` | String | yes | — | IP address of the external node (must be a valid IPv4 address, not a DNS hostname) |
+| `host` | String | yes | — | SSH endpoint of the external node (must be a valid IPv4 address, not a DNS hostname) |
+| `ip` | String | no | `host` | Node's locally assigned, cluster-reachable IPv4 address in externally routed private-network mode. Set this when the SSH endpoint differs from the node's routed address. Only supported with `private_network.enabled: true` and `private_network.external_routing: true`. |
 | `ssh_user` | String | yes | — | SSH username for the node (e.g. `root`, `ubuntu`) |
 | `ssh_port` | Int32 | no | `22` | SSH port |
 | `ssh_private_key_path` | String | yes | — | Path to the SSH private key (supports `~/` expansion) |
@@ -461,16 +463,56 @@ External nodes must:
 
 External node pools require the following cluster-wide settings:
 
-- `networking.private_network.enabled: false` — external nodes cannot join a Hetzner private network.
-- `networking.public_network.use_local_firewall: true` — the local firewall is deployed to each external node via SSH.
-- `networking.public_network.hetzner_ips_query_server_url` must be set (required by the local firewall to fetch Hetzner node IPs).
+- `networking.private_network.enabled: false` and `networking.public_network.use_local_firewall: true` — external nodes use the public network and the local firewall is deployed to each external node via SSH.
+- Or `networking.private_network.enabled: true` and `networking.private_network.external_routing: true` — external nodes use your own VPN/routing connectivity to reach the private network.
+- `networking.public_network.hetzner_ips_query_server_url` must be set when using the public-network/local-firewall mode (required by the local firewall to fetch Hetzner node IPs).
+
+#### Externally routed private networks
+
+Use `external_routing: true` when you already provide routing (for example, a site-to-site VPN) between external workers and the Hetzner private network. Hetzner cloud masters and workers continue to use their normal private-network interface and address, including when they also have public IPs. The flag only changes address selection for external workers; it does not create a VPN or install routes.
+
+For each external worker, `ip` defaults to `host`. This preserves private-IP-only configurations. When SSH uses a different address, configure both explicitly:
+
+```yaml
+networking:
+  private_network:
+    enabled: true
+    subnet: 10.20.0.0/16
+    external_routing: true
+worker_node_pools:
+  - name: routed-workers
+    instance_type: external
+    instance_count: 1
+    external:
+      provider: generic
+      nodes:
+        - host: 192.0.2.10 # SSH endpoint
+          ip: 10.10.0.10 # Address assigned to the worker and reachable by the cluster
+          ssh_user: root
+          ssh_private_key_path: ~/.ssh/external-worker
+          manage_hostname: false
+          index: 1
+```
+
+The worker registers with `--node-ip=ip`. If `host` differs, it is also advertised as `--node-external-ip=host`; otherwise that redundant flag is omitted. Neither address is guessed from the order of `hostname -I`. The cluster IP must be assigned to an interface on the worker; installation fails with an explanatory error otherwise. Flannel uses that interface, including on multihomed hosts. Generic workers use `external://<cluster-ip>` as their provider ID in this mode; Robot workers retain `hrobot://<server-number>` and their existing HCCM/Robot requirements.
+
+You are responsible for the routed network and its firewall rules:
+
+- All participating node addresses must have bidirectional reachability, including cloud-to-external and external-to-external traffic. SSH reachability from the installer alone is insufficient. Avoid overlapping node, pod, service and VPN address ranges.
+- Allow workers to reach the Kubernetes API on masters (TCP 6443), and the control plane to reach worker kubelets (TCP 10250). Permit any additional ports required by your enabled features.
+- Permit the selected CNI transport between nodes: Flannel VXLAN and Cilium VXLAN normally use UDP 8472; Cilium Geneve uses UDP 6081. Encryption changes the requirements (for example, Flannel WireGuard IPv4 UDP 51820 and Cilium WireGuard UDP 51871). Check the documentation for your configured CNI/version and IPv6 settings.
+- With an encapsulated CNI, the underlay must route the node/tunnel-endpoint addresses; it does not need direct routes for every pod CIDR. Native/direct-routing configurations also require bidirectional pod-CIDR routing between the external nodes and the cloud network.
+- Account for VPN plus CNI encapsulation overhead when configuring MTU, and permit any ICMP/health traffic required for path-MTU discovery and CNI health checks.
+- **hetzner-k3s does not deploy its managed local firewall in private-network mode**, even if `use_local_firewall` is set. Supply the required protection on your routers and/or nodes. The public-network IP-query service is not required in routing mode.
+
+Node addresses and interface flags are set at installation time. Changing `external_routing`, `host` or `ip` does not migrate an installed node: `create` skips k3s installation on initialized external workers. Plan a controlled drain and node recreation/reinstallation when changing these settings. Updating the CLI alone does not rewrite existing nodes. Do not switch an existing cluster between public and private addressing by simply toggling this flag.
 
 #### Validation rules
 
 The following rules are enforced at config validation time:
 
-1. Private network must be disabled.
-2. Local firewall must be enabled.
+1. Private network must be disabled unless `networking.private_network.external_routing` is enabled.
+2. Local firewall must be enabled when external nodes use the public network.
 3. No Hetzner-specific fields allowed in the pool (`image`, `autoscaling`, `grow_root_partition_automatically`, `legacy_instance_type`).
 4. Masters pool cannot use `instance_type: external`.
 5. `instance_count` must equal the number of nodes in `external.nodes`.
@@ -478,6 +520,8 @@ The following rules are enforced at config validation time:
 7. Node hosts must be unique within a pool.
 8. Robot pools must define Robot credentials and `robot_server_number` for every node.
 9. Robot server numbers must be unique across Robot external pools.
+10. `external_routing: true` requires private networking to be enabled and at least one external worker pool.
+11. In routing mode, effective cluster IPs (`ip`, or `host` if omitted) must be valid IPv4 addresses and unique across external pools. An explicit `ip` is rejected outside routing mode.
 
 At runtime, before cluster creation begins, hetzner-k3s also validates:
 
@@ -493,12 +537,12 @@ When you run `hetzner-k3s create`, for each external node hetzner-k3s will:
 1. Set the hostname (if `manage_hostname: true`).
 2. Install packages (`fail2ban`, `wireguard`, plus any `additional_packages`).
 3. Configure the DNS resolver.
-4. Deploy the local firewall (rendered with the node's own SSH port).
+4. In public-network/local-firewall mode, deploy the local firewall (rendered with the node's own SSH port). This step is skipped in externally routed private-network mode.
 5. Run pre-k3s commands (`additional_pre_k3s_commands`).
 6. Install k3s worker and join it to the cluster.
 7. Run post-k3s commands (`additional_post_k3s_commands`).
 
-With `provider: generic`, external workers are not initialized by the Hetzner Cloud Controller Manager. hetzner-k3s installs them without kubelet's `cloud-provider=external` argument, and assigns a synthetic `external://<public-ip>` provider ID so the cloud node lifecycle controller will not delete them when they are temporarily NotReady.
+With `provider: generic`, external workers are not initialized by the Hetzner Cloud Controller Manager. hetzner-k3s installs them without kubelet's `cloud-provider=external` argument, and assigns a synthetic `external://<public-ip>` provider ID (or `external://<cluster-ip>` in externally routed mode) so the cloud node lifecycle controller will not delete them when they are temporarily NotReady.
 
 With `provider: robot`, hetzner-k3s installs workers with kubelet's `cloud-provider=external` argument and assigns `hrobot://<server-number>` provider IDs. It also enables Robot support in the Hetzner Cloud Controller Manager manifest and adds the Robot credentials to the `hcloud` secret. If `manage_hostname: true`, hetzner-k3s updates the Robot server name through the Robot Webservice API before setting the OS hostname. If `manage_hostname: false`, the existing Robot server name and OS hostname must already match.
 
@@ -510,7 +554,7 @@ The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3
 
 #### `hetzner-k3s run` support
 
-The `run` command detects external nodes by matching their IP against the `external.nodes[].host` entries. If a match is found, it uses the node's per-node SSH settings (key, user, port) instead of the cluster-wide SSH settings. This allows you to run commands and scripts on external nodes just like on Hetzner nodes.
+The `run` command detects external nodes by matching their IP against the `external.nodes[].host` entries, or their effective cluster IP in externally routed mode. It can also match generated names when `manage_hostname: true`. If a match is found, it connects to the configured `host` using the node's per-node SSH settings (key, user, port), even when the Kubernetes InternalIP differs. This allows you to run commands and scripts on external nodes just like on Hetzner nodes.
 
 ---
 ### Idempotency

@@ -5,6 +5,7 @@ class Configuration::Models::NetworkingConfig::PrivateNetwork
   getter enabled : Bool = true
   getter subnet : String = "10.0.0.0/16"
   getter existing_network_name : String = ""
+  getter external_routing : Bool = false
 
   def initialize
   end

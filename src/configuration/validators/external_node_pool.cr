@@ -6,17 +6,18 @@ class Configuration::Validators::ExternalNodePool
   getter errors : Array(String)
   getter pool : Configuration::Models::WorkerNodePool
   getter settings : Configuration::Main
+
   def initialize(@errors, @pool, @settings)
   end
 
   def validate
-    # Rule #1: private network must be disabled
-    unless !settings.networking.private_network.enabled
-      errors << "External node pool '#{pool.name}' requires the private network to be disabled (set networking.private_network.enabled to false)"
+    # Rule #1: private network must be disabled unless external routing is available
+    if settings.networking.private_network.enabled && !settings.networking.private_network.external_routing
+      errors << "External node pool '#{pool.name}' requires the private network to be disabled (set networking.private_network.enabled to false) or external private network routing to be enabled (set networking.private_network.external_routing to true)"
     end
 
-    # Rule #2: local firewall must be enabled
-    unless settings.networking.public_network.use_local_firewall
+    # Rule #2: local firewall must be enabled when external nodes use the public network
+    if !settings.networking.private_network.enabled && !settings.networking.public_network.use_local_firewall
       errors << "External node pool '#{pool.name}' requires the local firewall (set networking.public_network.use_local_firewall to true)"
     end
 
@@ -61,7 +62,7 @@ class Configuration::Validators::ExternalNodePool
     end
     # Host IPs must be valid IPv4 addresses (firewall ipset only accepts IP/CIDR, not DNS names)
     hosts = external_config.nodes.map(&.host)
-    invalid_hosts = hosts.reject { |host| host =~ /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/ && $~.captures.all? { |octet| octet.try(&.to_i).try { |n| n >= 0 && n <= 255 } } }
+    invalid_hosts = hosts.reject { |host| valid_ipv4?(host) }
     unless invalid_hosts.empty?
       errors << "External node pool '#{pool.name}' has invalid host values (must be valid IPv4 addresses): #{invalid_hosts.join(", ")}"
     end
@@ -77,7 +78,40 @@ class Configuration::Validators::ExternalNodePool
       errors << "External node pool '#{pool.name}' reuses host values already used by another external pool: #{duplicate_hosts_across_pools.join(", ")}"
     end
 
+    validate_node_ips(external_config)
     validate_robot_config(external_config) if external_config.robot?
+  end
+
+  private def valid_ipv4?(ip : String) : Bool
+    !!(ip =~ /\A(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})\z/ && $~.captures.all? { |octet| octet.try(&.to_i).try { |n| n >= 0 && n <= 255 } })
+  end
+
+  private def validate_node_ips(external_config)
+    unless settings.networking.private_network.enabled && settings.networking.private_network.external_routing
+      if external_config.nodes.any? { |node| !node.ip.nil? }
+        errors << "External node pool '#{pool.name}' may only set external.nodes[].ip with private_network.enabled and private_network.external_routing enabled"
+      end
+      return
+    end
+
+    ips = external_config.nodes.map(&.cluster_ip)
+    invalid_ips = ips.reject { |ip| valid_ipv4?(ip) }
+    unless invalid_ips.empty?
+      errors << "External node pool '#{pool.name}' has invalid cluster IP values (ip, or host when ip is omitted, must be valid IPv4 addresses): #{invalid_ips.join(", ")}"
+    end
+
+    if ips.uniq.size != ips.size
+      errors << "External node pool '#{pool.name}' has duplicate cluster IPs: #{ips.tally.select { |_, count| count > 1 }.keys.join(", ")}"
+    end
+
+    other_ips = settings.worker_node_pools.flat_map do |other_pool|
+      next [] of String if other_pool == pool || !other_pool.external?
+      other_pool.external.try(&.nodes.map(&.cluster_ip)) || [] of String
+    end
+    duplicates = ips & other_ips
+    unless duplicates.empty?
+      errors << "External node pool '#{pool.name}' reuses cluster IPs already used by another external pool: #{duplicates.join(", ")}"
+    end
   end
 
   private def validate_provider(external_config)

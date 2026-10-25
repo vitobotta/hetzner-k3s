@@ -7,9 +7,34 @@ if [ -n "$EXTERNAL_NODE_NAME" ]; then
   HOSTNAME="$EXTERNAL_NODE_NAME"
 fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
+NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
 
 # Network configuration
-if [ "{{ private_network_enabled }}" = "true" ]; then
+if [ "{{ is_external }}" = "true" ] && [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_external_routing }}" = "true" ]; then
+  echo "Using externally routed private network" >/var/log/hetzner-k3s.log
+  PRIVATE_IP="{{ external_node_ip }}"
+  PUBLIC_IP="{{ external_node_host }}"
+  NODE_EXTERNAL_IP=""
+  if [ "$PUBLIC_IP" != "$PRIVATE_IP" ]; then
+    NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
+  fi
+
+  # The routed address must belong to this node, not to a NAT gateway or proxy.
+  # Select its interface explicitly, including on multihomed/VPN-connected hosts.
+  NETWORK_INTERFACE=$(
+    ip -4 -o addr show |
+      awk -v address="$PRIVATE_IP" 'split($4, cidr, "/") && cidr[1] == address {sub(/@.*/, "", $2); print $2; exit}'
+  )
+  if [ -z "$NETWORK_INTERFACE" ]; then
+    echo "ERROR: Routed cluster IP $PRIVATE_IP is not assigned to a local interface; set external.nodes[].ip to the node's routed IPv4 address" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    exit 1
+  fi
+
+  FLANNEL_SETTINGS=""
+  if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]; then
+    FLANNEL_SETTINGS="--flannel-iface=$NETWORK_INTERFACE"
+  fi
+elif [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
 
@@ -101,7 +126,7 @@ curl -sfL https://get.k3s.io | \
     --node-name=$HOSTNAME \
     {{ extra_args }} {{ labels_and_taints }} \
     --node-ip=$PRIVATE_IP \
-    --node-external-ip=$PUBLIC_IP \
+    $NODE_EXTERNAL_IP \
     $KUBELET_PROVIDER_ID \
     $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
 install_status=("${PIPESTATUS[@]}")
