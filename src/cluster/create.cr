@@ -104,7 +104,7 @@ class Cluster::Create
     puts
     puts "Your cluster is ready! To access it, run:".colorize(:green)
     puts
-    puts "  export KUBECONFIG=#{configuration.kubeconfig_path}"
+    puts "  export KUBECONFIG=\"#{configuration.kubeconfig_path}\""
     puts "  kubectl get nodes"
     puts
   end
