@@ -294,7 +294,7 @@ class Hetzner::LoadBalancer::Create
   # (e.g. the desired state was reached by a previous attempt): returning true stops retrying.
   # Returns the response body, which is only meaningful when the POST itself succeeded.
   private def post_with_retries(path : String, params, description : String, &) : String
-    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds, max_elapsed_time: 3.hours, on: [ActionFailed, IO::Error, OpenSSL::SSL::Error]) do
+    Retriable.retry(max_attempts: 10, backoff: false, base_interval: 5.seconds, on: [ActionFailed, IO::Error, OpenSSL::SSL::Error]) do
       success, response = begin
         hetzner_client.post(path, params)
       rescue ex : IO::Error | OpenSSL::SSL::Error
@@ -320,7 +320,7 @@ class Hetzner::LoadBalancer::Create
   end
 
   private def wait_for_load_balancer(description : String, id : Int32? = nil, & : Hetzner::LoadBalancer -> Bool) : Hetzner::LoadBalancer
-    deadline = Time.monotonic + 5.minutes
+    deadline = Time.instant + 5.minutes
     attempts = 0
     consecutive_misses = 0
     consecutive_failures = 0
@@ -354,7 +354,7 @@ class Hetzner::LoadBalancer::Create
 
       # Probes can block well beyond the 1 second sleep (client-side retries and rate limiting),
       # so the deadline is only honored after a minimum number of actual probes.
-      if attempts >= 30 && Time.monotonic > deadline
+      if attempts >= 30 && Time.instant > deadline
         failure_details = last_fetch_failure ? " (last fetch failure: #{last_fetch_failure})" : ""
         STDERR.puts "[#{default_log_prefix}] Timed out waiting for #{description}#{failure_details}"
         raise "Timed out waiting for #{description}"

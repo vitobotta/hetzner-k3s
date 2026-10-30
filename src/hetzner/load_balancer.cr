@@ -29,6 +29,10 @@ class Hetzner::LoadBalancer
   end
 
   def private_ip_address : String?
+    private_network_ip_address || public_ip_address
+  end
+
+  def private_network_ip_address : String?
     private_net.first?.try(&.ip)
   end
 
@@ -37,7 +41,7 @@ class Hetzner::LoadBalancer
   end
 
   def ip_address(prefer_private : Bool) : String?
-    prefer_private || !public_interface_enabled? ? private_ip_address : public_ip_address
+    prefer_private || !public_interface_enabled? ? private_network_ip_address : public_ip_address
   end
 
   def attached_to_network?(network_id) : Bool
