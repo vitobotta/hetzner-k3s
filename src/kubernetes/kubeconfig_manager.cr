@@ -60,14 +60,7 @@ class Kubernetes::KubeconfigManager
 
     run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", @settings.hetzner_token, log_prefix: "Control plane")
 
-    # With a private-only API load balancer the first master's context may point at an unreachable public IP
-    default_context = if load_balancer_kubeconfig_path && @settings.disable_public_interface_for_the_kubernetes_api_load_balancer
-      @settings.cluster_name
-    else
-      first_master.name
-    end
-
-    switch_to_context(default_context, kubeconfig_path)
+    switch_to_context(first_master.name, kubeconfig_path)
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")

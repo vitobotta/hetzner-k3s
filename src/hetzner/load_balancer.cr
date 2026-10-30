@@ -7,15 +7,7 @@ class Hetzner::LoadBalancer
   class Target
     include JSON::Serializable
 
-    class LabelSelector
-      include JSON::Serializable
-
-      property selector : String?
-    end
-
-    property type : String?
     property use_private_ip : Bool?
-    property label_selector : LabelSelector?
   end
 
   property id : Int32
@@ -29,19 +21,18 @@ class Hetzner::LoadBalancer
   end
 
   def private_ip_address : String?
-    private_network_ip_address || public_ip_address
-  end
-
-  def private_network_ip_address : String?
-    private_net.first?.try(&.ip)
+    private_net.first?.try(&.ip).presence || public_ip_address
   end
 
   def public_interface_enabled? : Bool
     public_net.try(&.enabled) == true
   end
 
+  # A disabled public interface must never be handed out, so there is no public fallback then.
   def ip_address(prefer_private : Bool) : String?
-    prefer_private || !public_interface_enabled? ? private_network_ip_address : public_ip_address
+    return private_net.first?.try(&.ip).presence unless public_interface_enabled?
+
+    prefer_private ? private_ip_address : public_ip_address
   end
 
   def attached_to_network?(network_id) : Bool
