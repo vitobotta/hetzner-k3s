@@ -62,7 +62,7 @@ Also configure the allowed networks:
       - 0.0.0.0/0
 ```
 
-- [ ] Since you're setting up a private cluster, it makes sense to turn off the load balancer for the Kubernetes API. You can do this by setting `create_load_balancer_for_the_kubernetes_api` to `false`.
+- [ ] Since you're setting up a private cluster, it makes sense to turn off the load balancer for the Kubernetes API. You can do this by setting `create_load_balancer_for_the_kubernetes_api` to `false`. Alternatively, if you still want a load balancer in front of the API for a multi-master cluster, you can keep it enabled and set `disable_public_interface_for_the_kubernetes_api_load_balancer` to `true` so that the load balancer is only reachable via the private network.
 
 - [ ] Also, if you want to use an OS image other than the default (`ubuntu-24.04`), you can configure it accordingly. For example, if you prefer Debian 12, you can set it up like this:
 
