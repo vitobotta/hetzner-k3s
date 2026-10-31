@@ -20,6 +20,7 @@ hetzner_token: <your token>
 cluster_name: my-cluster
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.32.0+k3s1
+config_format_version: 1
 
 networking:
   ssh:
@@ -115,6 +116,7 @@ hetzner_token: <your token>
 cluster_name: large-cluster
 kubeconfig_path: "./kubeconfig"
 k3s_version: v1.32.0+k3s1
+config_format_version: 1
 
 networking:
   ssh:
