@@ -131,9 +131,38 @@ curl -sfL https://get.k3s.io | \
     $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
 install_status=("${PIPESTATUS[@]}")
 
+# The installer skips the service start when the unit it wrote is identical to the existing one
+# ("No change detected so skipping service start"), so an in-place reinstall with unchanged flags
+# (k3s-killall.sh, then create) ends with a stopped agent and create times out waiting for the
+# node. Only a plainly inactive unit is started here; a failed or restarting one is left to the
+# check below.
+if [ "${install_status[0]}" -eq 0 ] && [ "${install_status[1]}" -eq 0 ] && [ "$(systemctl is-active k3s-agent 2>/dev/null)" = "inactive" ]; then
+  echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl start k3s-agent 2>&1 | tee -a /var/log/hetzner-k3s.log
+  install_status=("${PIPESTATUS[0]}" 0)
+fi
+
+# The installer's final "systemctl restart k3s-agent" can report a failure for a start that k3s
+# itself gave up on: the agent registers the node and flannel annotates it a moment later, and
+# when the node is not yet visible to k3s's own client it shuts down ("flannel failed to sync
+# address annotations: node not found"). systemd records the start as failed (Result=protocol)
+# and restarts the unit 5 s later, which succeeds. Give the unit that chance before declaring
+# the installation failed.
+if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
+  for i in $(seq 1 24); do
+    if systemctl is-active --quiet k3s-agent; then
+      echo "k3s-agent is active after a failed first start (systemd restarted it); continuing" 2>&1 | tee -a /var/log/hetzner-k3s.log
+      install_status=(0 0)
+      break
+    fi
+    sleep 5
+  done
+fi
+
 # Check if installation was successful
 if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  journalctl -u k3s-agent --no-pager -n 30 2>/dev/null | tee -a /var/log/hetzner-k3s.log || true
   exit 1
 fi
 

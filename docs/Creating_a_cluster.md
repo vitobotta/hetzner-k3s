@@ -507,6 +507,8 @@ You are responsible for the routed network and its firewall rules:
 
 Node addresses and interface flags are set at installation time. Changing `external_routing`, `host` or `ip` does not migrate an installed node: `create` skips k3s installation on initialized external workers. Plan a controlled drain and node recreation/reinstallation when changing these settings. Updating the CLI alone does not rewrite existing nodes. Do not switch an existing cluster between public and private addressing by simply toggling this flag.
 
+To reinstall an external worker in place, drain it, stop k3s on it with `k3s-killall.sh` (which keeps the node's data, unlike `k3s-agent-uninstall.sh`) and run `create` again: the stopped agent sends the node through the full install path. If the regenerated k3s service is identical to the previous one, the k3s installer skips its own service start; the install script then starts the agent itself.
+
 #### Validation rules
 
 The following rules are enforced at config validation time:

@@ -106,10 +106,12 @@ module RoutingSpec
     MasterGenerator.new(loader, loader.settings).generate_script(master, [master], master, nil, KubeconfigManager.new)
   end
 
-  # Execute the actual generated shell with an inert installer and synthetic network
+  # Execute the actual generated shell with an inert installer and synthetic network and systemd
   # commands. Redirect every installer filesystem target into a disposable directory.
-  # No real curl, ip, SSH, package installation or k3s command is executed.
-  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n")
+  # No real curl, ip, SSH, package installation, k3s or systemctl command is executed.
+  # `installer_exit` is what the inert installer returns; `agent_state` is what systemctl reports
+  # for k3s-agent; `allow_sleep` lets the script's retry loops run (without waiting).
+  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false)
     directory = File.tempname("routing-install-spec")
     Dir.mkdir(directory)
     begin
@@ -138,16 +140,27 @@ module RoutingSpec
             *) echo '# inert installer' ;;
           esac
         }
-        sh() { printf '%s\n' "$@" > "$TEST_INSTALL_ARGS"; }
-        sleep() { echo 'Unexpected retry' >&2; exit 1; }
+        sh() { printf '%s\n' "$@" > "$TEST_INSTALL_ARGS"; return "$TEST_INSTALLER_EXIT"; }
+        sleep() { if [ "$TEST_ALLOW_SLEEP" = true ]; then :; else echo 'Unexpected retry' >&2; exit 1; fi; }
+        systemctl() {
+          echo "systemctl $*" >> "$TEST_CALLS"
+          case "$1" in
+            is-active) [ "$2" = "--quiet" ] || echo "$TEST_AGENT_STATE"; [ "$TEST_AGENT_STATE" = active ] ;;
+          esac
+        }
+        journalctl() { echo "journalctl $*" >> "$TEST_CALLS"; }
         BASH
       output = IO::Memory.new
       args_path = "#{directory}/args"
+      calls_path = "#{directory}/calls"
       status = Process.run("bash", ["-c", stubs + "\n" + script],
-        env: {"TEST_HOST_IPS" => host_ips, "TEST_ADDRESSES" => addresses, "TEST_INSTALL_ARGS" => args_path},
+        env: {"TEST_HOST_IPS" => host_ips, "TEST_ADDRESSES" => addresses, "TEST_INSTALL_ARGS" => args_path,
+              "TEST_CALLS" => calls_path, "TEST_AGENT_STATE" => agent_state, "TEST_INSTALLER_EXIT" => installer_exit.to_s,
+              "TEST_ALLOW_SLEEP" => allow_sleep.to_s},
         output: output, error: output)
       args = File.exists?(args_path) ? File.read_lines(args_path) : [] of String
-      {success: status.success?, args: args, output: output.to_s}
+      calls = File.exists?(calls_path) ? File.read_lines(calls_path) : [] of String
+      {success: status.success?, args: args, output: output.to_s, calls: calls}
     ensure
       FileUtils.rm_rf(directory)
     end
