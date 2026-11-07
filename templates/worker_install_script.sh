@@ -117,6 +117,12 @@ fi
 # Install k3s worker
 echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
+# Sampled before the installer: on a re-run of create the agent of an existing worker is already
+# running, and install.sh downloads and verifies the binary before it touches systemd, so an
+# installer failure there (a missing release artifact, a network error) leaves that agent running.
+# The recovery below must not read that as a successful restart.
+agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
+
 curl -sfL https://get.k3s.io | \
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
@@ -134,12 +140,15 @@ install_status=("${PIPESTATUS[@]}")
 # The installer skips the service start when the unit it wrote is identical to the existing one
 # ("No change detected so skipping service start"), so an in-place reinstall with unchanged flags
 # (k3s-killall.sh, then create) ends with a stopped agent and create times out waiting for the
-# node. Only a plainly inactive unit is started here; a failed or restarting one is left to the
-# check below.
-if [ "${install_status[0]}" -eq 0 ] && [ "${install_status[1]}" -eq 0 ] && [ "$(systemctl is-active k3s-agent 2>/dev/null)" = "inactive" ]; then
-  echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
-  systemctl start k3s-agent 2>&1 | tee -a /var/log/hetzner-k3s.log
-  install_status=("${PIPESTATUS[0]}" 0)
+# node. An inactive or failed unit is started here; one that systemd is already starting is left
+# to it.
+if [ "${install_status[0]}" -eq 0 ] && [ "${install_status[1]}" -eq 0 ]; then
+  agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+  if [ "$agent_state" = "inactive" ] || [ "$agent_state" = "failed" ]; then
+    echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    systemctl start k3s-agent 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status=("${PIPESTATUS[0]}" 0)
+  fi
 fi
 
 # The installer's final "systemctl restart k3s-agent" can report a failure for a start that k3s
@@ -147,14 +156,18 @@ fi
 # when the node is not yet visible to k3s's own client it shuts down ("flannel failed to sync
 # address annotations: node not found"). systemd records the start as failed (Result=protocol)
 # and restarts the unit 5 s later, which succeeds. Give the unit that chance before declaring
-# the installation failed.
-if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
+# the installation failed: only for an agent that was not running before the installer, and only
+# while systemd is (re)starting it. A unit whose restart is pending reports "activating"; an
+# inactive or failed one is not coming back on its own, so that failure is reported at once.
+if { [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; } && [ "$agent_state_before_install" != "active" ]; then
   for i in $(seq 1 24); do
-    if systemctl is-active --quiet k3s-agent; then
+    agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+    if [ "$agent_state" = "active" ]; then
       echo "k3s-agent is active after a failed first start (systemd restarted it); continuing" 2>&1 | tee -a /var/log/hetzner-k3s.log
       install_status=(0 0)
       break
     fi
+    [ "$agent_state" = "activating" ] || break
     sleep 5
   done
 fi
