@@ -86,8 +86,7 @@ class Configuration::Validators::CreateSettings
   private def validate_join_via_api_server_hostname
     return unless settings.join_via_api_server_hostname
 
-    hostname = settings.api_server_hostname
-    if hostname.nil? || hostname.strip.empty?
+    if settings.api_server_hostname.nil?
       errors << "join_via_api_server_hostname requires api_server_hostname to be set"
     end
   end

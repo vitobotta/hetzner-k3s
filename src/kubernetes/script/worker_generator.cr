@@ -89,8 +89,8 @@ class Kubernetes::Script::WorkerGenerator
   # master, or to the API load balancer, lets a worker (an autoscaled one included) join while the
   # first master is down. The first master otherwise. External nodes keep the first master.
   private def join_address(first_master, is_external : Bool) : String
-    hostname = @settings.api_server_hostname.try(&.strip)
-    return hostname if @settings.join_via_api_server_hostname && hostname && !hostname.empty? && !is_external
+    hostname = @settings.api_server_hostname
+    return hostname if hostname && @settings.join_via_api_server_hostname && !is_external
 
     api_server_ip_address(first_master)
   end
