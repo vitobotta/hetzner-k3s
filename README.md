@@ -16,7 +16,7 @@
 >
 > hetzner-k3s is maintained by a single developer. If it saves you time or money, please consider sponsoring its continued development.
 >
-> **[Become a sponsor →](https://github.com/sponsors/vitobotta)**
+> **[Become a sponsor →](https://github.com/sponsors/vitobotta)** · from $1/month
 
 ---
 
@@ -306,7 +306,7 @@ This project is maintained by a single developer in my spare time. Sponsorship h
 - Ship new features regularly
 - Keep the project compatible with new Hetzner Cloud updates
 
-If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta).
+If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta). Sponsorship starts at $1/month.
 
 ### Diamond Sponsors
 
