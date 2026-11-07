@@ -93,7 +93,7 @@ No Terraform. No Packer. No Ansible. No management cluster. No third-party accou
 [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) offers the best performance-to-cost ratio in the industry:
 
 - **Up to 80% lower costs** than AWS, Google Cloud, and Azure
-- **Transparent pricing** — traffic, IPv4/IPv6, DDoS protection, and firewalls included
+- **Transparent pricing** — 20 TB of traffic, IPv6, DDoS protection, and firewalls included (a public IPv4 is €0.50/month per server)
 - **Global presence** — data centers in Germany (Nuremberg, Falkenstein), Finland (Helsinki), USA (Ashburn, Hillsboro), and Singapore
 - **Flexible instance types** — x86 and ARM architectures, including cost-effective ARM instances (CAX) for budget-friendly clusters
 - **Proven reliability** — trusted by companies worldwide for over 25 years
@@ -108,16 +108,16 @@ No Terraform. No Packer. No Ansible. No management cluster. No third-party accou
 
 ### Sample Monthly Costs
 
-Real infrastructure costs for common cluster configurations (December 2025 pricing):
+Real infrastructure costs for common cluster configurations (November 2026 pricing):
 
 | Cluster Type | Configuration | Monthly Cost |
 |--------------|---------------|--------------|
-| **Development** | 1 master (CX23), 2 workers (CX23) | ~€16/month |
-| **Small Production** | 3 masters (CPX22), 3 workers (CPX32) | ~€58/month |
-| **Medium Production** | 3 masters (CPX22), 10 workers (CPX32) | ~€135/month |
-| **Large Production** | 3 masters (CPX42), 50 workers (CPX32) | ~€615/month |
+| **Development** | 1 master (CX23), 2 workers (CX23) | ~€18/month |
+| **Small Production** | 3 masters (CPX22), 3 workers (CPX32) | ~€175/month |
+| **Medium Production** | 3 masters (CPX22), 10 workers (CPX32) | ~€427/month |
+| **Large Production** | 3 masters (CPX42), 50 workers (CPX32) | ~€2,017/month |
 
-*Includes load balancer (~€5.50/month). No management fees, no per-user fees—just infrastructure.*
+*Per-node prices include the primary IPv4 (€0.50/month), and the multi-master clusters add a load balancer (~€7.50/month). Prices are Hetzner Cloud list prices for EU locations, excluding VAT. No management fees, no per-user fees—just infrastructure.*
 
 **Compare to managed alternatives:**
 - Equivalent AWS EKS: 3-5x higher infrastructure cost + $0.10/hour cluster fee (~$73/month)
