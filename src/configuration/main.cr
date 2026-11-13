@@ -13,7 +13,7 @@ class Configuration::Main
   getter kubeconfig_path : String
   getter k3s_version : String
   getter config_format_version : String?
-  getter api_server_hostname : String?
+  @api_server_hostname : String?
   getter schedule_workloads_on_masters : Bool = false
   getter masters_pool : Configuration::Models::MasterNodePool
   getter worker_node_pools : Array(Configuration::Models::WorkerNodePool) = [] of Configuration::Models::WorkerNodePool
@@ -36,8 +36,16 @@ class Configuration::Main
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
+  getter join_via_api_server_hostname : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
+
+  # Trimmed, or nil when unset or blank: the masters' TLS SANs and the workers' join address
+  # read the same value, so whitespace around the name in the config cannot split the
+  # --tls-san argument or make the two disagree.
+  def api_server_hostname : String?
+    @api_server_hostname.try(&.strip).presence
+  end
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args

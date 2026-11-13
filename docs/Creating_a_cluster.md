@@ -205,6 +205,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 # - arg1
 # - ...
 # api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
+# join_via_api_server_hostname: false # optional: workers join through api_server_hostname instead of the first master's IP (see below). Requires the DNS record to exist before workers are created.
 ```
 
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
@@ -236,6 +237,15 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
+
+By default, every worker (static and autoscaled) registers with the cluster through the first master's IP address, so no new node can join while that master is down, even if the other masters are healthy. Set `join_via_api_server_hostname: true` to make workers join through `api_server_hostname` instead. The name must resolve, from the nodes, to the API load balancer or to all masters (for example, one A record per master's private IP: the agent tries the addresses in turn until one answers, paying a connect timeout on each dead one).
+
+The name must already resolve on the nodes when the setting takes effect. On a new cluster that points the name at the API load balancer, whose address only exists after the first `create`, create the cluster first, add the DNS record, then enable the setting and run `create` again. External nodes always join through the first master, and existing autoscaled nodes keep the address they joined with; only new ones use the hostname.
+
+Enabling it on a running cluster restarts nodes, so do it in a quiet window:
+
+- **Static workers.** The next `create` points every static worker's `k3s-agent` at the name and restarts it once. Workers are updated in parallel, up to ten at a time, not one by one. Restarting `k3s-agent` does not stop running containers, so pods are not evicted, but each node's kubelet is briefly unavailable while it reconnects. A name that does not resolve leaves those workers unable to reach the API.
+- **Masters, if `api_server_hostname` is new as well.** `create` runs the install script on every master each time, and the k3s installer restarts `k3s` only when its unit or environment changed. Adding the name changes the masters' TLS SANs, so this time `k3s` restarts on every master: the first master on its own, then all the other masters at the same time. On a three-master cluster with the embedded etcd datastore that takes two of the three members down together, so expect the Kubernetes API to be unavailable until they are back. Adding `api_server_hostname` in one `create` and `join_via_api_server_hostname` in a later one only separates the two restarts. If the name is already set, the masters are not restarted.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
