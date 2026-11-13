@@ -4,6 +4,7 @@ require "../../configuration/loader"
 require "../../configuration/main"
 require "../../hetzner/instance"
 require "../../hetzner/instance/create"
+require "../../hetzner/load_balancer"
 require "../../util"
 require "../../util/shell"
 require "../../util/ssh"
@@ -53,7 +54,8 @@ class Kubernetes::Software::ClusterAutoscaler
     @masters : Array(::Hetzner::Instance),
     @first_master : ::Hetzner::Instance,
     @ssh : ::Util::SSH,
-    @autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
+    @autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool),
+    @load_balancer : ::Hetzner::LoadBalancer? = nil,
   )
   end
 
@@ -69,7 +71,8 @@ class Kubernetes::Software::ClusterAutoscaler
   private def cloud_init(pool : Configuration::Models::WorkerNodePool) : String
     worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(
       configuration,
-      settings
+      settings,
+      @load_balancer
     ).generate_script(masters, first_master, pool)
     grow_root_partition_automatically = pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
 

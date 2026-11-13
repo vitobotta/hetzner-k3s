@@ -171,7 +171,7 @@ worker_node_pools:
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
-create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access; note: Hetzner firewalls can't yet restrict access to load balancers by IP
+create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
 k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability
 
@@ -236,6 +236,12 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
+
+With `create_load_balancer_for_the_kubernetes_api` enabled (and more than one master), workers, static and autoscaled, register with the cluster through the load balancer instead of the first master, so a node can still join while that master is down. They use the same load balancer address as the kubeconfig, because that is the address in the masters' certificates: the private one with `networking.ssh.use_private_ip: true`, the public one otherwise. Masters and external nodes keep joining through the first master.
+
+That address is what the agent bootstraps from, not where its traffic normally goes. Once a worker has joined, `k3s-agent` fetches the list of API servers from the supervisor (the masters' advertised addresses, their private IPs on a cluster with a private network) and load-balances across them; the `K3S_URL` server is kept only as a fallback for when none of them answers. So steady-state traffic from workers to the control plane stays on the private network whatever `use_private_ip` is set to. With the default `use_private_ip: false` the join itself, and the fallback, go to the load balancer's public IP; `use_private_ip: true` moves both to its private IP, which the masters' certificates already carry in that mode. Using the private IP regardless of `use_private_ip` would mean adding it to the certificates, which restarts every master on an existing cluster, so it is not done automatically.
+
+On a cluster created with an earlier version, the next `create` restarts `k3s-agent` once on each static worker (up to ten in parallel; running pods keep running); existing autoscaled nodes keep the old address and new ones use the load balancer.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
