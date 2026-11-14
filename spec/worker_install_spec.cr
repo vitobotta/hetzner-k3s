@@ -45,6 +45,17 @@ describe "Worker install script" do
     end
   end
 
+  it "recovers when starting a stopped agent fails and systemd restarts it" do
+    RoutingSpec.with_loader do |loader|
+      # An in-place reinstall: the installer skips the start, the explicit start fails, and
+      # systemd brings the unit up on its retry.
+      result = RoutingSpec.install(RoutingSpec.worker_script(loader), agent_state: "inactive inactive activating active", start_exit: 1, allow_sleep: true)
+      result[:success].should be_true
+      result[:output].should contain("k3s-agent is active after a failed first start")
+      result[:calls].should contain("systemctl start k3s-agent")
+    end
+  end
+
   it "fails the install when the installer fails on a node whose agent was already running" do
     RoutingSpec.with_loader do |loader|
       # A re-run of create on an existing worker: install.sh fetches the binary before it touches

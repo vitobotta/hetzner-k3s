@@ -111,9 +111,9 @@ module RoutingSpec
   # No real curl, ip, SSH, package installation, k3s or systemctl command is executed.
   # `installer_exit` is what the inert installer returns; `agent_state` is what systemctl reports
   # for k3s-agent, one word per `is-active` call in order with the last one repeating ("inactive
-  # active": inactive before the installer, active afterwards); `allow_sleep` lets the script's
-  # retry loops run (without waiting).
-  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false)
+  # active": inactive before the installer, active afterwards); `start_exit` is what `systemctl
+  # start` returns; `allow_sleep` lets the script's retry loops run (without waiting).
+  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false, start_exit = 0)
     directory = File.tempname("routing-install-spec")
     Dir.mkdir(directory)
     begin
@@ -152,6 +152,8 @@ module RoutingSpec
               [ "$(wc -l < "$TEST_AGENT_STATES")" -gt 1 ] && sed -i 1d "$TEST_AGENT_STATES"
               [ "$2" = "--quiet" ] || echo "$state"
               [ "$state" = active ] ;;
+            start)
+              return "$TEST_START_EXIT" ;;
           esac
         }
         journalctl() { echo "journalctl $*" >> "$TEST_CALLS"; }
@@ -164,7 +166,7 @@ module RoutingSpec
       status = Process.run("bash", ["-c", stubs + "\n" + script],
         env: {"TEST_HOST_IPS" => host_ips, "TEST_ADDRESSES" => addresses, "TEST_INSTALL_ARGS" => args_path,
               "TEST_CALLS" => calls_path, "TEST_AGENT_STATES" => states_path, "TEST_INSTALLER_EXIT" => installer_exit.to_s,
-              "TEST_ALLOW_SLEEP" => allow_sleep.to_s},
+              "TEST_START_EXIT" => start_exit.to_s, "TEST_ALLOW_SLEEP" => allow_sleep.to_s},
         output: output, error: output)
       args = File.exists?(args_path) ? File.read_lines(args_path) : [] of String
       calls = File.exists?(calls_path) ? File.read_lines(calls_path) : [] of String
