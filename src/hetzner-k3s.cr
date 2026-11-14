@@ -10,7 +10,7 @@ require "./cluster/run"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.9.0"
+    VERSION = "2.10.0"
     CONFIG_FORMAT_VERSION = "1"
 
     def self.print_banner
