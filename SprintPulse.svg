@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 690 160" fill="none">
+  <defs>
+    <!-- Vibrant gradient for pulse icon and "Pulse" text -->
+    <linearGradient id="vibrantGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4f46e5"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Pulse/heartbeat line with arrow -->
+  <g stroke="url(#vibrantGradient)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Main pulse line -->
+    <path d="M 6 100
+             L 30 100
+             L 45 130
+             L 65 40
+             L 85 120
+             L 105 60
+             L 120 100
+             L 145 100"/>
+    <!-- Arrow head -->
+    <path d="M 130 85 L 148 100 L 130 115"/>
+  </g>
+
+  <!-- "Sprint" text in dark navy -->
+  <text x="170" y="115" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="90" font-weight="700" fill="#1e293b">Sprint</text>
+
+  <!-- "Pulse" text with gradient -->
+  <text x="435" y="115" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="90" font-weight="700" fill="url(#vibrantGradient)">Pulse</text>
+</svg>
