@@ -91,7 +91,7 @@ class Cluster::Create
   private def reconcile_node_pools
     return unless settings.reconcile_node_pools
 
-    documented_names = (master_instances + worker_instances).map(&.instance_name) + external_node_names
+    documented_names = (master_instances + worker_instances).map(&.instance_name)
 
     reconciler = Cluster::NodePoolReconciler.new(configuration, @force, @dry_run)
     return if reconciler.run(documented_names)
@@ -100,18 +100,6 @@ class Cluster::Create
     reconciler.errors.each { |error| puts "Failed to remove #{error}".colorize(:red) }
     puts "Re-run create once the nodes above can be drained.".colorize(:yellow)
     exit 1
-  end
-
-  # External pools render from the configuration, never through worker_instances, so their nodes are
-  # expected names here. Only a node whose hostname the tool sets is predictable; the reconciler
-  # keeps the others by shape (see NodePoolReconciler#node_without_server?).
-  private def external_node_names : Array(String)
-    settings.worker_node_pools.select(&.external?).flat_map do |pool|
-      external = pool.external
-      next [] of String unless external
-
-      external.nodes.select(&.manage_hostname).map { |node| settings.external_worker_hostname(pool, node.index) }
-    end
   end
 
   private def validate_external_nodes

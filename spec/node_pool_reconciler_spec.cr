@@ -117,6 +117,18 @@ worker_node_pools:
     enabled: true
     min_instances: 0
     max_instances: 3
+- name: db
+  instance_type: external
+  instance_count: 1
+  external:
+    provider: generic
+    nodes:
+    - host: 10.10.0.90
+      ssh_user: operator
+      ssh_port: 2222
+      ssh_private_key_path: /nonexistent/test-key
+      manage_hostname: true
+      index: 1
 YAML
 end
 
@@ -205,6 +217,19 @@ describe "node pool reconciliation" do
       probe.ssh.calls.should contain("kubectl cordon routing-test-pool-gone-worker1 --request-timeout=30s 2>&1")
       probe.ssh.calls.should contain("kubectl delete node routing-test-pool-gone-worker1 --request-timeout=30s 2>&1")
       probe.client.deleted_ids.should be_empty
+    end
+  end
+
+  # An external node with a managed hostname has the name shape of a cloud worker and no server, so
+  # only the configured name keeps it. `create` does not pass external names, the reconciler owns it.
+  it "leaves a configured external node with a managed hostname alone" do
+    with_reconciler(reconciler_config) do |probe|
+      probe.client.servers = [[] of Tuple(String, Bool)]
+      probe.ssh.nodes = ["routing-test-pool-db-worker1"]
+
+      probe.run([] of String)
+
+      probe.ssh.calls.any?(&.starts_with?("kubectl drain")).should be_false
     end
   end
 

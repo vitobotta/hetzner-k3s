@@ -91,8 +91,10 @@ class Cluster::NodePoolReconciler
   end
 
   private def removable_nodes(documented_names : Array(String)) : Array(String)
+    expected_names = documented_names + external_node_names
+
     candidates = (cloud_instance_names + node_names).uniq.reject do |name|
-      documented_names.includes?(name) ||
+      expected_names.includes?(name) ||
         autoscaled_instance_names.includes?(name) ||
         autoscaled_node_name?(name) ||
         node_without_server?(name)
@@ -105,6 +107,18 @@ class Cluster::NodePoolReconciler
   private def autoscaled_node_name?(name : String) : Bool
     settings.worker_node_pools.select(&.autoscaling_enabled).any? do |pool|
       name.starts_with?("#{node_group_name(pool)}-")
+    end
+  end
+
+  # External pools render from the configuration, never through the caller's name list, so their
+  # nodes are expected names here. Only a node whose hostname the tool sets is predictable; the
+  # others are covered by the shape check below.
+  private def external_node_names : Array(String)
+    settings.worker_node_pools.select(&.external?).flat_map do |pool|
+      external = pool.external
+      next [] of String unless external
+
+      external.nodes.select(&.manage_hostname).map { |node| settings.external_worker_hostname(pool, node.index) }
     end
   end
 
