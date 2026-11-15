@@ -33,6 +33,13 @@ describe "cloud-init compatibility" do
     end
   end
 
+  it "pins the k3s installer download to https" do
+    RoutingSpec.with_loader do |loader|
+      RoutingSpec.worker_script(loader).should contain("--proto '=https' --tlsv1.2 -sfL https://get.k3s.io")
+      RoutingSpec.master_script(loader).should contain("--proto '=https' --tlsv1.2 -sfL https://get.k3s.io")
+    end
+  end
+
   it "keeps the installer failure status intact under sh" do
     RoutingSpec.with_loader do |loader|
       result = RoutingSpec.install(RoutingSpec.worker_script(loader), installer_exit: 1, agent_state: "active", shell: "sh")

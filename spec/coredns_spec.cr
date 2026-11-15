@@ -97,6 +97,11 @@ private class RecordingCoreDNS < Kubernetes::Software::CoreDNS
   end
 end
 
+private def deployed_limits(manifest : String) : YAML::Any
+  deployment = YAML.parse_all(manifest).find { |document| document["kind"]?.try(&.as_s) == "Deployment" }.not_nil!
+  deployment["spec"]["template"]["spec"]["containers"][0]["resources"]["limits"]
+end
+
 private def with_installer(yaml : String, &)
   RoutingSpec.with_loader(yaml) do |loader|
     installer = RecordingCoreDNS.new(loader, loader.settings)
@@ -216,6 +221,22 @@ describe Kubernetes::Software::CoreDNS do
         manifest.should contain("cpu: 100m")
         manifest.should contain("memory: 70Mi")
         manifest.should contain("replicas: 1")
+      end
+    end
+
+    it "leaves the cpu limit unset until one is configured" do
+      RoutingSpec.with_loader(coredns_yaml(enabled: true)) do |loader|
+        limits = deployed_limits(Kubernetes::Software::CoreDNS.new(loader, loader.settings).render(managed: true))
+
+        limits.as_h.has_key?("cpu").should be_true
+        limits["cpu"].raw.should be_nil
+        limits["memory"].as_s.should eq("170Mi")
+      end
+    end
+
+    it "renders a configured cpu limit" do
+      RoutingSpec.with_loader(coredns_yaml(enabled: true, limits_cpu: "500m")) do |loader|
+        deployed_limits(Kubernetes::Software::CoreDNS.new(loader, loader.settings).render(managed: true))["cpu"].as_s.should eq("500m")
       end
     end
 

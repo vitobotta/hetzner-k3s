@@ -336,7 +336,7 @@ addons:
         memory: 512Mi
 ```
 
-`replicas` defaults to 1 while the toggle is on, and `resources` falls back to the k3s values (limits 170Mi memory, requests 100m cpu and 70Mi memory) for anything you leave out. `image` defaults to the CoreDNS image the k3s release this version targets, which means that after a k3s upgrade the pinned image stays until you change it here or bump hetzner-k3s.
+`replicas` defaults to 1 while the toggle is on, and `resources` falls back to the k3s values (limits 170Mi memory, requests 100m cpu and 70Mi memory) for anything you leave out. k3s sets no cpu limit and neither does the fallback, so add one with `resources.limits.cpu` if you want a ceiling. `image` defaults to the CoreDNS image the k3s release this version targets, which means that after a k3s upgrade the pinned image stays until you change it here or bump hetzner-k3s.
 
 Point to keep in mind:
 

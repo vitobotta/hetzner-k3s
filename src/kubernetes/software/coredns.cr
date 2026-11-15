@@ -22,7 +22,6 @@ class Kubernetes::Software::CoreDNS
   NAMESPACE          = "kube-system"
   MANAGED_LABEL      = "hetzner-k3s-managed"
   MANAGED_LABEL_LINE = "    #{MANAGED_LABEL}: coredns\n"
-  CONTAINER_INDENT   = "          "
 
   # k3s defaults, used for whatever the config does not override.
   DEFAULT_REPLICAS        = 1
@@ -182,20 +181,12 @@ class Kubernetes::Software::CoreDNS
       .gsub("__IMAGE__", settings.addons.coredns.image)
       .gsub("__CLUSTER_DOMAIN__", settings.networking.cluster_domain || "cluster.local")
       .gsub("__CLUSTER_DNS__", settings.networking.cluster_dns)
-      .gsub("__RESOURCES__", resources_block)
+      .gsub("__LIMITS_CPU__", configured_resources.limits.cpu || "")
+      .gsub("__LIMITS_MEMORY__", memory_limit)
+      .gsub("__REQUESTS_CPU__", cpu_request)
+      .gsub("__REQUESTS_MEMORY__", memory_request)
 
     managed ? rendered : rendered.gsub(MANAGED_LABEL_LINE, "")
-  end
-
-  private def resources_block : String
-    lines = [] of String
-    lines << "#{CONTAINER_INDENT}limits:"
-    lines << "#{CONTAINER_INDENT}  memory: #{memory_limit}"
-    lines << "#{CONTAINER_INDENT}requests:"
-    lines << "#{CONTAINER_INDENT}  cpu: #{cpu_request}"
-    lines << "#{CONTAINER_INDENT}  memory: #{memory_request}"
-
-    "\n#{lines.join("\n")}"
   end
 
   private def configured_resources

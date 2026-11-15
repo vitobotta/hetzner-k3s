@@ -141,7 +141,7 @@ unit_existed_before_install=false
 [ -f /etc/systemd/system/k3s-agent.service ] && unit_existed_before_install=true
 
 install_status_file=$(mktemp)
-{ curl -sfL https://get.k3s.io | \
+{ curl --proto '=https' --tlsv1.2 -sfL https://get.k3s.io | \
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_URL=https://{{ api_server_ip_address }}:6443 \

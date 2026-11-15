@@ -149,7 +149,7 @@ fi
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
 install_status_file=$(mktemp)
-{ curl -sfL https://get.k3s.io | \
+{ curl --proto '=https' --tlsv1.2 -sfL https://get.k3s.io | \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_TOKEN="{{ k3s_token }}" \
   {{ datastore_endpoint }} \

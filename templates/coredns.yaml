@@ -132,7 +132,13 @@ spec:
       - name: coredns
         image: "__IMAGE__"
         imagePullPolicy: IfNotPresent
-        resources: __RESOURCES__
+        resources:
+          limits:
+            cpu: __LIMITS_CPU__
+            memory: __LIMITS_MEMORY__
+          requests:
+            cpu: __REQUESTS_CPU__
+            memory: __REQUESTS_MEMORY__
         args: [ "-conf", "/etc/coredns/Corefile" ]
         volumeMounts:
         - name: config-volume
@@ -155,7 +161,7 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             add:
-            - NET_BIND_SERVICE
+            - NET_BIND_SERVICE # NOSONAR: root drops every capability, DNS cannot bind :53 without it
             drop:
             - all
           readOnlyRootFilesystem: true
