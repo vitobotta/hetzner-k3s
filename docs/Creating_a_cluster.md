@@ -226,6 +226,24 @@ Most settings are straightforward and easy to understand. To see a list of avail
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
 
+### SSH keys from environment variables
+
+The cluster SSH key pair can come from the environment too, so an unattended run such as a CI job does not have to write key files first:
+
+```bash
+export SSH_PRIVATE_KEY="$(cat ~/.ssh/id_ed25519)"
+export SSH_PUBLIC_KEY="$(cat ~/.ssh/id_ed25519.pub)"
+hetzner-k3s create --config cluster_config.yaml
+```
+
+`SSH_PRIVATE_KEY`, or `SSH_PUBLIC_KEY` alone when the private half comes from `existing_ssh_key_name` or from a running ssh agent. Both take precedence over `private_key_path` and `public_key_path`. The content is written to `~/.hetzner-k3s/ssh` with a name derived from it and permissions of 0600, so repeated runs reuse the same files, and everything that works on a path, including the fingerprint comparison against Hetzner, uses those files. When only the private key is set, the public key is derived with `ssh-keygen`. Escaped `\n` sequences, surrounding indentation and a missing trailing newline are handled.
+
+`use_agent: true` together with `SSH_PRIVATE_KEY` fails validation, because with an agent the key path is never passed to ssh: drop one of the two.
+
+The materialised files stay in `~/.hetzner-k3s/ssh` and can be deleted at any time; the next run writes them again.
+
+External node pools are unaffected, since their `ssh_private_key_path` is configured per node.
+
 When setting `masters_pool`.`instance_count`, keep in mind that if you set it to 1, the tool will create a control plane that is not highly available. For production clusters, it's better to set this to a number greater than 1. To avoid split brain issues with etcd, this number should be odd, and 3 is the recommended value. Additionally, for production environments, it's a good idea to configure masters in different locations using the `masters_pool`.`locations` setting.
 
 The `datastore` section configures how Kubernetes stores its cluster state. The default mode is `etcd`, which runs an embedded etcd cluster on your master nodes—this is the recommended option for most deployments. For very large clusters or special requirements, you can use `external` mode with an external datastore (etcd, PostgreSQL, or MySQL) by specifying the connection string in `external_datastore_endpoint`. The etcd mode also supports optional S3 backup configuration for disaster recovery.
