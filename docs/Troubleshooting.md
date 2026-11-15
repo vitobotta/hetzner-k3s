@@ -49,6 +49,21 @@ DEBUG=true hetzner-k3s create --config cluster_config.yaml
 
 This will provide more detailed output, which can help you identify the root of the problem.
 
+### Create Appears to Hang on an Instance
+
+**Symptoms**: `create` stops printing after `Instance status: running` and appears frozen.
+
+It is waiting for the node to power on, to be attached to the private network, and to answer over SSH, retrying in between. These waits are now bounded and report what failed:
+
+- power on: 30 attempts, then an error
+- attach to the private network: 30 attempts, then an error
+- SSH readiness: 20 attempts, then an error naming the last failure, for example an authentication failure rather than a silent timeout
+- the whole readiness step: 20 minutes
+
+Each SSE wait prints the elapsed time, the attempt count and the reason it is not ready yet, so a run that is merely slow looks different from one that cannot work.
+
+**If it fails**, the message names the cause. `SSH command failed ... Permission denied` means the key is not the one on the server: check `networking.ssh` and `existing_ssh_key_name`. `no route to host` or timeouts point at the network: check `allowed_networks` and the Hetzner firewall rules. For more detail, run with `DEBUG=true`.
+
 ### Cluster Creation Fails after Node Creation
 
 **Symptoms**: Instances are created but cluster setup fails.
