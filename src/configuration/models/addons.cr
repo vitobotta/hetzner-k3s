@@ -4,6 +4,7 @@ require "./addons_config/cloud_controller_manager"
 require "./addons_config/system_upgrade_controller"
 require "./addons_config/embedded_registry_mirror"
 require "./addons_config/coredns"
+require "./addons_config/local_path_storage_class"
 
 module Configuration
   module Models
@@ -30,7 +31,7 @@ module Configuration
       getter traefik : Toggle = Toggle.new(false)
       getter servicelb : Toggle = Toggle.new(false)
       getter metrics_server : Toggle = Toggle.new(false)
-      getter local_path_storage_class : Toggle = Toggle.new(false)
+      getter local_path_storage_class : Configuration::Models::AddonsConfig::LocalPathStorageClass = Configuration::Models::AddonsConfig::LocalPathStorageClass.new
 
       # Addons with more complex configuration options
       getter csi_driver : Configuration::Models::AddonsConfig::CSIDriver = Configuration::Models::AddonsConfig::CSIDriver.new

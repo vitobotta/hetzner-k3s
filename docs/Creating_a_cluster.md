@@ -164,6 +164,9 @@ worker_node_pools:
 #     enabled: false  # built-in ServiceLB. Disabled by default.
 #   metrics_server:
 #     enabled: false  # Kubernetes metrics-server addon. Disabled by default.
+#   local_path_storage_class:
+#     enabled: false  # k3s built-in local-path provisioner (default false). See "Non-default local-path storage class" below.
+#     default: true   # mark local-path as the cluster default storage class (default true).
 #   cluster_autoscaler:
 #     enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
 #     manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
@@ -294,6 +297,23 @@ Point to keep in mind:
 - The managed deployment keeps the k3s object names and the `k8s-app: kube-dns` label, and the `kube-dns` Service keeps its ClusterIP from `cluster_dns`. That matters if you run a node-local DNS cache, which forwards to the Service, and for the resolver configuration of every pod.
 - Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
 - While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
+
+### Non-default local-path storage class
+
+k3s installs `local-path` as a default StorageClass, and its packaged manifest is re-applied on every start, so removing the `storageclass.kubernetes.io/is-default-class` annotation by hand does not survive a restart. To keep the class but let another one, `hcloud-volumes` for example, stay the only default:
+
+```yaml
+addons:
+  local_path_storage_class:
+    enabled: true
+    default: false
+```
+
+`enabled: true` keeps k3s from passing `--disable local-storage`, so the provisioner is installed as usual, and `default: false` makes hetzner-k3s overwrite the annotation right after the installer stops running k3s. The annotation is set again on every `create`, which is what keeps it correct across restarts and the k3s manifest apply. `default: true` is the current behaviour and needs no patch.
+
+With `enabled: false` the storage class is not installed at all, so `default: false` without `enabled: true` fails validation.
+
+The patch runs on the first master and waits up to a minute for the class to appear; if the flag is written back after the patch it retries once and then aborts the run.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
 
