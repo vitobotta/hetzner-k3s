@@ -50,6 +50,8 @@ class Configuration::Main
   # Off by default: it makes `create` reach autoscaled nodes over SSH to bring config changes to
   # nodes the autoscaler owns. See docs/Creating_a_cluster.md.
   getter synchronise_autoscaled_nodes : Bool = false
+  # Off by default: `create` then removes worker nodes that the configuration no longer renders.
+  getter reconcile_node_pools : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
 

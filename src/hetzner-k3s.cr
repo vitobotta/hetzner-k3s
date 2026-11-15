@@ -10,7 +10,7 @@ require "./cluster/run"
 
 module Hetzner::K3s
   class CLI < Admiral::Command
-    VERSION = "2.11.0"
+    VERSION               = "2.11.0"
     CONFIG_FORMAT_VERSION = "1"
 
     def self.print_banner
@@ -48,6 +48,18 @@ module Hetzner::K3s
         required: false,
         default: false
 
+      define_flag force : Bool,
+        description: "Apply node pool reconciliation without asking (see reconcile_node_pools)",
+        long: "force",
+        required: false,
+        default: false
+
+      define_flag dry_run : Bool,
+        description: "Only list the nodes reconciliation would remove",
+        long: "dry-run",
+        required: false,
+        default: false
+
       define_flag skip_current_ip_validation : Bool,
         description: "Skip validation that your current IP is included in allowed SSH/API networks",
         long: "skip-current-ip-validation",
@@ -62,7 +74,7 @@ module Hetzner::K3s
           :create,
           skip_current_ip_validation: flags.skip_current_ip_validation
         )
-        Cluster::Create.new(configuration: configuration).run
+        Cluster::Create.new(configuration: configuration, force: flags.force, dry_run: flags.dry_run).run
         ::Hetzner::K3s::CLI.print_sponsor_message unless flags.quiet
       end
     end

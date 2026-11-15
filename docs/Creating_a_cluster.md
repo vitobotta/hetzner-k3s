@@ -193,6 +193,7 @@ worker_node_pools:
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
 synchronise_autoscaled_nodes: false # also bring existing nodes of autoscaling pools up to date on create; see below
+reconcile_node_pools: false # also remove worker nodes that the configuration no longer renders; see below
 
 create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
@@ -709,6 +710,22 @@ The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3
 The `run` command detects external nodes by matching their IP against the `external.nodes[].host` entries, or their effective cluster IP in externally routed mode. It can also match generated names when `manage_hostname: true`. If a match is found, it connects to the configured `host` using the node's per-node SSH settings (key, user, port), even when the Kubernetes InternalIP differs. This allows you to run commands and scripts on external nodes just like on Hetzner nodes.
 
 ---
+### Reconciling node pools
+
+`create` only ever adds. Removing a pool from the configuration, or lowering an `instance_count`, leaves the old nodes running until you drain and delete them by hand. `reconcile_node_pools: true` closes that gap: after the normal flow, `create` drains and deletes workers that the configuration no longer renders, so the file can be the source of truth.
+
+It is opt-in and destructive, so it asks first:
+
+- with a terminal, it lists the nodes and waits for a `y`
+- `--dry-run` lists them and stops
+- `--force` applies without asking, which is what CI needs, since there is no terminal there. Without a terminal and without `--force` nothing is removed and the nodes are only listed.
+
+What it will not touch: masters (the expected set contains them even though `create` does not reconcile master counts), nodes carrying an `hcloud/node-group` label, which belong to the autoscaler, and anything the configuration still renders. Note that renaming a pool therefore replaces all of its nodes, since every old name drops out of the expected set.
+
+Each node is cordoned first, then drained with `--ignore-daemonsets --delete-emptydir-data --timeout=10m`, then its instance is deleted. If a drain fails or times out, the instance is kept, the remaining nodes are still processed, and the run ends non-zero, so a later `create` finishes the job. External nodes, which have no Hetzner instance, are drained and removed from the cluster, but nothing is deleted through the API.
+
+Two things to watch for: a PodDisruptionBudget that cannot be satisfied blocks the drain until the timeout expires, and pods using `local-path` storage come back empty on another node because the volume is pinned to the node being removed.
+
 ### Updating autoscaled nodes
 
 `create` provisions only the pools that are not autoscaling. Nodes created later by the Cluster Autoscaler therefore keep the configuration they were born with: changes to `private_registry_config`, kubelet args, labels or taints never reach them, and a rotated registry credential or a changed mirror silently stops image pulls on those nodes.
