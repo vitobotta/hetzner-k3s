@@ -133,6 +133,7 @@ networking:
     # Use custom IP query server for large clusters
     hetzner_ips_query_server_url: https://ip-query.example.com
     use_local_firewall: true  # Enable custom firewall
+    # hetzner_ips_token: "<read-only token>"  # keep the read/write token off the nodes, see below
     # use_hetzner_firewall: false  # skip Hetzner's own firewall as well for very large clusters
   private_network:
     enabled: false  # Disable private network for >100 nodes
@@ -189,6 +190,19 @@ k3s_upgrade_concurrency: 2  # Can upgrade more nodes simultaneously
 - **CIDR Sizing**: Use larger cluster and service CIDR ranges to accommodate more pods and services
 - **Encryption**: Enable CNI encryption when using public networks
 - **Firewall**: The custom firewall automatically manages allowed IPs without opening ports to the public
+
+#### Keeping the Hetzner Token Off the Nodes
+
+The local firewall needs a Hetzner token for a single read-only call: it lists the cluster's own server addresses so the node set can be kept current. Nothing else on a node uses that token, so you can supply a dedicated one that cannot create, resize or delete anything:
+
+1. In the Hetzner Console open the project, go to Security, API tokens, and generate a token restricted to read access.
+2. Set it as `networking.public_network.hetzner_ips_token` in the cluster config.
+
+hetzner-k3s no longer embeds the token in `/usr/local/bin/firewall.sh`, which is world readable. It writes it to `/etc/hetzner-k3s/hetzner-ips-token` with mode `0600` instead, before the script, in both the cloud-init and the SSH deploy paths.
+
+When the setting is absent the main `hetzner_token` is written to that file, so existing clusters need no change. Clusters that never had a token file because their nodes are older pick it up on the next `create`, which re-deploys the firewall files before restarting the service.
+
+If the token file is missing or empty the firewall skips the lookup and keeps using the last known addresses, so a half-applied deploy does not open or close anything by itself.
 
 #### High Availability Setup
 For production large clusters, consider:

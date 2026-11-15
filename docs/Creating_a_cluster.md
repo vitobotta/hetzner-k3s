@@ -71,6 +71,7 @@ networking:
     ipv4: true
     ipv6: true
     # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+    # hetzner_ips_token: "" # optional read-only token for the local firewall, see the recommendations page
     # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
     # use_hetzner_firewall: true # Hetzner Cloud firewall, attached by label selector. Set false to create none.
   private_network:
@@ -597,6 +598,7 @@ External node pools require the following cluster-wide settings:
 - `networking.private_network.enabled: false` and `networking.public_network.use_local_firewall: true` — external nodes use the public network and the local firewall is deployed to each external node via SSH.
 - Or `networking.private_network.enabled: true` and `networking.private_network.external_routing: true` — external nodes use your own VPN/routing connectivity to reach the private network.
 - `networking.public_network.hetzner_ips_query_server_url` must be set when using the public-network/local-firewall mode (required by the local firewall to fetch Hetzner node IPs).
+- `networking.public_network.hetzner_ips_token`, when set, must not be empty.
 
 #### Externally routed private networks
 

@@ -12,6 +12,15 @@ class Configuration::Validators::NetworkingConfig::PublicNetwork
   def validate
     validate_hetzner_ips_query_server_url
     validate_address_families
+    validate_ips_token
+  end
+
+  private def validate_ips_token
+    token = public_network.hetzner_ips_token
+    return if token.nil?
+    return unless token.strip.empty?
+
+    errors << "networking.public_network.hetzner_ips_token is set but empty. Remove the key to fall back to hetzner_token."
   end
 
   private def validate_hetzner_ips_query_server_url

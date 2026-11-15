@@ -62,13 +62,17 @@ class Hetzner::Instance::CloudInitGenerator
     format_file_content(@settings.networking.allowed_networks.api.join("\n"))
   end
 
+  # A read-only token is enough for the node IP lookup; the main token is the fallback.
+  private def ips_token_content
+    format_file_content(@settings.networking.public_network.hetzner_ips_token.presence || @settings.hetzner_token)
+  end
+
   private def allowed_ssh_networks_config
     format_file_content(@settings.networking.allowed_networks.ssh.join("\n"))
   end
 
   private def firewall_script
     script = Crinja.render(FIREWALL_SCRIPT, {
-      hetzner_token:                @settings.hetzner_token,
       hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
       ssh_port:                     @settings.networking.ssh.port,
       cluster_cidr:                 @settings.networking.cluster_cidr,
@@ -104,6 +108,10 @@ class Hetzner::Instance::CloudInitGenerator
     return "" if @settings.networking.private_network.enabled || !@settings.networking.public_network.use_local_firewall
 
     <<-YAML
+    - content: #{ips_token_content}
+      path: /etc/hetzner-k3s/hetzner-ips-token
+      permissions: '0600'
+      encoding: gzip+base64
     - content: #{allowed_kubernetes_api_networks_config}
       path: /etc/allowed-networks-kubernetes-api.conf
       encoding: gzip+base64
