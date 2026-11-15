@@ -228,7 +228,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
 
-If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
+If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file: while it is set and not blank, whatever `hetzner_token` contains is ignored, so a placeholder in a committed config is fine. An empty or whitespace-only value counts as unset.
 
 ### Skipping the Hetzner Cloud firewall
 

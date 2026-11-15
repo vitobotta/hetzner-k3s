@@ -8,7 +8,18 @@ require "./models/addons"
 class Configuration::Main
   include YAML::Serializable
 
-  getter hetzner_token : String = ENV.fetch("HCLOUD_TOKEN", "")
+  # The value from the config file keeps its key, but HCLOUD_TOKEN wins whenever it is set and not
+  # blank, which is what lets a config be committed with a placeholder.
+  @[YAML::Field(key: "hetzner_token")]
+  property hetzner_token_from_config : String = ""
+
+  def hetzner_token : String
+    environment_token = ENV["HCLOUD_TOKEN"]?.try(&.strip)
+    return environment_token if environment_token && !environment_token.empty?
+
+    hetzner_token_from_config
+  end
+
   getter cluster_name : String
   getter kubeconfig_path : String
   getter k3s_version : String
