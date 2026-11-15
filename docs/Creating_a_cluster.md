@@ -28,6 +28,7 @@ networking:
   #   enabled: false
   #   hostname_suffix: "my-tailnet.ts.net" # required when enabled
   #   auth_key: "tskey-auth-..." # optional: defaults to the TAILSCALE_AUTH_KEY environment variable
+  #   version: "1.80.2" # optional: pin the Tailscale package version installed on each node
   allowed_networks:
     ssh:
       - 0.0.0.0/0

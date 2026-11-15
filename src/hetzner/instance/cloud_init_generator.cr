@@ -12,6 +12,8 @@ class Hetzner::Instance::CloudInitGenerator
   SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
 
+  TAILSCALE_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/tailscale/install_tailscale.sh") }}
+
   def initialize(
     @settings : Configuration::Main,
     @ssh_port : Int32,
@@ -148,16 +150,30 @@ class Hetzner::Instance::CloudInitGenerator
     YAML
   end
 
+  private def tailscale_install_script
+    script = Crinja.render(TAILSCALE_INSTALL_SCRIPT, {
+      tailscale_version: @settings.networking.tailscale.version,
+    })
+    format_file_content(script)
+  end
+
   private def tailscale_files
     return "" unless @settings.networking.tailscale.enabled
 
     # The auth key is written to /run (a tmpfs mount) with mode 0600 and
-    # deleted right after `tailscale up`, so it does not persist on disk.
+    # deleted right after `tailscale up`, so it is not left on the node's
+    # persistent filesystem by this step. Note that cloud-init itself keeps
+    # the complete user-data, auth key included, at
+    # /var/lib/cloud/instance/user-data.txt for the life of the instance.
     <<-YAML
     - content: |
         #{@settings.networking.tailscale.auth_key}
       path: /run/tailscale-authkey
       permissions: '0600'
+    - content: #{tailscale_install_script}
+      permissions: '0755'
+      path: /usr/local/bin/install-tailscale.sh
+      encoding: gzip+base64
     YAML
   end
 
@@ -238,14 +254,15 @@ class Hetzner::Instance::CloudInitGenerator
 
   # Installs Tailscale and joins the node to the tailnet as
   # `<instance-name>.<hostname_suffix>`, right after the hostname is set.
-  # `--accept-dns=false` keeps the node's DNS resolution unchanged: MagicDNS
-  # names only need to resolve on the machine running hetzner-k3s, not on the
-  # nodes themselves.
+  # `--accept-dns=false` is passed to `tailscale up` rather than applied
+  # afterwards, so tailscaled never rewrites /etc/resolv.conf in between.
+  # Subnet routes are deliberately not accepted: nodes only need to be
+  # reachable over the tailnet, and accepting routes lets any subnet router
+  # in the tailnet override the private network, pod and service CIDRs.
   private def tailscale_commands
     [
-      "curl -fsSL https://tailscale.com/install.sh | sh",
-      "tailscale up --authkey=$(cat /run/tailscale-authkey) --hostname=$(hostname) --accept-routes && rm -f /run/tailscale-authkey",
-      "tailscale set --accept-dns=false",
+      "/usr/local/bin/install-tailscale.sh",
+      "tailscale up --authkey=\"$(cat /run/tailscale-authkey)\" --hostname=\"$(hostname)\" --accept-dns=false && rm -f /run/tailscale-authkey",
     ]
   end
 

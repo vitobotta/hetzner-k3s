@@ -6,6 +6,10 @@ class Configuration::Models::NetworkingConfig::Tailscale
   getter hostname_suffix : String = ""
   getter auth_key : String = ENV.fetch("TAILSCALE_AUTH_KEY", "")
 
+  # Optional exact package version to install from Tailscale's repository.
+  # When empty, the repository's current stable package is used.
+  getter version : String = ""
+
   def initialize
   end
 

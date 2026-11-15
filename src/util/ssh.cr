@@ -18,6 +18,25 @@ class Util::SSH
   # Default delay between retries in seconds
   DEFAULT_RETRY_DELAY = 5
 
+  # How long the parsed `tailscale status` output is reused. Every SSH command
+  # resolves the host, so without this the CLI would run dozens to hundreds of
+  # times during a single `create`.
+  TAILSCALE_STATUS_CACHE_TTL = 5.seconds
+
+  # The local machine cannot use the tailnet at all: CLI missing, daemon not
+  # running, not signed in, or unparseable status. Retrying cannot fix it, so
+  # this is not an IO::Error and is not retried.
+  class TailscaleError < Exception
+  end
+
+  # The node has not registered with the tailnet yet. Expected during first
+  # boot, so this is an IO::Error and is retried by wait_for_instance.
+  class TailscaleNotReady < IO::Error
+  end
+
+  @@tailscale_status_mutex = Mutex.new
+  @@tailscale_status_cache : Tuple(Time::Span, String?)? = nil
+
   getter private_ssh_key_path : String
   getter public_ssh_key_path : String
   getter prefer_private_ip : Bool = false
@@ -184,11 +203,59 @@ class Util::SSH
   private def resolve_host(instance)
     return resolve_ip_host(instance) unless tailscale?
 
-    tailscale_hostname = instance.tailscale_host(tailscale_hostname_suffix)
-    return tailscale_hostname if tailscale_peer_online?(tailscale_hostname)
+    resolve_tailscale_host(instance)
+  end
 
-    log_line "Waiting for #{tailscale_hostname} to register with Tailscale...", log_prefix: "Instance #{instance.name}"
-    raise IO::Error.new("Tailscale peer #{tailscale_hostname} not yet online")
+  private def resolve_tailscale_host(instance)
+    hostname = instance.tailscale_host(tailscale_hostname_suffix)
+    status = tailscale_status
+
+    unless status
+      raise TailscaleError.new(
+        "Cannot read the tailnet on this machine: the `tailscale` CLI is missing, tailscaled is not running, or you are not signed in. " \
+        "Install Tailscale and run `tailscale up` before using networking.tailscale."
+      )
+    end
+
+    json = JSON.parse(status)
+    backend_state = json["BackendState"]?.try(&.as_s?)
+
+    if backend_state != "Running"
+      raise TailscaleError.new(
+        "This machine is not connected to a tailnet (BackendState: #{backend_state || "unknown"}). Run `tailscale up` and retry."
+      )
+    end
+
+    peer = find_tailscale_peer(json, hostname)
+
+    unless peer
+      raise TailscaleNotReady.new(
+        "Tailscale peer #{hostname} is not in the tailnet yet. If the node has finished booting, " \
+        "check networking.tailscale.hostname_suffix, the auth key and the tailnet ACLs."
+      )
+    end
+
+    unless peer["Online"]?.try(&.as_bool?) == true
+      raise TailscaleNotReady.new("Tailscale peer #{hostname} is registered but not online yet")
+    end
+
+    hostname
+  rescue JSON::ParseException | TypeCastError | KeyError
+    raise TailscaleError.new("Could not parse the output of `tailscale status --json`")
+  end
+
+  private def find_tailscale_peer(json : JSON::Any, hostname : String) : JSON::Any?
+    peers = json["Peer"]?.try(&.as_h?)
+    return nil unless peers
+
+    peers.each do |_key, peer|
+      dns_name = peer["DNSName"]?.try(&.as_s?)
+      next unless dns_name
+      # Tailscale reports MagicDNS names with a trailing dot.
+      return peer if dns_name.chomp(".") == hostname
+    end
+
+    nil
   end
 
   private def resolve_ip_host(instance)
@@ -202,18 +269,22 @@ class Util::SSH
     host_ip_address
   end
 
-  private def tailscale_peer_online?(hostname : String) : Bool
-    status_output = `tailscale status --json 2>/dev/null`
-    return false unless $?.success?
+  private def tailscale_status : String?
+    now = Time.monotonic
 
-    json = JSON.parse(status_output)
-    json["Peer"].as_h.each do |_key, peer|
-      dns_name = peer["DNSName"]?.try &.as_s
-      next unless dns_name && dns_name.starts_with?(hostname)
-      return peer["Online"]?.try(&.as_bool) == true
+    @@tailscale_status_mutex.synchronize do
+      if cached = @@tailscale_status_cache
+        return cached[1] if now - cached[0] < TAILSCALE_STATUS_CACHE_TTL
+      end
     end
-    false
-  rescue JSON::ParseException | TypeCastError
-    false
+
+    output = `tailscale status --json 2>/dev/null`
+    result = $?.success? ? output : nil
+
+    @@tailscale_status_mutex.synchronize do
+      @@tailscale_status_cache = {Time.monotonic, result}
+    end
+
+    result
   end
 end

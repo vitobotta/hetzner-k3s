@@ -252,7 +252,7 @@ class Hetzner::Instance::Create
   end
 
   private def wait_for_ssh_response(instance)
-    result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready")
+    result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready", ssh_wait_attempts)
     result == "ready"
   end
 
