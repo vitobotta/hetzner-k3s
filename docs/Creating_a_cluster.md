@@ -229,6 +229,14 @@ Most settings are straightforward and easy to understand. To see a list of avail
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
 
+### Rotating the Hetzner API token
+
+The Hetzner components read the token from the `hcloud` secret when their pods start, so after a rotation the running pods keep the old one. The Cloud Controller Manager then fails to authenticate and new nodes stay tainted `node.cloudprovider.kubernetes.io/uninitialized`.
+
+Running `create` again with the new token fixes that: when the token in the secret differs from the configured one, hetzner-k3s updates the secret and rolls the deployments and the DaemonSet that consume it, then waits for them. Nothing restarts while the token is unchanged, so ordinary runs stay quiet, and no instances are recreated. Resource changes are applied only after the restarted pods are ready, which is a few seconds for each component.
+
+A rollout that does not finish within three minutes is logged and the run continues, because the cluster itself is fine and the pods can be inspected afterwards.
+
 ### SSH keys from environment variables
 
 The cluster SSH key pair can come from the environment too, so an unattended run such as a CI job does not have to write key files first:
