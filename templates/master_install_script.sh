@@ -148,7 +148,8 @@ fi
 # Install k3s
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-curl -sfL https://get.k3s.io | \
+install_status_file=$(mktemp)
+{ curl -sfL https://get.k3s.io | \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_TOKEN="{{ k3s_token }}" \
   {{ datastore_endpoint }} \
@@ -177,10 +178,14 @@ curl -sfL https://get.k3s.io | \
     --advertise-address=$PRIVATE_IP \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
-    {{ server }} {{ tls_sans }} 2>&1 | tee -a /var/log/hetzner-k3s.log
+    {{ server }} {{ tls_sans }}; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-# Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+# Check if installation was successful. PIPESTATUS is bash-only while cloud-init runs this with sh,
+# so the status of the installer, not of tee, is written to a file.
+install_status=$(cat "$install_status_file")
+rm -f "$install_status_file"
+
+if [ "$install_status" -ne 0 ]; then
   echo "ERROR: k3s installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
   exit 1
 fi

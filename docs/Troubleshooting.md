@@ -35,6 +35,10 @@ If the tool stops working after creating instances and you experience timeouts, 
    chmod 600 ~/.ssh/your_private_key
    ```
 
+### Cloud-init Script Fails with "Bad substitution"
+
+The init scripts run under `sh` on cloud-init, which is why older versions could abort at the end of `/etc/init-0.sh` on autoscaled and newly created nodes with `sh: <n>: Bad substitution`, leaving `/etc/initialized` empty and the node half configured. The scripts are `sh` compatible now, and cloud-init invokes them with `bash` as well. Upgrading hetzner-k3s and running `create` again rewrites them.
+
 ### Enable Debug Mode
 
 You can run `hetzner-k3s` with the `DEBUG` environment variable set to `true` for more detailed output:

@@ -276,7 +276,7 @@ class Hetzner::Instance::CloudInitGenerator
 
     script_commands = Array(String).new
     @init_commands.each_with_index do |cmd, index|
-      script_commands << "/etc/init-#{index}.sh"
+      script_commands << "bash /etc/init-#{index}.sh"
     end
 
     combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten
