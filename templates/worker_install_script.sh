@@ -95,10 +95,23 @@ fi
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
 
-# Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<\EOF
+# Create registries.yaml. The content is compared first: k3s only reads this file at startup, so a
+# change needs an agent restart, while an identical file must not cause one. Written through a temp
+# file so the comparison is against a complete copy either way.
+REGISTRIES_FILE=/etc/rancher/k3s/registries.yaml
+registries_temp=$(mktemp)
+cat >"$registries_temp" <<\EOF
 {{ private_registry_config | trim }}
 EOF
+
+registries_changed=false
+if [ "$(sha256sum "$registries_temp" | cut -d' ' -f1)" != "$(sha256sum "$REGISTRIES_FILE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  registries_changed=true
+  mv "$registries_temp" "$REGISTRIES_FILE"
+  chmod 644 "$REGISTRIES_FILE"
+else
+  rm -f "$registries_temp"
+fi
 
 # Set provider ID. Generic external nodes use a non-HCCM scheme; Robot nodes
 # use hrobot:// so HCCM can initialize them when Robot support is enabled.
@@ -122,6 +135,10 @@ echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 # installer failure there (a missing release artifact, a network error) leaves that agent running.
 # The recovery below must not read that as a successful restart.
 agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
+# A node bootstrapping for the first time gets a restart from the installer itself, so a change to
+# the registries file only needs its own restart on a node that already has a unit.
+unit_existed_before_install=false
+[ -f /etc/systemd/system/k3s-agent.service ] && unit_existed_before_install=true
 
 install_status_file=$(mktemp)
 { curl -sfL https://get.k3s.io | \
@@ -190,6 +207,14 @@ if [ "$install_status" -ne 0 ] || [ "$install_start_status" -ne 0 ]; then
 fi
 
 echo "k3s worker installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# The installer restarts k3s-agent only when the unit it writes changed, so a registries.yaml change
+# alone would not be picked up. Restart here when the file changed; when the unit changed too this
+# is a second, immediate restart, which is cheaper than detecting the installer's own message.
+if [ "$registries_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
+  echo "registries.yaml changed; restarting k3s-agent so k3s re-reads it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl restart k3s-agent
+fi
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

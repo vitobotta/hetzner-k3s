@@ -102,6 +102,11 @@ module RoutingSpec
     WorkerGenerator.new(loader, loader.settings).generate_script([master], master, pool, pool.external.try(&.nodes.first?))
   end
 
+  # What the worker script writes into registries.yaml, newline included.
+  def self.registries(loader)
+    "#{loader.settings.addons.embedded_registry_mirror.private_registry_config.to_s.strip}\n"
+  end
+
   def self.master_script(loader)
     MasterGenerator.new(loader, loader.settings).generate_script(master, [master], master, nil, KubeconfigManager.new)
   end
@@ -113,14 +118,20 @@ module RoutingSpec
   # `installer_exit` is what the inert installer returns; `agent_state` is what systemctl reports
   # for k3s-agent, one word per `is-active` call in order with the last one repeating ("inactive
   # active": inactive before the installer, active afterwards); `start_exit` is what `systemctl
-  # start` returns; `allow_sleep` lets the script's retry loops run (without waiting).
-  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false, start_exit = 0, shell = "bash")
+  # start` returns; `allow_sleep` lets the script's retry loops run (without waiting); `registries`
+  # and `unit_present` pre-seed the registries file and the k3s-agent unit of a node that already
+  # exists.
+  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false, start_exit = 0, shell = "bash", registries : String? = nil, unit_present = false)
     directory = File.tempname("routing-install-spec")
     Dir.mkdir(directory)
     begin
       script = script.gsub("/etc/initialized", "#{directory}/initialized")
         .gsub("/etc/rancher/k3s", "#{directory}/k3s")
+        .gsub("/etc/systemd/system/k3s-agent.service", "#{directory}/k3s-agent.service")
         .gsub("/var/log/hetzner-k3s.log", "#{directory}/install.log")
+      Dir.mkdir("#{directory}/k3s")
+      File.write("#{directory}/k3s/registries.yaml", registries) if registries
+      File.write("#{directory}/k3s-agent.service", "") if unit_present
       stubs = <<-'BASH'
         hostname() {
           if [ "$1" = "-I" ]; then printf '%s\n' "$TEST_HOST_IPS"; else echo test-worker; fi
@@ -171,9 +182,11 @@ module RoutingSpec
         output: output, error: output)
       args = File.exists?(args_path) ? File.read_lines(args_path) : [] of String
       calls = File.exists?(calls_path) ? File.read_lines(calls_path) : [] of String
+      registries_path = "#{directory}/k3s/registries.yaml"
+      registries = File.exists?(registries_path) ? File.read(registries_path) : nil
       marker_path = "#{directory}/initialized"
       initialized = File.exists?(marker_path) ? File.read(marker_path) : nil
-      {success: status.success?, args: args, output: output.to_s, calls: calls, initialized: initialized}
+      {success: status.success?, args: args, output: output.to_s, calls: calls, initialized: initialized, registries: registries}
     ensure
       FileUtils.rm_rf(directory)
     end

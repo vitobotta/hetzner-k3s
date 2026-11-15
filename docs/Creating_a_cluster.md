@@ -191,6 +191,8 @@ worker_node_pools:
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
+synchronise_autoscaled_nodes: false # also bring existing nodes of autoscaling pools up to date on create; see below
+
 create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
 k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability
@@ -692,6 +694,26 @@ The `hetzner-k3s delete` command will clean up external nodes by uninstalling k3
 The `run` command detects external nodes by matching their IP against the `external.nodes[].host` entries, or their effective cluster IP in externally routed mode. It can also match generated names when `manage_hostname: true`. If a match is found, it connects to the configured `host` using the node's per-node SSH settings (key, user, port), even when the Kubernetes InternalIP differs. This allows you to run commands and scripts on external nodes just like on Hetzner nodes.
 
 ---
+### Updating autoscaled nodes
+
+`create` provisions only the pools that are not autoscaling. Nodes created later by the Cluster Autoscaler therefore keep the configuration they were born with: changes to `private_registry_config`, kubelet args, labels or taints never reach them, and a rotated registry credential or a changed mirror silently stops image pulls on those nodes.
+
+Set `synchronise_autoscaled_nodes: true` to let `create` reach them too. It is off by default because it opens a new class of remote work: `create` connects to nodes the autoscaler owns.
+
+What happens on a run:
+
+- only instances of pools with `autoscaling.enabled`, found by their `hcloud/node-group` label, are considered;
+- nodes that are not `Ready` yet, and nodes the autoscaler has cordoned for a scale down, are skipped;
+- five nodes are updated at a time, so a large pool does not restart all at once;
+- a node that disappears mid-run (scale down) is reported and never aborts the run, and the closing line counts updated, skipped and failed nodes.
+
+**A node whose configuration did not change is not restarted.** Before writing `registries.yaml` the worker script compares it with the file on the node. An identical file is left alone and needs no restart, because k3s reads that file only at startup. Unit and flag changes are already handled by the k3s installer, which restarts the agent itself when the unit changes, and by nothing at all when it does not. This is also why the first `create` with a new version of hetzner-k3s causes no restart wave on a cluster that is already in sync: there is no hash or marker file to be missing, the comparison is against the node's own files.
+
+Two consequences worth knowing:
+
+- a change is applied on the node at the moment it is written, and the restart follows immediately in the same run, so a run can only be interrupted between the two by killing it. Re-running `create` fixes that node.
+- if you edit `/etc/rancher/k3s/registries.yaml` by hand and the rendered content is the same, the hand edit is reverted on the next run without a restart, since the restart side of it is driven by the file having changed.
+
 ### Idempotency
 
 The `create` command can be run multiple times with the same configuration without causing issues, as the process is idempotent. If the process gets stuck or encounters errors (e.g., due to Hetzner API unavailability or timeouts), you can stop the command and rerun it with the same configuration to continue where it left off. Note that the kubeconfig will be overwritten each time you rerun the command.
