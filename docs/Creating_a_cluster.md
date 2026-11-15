@@ -145,6 +145,16 @@ worker_node_pools:
     max_instances: 3
 
 # addons:
+#   coredns:
+#     enabled: false # let hetzner-k3s manage CoreDNS instead of k3s (default false). See "Customizing CoreDNS" below.
+#     replicas: 1
+#     image: "rancher/mirrored-coredns-coredns:1.12.0"
+#     resources:
+#       requests:
+#         cpu: 100m
+#         memory: 70Mi
+#       limits:
+#         memory: 170Mi
 #   csi_driver:
 #     enabled: true   # Hetzner CSI driver (default true). Set to false to skip installation.
 #     manifest_url: "https://raw.githubusercontent.com/hetznercloud/csi-driver/v2.21.2/deploy/kubernetes/hcloud-csi.yml"
@@ -235,10 +245,37 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **cloud_controller_manager**: Integrates with Hetzner Cloud to provision load balancers automatically when you create Kubernetes Service objects of type LoadBalancer. Enabled by default.
 - **system_upgrade_controller**: Enables zero-downtime rolling upgrades of k3s across your cluster. Enabled by default.
 - **cluster_autoscaler**: Automatically scales worker node pools based on resource demands. Enabled by default when you have autoscaling pools defined.
+- **coredns**: CoreDNS is shipped and managed by k3s by default. Set `addons.coredns.enabled: true` to have hetzner-k3s deploy and own it instead, which makes `replicas`, `image` and container resources configurable. See [Customizing CoreDNS](#customizing-coredns).
 - **traefik**: k3s's built-in ingress controller. Disabled by default; enable if you want a quick ingress solution without installing your own.
 - **servicelb**: k3s's built-in load balancer for bare-metal environments. Disabled by default; typically not needed when using Hetzner's load balancers.
 - **metrics_server**: Enables `kubectl top` commands for viewing resource usage. Disabled by default.
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
+
+### Customizing CoreDNS
+
+CoreDNS is a component that k3s packages and re-applies on every start, so its manifest, and with it the resource limits, cannot be edited in place: the edits are reverted the next time k3s starts. hetzner-k3s therefore leaves CoreDNS to k3s unless you opt in. With `addons.coredns.enabled: true` it starts k3s with `--disable coredns` and deploys its own copy of the manifest, which it then keeps in sync on every `create`:
+
+```yaml
+addons:
+  coredns:
+    enabled: true
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 100Mi
+      limits:
+        memory: 512Mi
+```
+
+`replicas` defaults to 1 while the toggle is on, and `resources` falls back to the k3s values (limits 170Mi memory, requests 100m cpu and 70Mi memory) for anything you leave out. `image` defaults to the CoreDNS image the k3s release this version targets, which means that after a k3s upgrade the pinned image stays until you change it here or bump hetzner-k3s.
+
+Point to keep in mind:
+
+- Switching the toggle on replaces the deployment. k3s uninstalls its packaged CoreDNS when it starts with the flag, so expect a DNS outage of roughly the length of the run between the k3s restart and the addon installation, one to three minutes. Nothing else restarts, in-cluster name resolution is what fails, and a node-local DNS cache only stretches the first 30 seconds. Pods keep running and long-lived connections keep working.
+- The managed deployment keeps the k3s object names and the `k8s-app: kube-dns` label, and the `kube-dns` Service keeps its ClusterIP from `cluster_dns`. That matters if you run a node-local DNS cache, which forwards to the Service, and for the resolver configuration of every pod.
+- Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
+- While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
 
 The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
 

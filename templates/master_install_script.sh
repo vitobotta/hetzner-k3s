@@ -104,6 +104,14 @@ else
   METRICS_SERVER_PLUGIN="--disable metrics-server"
 fi
 
+# CoreDNS: disabled here when hetzner-k3s deploys its own copy, so the packaged manifest and its
+# AddOn prune do not fight the managed deployment.
+if [ "{{ coredns_enabled }}" = "true" ]; then
+  COREDNS_PLUGIN="--disable coredns"
+else
+  COREDNS_PLUGIN=""
+fi
+
 # Kube-proxy arguments
 if [ "{{ kube_proxy_enabled }}" = "true" ]; then
   KUBE_PROXY_ARG='--kube-proxy-arg=metrics-bind-address=0.0.0.0'
@@ -151,6 +159,7 @@ curl -sfL https://get.k3s.io | \
     $TRAEFIK_PLUGIN \
     $SERVICELB_PLUGIN \
     $METRICS_SERVER_PLUGIN \
+    $COREDNS_PLUGIN \
     --write-kubeconfig-mode=644 \
     --node-name=$HOSTNAME \
     --cluster-cidr={{ cluster_cidr }} \

@@ -13,6 +13,7 @@ require "./worker_node_pools"
 require "./kubectl_presence"
 require "./helm_presence"
 require "./autoscaler_ssh_key"
+require "./addons_config/coredns"
 
 class Configuration::Validators::CreateSettings
   getter errors : Array(String) = [] of String
@@ -73,6 +74,8 @@ class Configuration::Validators::CreateSettings
       private_network_enabled: settings.networking.private_network.enabled,
       settings: settings
     ).validate
+
+    Configuration::Validators::AddonsConfig::CoreDNS.new(errors, settings.addons.coredns).validate
 
     Configuration::Validators::KubectlPresence.new(errors).validate
 

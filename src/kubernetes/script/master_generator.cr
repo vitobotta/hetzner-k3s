@@ -57,6 +57,7 @@ class Kubernetes::Script::MasterGenerator
       traefik_enabled:                  @settings.addons.traefik.enabled.to_s,
       servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
       metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
+      coredns_enabled:                  @settings.addons.coredns.enabled.to_s,
       labels_and_taints:                labels_and_taints,
       additional_post_k3s_commands:     post_k3s_commands,
       kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
