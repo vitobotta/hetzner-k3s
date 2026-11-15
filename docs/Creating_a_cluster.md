@@ -179,6 +179,7 @@ worker_node_pools:
 #     scale_down_delay_after_delete: "10s"        # How long after node deletion that scale down evaluation resumes
 #     scale_down_delay_after_failure: "3m"        # How long after scale down failure that scale down evaluation resumes
 #     max_node_provision_time: "15m"              # Maximum time CA waits for node to be provisioned
+#     # new_pod_scale_up_delay: "0s"              # How old an unschedulable pod must be before scale up considers it
 #   cloud_controller_manager:
 #     enabled: true   # Hetzner Cloud Controller Manager (default true). Disabling stops automatic LB provisioning for Service objects.
 #     manifest_url: "https://github.com/hetznercloud/hcloud-cloud-controller-manager/releases/download/v1.33.0/ccm-networks.yaml"
@@ -492,7 +493,21 @@ worker_node_pools:
 - **`max_node_provision_time`**: Sets the maximum time the autoscaler will wait for a new node to become ready. This is particularly useful for clusters with private networks where provisioning might take longer.
   - *Default*: `15m`
 
+- **`new_pod_scale_up_delay`**: How long a pod must exist as unschedulable before the autoscaler considers it for a scale up. Useful with bursting or batch workloads, where pods sit pending for a moment while the scheduler shuffles them onto existing nodes and a scale up would add capacity that is not needed. Individual pods can override it with the `cluster-autoscaler.kubernetes.io/pod-scale-up-delay` annotation.
+  - *Default*: `0s`, and the flag is left out of the deployment entirely so the autoscaler default applies
+
+All six values are durations in the Go form, so `45s`, `1.5m` or `1h30m` are all valid. A value without a unit (`45`) or an unknown unit is rejected when the configuration is validated, rather than crash-looping the autoscaler later.
+
 These settings apply globally to all autoscaling worker node pools in your cluster.
+
+Anything the settings above do not cover can be passed straight to the autoscaler with the top-level `cluster_autoscaler_args` list, which is appended to the command verbatim:
+
+```yaml
+cluster_autoscaler_args:
+- "--skip-nodes-with-local-storage=false"
+```
+
+A flag in `cluster_autoscaler_args` that duplicates a setting is passed twice; the setting comes later, so it wins.
 
 ---
 

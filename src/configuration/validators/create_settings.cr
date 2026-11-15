@@ -13,6 +13,7 @@ require "./worker_node_pools"
 require "./kubectl_presence"
 require "./helm_presence"
 require "./autoscaler_ssh_key"
+require "./addons_config/cluster_autoscaler"
 require "./addons_config/coredns"
 require "./addons_config/local_path_storage_class"
 
@@ -79,6 +80,8 @@ class Configuration::Validators::CreateSettings
     Configuration::Validators::AddonsConfig::CoreDNS.new(errors, settings.addons.coredns).validate
 
     Configuration::Validators::AddonsConfig::LocalPathStorageClass.new(errors, settings.addons.local_path_storage_class).validate
+
+    Configuration::Validators::AddonsConfig::ClusterAutoscaler.new(errors, settings.addons.cluster_autoscaler).validate
 
     Configuration::Validators::KubectlPresence.new(errors).validate
 

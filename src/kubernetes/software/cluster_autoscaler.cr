@@ -121,13 +121,19 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def autoscaler_config_args : Array(String)
     config = settings.addons.cluster_autoscaler
-    [
+    args = [
       "--scan-interval=#{config.scan_interval}",
       "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}",
       "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}",
       "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}",
       "--max-node-provision-time=#{config.max_node_provision_time}",
     ]
+
+    if delay = config.new_pod_scale_up_delay
+      args << "--new-pod-scale-up-delay=#{delay}"
+    end
+
+    args
   end
 
   private def patch_resources(resources : Array(YAML::Any)) : Array(YAML::Any)
