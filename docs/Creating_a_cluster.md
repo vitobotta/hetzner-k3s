@@ -88,6 +88,9 @@ networking:
       # When specified, this file will be used instead of the default values
       # helm_values_path: "./cilium-values.yaml"
       # chart_version: "v1.17.2"
+      # hubble_enabled: true # set false to drop Hubble; relay and ui then follow unless set
+      # hubble_relay_enabled: true
+      # hubble_ui_enabled: true
 
   # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
   # service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
