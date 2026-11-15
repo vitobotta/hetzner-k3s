@@ -3,6 +3,7 @@ require "crinja"
 require "../../configuration/main"
 require "../../configuration/loader"
 require "../../configuration/models/external_node"
+require "../../hetzner/load_balancer"
 require "../deployment_helper"
 require "../util"
 require "./labels_and_taints_generator"
@@ -13,7 +14,7 @@ class Kubernetes::Script::WorkerGenerator
 
   WORKER_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/worker_install_script.sh") }}
 
-  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
+  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @load_balancer : ::Hetzner::LoadBalancer? = nil)
   end
 
   def generate_script(masters, first_master, worker_pool, external_node : Configuration::Models::ExternalNode? = nil)
@@ -27,21 +28,30 @@ class Kubernetes::Script::WorkerGenerator
                           format_post_k3s_commands(pool.additional_post_k3s_commands || @settings.additional_post_k3s_commands)
                         end
 
+    # External nodes keep joining through the first master; others through the API load balancer, if any.
+    join_load_balancer = is_external ? nil : @load_balancer
+
     Crinja.render(WORKER_INSTALL_SCRIPT, {
-      cluster_name:                 @settings.cluster_name,
-      k3s_token:                    generate_k3s_token(masters, first_master),
-      k3s_version:                  @settings.k3s_version,
-      api_server_ip_address:        api_server_ip_address(first_master),
-      private_network_enabled:      @settings.networking.private_network.enabled.to_s,
-      private_network_subnet:       @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
-      cluster_cidr:                 @settings.networking.cluster_cidr,
-      service_cidr:                 @settings.networking.service_cidr,
-      extra_args:                   kubelet_args_list(external_config),
-      labels_and_taints:            labels_and_taints,
-      private_registry_config:      @settings.addons.embedded_registry_mirror.private_registry_config,
-      additional_post_k3s_commands: post_k3s_commands,
-      kubelet_provider_id:          kubelet_provider_id(pool, external_node),
-      external_node_name:           external_node_name(pool, external_node),
+      cluster_name:                     @settings.cluster_name,
+      k3s_token:                        generate_k3s_token(masters, first_master),
+      k3s_version:                      @settings.k3s_version,
+      api_server_ip_address:            join_ip_address(first_master, join_load_balancer, @settings.networking.ssh.use_private_ip),
+      private_network_enabled:          @settings.networking.private_network.enabled.to_s,
+      private_network_subnet:           @settings.networking.private_network.enabled ? @settings.networking.private_network.subnet : "",
+      private_network_external_routing: @settings.networking.private_network.external_routing.to_s,
+      external_node_ip:                 external_node.try(&.cluster_ip) || "",
+      external_node_host:               external_node.try(&.host) || "",
+      cni:                              @settings.networking.cni.enabled.to_s,
+      cni_mode:                         @settings.networking.cni.mode,
+      cluster_cidr:                     @settings.networking.cluster_cidr,
+      service_cidr:                     @settings.networking.service_cidr,
+      extra_args:                       kubelet_args_list(external_config),
+      labels_and_taints:                labels_and_taints,
+      private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
+      additional_post_k3s_commands:     post_k3s_commands,
+      kubelet_provider_id:              kubelet_provider_id(pool, external_node),
+      external_node_name:               external_node_name(pool, external_node),
+      is_external:                      is_external.to_s,
     })
   end
 
@@ -62,7 +72,11 @@ class Kubernetes::Script::WorkerGenerator
 
       "hrobot://#{robot_server_number}"
     else
-      "external://$PUBLIC_IP"
+      if @settings.networking.private_network.enabled && @settings.networking.private_network.external_routing
+        "external://$PRIVATE_IP"
+      else
+        "external://$PUBLIC_IP"
+      end
     end
   end
 

@@ -1,7 +1,10 @@
+require "digest/sha256"
+
 require "../../configuration/loader"
 require "../../configuration/main"
 require "../../hetzner/instance"
 require "../../hetzner/instance/create"
+require "../../hetzner/load_balancer"
 require "../../util"
 require "../../util/shell"
 require "../../util/ssh"
@@ -36,6 +39,7 @@ class Kubernetes::Software::ClusterAutoscaler
   CLUSTER_CONFIG_VOLUME_NAME     = "cluster-config"
   CLUSTER_CONFIG_MOUNT_PATH      = "/etc/cluster-autoscaler"
   CLUSTER_CONFIG_FILE_NAME       = "config.json"
+  CLUSTER_CONFIG_CHECKSUM_KEY    = "hetzner-k3s/cluster-config-checksum"
 
   private getter configuration : Configuration::Loader
   private getter settings : Configuration::Main { configuration.settings }
@@ -50,7 +54,8 @@ class Kubernetes::Software::ClusterAutoscaler
     @masters : Array(::Hetzner::Instance),
     @first_master : ::Hetzner::Instance,
     @ssh : ::Util::SSH,
-    @autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool)
+    @autoscaling_worker_node_pools : Array(Configuration::Models::WorkerNodePool),
+    @load_balancer : ::Hetzner::LoadBalancer? = nil,
   )
   end
 
@@ -66,7 +71,8 @@ class Kubernetes::Software::ClusterAutoscaler
   private def cloud_init(pool : Configuration::Models::WorkerNodePool) : String
     worker_install_script = ::Kubernetes::Script::WorkerGenerator.new(
       configuration,
-      settings
+      settings,
+      @load_balancer
     ).generate_script(masters, first_master, pool)
     grow_root_partition_automatically = pool.effective_grow_root_partition_automatically(settings.grow_root_partition_automatically)
 
@@ -142,7 +148,19 @@ class Kubernetes::Software::ClusterAutoscaler
     patch_deployment_tolerations(deployment)
     patch_deployment_containers(deployment)
     patch_deployment_volumes(deployment)
-    YAML.parse(deployment.to_yaml)
+    patched = YAML.parse(deployment.to_yaml)
+    add_cluster_config_checksum(patched)
+    patched
+  end
+
+  # The autoscaler reads its cluster config (the node pools' cloud-init) only at start, and a
+  # changed ConfigMap alone does not restart it: a checksum on the pod template rolls it whenever
+  # the config changes, so new nodes get the current cloud-init.
+  private def add_cluster_config_checksum(deployment : YAML::Any) : Nil
+    template = deployment["spec"]["template"].as_h
+    metadata = mapping_at(template, "metadata")
+    annotations = mapping_at(metadata, "annotations")
+    annotations[YAML::Any.new(CLUSTER_CONFIG_CHECKSUM_KEY)] = YAML::Any.new(Digest::SHA256.hexdigest(config_json))
   end
 
   private def patch_cluster_role(resource : YAML::Any) : YAML::Any
@@ -347,8 +365,21 @@ class Kubernetes::Software::ClusterAutoscaler
     patched_resources.map(&.to_yaml).join("---\n")
   end
 
+  # The mapping under `key`, created (or replacing an empty value such as `annotations:`) if needed.
+  private def mapping_at(parent : Hash(YAML::Any, YAML::Any), key : String) : Hash(YAML::Any, YAML::Any)
+    yaml_key = YAML::Any.new(key)
+    if mapping = parent[yaml_key]?.try(&.as_h?)
+      return mapping
+    end
+
+    mapping = {} of YAML::Any => YAML::Any
+    parent[yaml_key] = YAML::Any.new(mapping)
+    mapping
+  end
+
+  private getter config_json : String { build_config_json }
+
   private def configmap_manifest : String
-    config_json = build_config_json
     {
       "apiVersion" => "v1",
       "kind"       => "ConfigMap",

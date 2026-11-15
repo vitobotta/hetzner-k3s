@@ -7,9 +7,34 @@ if [ -n "$EXTERNAL_NODE_NAME" ]; then
   HOSTNAME="$EXTERNAL_NODE_NAME"
 fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
+NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
 
 # Network configuration
-if [ "{{ private_network_enabled }}" = "true" ]; then
+if [ "{{ is_external }}" = "true" ] && [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_external_routing }}" = "true" ]; then
+  echo "Using externally routed private network" >/var/log/hetzner-k3s.log
+  PRIVATE_IP="{{ external_node_ip }}"
+  PUBLIC_IP="{{ external_node_host }}"
+  NODE_EXTERNAL_IP=""
+  if [ "$PUBLIC_IP" != "$PRIVATE_IP" ]; then
+    NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
+  fi
+
+  # The routed address must belong to this node, not to a NAT gateway or proxy.
+  # Select its interface explicitly, including on multihomed/VPN-connected hosts.
+  NETWORK_INTERFACE=$(
+    ip -4 -o addr show |
+      awk -v address="$PRIVATE_IP" 'split($4, cidr, "/") && cidr[1] == address {sub(/@.*/, "", $2); print $2; exit}'
+  )
+  if [ -z "$NETWORK_INTERFACE" ]; then
+    echo "ERROR: Routed cluster IP $PRIVATE_IP is not assigned to a local interface; set external.nodes[].ip to the node's routed IPv4 address" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    exit 1
+  fi
+
+  FLANNEL_SETTINGS=""
+  if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]; then
+    FLANNEL_SETTINGS="--flannel-iface=$NETWORK_INTERFACE"
+  fi
+elif [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
 
@@ -92,6 +117,12 @@ fi
 # Install k3s worker
 echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
+# Sampled before the installer: on a re-run of create the agent of an existing worker is already
+# running, and install.sh downloads and verifies the binary before it touches systemd, so an
+# installer failure there (a missing release artifact, a network error) leaves that agent running.
+# The recovery below must not read that as a successful restart.
+agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
+
 curl -sfL https://get.k3s.io | \
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
@@ -101,14 +132,50 @@ curl -sfL https://get.k3s.io | \
     --node-name=$HOSTNAME \
     {{ extra_args }} {{ labels_and_taints }} \
     --node-ip=$PRIVATE_IP \
-    --node-external-ip=$PUBLIC_IP \
+    $NODE_EXTERNAL_IP \
     $KUBELET_PROVIDER_ID \
     $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
 install_status=("${PIPESTATUS[@]}")
 
+# The installer skips the service start when the unit it wrote is identical to the existing one
+# ("No change detected so skipping service start"), so an in-place reinstall with unchanged flags
+# (k3s-killall.sh, then create) ends with a stopped agent and create times out waiting for the
+# node. An inactive or failed unit is started here; one that systemd is already starting is left
+# to it.
+if [ "${install_status[0]}" -eq 0 ] && [ "${install_status[1]}" -eq 0 ]; then
+  agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+  if [ "$agent_state" = "inactive" ] || [ "$agent_state" = "failed" ]; then
+    echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    systemctl start k3s-agent 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status=("${PIPESTATUS[0]}" 0)
+  fi
+fi
+
+# The installer's final "systemctl restart k3s-agent" can report a failure for a start that k3s
+# itself gave up on: the agent registers the node and flannel annotates it a moment later, and
+# when the node is not yet visible to k3s's own client it shuts down ("flannel failed to sync
+# address annotations: node not found"). systemd records the start as failed (Result=protocol)
+# and restarts the unit 5 s later, which succeeds. Give the unit that chance before declaring
+# the installation failed: only for an agent that was not running before the installer, and only
+# while systemd is (re)starting it. A unit whose restart is pending reports "activating"; an
+# inactive or failed one is not coming back on its own, so that failure is reported at once.
+if { [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; } && [ "$agent_state_before_install" != "active" ]; then
+  for i in $(seq 1 24); do
+    agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+    if [ "$agent_state" = "active" ]; then
+      echo "k3s-agent is active after a failed first start (systemd restarted it); continuing" 2>&1 | tee -a /var/log/hetzner-k3s.log
+      install_status=(0 0)
+      break
+    fi
+    [ "$agent_state" = "activating" ] || break
+    sleep 5
+  done
+fi
+
 # Check if installation was successful
 if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  journalctl -u k3s-agent --no-pager -n 30 2>/dev/null | tee -a /var/log/hetzner-k3s.log || true
   exit 1
 fi
 

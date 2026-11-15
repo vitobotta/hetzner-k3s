@@ -27,6 +27,7 @@ hetzner_token: ...
 cluster_name: hello-world
 kubeconfig_path: "./kubeconfig"  # or /cluster/kubeconfig if you are going to use Docker
 k3s_version: v1.32.0+k3s1
+config_format_version: 1
 
 networking:
   ssh:

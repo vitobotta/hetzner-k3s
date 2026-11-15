@@ -11,6 +11,7 @@ require "./networking_config/node_port_range"
 require "./networking_config/private_network"
 require "./networking_config/public_network"
 require "./networking_config/ssh"
+require "./external_routing"
 require "./networking_config/tailscale"
 
 class Configuration::Validators::Networking
@@ -25,6 +26,7 @@ class Configuration::Validators::Networking
   end
 
   def validate
+    Configuration::Validators::ExternalRouting.new(errors, settings).validate
     Configuration::Validators::NetworkingConfig::CNI.new(errors, networking.cni, private_network).validate
     Configuration::Validators::NetworkingConfig::AllowedNetworks.new(
       errors,

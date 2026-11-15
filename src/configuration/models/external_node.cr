@@ -4,12 +4,18 @@ class Configuration::Models::ExternalNode
   include YAML::Serializable
 
   property host : String
+  property ip : String?
   property ssh_user : String
   property ssh_port : Int32 = 22
   property ssh_private_key_path : String
   property manage_hostname : Bool = true
   property index : Int32
   property robot_server_number : Int32?
+
+  # The cluster address in externally routed mode; host remains the SSH endpoint.
+  def cluster_ip : String
+    ip || host
+  end
 
   def ssh_private_key_path
     absolute_path(@ssh_private_key_path)
