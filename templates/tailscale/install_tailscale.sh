@@ -21,10 +21,10 @@ install_deb() {
   codename="${VERSION_CODENAME:-}"
   [ -n "$codename" ] || fail "cannot determine the ${ID} release codename"
 
-  curl -fsSL "https://pkgs.tailscale.com/stable/${ID}/${codename}.noarmor.gpg" \
+  curl --proto '=https' --proto-redir '=https' -fsSL "https://pkgs.tailscale.com/stable/${ID}/${codename}.noarmor.gpg" \
     -o /usr/share/keyrings/tailscale-archive-keyring.gpg ||
     fail "could not download the Tailscale signing key for ${ID} ${codename}"
-  curl -fsSL "https://pkgs.tailscale.com/stable/${ID}/${codename}.tailscale-keyring.list" \
+  curl --proto '=https' --proto-redir '=https' -fsSL "https://pkgs.tailscale.com/stable/${ID}/${codename}.tailscale-keyring.list" \
     -o /etc/apt/sources.list.d/tailscale.list ||
     fail "could not download the Tailscale apt repository for ${ID} ${codename}"
 
