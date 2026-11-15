@@ -72,6 +72,7 @@ networking:
     ipv6: true
     # hetzner_ips_query_server_url: https://.. # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
     # use_local_firewall: false # for large clusters, see https://github.com/vitobotta/hetzner-k3s/blob/main/docs/Recommendations.md
+    # use_hetzner_firewall: true # Hetzner Cloud firewall, attached by label selector. Set false to create none.
   private_network:
     enabled: true
     subnet: 10.0.0.0/16
@@ -228,6 +229,23 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
+
+### Skipping the Hetzner Cloud firewall
+
+Two different firewalls exist and they are independent:
+
+- `use_hetzner_firewall` (default `true`) is Hetzner's own cloud firewall. The tool creates one per cluster, names it after the cluster, attaches it to every server through the label `cluster=<name>`, and passes the name to the autoscaler so new nodes get it too.
+- `use_local_firewall` (default `false`) is the nftables script the tool installs inside the nodes instead.
+
+Hetzner limits firewalls and rules per project and recommends them only for servers with public IP addresses, which matters when you run many clusters or many nodes that only have private IPs. Setting `use_hetzner_firewall: false` creates and updates nothing, omits the autoscaler variable, and deletes a firewall left over from an earlier run:
+
+```yaml
+networking:
+  public_network:
+    use_hetzner_firewall: false
+```
+
+With both settings off the nodes have no filtering at all, so anything reachable on a public address is open. Combine it with `use_local_firewall: true` if you want filtering without consuming the Hetzner quota. `delete` removes a firewall if one still exists.
 
 ### IPv6 instead of a public IPv4
 

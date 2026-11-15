@@ -278,14 +278,19 @@ class Kubernetes::Software::ClusterAutoscaler
     configure_container_volume_mounts(container)
   end
 
-  private def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
+  def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     env_vars = container.env || [] of Kubernetes::Resources::Pod::Spec::Container::EnvVariable
 
     remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
     remove_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR)
 
     set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_FILE_VAR, "#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}")
-    set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
+    if settings.networking.public_network.use_hetzner_firewall
+      set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
+    else
+      # With the firewall disabled the autoscaler must not attach one to new nodes.
+      remove_env_variable(env_vars, HCLOUD_FIREWALL_VAR)
+    end
     set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.networking.ssh.ssh_key_name(settings.cluster_name))
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV4_VAR, settings.networking.public_network.ipv4.to_s)

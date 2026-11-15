@@ -133,6 +133,7 @@ networking:
     # Use custom IP query server for large clusters
     hetzner_ips_query_server_url: https://ip-query.example.com
     use_local_firewall: true  # Enable custom firewall
+    # use_hetzner_firewall: false  # skip Hetzner's own firewall as well for very large clusters
   private_network:
     enabled: false  # Disable private network for >100 nodes
   cni:
