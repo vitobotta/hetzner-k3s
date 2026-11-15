@@ -229,6 +229,19 @@ Most settings are straightforward and easy to understand. To see a list of avail
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file.
 
+### IPv6 instead of a public IPv4
+
+With `networking.public_network.ipv4: false` and `ipv6: true` the nodes get no public IPv4, and `create` still has to reach them. Unless `ssh.use_private_ip` is set, the tool connects to the public address and prefers IPv6 when there is no IPv4, for the kubeconfig, the API TLS SANs and the load balancer address as well. The machine running hetzner-k3s therefore needs working IPv6 connectivity.
+
+```yaml
+networking:
+  public_network:
+    ipv4: false
+    ipv6: true
+```
+
+Turning both families off is rejected unless a private network is enabled and `ssh.use_private_ip` is set.
+
 ### Rotating the Hetzner API token
 
 The Hetzner components read the token from the `hcloud` secret when their pods start, so after a rotation the running pods keep the old one. The Cloud Controller Manager then fails to authenticate and new nodes stay tainted `node.cloudprovider.kubernetes.io/uninitialized`.

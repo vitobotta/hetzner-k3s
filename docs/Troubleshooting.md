@@ -66,6 +66,9 @@ This will provide more detailed output, which can help you identify the root of 
 
 ### IPv4 Disabled with IPv6 Only Configuration
 
+hetzner-k3s connects to the nodes over their public IPv6 address when public IPv4 is disabled, so SSH, the kubeconfig and the API TLS SANs use it. A connection timeout on `2a01:...` addresses means the machine running the tool has no IPv6 route; test with `ping6` or `curl -6` first. `ssh.use_private_ip: true` switches to the private network instead, which requires access to it.
+
+
 **Symptoms**: Cluster creation hangs after nodes are created. SSH connection times out when trying to connect to a private IP address.
 
 **Note**: The tool currently does not support IPv6-only public network configuration. When you disable IPv4 (`public_network.ipv4: false`) or enable `networking.ssh.use_private_ip: true`, you must run `hetzner-k3s` from a machine that has access to the same private network, either directly or through a VPN. Otherwise, the tool will attempt to use private IP addresses for SSH/API connections and fail.

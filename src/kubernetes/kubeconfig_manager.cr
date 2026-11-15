@@ -40,7 +40,7 @@ class Kubernetes::KubeconfigManager
                           elsif @settings.networking.ssh.use_private_ip
                             master.private_ip_address
                           else
-                            @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
+                            master.public_ip_address || master.public_ipv6_address || master.private_ip_address
                           end
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
       master_kubeconfig = kubeconfig
@@ -78,6 +78,7 @@ class Kubernetes::KubeconfigManager
     masters.each do |master|
       sans << "--tls-san=#{master.private_ip_address}"
       sans << "--tls-san=#{master.public_ip_address}"
+      sans << "--tls-san=#{master.public_ipv6_address}"
       if @settings.networking.tailscale.enabled
         sans << "--tls-san=#{master.tailscale_host(@settings.networking.tailscale.hostname_suffix)}"
       end
@@ -89,7 +90,7 @@ class Kubernetes::KubeconfigManager
   private def load_balancer_ip_address(load_balancer : Hetzner::LoadBalancer?)
     return nil unless load_balancer
 
-    @settings.networking.ssh.use_private_ip ? load_balancer.private_ip_address : load_balancer.public_ip_address
+    @settings.networking.ssh.use_private_ip ? load_balancer.private_ip_address : (load_balancer.public_ip_address || load_balancer.public_ipv6_address)
   end
 
   private def switch_to_context(context_name : String, kubeconfig_path : String)
