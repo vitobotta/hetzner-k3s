@@ -170,8 +170,8 @@ worker_node_pools:
 #     default: true   # mark local-path as the cluster default storage class (default true).
 #   cluster_autoscaler:
 #     enabled: true # Cluster Autoscaler addon (default true). Set to false to omit autoscaling.
-#     manifest_url: "https://raw.githubusercontent.com/kubernetes/autoscaler/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
-#     # local_manifest_path: "./cluster-autoscaler.yaml" # optional: use a local manifest file instead of fetching from manifest_url
+#     # manifest_url: "https://example.com/cluster-autoscaler.yaml" # optional: fetch a manifest instead of using the bundled one
+#     # local_manifest_path: "./cluster-autoscaler.yaml" # optional: read a manifest from disk instead of fetching it or using the bundled one
 #     container_image_tag: "v1.35.0"
 #     scan_interval: "10s"                        # How often cluster is reevaluated for scale up or down
 #     scale_down_delay_after_add: "10m"           # How long after scale up that scale down evaluation resumes
@@ -336,6 +336,12 @@ Point to keep in mind:
 - The managed deployment keeps the k3s object names and the `k8s-app: kube-dns` label, and the `kube-dns` Service keeps its ClusterIP from `cluster_dns`. That matters if you run a node-local DNS cache, which forwards to the Service, and for the resolver configuration of every pod.
 - Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
 - While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
+
+### Cluster Autoscaler manifest
+
+hetzner-k3s ships the autoscaler manifest with the binary, taken from `kubernetes/autoscaler` at the release matching the default image tag, instead of following the upstream `master` branch. Upstream changes therefore cannot break a run, and the `imagePullSecrets: gitlab-registry` entry the upstream example carries is dropped: the image is public and the secret never existed, which made kubelet emit a warning event on every pull attempt.
+
+`manifest_url` and `local_manifest_path` still replace it wholesale. Whatever you supply is patched the same way, so keep the `cluster-autoscaler` container name and the `ssl-certs` volume name.
 
 ### Non-default local-path storage class
 

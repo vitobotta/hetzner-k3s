@@ -13,8 +13,8 @@ class Configuration::Models::AddonsConfig::ClusterAutoscaler
   property scale_down_delay_after_failure : String = "3m"
   property max_node_provision_time : String = "15m"
 
-  # Manifest URL and image tag moved from global manifests block
-  property manifest_url : String = "https://raw.githubusercontent.com/kubernetes/autoscaler/refs/heads/master/cluster-autoscaler/cloudprovider/hetzner/examples/cluster-autoscaler-run-on-master.yaml"
+  # Nil means the manifest vendored under templates/, so an upstream change cannot break a run.
+  property manifest_url : String? = nil
   property local_manifest_path : String? = nil
   property container_image_tag : String = "v1.34.3"
 

@@ -19,6 +19,8 @@ class Kubernetes::Software::ClusterAutoscaler
   include Kubernetes::Util
 
   CLUSTER_AUTOSCALER_NAME = "cluster-autoscaler"
+
+  BUNDLED_MANIFEST        = {{ read_file("#{__DIR__}/../../../templates/cluster_autoscaler.yaml") }}
   SSL_CERTS_VOLUME_NAME   = "ssl-certs"
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
   FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
@@ -360,8 +362,10 @@ class Kubernetes::Software::ClusterAutoscaler
     raw_manifest = if local_path = autoscaler_config.local_manifest_path
                      log_line "Reading Cluster Autoscaler manifest from local path: #{local_path}", log_prefix: default_log_prefix
                      File.read(local_path)
+                   elsif manifest_url = autoscaler_config.manifest_url
+                     fetch_manifest(manifest_url)
                    else
-                     fetch_manifest(autoscaler_config.manifest_url)
+                     BUNDLED_MANIFEST
                    end
 
     resources = YAML.parse_all(raw_manifest)
