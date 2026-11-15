@@ -25,9 +25,16 @@ class Kubernetes::Software::ClusterAutoscaler
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
   FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
 
-  CLOUD_PROVIDER                 = "hetzner"
-  STORAGE_API_GROUP              = "storage.k8s.io"
-  VOLUME_ATTACHMENTS_RESOURCE    = "volumeattachments"
+  CLOUD_PROVIDER              = "hetzner"
+  STORAGE_API_GROUP           = "storage.k8s.io"
+  VOLUME_ATTACHMENTS_RESOURCE = "volumeattachments"
+
+  # Dynamic resource allocation is on and locked in the autoscaler since 1.35, so it always lists and
+  # watches these, using DRA or not. Neither the bundled manifest nor the upstream example carries
+  # the permission yet (kubernetes/autoscaler#9487), so it is added here for both cases.
+  DRA_API_GROUP                  = "resource.k8s.io"
+  DRA_RESOURCES                  = %w(deviceclasses resourceslices resourceclaims)
+  DRA_VERBS                      = %w(watch list get)
   HCLOUD_CLOUD_INIT_VAR          = "HCLOUD_CLOUD_INIT"
   HCLOUD_CLUSTER_CONFIG_VAR      = "HCLOUD_CLUSTER_CONFIG"
   HCLOUD_CLUSTER_CONFIG_FILE_VAR = "HCLOUD_CLUSTER_CONFIG_FILE"
@@ -174,7 +181,34 @@ class Kubernetes::Software::ClusterAutoscaler
   private def patch_cluster_role(resource : YAML::Any) : YAML::Any
     cluster_role = YAML.parse(resource.to_yaml)
     add_volumeattachments_permission(cluster_role)
+    add_dra_permissions(cluster_role)
     cluster_role
+  end
+
+  # Idempotent: an existing rule that already covers all three resources is left alone, so repeated
+  # runs and a manifest that gains the rule upstream stay clean.
+  private def add_dra_permissions(cluster_role : YAML::Any) : Nil
+    rules = cluster_role["rules"]?.try(&.as_a)
+    return unless rules
+
+    covered = rules.any? do |rule|
+      api_groups = rule["apiGroups"]?.try(&.as_a)
+      next false unless api_groups
+      next false unless api_groups.any? { |group| group.as_s == DRA_API_GROUP }
+
+      resources = rule["resources"]?.try(&.as_a)
+      next false unless resources
+
+      DRA_RESOURCES.all? { |resource| resources.any? { |r| r.as_s == resource } }
+    end
+
+    return if covered
+
+    rules << YAML.parse(%(apiGroups: ["#{DRA_API_GROUP}"]
+resources: [#{DRA_RESOURCES.map { |resource| %("#{resource}") }.join(", ")}]
+verbs: [#{DRA_VERBS.map { |verb| %("#{verb}") }.join(", ")}]
+))
+    log_line "Added dynamic resource allocation permissions to cluster autoscaler ClusterRole", log_prefix: default_log_prefix
   end
 
   private def add_volumeattachments_permission(cluster_role : YAML::Any) : Nil

@@ -342,6 +342,14 @@ Point to keep in mind:
 - Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
 - While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
 
+### Cluster Autoscaler on Kubernetes 1.35 and later
+
+Since Kubernetes 1.35 the autoscaler ships dynamic resource allocation enabled and locked on, so it always lists and watches `deviceclasses`, `resourceslices` and `resourceclaims`. The example manifests do not grant that yet (kubernetes/autoscaler#9487), which fills the pod log with `cannot list resource "resourceslices" in API group "resource.k8s.io"` errors.
+
+hetzner-k3s adds the missing rule to the autoscaler ClusterRole itself, for the bundled manifest and for one fetched through `manifest_url` or `local_manifest_path`, so nothing is needed on your side. A rule already present in a manifest is left as it is.
+
+Note that the autoscaler image has to match the cluster's Kubernetes minor version. If you run 1.35, set `addons.cluster_autoscaler.container_image_tag` to the matching `v1.35.x`.
+
 ### Cluster Autoscaler manifest
 
 hetzner-k3s ships the autoscaler manifest with the binary, taken from `kubernetes/autoscaler` at the release matching the default image tag, instead of following the upstream `master` branch. Upstream changes therefore cannot break a run, and the `imagePullSecrets: gitlab-registry` entry the upstream example carries is dropped: the image is public and the secret never existed, which made kubelet emit a warning event on every pull attempt.
