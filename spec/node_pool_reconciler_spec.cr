@@ -18,8 +18,16 @@ private class FakeNodesClient < Hetzner::Client
       return {true, listing(matches)}
     end
 
+    # The API filters on the selector. The `cluster=` listing never returns autoscaled servers: the
+    # autoscaler labels them with the node group only.
     page = (params[:page] || "1").to_s.to_i
     @pages << page.to_s
+
+    if selector = params[:label_selector]?
+      node_group_query = selector.to_s.starts_with?("hcloud/node-group=")
+      matches = all.select { |entry| entry[:autoscaled] == node_group_query && entry[:page] == page }
+      return {true, listing(matches, page + 1)}
+    end
 
     {true, listing(all.select { |entry| entry[:page] == page }, page + 1)}
   end
@@ -57,12 +65,17 @@ end
 private class FakeNodesSSH
   property nodes = [] of String
   property failing = [] of String
+  property nodes_fail = false
   getter calls = [] of String
 
   def kubectl(command : String) : Util::Shell::CommandResult
     @calls << command
 
-    return Util::Shell::CommandResult.new(nodes.join("\n"), 0) if command.starts_with?("kubectl get nodes")
+    if command.starts_with?("kubectl get nodes")
+      return Util::Shell::CommandResult.new("", 1) if nodes_fail
+
+      return Util::Shell::CommandResult.new(nodes.join("\n"), 0)
+    end
 
     failing.each do |failure|
       return Util::Shell::CommandResult.new("error: #{failure}", 1) if command.includes?(failure)
@@ -97,6 +110,13 @@ worker_node_pools:
   instance_type: cpx22
   instance_count: 1
   location: nbg1
+- name: auto
+  instance_type: cpx22
+  instance_count: 0
+  autoscaling:
+    enabled: true
+    min_instances: 0
+    max_instances: 3
 YAML
 end
 
@@ -138,10 +158,12 @@ describe "node pool reconciliation" do
     end
   end
 
+  # The name is shaped like a static worker's and the server is absent from the `cluster=` listing,
+  # so only the `hcloud/node-group` lookup can keep it.
   it "leaves autoscaler managed nodes alone" do
     with_reconciler(reconciler_config) do |probe|
-      probe.client.servers = [[{"routing-test-auto", true}]]
-      probe.ssh.nodes = ["routing-test-auto"]
+      probe.client.servers = [[{"routing-test-pool-auto-worker1", true}]]
+      probe.ssh.nodes = ["routing-test-pool-auto-worker1"]
 
       probe.run([] of String)
 
@@ -173,16 +195,53 @@ describe "node pool reconciliation" do
     end
   end
 
-  it "removes an external node that is only a cluster object" do
+  it "removes a node object whose server is already gone" do
     with_reconciler(reconciler_config) do |probe|
       probe.client.servers = [[] of Tuple(String, Bool)]
-      probe.ssh.nodes = ["external-gone"]
+      probe.ssh.nodes = ["routing-test-pool-gone-worker1"]
 
       probe.run([] of String)
 
-      probe.ssh.calls.should contain("kubectl cordon external-gone --request-timeout=30s 2>&1")
-      probe.ssh.calls.should contain("kubectl delete node external-gone --request-timeout=30s 2>&1")
+      probe.ssh.calls.should contain("kubectl cordon routing-test-pool-gone-worker1 --request-timeout=30s 2>&1")
+      probe.ssh.calls.should contain("kubectl delete node routing-test-pool-gone-worker1 --request-timeout=30s 2>&1")
       probe.client.deleted_ids.should be_empty
+    end
+  end
+
+  # An external node that does not manage its hostname reports the machine's own hostname, so it
+  # cannot be recognized by name and has no server either.
+  # An empty list would let it delete servers with no cordon and no drain.
+  it "removes nothing when the cluster cannot be listed" do
+    with_reconciler(reconciler_config) do |probe|
+      probe.client.servers = [[{"routing-test-pool-gone-worker1", false}]]
+      probe.ssh.nodes_fail = true
+
+      expect_raises(Exception, "kubectl get nodes failed") { probe.run([] of String) }
+
+      probe.client.deleted_ids.should be_empty
+    end
+  end
+
+  it "leaves a node that has no server and is not named like a cloud worker alone" do
+    with_reconciler(reconciler_config) do |probe|
+      probe.client.servers = [[] of Tuple(String, Bool)]
+      probe.ssh.nodes = ["dedicated-42.example.net"]
+
+      probe.run([] of String)
+
+      probe.ssh.calls.any?(&.starts_with?("kubectl drain")).should be_false
+    end
+  end
+
+  # The autoscaler labels servers with the node group, and a node object can outlive its server.
+  it "leaves an autoscaled node object alone after its server is gone" do
+    with_reconciler(reconciler_config) do |probe|
+      probe.client.servers = [[] of Tuple(String, Bool)]
+      probe.ssh.nodes = ["auto-abc123"]
+
+      probe.run([] of String)
+
+      probe.ssh.calls.any?(&.starts_with?("kubectl drain")).should be_false
     end
   end
 

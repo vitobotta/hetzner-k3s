@@ -16,6 +16,11 @@ class Hetzner::Instance
   end
 
   def public_ipv6_address : String?
+    public_net.try(&.ipv6).try(&.address)
+  end
+
+  # The /64 the API returns, which is what the TLS SAN has to carry as a network.
+  def public_ipv6_network : String?
     public_net.try(&.ipv6).try(&.ip)
   end
 

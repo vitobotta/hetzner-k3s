@@ -85,7 +85,7 @@ class Kubernetes::Software::LocalPathStorageClass
 
   private def current_default_value : String?
     result = run_shell_command(
-      "kubectl get storageclass #{NAME} -o jsonpath='{.#{DEFAULT_ANNOTATION.gsub(".", "\\.")}}'",
+      "kubectl get storageclass #{NAME} -o jsonpath='{.metadata.annotations.#{DEFAULT_ANNOTATION.gsub(".", "\\.")}}'",
       configuration.kubeconfig_path,
       settings.hetzner_token,
       abort_on_error: false,

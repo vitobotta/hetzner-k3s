@@ -236,7 +236,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
 
-If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file: while it is set and not blank, whatever `hetzner_token` contains is ignored, so a placeholder in a committed config is fine. An empty or whitespace-only value counts as unset.
+If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file: while it is set and not blank, whatever `hetzner_token` contains is ignored, so a placeholder in a committed config is fine. An empty or whitespace-only value counts as unset. If both hold a token and the two differ, `create` prints one line saying that the variable is the one in use, so a token exported for another project does not go unnoticed.
 
 ### Skipping the Hetzner Cloud firewall
 
@@ -731,7 +731,7 @@ It is opt-in and destructive, so it asks first:
 - `--dry-run` lists them and stops
 - `--force` applies without asking, which is what CI needs, since there is no terminal there. Without a terminal and without `--force` nothing is removed and the nodes are only listed.
 
-What it will not touch: masters (the expected set contains them even though `create` does not reconcile master counts), nodes carrying an `hcloud/node-group` label, which belong to the autoscaler, and anything the configuration still renders. Note that renaming a pool therefore replaces all of its nodes, since every old name drops out of the expected set.
+What it will not touch: masters (the expected set contains them even though `create` does not reconcile master counts), autoscaled nodes, which the autoscaler labels with `hcloud/node-group` on the server (the node object carries no such label, so they are looked up per autoscaling pool and matched by name prefix), external nodes, and anything the configuration still renders. An external node that does not manage its hostname reports the machine's own hostname, so a node with no server of this cluster that is not named like one of its workers is left alone as well. Note that renaming a pool therefore replaces all of its nodes, since every old name drops out of the expected set.
 
 Each node is cordoned first, then drained with `--ignore-daemonsets --delete-emptydir-data --timeout=10m`, then its instance is deleted. If a drain fails or times out, the instance is kept, the remaining nodes are still processed, and the run ends non-zero, so a later `create` finishes the job. External nodes, which have no Hetzner instance, are drained and removed from the cluster, but nothing is deleted through the API.
 
@@ -745,7 +745,7 @@ Set `synchronise_autoscaled_nodes: true` to let `create` reach them too. It is o
 
 What happens on a run:
 
-- only instances of pools with `autoscaling.enabled`, found by their `hcloud/node-group` label, are considered;
+- only instances of pools with `autoscaling.enabled`, found by their `hcloud/node-group` server label, are considered;
 - nodes that are not `Ready` yet, and nodes the autoscaler has cordoned for a scale down, are skipped;
 - five nodes are updated at a time, so a large pool does not restart all at once;
 - a node that disappears mid-run (scale down) is reported and never aborts the run, and the closing line counts updated, skipped and failed nodes.

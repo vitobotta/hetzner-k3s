@@ -30,19 +30,19 @@ end
 
 describe Hetzner::Instance do
   it "reads the public IPv6 address" do
-    instance(ipv6: "2a01:4f8::1").public_ipv6_address.should eq("2a01:4f8::1")
+    instance(ipv6: "2a01:4f8:c17:3333::/64").public_ipv6_address.should eq("2a01:4f8:c17:3333::1")
   end
 
   it "connects over IPv6 when public IPv4 is disabled" do
-    instance(ipv6: "2a01:4f8::1", private_ip: "10.0.0.2").host_ip_address.should eq("2a01:4f8::1")
+    instance(ipv6: "2a01:4f8:c17:3333::/64", private_ip: "10.0.0.2").host_ip_address.should eq("2a01:4f8:c17:3333::1")
   end
 
   it "keeps preferring IPv4 when it exists" do
-    instance(ipv4: "192.0.2.10", ipv6: "2a01:4f8::1", private_ip: "10.0.0.2").host_ip_address.should eq("192.0.2.10")
+    instance(ipv4: "192.0.2.10", ipv6: "2a01:4f8:c17:3333::/64", private_ip: "10.0.0.2").host_ip_address.should eq("192.0.2.10")
   end
 
   it "still prefers the private address when asked to" do
-    instance(ipv4: "192.0.2.10", ipv6: "2a01:4f8::1", private_ip: "10.0.0.2").host_ip_address(prefer_private_ip: true).should eq("10.0.0.2")
+    instance(ipv4: "192.0.2.10", ipv6: "2a01:4f8:c17:3333::/64", private_ip: "10.0.0.2").host_ip_address(prefer_private_ip: true).should eq("10.0.0.2")
   end
 
   it "falls back to the private address without a public one" do
@@ -50,13 +50,43 @@ describe Hetzner::Instance do
   end
 
   it "falls back to IPv6 when no public IPv4 is assigned" do
-    instance(ipv6: "2a01:4f8::1").private_ip_address.should eq("2a01:4f8::1")
+    instance(ipv6: "2a01:4f8:c17:3333::/64").private_ip_address.should eq("2a01:4f8:c17:3333::1")
+  end
+end
+
+describe Hetzner::Ipv6 do
+  it "derives the address Hetzner puts on the interface from the network" do
+    Hetzner::Ipv6.new("2a01:4f8:c17:3333::/64").address.should eq("2a01:4f8:c17:3333::1")
+  end
+
+  it "increments the last group of a network that does not end on ::" do
+    Hetzner::Ipv6.new("2001:db8:1:2:3:4:5:6/64").address.should eq("2001:db8:1:2:3:4:5:7")
+  end
+
+  it "keeps the network as the API returns it" do
+    instance(ipv6: "2a01:4f8:c17:3333::/64").public_ipv6_network.should eq("2a01:4f8:c17:3333::/64")
+  end
+
+  it "is nil without a value" do
+    Hetzner::Ipv6.new("").address.should be_nil
   end
 end
 
 describe Kubernetes::DeploymentHelper do
+  it "brackets an IPv6 literal in a URL host" do
+    Kubernetes::DeploymentHelper.url_host("2a01:4f8:c17:3333::1").should eq("[2a01:4f8:c17:3333::1]")
+  end
+
+  it "leaves IPv4 alone" do
+    Kubernetes::DeploymentHelper.url_host("192.0.2.10").should eq("192.0.2.10")
+  end
+
+  it "does not bracket twice" do
+    Kubernetes::DeploymentHelper.url_host("[2a01:4f8:c17:3333::1]").should eq("[2a01:4f8:c17:3333::1]")
+  end
+
   it "uses the public IPv6 address for the API server without a public IPv4" do
-    Kubernetes::DeploymentHelper.api_server_ip_address(instance(ipv6: "2a01:4f8::1")).should eq("2a01:4f8::1")
+    Kubernetes::DeploymentHelper.api_server_ip_address(instance(ipv6: "2a01:4f8:c17:3333::/64")).should eq("2a01:4f8:c17:3333::1")
   end
 end
 

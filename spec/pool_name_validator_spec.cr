@@ -31,9 +31,17 @@ private def worker_pool(name : String?)
 end
 
 describe Configuration::Validators::NodePoolConfig::PoolName do
-  ["web", "workers", "worker-pool-1", "pool2", "a", "a1", "node-pool-01"].each do |name|
+  # Leading digits worked before pool names were validated (`<cluster>-pool-8gb-worker1` is a valid
+  # server name), so they have to keep working.
+  ["web", "workers", "worker-pool-1", "pool2", "a", "a1", "node-pool-01", "8gb", "2xl-fsn", "1"].each do |name|
     it "accepts the valid name #{name.inspect}" do
       pool_name_errors(name).should be_empty
+    end
+  end
+
+  ["-web", "web-", "web--"].each do |name|
+    it "rejects #{name.inspect}, which starts or ends with a dash" do
+      pool_name_errors(name).should_not be_empty
     end
   end
 

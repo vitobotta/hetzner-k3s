@@ -121,7 +121,7 @@ module RoutingSpec
   # start` returns; `allow_sleep` lets the script's retry loops run (without waiting); `registries`
   # and `unit_present` pre-seed the registries file and the k3s-agent unit of a node that already
   # exists.
-  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false, start_exit = 0, shell = "bash", registries : String? = nil, unit_present = false)
+  def self.install(script, host_ips = "192.0.2.10 10.10.0.10", addresses = "2: eth0 inet 192.0.2.10/24\n3: vpn0 inet 10.10.0.10/24\n4: enp7s0 inet 10.20.0.5/32\n", agent_state = "active", installer_exit = 0, allow_sleep = false, start_exit = 0, shell = "bash", registries : String? = nil, unit_present = false, download_fails = false)
     directory = File.tempname("routing-install-spec")
     Dir.mkdir(directory)
     begin
@@ -151,6 +151,12 @@ module RoutingSpec
         curl() {
           case "$*" in
             *169.254.169.254*) echo 123 ;;
+            *get.k3s.io*)
+              if [ "$TEST_DOWNLOAD_FAILS" = true ]; then return 22; fi
+              while [ $# -gt 0 ]; do
+                [ "$1" = "-o" ] && printf '%s\n' '# inert installer' > "$2"
+                shift
+              done ;;
             *) echo '# inert installer' ;;
           esac
         }
@@ -178,7 +184,8 @@ module RoutingSpec
       status = Process.run(shell, ["-c", stubs + "\n" + script],
         env: {"TEST_HOST_IPS" => host_ips, "TEST_ADDRESSES" => addresses, "TEST_INSTALL_ARGS" => args_path,
               "TEST_CALLS" => calls_path, "TEST_AGENT_STATES" => states_path, "TEST_INSTALLER_EXIT" => installer_exit.to_s,
-              "TEST_START_EXIT" => start_exit.to_s, "TEST_ALLOW_SLEEP" => allow_sleep.to_s},
+              "TEST_START_EXIT" => start_exit.to_s, "TEST_ALLOW_SLEEP" => allow_sleep.to_s,
+              "TEST_DOWNLOAD_FAILS" => download_fails.to_s},
         output: output, error: output)
       args = File.exists?(args_path) ? File.read_lines(args_path) : [] of String
       calls = File.exists?(calls_path) ? File.read_lines(calls_path) : [] of String

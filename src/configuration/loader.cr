@@ -72,8 +72,12 @@ class Configuration::Loader
 
   private property force : Bool = false
 
-  def initialize(@configuration_file_path, @new_k3s_version, @force, @skip_current_ip_validation = false)
+  def initialize(@configuration_file_path, @new_k3s_version, @force, @skip_current_ip_validation = false, @output : IO = STDOUT)
     @settings = Configuration::Main.from_yaml(File.read(configuration_file_path))
+
+    if notice = settings.token_precedence_notice
+      @output.puts "[Configuration] #{notice}"
+    end
 
     Configuration::Validators::ConfigurationFilePath.new(errors, configuration_file_path).validate
 

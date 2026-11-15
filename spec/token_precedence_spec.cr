@@ -74,3 +74,49 @@ describe "the Hetzner token" do
     end
   end
 end
+
+private def load_notice(yaml : String) : String
+  output = IO::Memory.new
+  File.tempfile("token-notice", ".yaml") do |file|
+    file.print(yaml)
+    file.flush
+    Configuration::Loader.new(file.path, nil, false, false, output)
+  end
+
+  output.to_s
+end
+
+describe "the token precedence notice" do
+  it "is printed once at load time" do
+    with_env_token("from-environment") do
+      load_notice(token_yaml("from-config")).should contain("[Configuration] HCLOUD_TOKEN is set and differs")
+    end
+  end
+
+  it "prints nothing when the tokens agree" do
+    with_env_token("same-token") { load_notice(token_yaml("same-token")).should be_empty }
+  end
+
+  it "names the source when both are set and differ" do
+    with_env_token("from-environment") do
+      notice = Configuration::Main.from_yaml(token_yaml("from-config")).token_precedence_notice.not_nil!
+
+      notice.should contain("HCLOUD_TOKEN")
+      notice.should contain("hetzner_token")
+      notice.should_not contain("from-environment")
+      notice.should_not contain("from-config")
+    end
+  end
+
+  it "stays quiet when both are the same token" do
+    with_env_token("same-token") do
+      Configuration::Main.from_yaml(token_yaml("same-token")).token_precedence_notice.should be_nil
+    end
+  end
+
+  it "stays quiet with only one of the two set" do
+    with_env_token(nil) { Configuration::Main.from_yaml(token_yaml("from-config")).token_precedence_notice.should be_nil }
+    with_env_token("from-environment") { Configuration::Main.from_yaml(token_yaml(nil)).token_precedence_notice.should be_nil }
+    with_env_token("   ") { Configuration::Main.from_yaml(token_yaml("from-config")).token_precedence_notice.should be_nil }
+  end
+end

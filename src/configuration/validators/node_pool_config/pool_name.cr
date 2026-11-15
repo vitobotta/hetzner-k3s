@@ -20,8 +20,8 @@ class Configuration::Validators::NodePoolConfig::PoolName
       return errors << "#{pool_label} '#{name}' has an invalid name (#{Configuration::Validators::NameFormat::ALLOWED_CHARACTERS_DESCRIPTION})"
     end
 
-    unless Configuration::Validators::NameFormat.starts_and_ends_correctly?(name)
-      errors << "#{pool_label} '#{name}' must start with a lowercase letter and end with a lowercase letter or a digit"
+    unless Configuration::Validators::NameFormat.pool_starts_and_ends_correctly?(name)
+      errors << "#{pool_label} '#{name}' must start with a lowercase letter or a digit and end with a lowercase letter or a digit"
     end
   end
 

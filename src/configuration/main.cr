@@ -20,6 +20,17 @@ class Configuration::Main
     hetzner_token_from_config
   end
 
+  # The variable silently outranks a token in the file, and someone who exported it for another
+  # project would otherwise run against that project without noticing. Never prints either value.
+  def token_precedence_notice : String?
+    environment_token = ENV["HCLOUD_TOKEN"]?.try(&.strip)
+    config_token = hetzner_token_from_config.strip
+    return nil if environment_token.nil? || environment_token.empty? || config_token.empty?
+    return nil if environment_token == config_token
+
+    "HCLOUD_TOKEN is set and differs from hetzner_token in the configuration file, using the one from HCLOUD_TOKEN"
+  end
+
   getter cluster_name : String
   getter kubeconfig_path : String
   getter k3s_version : String

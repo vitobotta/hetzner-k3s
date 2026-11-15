@@ -31,8 +31,11 @@ private class RecordingLocalPathStorageClass < Kubernetes::Software::LocalPathSt
   def run_shell_command(command : String, kubeconfig_path : String, hetzner_token : String, error_message : String = "", abort_on_error : Bool = true, log_prefix : String = "", print_output : Bool = true) : Util::Shell::CommandResult
     @commands << command
 
+    # Only the annotated path answers, the way kubectl does: a path that misses the annotation
+    # prints nothing and still exits 0.
     if command.includes?("jsonpath")
       return Util::Shell::CommandResult.new("", 1) unless storage_class_present
+      return Util::Shell::CommandResult.new("", 0) unless command.includes?("{.metadata.annotations.")
 
       Util::Shell::CommandResult.new(current_value.to_s, 0)
     elsif command.includes?("kubectl annotate")

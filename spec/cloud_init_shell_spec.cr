@@ -35,8 +35,8 @@ describe "cloud-init compatibility" do
 
   it "pins the k3s installer download to https" do
     RoutingSpec.with_loader do |loader|
-      RoutingSpec.worker_script(loader).should contain("--proto '=https' --tlsv1.2 -sfL https://get.k3s.io")
-      RoutingSpec.master_script(loader).should contain("--proto '=https' --tlsv1.2 -sfL https://get.k3s.io")
+      RoutingSpec.worker_script(loader).should contain("--proto '=https' --tlsv1.2 -fsSL -o")
+      RoutingSpec.master_script(loader).should contain("--proto '=https' --tlsv1.2 -fsSL -o")
     end
   end
 

@@ -28,6 +28,7 @@ class Cluster::NodePoolReconciler
   getter errors : Array(String) = [] of String
 
   @instances : Array(NamedTuple(name: String, autoscaled: Bool))?
+  @node_names : Array(String)?
 
   def initialize(
     @configuration : Configuration::Loader,
@@ -91,10 +92,32 @@ class Cluster::NodePoolReconciler
 
   private def removable_nodes(documented_names : Array(String)) : Array(String)
     candidates = (cloud_instance_names + node_names).uniq.reject do |name|
-      documented_names.includes?(name) || autoscaled_instance_names.includes?(name)
+      documented_names.includes?(name) ||
+        autoscaled_instance_names.includes?(name) ||
+        autoscaled_node_name?(name) ||
+        node_without_server?(name)
     end
 
     candidates.sort
+  end
+
+  # A node object can outlive its server, and an autoscaled one takes its pool name as a prefix.
+  private def autoscaled_node_name?(name : String) : Bool
+    settings.worker_node_pools.select(&.autoscaling_enabled).any? do |pool|
+      name.starts_with?("#{node_group_name(pool)}-")
+    end
+  end
+
+  # Nodes with no server of this cluster: the external ones the tool cannot name (a node that does
+  # not manage its hostname reports the machine's own hostname), so removing them would break a
+  # cluster the configuration still describes. A node that looks like a static cloud worker of this
+  # cluster and has no server is one whose server is gone, so it is the exception.
+  private def node_without_server?(name : String) : Bool
+    !cloud_instance_names.includes?(name) && !static_worker_name?(name)
+  end
+
+  private def static_worker_name?(name : String) : Bool
+    name.matches?(/\A#{Regex.escape(settings.cluster_name)}(-[a-z\d]+)?-pool-[a-z\d-]+-worker\d+\z/)
   end
 
   private def run_kubectl(arguments : String, required : Bool) : Nil
@@ -119,27 +142,45 @@ class Cluster::NodePoolReconciler
     @instances ||= fetch_instances
   end
 
+  # An empty list would let the run delete servers with no cordon and no drain, so a failed listing
+  # stops it instead.
   private def node_names : Array(String)
     @node_names ||= begin
       result = run_shell_command("kubectl get nodes -o=custom-columns=NAME:.metadata.name --no-headers --request-timeout=10s 2>/dev/null", configuration.kubeconfig_path, settings.hetzner_token, abort_on_error: false, print_output: false)
-      result.success? ? result.output.split("\n").map(&.strip).reject(&.empty?) : [] of String
+      raise "kubectl get nodes failed: #{result.output.strip}" unless result.success?
+
+      result.output.split("\n").map(&.strip).reject(&.empty?)
     end
   end
 
+  # Servers of the cluster are labelled `cluster=<name>`, but autoscaled ones never carry that label:
+  # the autoscaler sets only `hcloud/node-group` on them, which is why NodeDetection and
+  # Cluster::Delete query those pools a second time. Without this the autoscaled set is always empty
+  # and every autoscaled node looks removable.
   private def fetch_instances : Array(NamedTuple(name: String, autoscaled: Bool))
-    instances = [] of NamedTuple(name: String, autoscaled: Bool)
+    flags = {} of String => Bool
+
+    server_names("cluster=#{settings.cluster_name}").each { |name| flags[name] ||= false }
+
+    settings.worker_node_pools.each do |pool|
+      next unless pool.autoscaling_enabled
+
+      server_names("hcloud/node-group=#{node_group_name(pool)}").each { |name| flags[name] = true }
+    end
+
+    flags.map { |name, autoscaled| {name: name, autoscaled: autoscaled} }
+  end
+
+  private def server_names(label_selector : String) : Array(String)
+    names = [] of String
     page = 1
 
     MAX_PAGES.times do
-      success, response = hetzner_client.get("/servers", {:label_selector => "cluster=#{settings.cluster_name}", :page => page.to_s, :per_page => PAGE_SIZE.to_s})
-      raise "Failed to list cluster servers: #{response}" unless success
+      success, response = hetzner_client.get("/servers", {:label_selector => label_selector, :page => page.to_s, :per_page => PAGE_SIZE.to_s})
+      raise "Failed to list servers (#{label_selector}): #{response}" unless success
 
       body = JSON.parse(response)
-      body["servers"].as_a.each do |server|
-        labels = server["labels"]?.try(&.as_h?)
-        autoscaled = !labels.nil? && labels.has_key?(NODE_GROUP_LABEL)
-        instances << {name: server["name"].as_s, autoscaled: autoscaled}
-      end
+      body["servers"].as_a.each { |server| names << server["name"].as_s }
 
       next_page = body["meta"]?.try(&.["pagination"]?).try(&.["next_page"]?).try(&.as_i64?)
       break unless next_page
@@ -147,7 +188,11 @@ class Cluster::NodePoolReconciler
       page = next_page.to_i
     end
 
-    instances
+    names
+  end
+
+  private def node_group_name(pool : Configuration::Models::WorkerNodePool) : String
+    pool.include_cluster_name_as_prefix ? "#{settings.cluster_name}-#{pool.name}" : pool.name.to_s
   end
 
   private def confirmed? : Bool

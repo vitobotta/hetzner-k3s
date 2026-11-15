@@ -140,8 +140,13 @@ agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
 unit_existed_before_install=false
 [ -f /etc/systemd/system/k3s-agent.service ] && unit_existed_before_install=true
 
+# The status of a pipeline is the status of its last command, so the installer has to be fetched
+# first: a failed download leaves `sh -s -` with an empty script and exit 0, which used to be recorded
+# as a successful install.
+installer=$(mktemp)
 install_status_file=$(mktemp)
-{ curl --proto '=https' --tlsv1.2 -sfL https://get.k3s.io | \
+if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; then
+{
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_URL=https://{{ api_server_ip_address }}:6443 \
@@ -152,7 +157,12 @@ install_status_file=$(mktemp)
     --node-ip=$PRIVATE_IP \
     $NODE_EXTERNAL_IP \
     $KUBELET_PROVIDER_ID \
-    $FLANNEL_SETTINGS; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+    $FLANNEL_SETTINGS < "$installer"; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+else
+  echo "ERROR: could not download the k3s installer" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo 1 >"$install_status_file"
+fi
+rm -f "$installer"
 
 # PIPESTATUS is bash-only while cloud-init runs this with sh, so the installer status goes through a
 # file. The former two element array becomes the installer status and the start status below.

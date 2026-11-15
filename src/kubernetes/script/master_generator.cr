@@ -21,7 +21,7 @@ class Kubernetes::Script::MasterGenerator
     etcd_arguments = ""
 
     if @settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address(first_master)}:6443 "
+      server = master == first_master ? " --cluster-init " : " --server https://#{url_host(api_server_ip_address(first_master))}:6443 "
       etcd_arguments = " --etcd-expose-metrics=true #{@settings.datastore.etcd.generate_etcd_args} "
     else
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{@settings.datastore.external_datastore_endpoint}' "
