@@ -1,5 +1,11 @@
 # Important Upgrade Notes
 
+## IPv6 Clusters Restart Their Masters Once - Sunday, November 15, 2026
+
+A cluster with `public_network.ipv4: false` now gets a `--tls-san` for each master's IPv6 address, so the API certificate can actually be served on the address the cluster is reached at. The flag changes the `k3s server` command line, the installer writes a new unit and restarts k3s: the first master alone and then the others together, as `create` always does. On three masters that is one short API outage.
+
+Dual-stack clusters are unaffected. Their IPv6 SAN is not rendered, so their command line stays byte for byte the same and no master restarts.
+
 ## HCLOUD_TOKEN Takes Precedence - Sunday, November 15, 2026
 
 `HCLOUD_TOKEN` now wins over `hetzner_token` in the configuration file. Before this version the file won, so someone who exported the variable for another project and also keeps a token in this config ran against the project in the config. After upgrading, the same setup runs against the project the variable points at.
