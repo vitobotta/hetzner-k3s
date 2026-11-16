@@ -12,6 +12,8 @@ class Hetzner::Instance::CloudInitGenerator
   SSH_LISTEN_CONF          = {{ read_file("#{__DIR__}/../../../templates/ssh/listen.conf") }}
   SSH_CONFIGURATION_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/ssh/configure_ssh.sh") }}
 
+  TAILSCALE_INSTALL_SCRIPT = {{ read_file("#{__DIR__}/../../../templates/tailscale/install_tailscale.sh") }}
+
   def initialize(
     @settings : Configuration::Main,
     @ssh_port : Int32,
@@ -31,6 +33,7 @@ class Hetzner::Instance::CloudInitGenerator
       eth1_str:                               eth1,
       firewall_files:                         firewall_files,
       ssh_files:                              ssh_files,
+      tailscale_files:                        tailscale_files,
       init_files:                             init_file_content,
       allowed_kubernetes_api_networks_config: allowed_kubernetes_api_networks_config,
       allowed_ssh_networks_config:            allowed_ssh_networks_config,
@@ -43,6 +46,9 @@ class Hetzner::Instance::CloudInitGenerator
   private def encode(content)
     io = IO::Memory.new
     Compress::Gzip::Writer.open(io) do |gzip|
+      # A fixed timestamp keeps the output stable across runs, so an unchanged cloud-init (e.g. in
+      # the cluster autoscaler's config) does not look changed.
+      gzip.header.modification_time = Time.unix(0)
       gzip.write(content.to_slice)
     end
     Base64.strict_encode(io.to_s)
@@ -56,13 +62,17 @@ class Hetzner::Instance::CloudInitGenerator
     format_file_content(@settings.networking.allowed_networks.api.join("\n"))
   end
 
+  # A read-only token is enough for the node IP lookup; the main token is the fallback.
+  private def ips_token_content
+    format_file_content(@settings.networking.public_network.hetzner_ips_token.presence || @settings.hetzner_token)
+  end
+
   private def allowed_ssh_networks_config
     format_file_content(@settings.networking.allowed_networks.ssh.join("\n"))
   end
 
   private def firewall_script
     script = Crinja.render(FIREWALL_SCRIPT, {
-      hetzner_token:                @settings.hetzner_token,
       hetzner_ips_query_server_url: @settings.networking.public_network.hetzner_ips_query_server_url,
       ssh_port:                     @settings.networking.ssh.port,
       cluster_cidr:                 @settings.networking.cluster_cidr,
@@ -98,6 +108,10 @@ class Hetzner::Instance::CloudInitGenerator
     return "" if @settings.networking.private_network.enabled || !@settings.networking.public_network.use_local_firewall
 
     <<-YAML
+    - content: #{ips_token_content}
+      path: /etc/hetzner-k3s/hetzner-ips-token
+      permissions: '0600'
+      encoding: gzip+base64
     - content: #{allowed_kubernetes_api_networks_config}
       path: /etc/allowed-networks-kubernetes-api.conf
       encoding: gzip+base64
@@ -140,6 +154,33 @@ class Hetzner::Instance::CloudInitGenerator
     - content: #{ssh_configuration_script}
       permissions: '0755'
       path: /etc/configure_ssh.sh
+      encoding: gzip+base64
+    YAML
+  end
+
+  private def tailscale_install_script
+    script = Crinja.render(TAILSCALE_INSTALL_SCRIPT, {
+      tailscale_version: @settings.networking.tailscale.version,
+    })
+    format_file_content(script)
+  end
+
+  private def tailscale_files
+    return "" unless @settings.networking.tailscale.enabled
+
+    # The auth key is written to /run (a tmpfs mount) with mode 0600 and
+    # deleted right after `tailscale up`, so it is not left on the node's
+    # persistent filesystem by this step. Note that cloud-init itself keeps
+    # the complete user-data, auth key included, at
+    # /var/lib/cloud/instance/user-data.txt for the life of the instance.
+    <<-YAML
+    - content: |
+        #{@settings.networking.tailscale.auth_key}
+      path: /run/tailscale-authkey
+      permissions: '0600'
+    - content: #{tailscale_install_script}
+      permissions: '0755'
+      path: /usr/local/bin/install-tailscale.sh
       encoding: gzip+base64
     YAML
   end
@@ -204,9 +245,12 @@ class Hetzner::Instance::CloudInitGenerator
     commands = [
       "hostnamectl set-hostname $(curl http://169.254.169.254/hetzner/v1/metadata/hostname)",
       "update-crypto-policies --set DEFAULT:SHA1 || true",
-      "/etc/configure_ssh.sh",
-      "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf",
     ]
+
+    commands.concat(tailscale_commands) if @settings.networking.tailscale.enabled
+
+    commands << "/etc/configure_ssh.sh"
+    commands << "echo \"nameserver 8.8.8.8\" > /etc/k8s-resolv.conf"
 
     if !@settings.networking.private_network.enabled && @settings.networking.public_network.use_local_firewall
       commands << "/usr/local/bin/firewall.sh setup"
@@ -214,6 +258,20 @@ class Hetzner::Instance::CloudInitGenerator
     end
 
     commands
+  end
+
+  # Installs Tailscale and joins the node to the tailnet as
+  # `<instance-name>.<hostname_suffix>`, right after the hostname is set.
+  # `--accept-dns=false` is passed to `tailscale up` rather than applied
+  # afterwards, so tailscaled never rewrites /etc/resolv.conf in between.
+  # Subnet routes are deliberately not accepted: nodes only need to be
+  # reachable over the tailnet, and accepting routes lets any subnet router
+  # in the tailnet override the private network, pod and service CIDRs.
+  private def tailscale_commands
+    [
+      "/usr/local/bin/install-tailscale.sh",
+      "tailscale up --authkey=\"$(cat /run/tailscale-authkey)\" --hostname=\"$(hostname)\" --accept-dns=false && rm -f /run/tailscale-authkey",
+    ]
   end
 
   private def generate_post_create_commands_str
@@ -226,7 +284,7 @@ class Hetzner::Instance::CloudInitGenerator
 
     script_commands = Array(String).new
     @init_commands.each_with_index do |cmd, index|
-      script_commands << "/etc/init-#{index}.sh"
+      script_commands << "bash /etc/init-#{index}.sh"
     end
 
     combined_commands = [formatted_pre_commands, mandatory_commands, script_commands, formatted_post_commands].flatten

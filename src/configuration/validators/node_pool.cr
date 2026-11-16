@@ -11,8 +11,8 @@ class Configuration::Validators::NodePool
   getter instance_types : Array(Hetzner::InstanceType) = [] of Hetzner::InstanceType
   getter all_locations : Array(Hetzner::Location) = [] of Hetzner::Location
 
-  getter pool_name : String { masters? ? "masters" : pool.try(&.name) || "<unnamed-pool>" }
-  getter pool_description : String { workers? ? "Worker mode pool '#{pool_name}'" : "Masters pool" }
+  getter pool_name : String? { masters? ? "masters" : pool.try(&.name) }
+  getter pool_description : String { workers? ? "Worker mode pool '#{pool_name || "<unnamed-pool>"}'" : "Masters pool" }
 
   getter datastore : Configuration::Models::Datastore
   getter private_network_enabled : Bool = true

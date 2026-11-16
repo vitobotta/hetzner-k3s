@@ -20,8 +20,12 @@ class Hetzner::LoadBalancer
     public_net.try(&.ipv4).try(&.ip)
   end
 
+  def public_ipv6_address : String?
+    public_net.try(&.ipv6).try(&.ip)
+  end
+
   def private_ip_address : String?
-    private_net.first?.try(&.ip).presence || public_ip_address
+    private_net.first?.try(&.ip).presence || public_ip_address || public_ipv6_address
   end
 
   def public_interface_enabled? : Bool
@@ -32,7 +36,7 @@ class Hetzner::LoadBalancer
   def ip_address(prefer_private : Bool) : String?
     return private_net.first?.try(&.ip).presence unless public_interface_enabled?
 
-    prefer_private ? private_ip_address : public_ip_address
+    prefer_private ? private_ip_address : (public_ip_address || public_ipv6_address)
   end
 
   def attached_to_network?(network_id) : Bool

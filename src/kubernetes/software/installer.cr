@@ -2,6 +2,7 @@ require "../../configuration/loader"
 require "../../configuration/main"
 require "../../configuration/models/worker_node_pool"
 require "../../hetzner/instance"
+require "../../hetzner/load_balancer"
 require "../../util/ssh"
 require "./cilium"
 require "./hetzner/secret"
@@ -9,13 +10,17 @@ require "./hetzner/cloud_controller_manager"
 require "./hetzner/csi_driver"
 require "./system_upgrade_controller"
 require "./cluster_autoscaler"
+require "./coredns"
+require "./local_path_storage_class"
 
 class Kubernetes::Software::Installer
-  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main)
+  def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @load_balancer : ::Hetzner::LoadBalancer? = nil)
   end
 
   def install_all(first_master, masters, ssh, autoscaling_worker_node_pools)
     install_cni_if_needed
+    configure_coredns
+    configure_local_path_storage_class
     create_hetzner_secret
     install_hetzner_cloud_controller_manager_if_enabled
     install_hetzner_csi_driver_if_enabled
@@ -25,6 +30,14 @@ class Kubernetes::Software::Installer
 
   private def install_cni_if_needed
     Kubernetes::Software::Cilium.new(@configuration, @settings).install if @settings.networking.cni.enabled? && @settings.networking.cni.cilium?
+  end
+
+  private def configure_coredns
+    Kubernetes::Software::CoreDNS.new(@configuration, @settings).install
+  end
+
+  private def configure_local_path_storage_class
+    Kubernetes::Software::LocalPathStorageClass.new(@configuration, @settings).configure
   end
 
   private def create_hetzner_secret
@@ -45,8 +58,7 @@ class Kubernetes::Software::Installer
 
   private def install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
     if @settings.addons.cluster_autoscaler.enabled? && first_master
-      Kubernetes::Software::ClusterAutoscaler.new(@configuration, @settings, masters, first_master, ssh, autoscaling_worker_node_pools).install
+      Kubernetes::Software::ClusterAutoscaler.new(@configuration, @settings, masters, first_master, ssh, autoscaling_worker_node_pools, @load_balancer).install
     end
   end
 end
-

@@ -70,6 +70,16 @@ class Cluster::Delete
     delete_network if settings.networking.private_network.enabled
     delete_firewall if settings.networking.private_network.enabled || !settings.networking.public_network.use_local_firewall
     delete_ssh_key
+    warn_about_tailscale_cleanup
+  end
+
+  # hetzner-k3s cannot remove nodes from the tailnet on its own. Stale Tailscale
+  # machines cause new nodes with the same hostnames to get a numeric suffix,
+  # which breaks Tailscale-based SSH access on a freshly created cluster.
+  private def warn_about_tailscale_cleanup
+    return unless settings.networking.tailscale.enabled
+
+    log_line "Remember to remove this cluster's nodes from your tailnet at https://login.tailscale.com/admin/machines"
   end
 
   private def cleanup_external_nodes
@@ -165,6 +175,7 @@ class Cluster::Delete
 
       rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
       rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
+      rm -f /etc/hetzner-k3s/hetzner-ips-token
       rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6 /etc/iptables/ipsets.v4 /etc/iptables/ipsets.v6 2>/dev/null || true
       rm -f /tmp/last_node_ips.txt 2>/dev/null || true
       systemctl daemon-reload 2>/dev/null || true

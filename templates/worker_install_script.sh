@@ -95,10 +95,23 @@ fi
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
 
-# Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<\EOF
+# Create registries.yaml. The content is compared first: k3s only reads this file at startup, so a
+# change needs an agent restart, while an identical file must not cause one. Written through a temp
+# file so the comparison is against a complete copy either way.
+REGISTRIES_FILE=/etc/rancher/k3s/registries.yaml
+registries_temp=$(mktemp)
+cat >"$registries_temp" <<\EOF
 {{ private_registry_config | trim }}
 EOF
+
+registries_changed=false
+if [ "$(sha256sum "$registries_temp" | cut -d' ' -f1)" != "$(sha256sum "$REGISTRIES_FILE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  registries_changed=true
+  mv "$registries_temp" "$REGISTRIES_FILE"
+  chmod 644 "$REGISTRIES_FILE"
+else
+  rm -f "$registries_temp"
+fi
 
 # Set provider ID. Generic external nodes use a non-HCCM scheme; Robot nodes
 # use hrobot:// so HCCM can initialize them when Robot support is enabled.
@@ -117,7 +130,23 @@ fi
 # Install k3s worker
 echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-curl -sfL https://get.k3s.io | \
+# Sampled before the installer: on a re-run of create the agent of an existing worker is already
+# running, and install.sh downloads and verifies the binary before it touches systemd, so an
+# installer failure there (a missing release artifact, a network error) leaves that agent running.
+# The recovery below must not read that as a successful restart.
+agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
+# A node bootstrapping for the first time gets a restart from the installer itself, so a change to
+# the registries file only needs its own restart on a node that already has a unit.
+unit_existed_before_install=false
+[ -f /etc/systemd/system/k3s-agent.service ] && unit_existed_before_install=true
+
+# The status of a pipeline is the status of its last command, so the installer has to be fetched
+# first: a failed download leaves `sh -s -` with an empty script and exit 0, which used to be recorded
+# as a successful install.
+installer=$(mktemp)
+install_status_file=$(mktemp)
+if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; then
+{
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_URL=https://{{ api_server_ip_address }}:6443 \
@@ -128,16 +157,74 @@ curl -sfL https://get.k3s.io | \
     --node-ip=$PRIVATE_IP \
     $NODE_EXTERNAL_IP \
     $KUBELET_PROVIDER_ID \
-    $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
-install_status=("${PIPESTATUS[@]}")
+    $FLANNEL_SETTINGS < "$installer"; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+else
+  echo "ERROR: could not download the k3s installer" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo 1 >"$install_status_file"
+fi
+rm -f "$installer"
+
+# PIPESTATUS is bash-only while cloud-init runs this with sh, so the installer status goes through a
+# file. The former two element array becomes the installer status and the start status below.
+install_status=$(cat "$install_status_file")
+install_start_status=0
+rm -f "$install_status_file"
+
+# The installer skips the service start when the unit it wrote is identical to the existing one
+# ("No change detected so skipping service start"), so an in-place reinstall with unchanged flags
+# (k3s-killall.sh, then create) ends with a stopped agent and create times out waiting for the
+# node. An inactive or failed unit is started here; one that systemd is already starting is left
+# to it.
+if [ "$install_status" -eq 0 ] && [ "$install_start_status" -eq 0 ]; then
+  agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+  if [ "$agent_state" = "inactive" ] || [ "$agent_state" = "failed" ]; then
+    echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status_file=$(mktemp)
+    { systemctl start k3s-agent; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status=$(cat "$install_status_file")
+    install_start_status=0
+    rm -f "$install_status_file"
+  fi
+fi
+
+# The installer's final "systemctl restart k3s-agent" can report a failure for a start that k3s
+# itself gave up on: the agent registers the node and flannel annotates it a moment later, and
+# when the node is not yet visible to k3s's own client it shuts down ("flannel failed to sync
+# address annotations: node not found"). systemd records the start as failed (Result=protocol)
+# and restarts the unit 5 s later, which succeeds. Give the unit that chance before declaring
+# the installation failed: only for an agent that was not running before the installer, and only
+# while systemd is (re)starting it. A unit whose restart is pending reports "activating"; an
+# inactive or failed one is not coming back on its own, so that failure is reported at once.
+if { [ "$install_status" -ne 0 ] || [ "$install_start_status" -ne 0 ]; } && [ "$agent_state_before_install" != "active" ]; then
+  for i in $(seq 1 24); do
+    agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+    if [ "$agent_state" = "active" ]; then
+      echo "k3s-agent is active after a failed first start (systemd restarted it); continuing" 2>&1 | tee -a /var/log/hetzner-k3s.log
+      install_status=0
+      install_start_status=0
+      break
+    fi
+    [ "$agent_state" = "activating" ] || break
+    sleep 5
+  done
+fi
 
 # Check if installation was successful
-if [ "${install_status[0]}" -ne 0 ] || [ "${install_status[1]}" -ne 0 ]; then
+if [ "$install_status" -ne 0 ] || [ "$install_start_status" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  journalctl -u k3s-agent --no-pager -n 30 2>/dev/null | tee -a /var/log/hetzner-k3s.log || true
   exit 1
 fi
 
 echo "k3s worker installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# The installer restarts k3s-agent only when the unit it writes changed, so a registries.yaml change
+# alone would not be picked up. Restart here when the file changed; when the unit changed too this
+# is a second, immediate restart, which is cheaper than detecting the installer's own message.
+if [ "$registries_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
+  echo "registries.yaml changed; restarting k3s-agent so k3s re-reads it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl restart k3s-agent
+fi
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

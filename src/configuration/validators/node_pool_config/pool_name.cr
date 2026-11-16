@@ -1,18 +1,31 @@
+require "../name_format"
+
 class Configuration::Validators::NodePoolConfig::PoolName
   getter errors : Array(String)
   getter pool_type : Symbol
-  getter pool_name : String
+  getter pool_name : String?
 
   def initialize(@errors, @pool_type, @pool_name)
   end
 
   def validate
-    return if pool_type == :masters || valid_pool_name?(pool_name)
+    return if pool_type == :masters
 
-    errors << "#{pool_type} has an invalid name"
+    name = pool_name
+    if name.nil? || name.empty?
+      return errors << "#{pool_label} has no name. Set a name for each worker node pool."
+    end
+
+    unless Configuration::Validators::NameFormat.allowed_characters?(name)
+      return errors << "#{pool_label} '#{name}' has an invalid name (#{Configuration::Validators::NameFormat::ALLOWED_CHARACTERS_DESCRIPTION})"
+    end
+
+    unless Configuration::Validators::NameFormat.pool_starts_and_ends_correctly?(name)
+      errors << "#{pool_label} '#{name}' must start with a lowercase letter or a digit and end with a lowercase letter or a digit"
+    end
   end
 
-  private def valid_pool_name?(name : String) : Bool
-    name.matches?(/\A[A-Za-z0-9\-_]+\Z/)
+  private def pool_label
+    pool_type == :workers ? "Worker node pool" : "Master node pool"
   end
 end

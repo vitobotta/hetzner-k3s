@@ -35,6 +35,10 @@ If the tool stops working after creating instances and you experience timeouts, 
    chmod 600 ~/.ssh/your_private_key
    ```
 
+### Cloud-init Script Fails with "Bad substitution"
+
+The init scripts run under `sh` on cloud-init, which is why older versions could abort at the end of `/etc/init-0.sh` on autoscaled and newly created nodes with `sh: <n>: Bad substitution`, leaving `/etc/initialized` empty and the node half configured. The scripts are `sh` compatible now, and cloud-init invokes them with `bash` as well. Upgrading hetzner-k3s and running `create` again rewrites them.
+
 ### Enable Debug Mode
 
 You can run `hetzner-k3s` with the `DEBUG` environment variable set to `true` for more detailed output:
@@ -44,6 +48,21 @@ DEBUG=true hetzner-k3s create --config cluster_config.yaml
 ```
 
 This will provide more detailed output, which can help you identify the root of the problem.
+
+### Create Appears to Hang on an Instance
+
+**Symptoms**: `create` stops printing after `Instance status: running` and appears frozen.
+
+It is waiting for the node to power on, to be attached to the private network, and to answer over SSH, retrying in between. These waits are now bounded and report what failed:
+
+- power on: 30 attempts, then an error
+- attach to the private network: 30 attempts, then an error
+- SSH readiness: 20 attempts, then an error naming the last failure, for example an authentication failure rather than a silent timeout
+- the whole readiness step: 20 minutes
+
+Each SSE wait prints the elapsed time, the attempt count and the reason it is not ready yet, so a run that is merely slow looks different from one that cannot work.
+
+**If it fails**, the message names the cause. `SSH command failed ... Permission denied` means the key is not the one on the server: check `networking.ssh` and `existing_ssh_key_name`. `no route to host` or timeouts point at the network: check `allowed_networks` and the Hetzner firewall rules. For more detail, run with `DEBUG=true`.
 
 ### Cluster Creation Fails after Node Creation
 
@@ -61,6 +80,9 @@ This will provide more detailed output, which can help you identify the root of 
 4. **Check Network Configuration**: See section below for IPv4/IPv6 configuration issues
 
 ### IPv4 Disabled with IPv6 Only Configuration
+
+hetzner-k3s connects to the nodes over their public IPv6 address when public IPv4 is disabled, so SSH, the kubeconfig and the API TLS SANs use it. A connection timeout on `2a01:...` addresses means the machine running the tool has no IPv6 route; test with `ping6` or `curl -6` first. `ssh.use_private_ip: true` switches to the private network instead, which requires access to it.
+
 
 **Symptoms**: Cluster creation hangs after nodes are created. SSH connection times out when trying to connect to a private IP address.
 

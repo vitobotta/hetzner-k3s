@@ -32,20 +32,22 @@ class Kubernetes::KubeconfigManager
 
     if load_balancer_ip
       load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{@settings.cluster_name}"
-      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip}:6443")
+      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{url_host(load_balancer_ip)}:6443")
 
       File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
     end
 
     masters.each_with_index do |master, index|
-      master_ip_address = if @settings.networking.ssh.use_private_ip
-        master.private_ip_address
-      else
-        @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
-      end
+      master_ip_address = if @settings.networking.tailscale.enabled
+                            master.tailscale_host(@settings.networking.tailscale.hostname_suffix)
+                          elsif @settings.networking.ssh.use_private_ip
+                            master.private_ip_address
+                          else
+                            master.public_ip_address || master.public_ipv6_address || master.private_ip_address
+                          end
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
       master_kubeconfig = kubeconfig
-        .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
+        .gsub("server: https://127.0.0.1:6443", "server: https://#{url_host(master_ip_address.to_s)}:6443")
         .gsub("name: #{@settings.cluster_name}", "name: #{master.name}")
         .gsub("cluster: #{@settings.cluster_name}", "cluster: #{master.name}")
         .gsub("user: #{@settings.cluster_name}", "user: #{master.name}")
@@ -85,9 +87,18 @@ class Kubernetes::KubeconfigManager
     sans << "--tls-san=#{load_balancer_ip}" if load_balancer_ip
     sans << "--tls-san=#{@settings.api_server_hostname}" if @settings.api_server_hostname
 
+    # An IPv6 SAN only where there is no public IPv4 to reach the masters on. Adding it everywhere
+    # changes the `k3s server` command line of every existing cluster, and the resulting unit rewrite
+    # restarts the masters, which costs etcd quorum while the API is down.
+    add_ipv6_sans = !@settings.networking.public_network.ipv4
+
     masters.each do |master|
       sans << "--tls-san=#{master.private_ip_address}"
       sans << "--tls-san=#{master.public_ip_address}"
+      sans << "--tls-san=#{master.public_ipv6_address}" if add_ipv6_sans
+      if @settings.networking.tailscale.enabled
+        sans << "--tls-san=#{master.tailscale_host(@settings.networking.tailscale.hostname_suffix)}"
+      end
     end
 
     sans.uniq.sort.join(" ")

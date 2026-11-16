@@ -8,7 +8,29 @@ require "./models/addons"
 class Configuration::Main
   include YAML::Serializable
 
-  getter hetzner_token : String = ENV.fetch("HCLOUD_TOKEN", "")
+  # The value from the config file keeps its key, but HCLOUD_TOKEN wins whenever it is set and not
+  # blank, which is what lets a config be committed with a placeholder.
+  @[YAML::Field(key: "hetzner_token")]
+  property hetzner_token_from_config : String = ""
+
+  def hetzner_token : String
+    environment_token = ENV["HCLOUD_TOKEN"]?.try(&.strip)
+    return environment_token if environment_token && !environment_token.empty?
+
+    hetzner_token_from_config
+  end
+
+  # The variable silently outranks a token in the file, and someone who exported it for another
+  # project would otherwise run against that project without noticing. Never prints either value.
+  def token_precedence_notice : String?
+    environment_token = ENV["HCLOUD_TOKEN"]?.try(&.strip)
+    config_token = hetzner_token_from_config.strip
+    return nil if environment_token.nil? || environment_token.empty? || config_token.empty?
+    return nil if environment_token == config_token
+
+    "HCLOUD_TOKEN is set and differs from hetzner_token in the configuration file, using the one from HCLOUD_TOKEN"
+  end
+
   getter cluster_name : String
   getter kubeconfig_path : String
   getter k3s_version : String
@@ -37,6 +59,11 @@ class Configuration::Main
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
   getter disable_public_interface_for_the_kubernetes_api_load_balancer : Bool = false
+  # Off by default: it makes `create` reach autoscaled nodes over SSH to bring config changes to
+  # nodes the autoscaler owns. See docs/Creating_a_cluster.md.
+  getter synchronise_autoscaled_nodes : Bool = false
+  # Off by default: `create` then removes worker nodes that the configuration no longer renders.
+  getter reconcile_node_pools : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
 

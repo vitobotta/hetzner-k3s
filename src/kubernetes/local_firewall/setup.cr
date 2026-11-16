@@ -10,6 +10,9 @@ class Kubernetes::LocalFirewall::Setup
   FIREWALL_SERVICE = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall.service") }}
   FIREWALL_STATUS  = {{ read_file("#{__DIR__}/../../../templates/firewall/firewall_status.sh") }}
 
+  IPS_TOKEN_DIRECTORY = "/etc/hetzner-k3s"
+  IPS_TOKEN_PATH      = "#{IPS_TOKEN_DIRECTORY}/hetzner-ips-token"
+
   AUTOSCALED_NODE_TIMEOUT = 30.seconds
 
   private getter settings : Configuration::Main
@@ -86,12 +89,18 @@ class Kubernetes::LocalFirewall::Setup
     firewall_status_b64 = Base64.strict_encode(render_firewall_status(port))
     ssh_networks_b64 = Base64.strict_encode(allowed_ssh_networks)
     api_networks_b64 = Base64.strict_encode(allowed_api_networks)
+    ips_token_b64 = Base64.strict_encode(hetzner_ips_token)
 
     inner_script = <<-SCRIPT
       # Remove old firewall-status symlink if it exists (old version used a symlink)
       if [ -L /usr/local/bin/firewall-status ]; then
         rm -f /usr/local/bin/firewall-status
       fi
+
+      # The token file is written before the script so the new script always finds it.
+      mkdir -p #{IPS_TOKEN_DIRECTORY}
+      echo '#{ips_token_b64}' | base64 -d > #{IPS_TOKEN_PATH}
+      chmod 600 #{IPS_TOKEN_PATH}
 
       echo '#{firewall_script_b64}' | base64 -d > /usr/local/bin/firewall.sh
       chmod 755 /usr/local/bin/firewall.sh
@@ -135,7 +144,6 @@ class Kubernetes::LocalFirewall::Setup
 
   private def render_firewall_script(ssh_port : Int32 = settings.networking.ssh.port) : String
     Crinja.render(FIREWALL_SCRIPT, {
-      hetzner_token:                settings.hetzner_token,
       hetzner_ips_query_server_url: settings.networking.public_network.hetzner_ips_query_server_url,
       ssh_port:                     ssh_port,
       cluster_cidr:                 settings.networking.cluster_cidr,
@@ -150,6 +158,12 @@ class Kubernetes::LocalFirewall::Setup
     Crinja.render(FIREWALL_STATUS, {
       ssh_port: ssh_port,
     })
+  end
+
+  # The lookup only needs servers read, so a dedicated read-only token can be supplied. Without one
+  # the main token is used, which is what every existing cluster does.
+  private def hetzner_ips_token : String
+    settings.networking.public_network.hetzner_ips_token.presence || settings.hetzner_token
   end
 
   private def external_node_ips : String
