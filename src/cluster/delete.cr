@@ -175,6 +175,7 @@ class Cluster::Delete
 
       rm -f /usr/local/bin/firewall.sh /etc/systemd/system/firewall.service /usr/local/bin/firewall-status
       rm -f /etc/allowed-networks-ssh.conf /etc/allowed-networks-kubernetes-api.conf
+      rm -f /etc/hetzner-k3s/hetzner-ips-token
       rm -f /etc/iptables/rules.v4 /etc/iptables/rules.v6 /etc/iptables/ipsets.v4 /etc/iptables/ipsets.v6 2>/dev/null || true
       rm -f /tmp/last_node_ips.txt 2>/dev/null || true
       systemctl daemon-reload 2>/dev/null || true

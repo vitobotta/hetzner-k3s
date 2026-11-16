@@ -19,13 +19,22 @@ class Kubernetes::Software::ClusterAutoscaler
   include Kubernetes::Util
 
   CLUSTER_AUTOSCALER_NAME = "cluster-autoscaler"
+
+  BUNDLED_MANIFEST        = {{ read_file("#{__DIR__}/../../../templates/cluster_autoscaler.yaml") }}
   SSL_CERTS_VOLUME_NAME   = "ssl-certs"
   DEFAULT_CA_CERTIFICATES = "/etc/ssl/certs/ca-certificates.crt"
   FALLBACK_CA_BUNDLE      = "/etc/ssl/certs/ca-bundle.crt"
 
-  CLOUD_PROVIDER                 = "hetzner"
-  STORAGE_API_GROUP              = "storage.k8s.io"
-  VOLUME_ATTACHMENTS_RESOURCE    = "volumeattachments"
+  CLOUD_PROVIDER              = "hetzner"
+  STORAGE_API_GROUP           = "storage.k8s.io"
+  VOLUME_ATTACHMENTS_RESOURCE = "volumeattachments"
+
+  # Dynamic resource allocation is on and locked in the autoscaler since 1.35, so it always lists and
+  # watches these, using DRA or not. Neither the bundled manifest nor the upstream example carries
+  # the permission yet (kubernetes/autoscaler#9487), so it is added here for both cases.
+  DRA_API_GROUP                  = "resource.k8s.io"
+  DRA_RESOURCES                  = %w(deviceclasses resourceslices resourceclaims)
+  DRA_VERBS                      = %w(watch list get)
   HCLOUD_CLOUD_INIT_VAR          = "HCLOUD_CLOUD_INIT"
   HCLOUD_CLUSTER_CONFIG_VAR      = "HCLOUD_CLUSTER_CONFIG"
   HCLOUD_CLUSTER_CONFIG_FILE_VAR = "HCLOUD_CLUSTER_CONFIG_FILE"
@@ -119,13 +128,19 @@ class Kubernetes::Software::ClusterAutoscaler
 
   private def autoscaler_config_args : Array(String)
     config = settings.addons.cluster_autoscaler
-    [
+    args = [
       "--scan-interval=#{config.scan_interval}",
       "--scale-down-delay-after-add=#{config.scale_down_delay_after_add}",
       "--scale-down-delay-after-delete=#{config.scale_down_delay_after_delete}",
       "--scale-down-delay-after-failure=#{config.scale_down_delay_after_failure}",
       "--max-node-provision-time=#{config.max_node_provision_time}",
     ]
+
+    if delay = config.new_pod_scale_up_delay
+      args << "--new-pod-scale-up-delay=#{delay}"
+    end
+
+    args
   end
 
   private def patch_resources(resources : Array(YAML::Any)) : Array(YAML::Any)
@@ -166,7 +181,34 @@ class Kubernetes::Software::ClusterAutoscaler
   private def patch_cluster_role(resource : YAML::Any) : YAML::Any
     cluster_role = YAML.parse(resource.to_yaml)
     add_volumeattachments_permission(cluster_role)
+    add_dra_permissions(cluster_role)
     cluster_role
+  end
+
+  # Idempotent: an existing rule that already covers all three resources is left alone, so repeated
+  # runs and a manifest that gains the rule upstream stay clean.
+  private def add_dra_permissions(cluster_role : YAML::Any) : Nil
+    rules = cluster_role["rules"]?.try(&.as_a)
+    return unless rules
+
+    covered = rules.any? do |rule|
+      api_groups = rule["apiGroups"]?.try(&.as_a)
+      next false unless api_groups
+      next false unless api_groups.any? { |group| group.as_s == DRA_API_GROUP }
+
+      resources = rule["resources"]?.try(&.as_a)
+      next false unless resources
+
+      DRA_RESOURCES.all? { |resource| resources.any? { |r| r.as_s == resource } }
+    end
+
+    return if covered
+
+    rules << YAML.parse(%(apiGroups: ["#{DRA_API_GROUP}"]
+resources: [#{DRA_RESOURCES.map { |resource| %("#{resource}") }.join(", ")}]
+verbs: [#{DRA_VERBS.map { |verb| %("#{verb}") }.join(", ")}]
+))
+    log_line "Added dynamic resource allocation permissions to cluster autoscaler ClusterRole", log_prefix: default_log_prefix
   end
 
   private def add_volumeattachments_permission(cluster_role : YAML::Any) : Nil
@@ -278,14 +320,19 @@ class Kubernetes::Software::ClusterAutoscaler
     configure_container_volume_mounts(container)
   end
 
-  private def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
+  def configure_container_environment(container : Kubernetes::Resources::Pod::Spec::Container) : Void
     env_vars = container.env || [] of Kubernetes::Resources::Pod::Spec::Container::EnvVariable
 
     remove_env_variable(env_vars, HCLOUD_CLOUD_INIT_VAR)
     remove_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_VAR)
 
     set_env_variable(env_vars, HCLOUD_CLUSTER_CONFIG_FILE_VAR, "#{CLUSTER_CONFIG_MOUNT_PATH}/#{CLUSTER_CONFIG_FILE_NAME}")
-    set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
+    if settings.networking.public_network.use_hetzner_firewall
+      set_env_variable(env_vars, HCLOUD_FIREWALL_VAR, settings.cluster_name)
+    else
+      # With the firewall disabled the autoscaler must not attach one to new nodes.
+      remove_env_variable(env_vars, HCLOUD_FIREWALL_VAR)
+    end
     set_env_variable(env_vars, HCLOUD_SSH_KEY_VAR, settings.networking.ssh.ssh_key_name(settings.cluster_name))
     set_env_variable(env_vars, HCLOUD_NETWORK_VAR, resolve_network_name)
     set_env_variable(env_vars, HCLOUD_PUBLIC_IPV4_VAR, settings.networking.public_network.ipv4.to_s)
@@ -355,8 +402,10 @@ class Kubernetes::Software::ClusterAutoscaler
     raw_manifest = if local_path = autoscaler_config.local_manifest_path
                      log_line "Reading Cluster Autoscaler manifest from local path: #{local_path}", log_prefix: default_log_prefix
                      File.read(local_path)
+                   elsif manifest_url = autoscaler_config.manifest_url
+                     fetch_manifest(manifest_url)
                    else
-                     fetch_manifest(autoscaler_config.manifest_url)
+                     BUNDLED_MANIFEST
                    end
 
     resources = YAML.parse_all(raw_manifest)

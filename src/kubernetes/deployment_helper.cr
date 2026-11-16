@@ -3,11 +3,24 @@ require "../hetzner/load_balancer"
 
 module Kubernetes::DeploymentHelper
   def self.api_server_ip_address(instance : Hetzner::Instance) : String
-    instance.private_ip_address || instance.public_ip_address.not_nil!
+    instance.private_ip_address || instance.public_ip_address || instance.public_ipv6_address ||
+      raise "Instance #{instance.name} has no IP address"
   end
 
   def api_server_ip_address(instance : Hetzner::Instance) : String
     DeploymentHelper.api_server_ip_address(instance)
+  end
+
+  # An IPv6 literal has to be bracketed inside a URL (`https://[2001:db8::1]:6443`), an IPv4 one
+  # must not be.
+  def self.url_host(address : String) : String
+    return address if address.starts_with?("[") || !address.includes?(":")
+
+    "[#{address}]"
+  end
+
+  def url_host(address : String) : String
+    DeploymentHelper.url_host(address)
   end
 
   # The address a joining worker registers against: the API load balancer when there is one, so

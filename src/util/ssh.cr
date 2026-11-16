@@ -52,6 +52,11 @@ class Util::SSH
   end
 
   # Wait for an instance to be ready by repeatedly running a test command until it returns the expected result
+  # Raised when the wait below runs out of attempts, carrying the reason of the last try so an auth
+  # failure is not reported as slowness.
+  class WaitTimeout < Exception
+  end
+
   def wait_for_instance(
     instance,
     port,
@@ -63,20 +68,14 @@ class Util::SSH
   )
     result_str = ""
     debug = ENV.fetch("DEBUG", "false") == "true"
+    started = Time.monotonic
+    last_error = "no attempt made"
 
-    Retriable.retry(
-      max_attempts: max_attempts,
-      on: [Tasker::Timeout, IO::Error],
-      backoff: false,
-      sleep_timer: retry_delay
-    ) do
-      result = nil
+    max_attempts.times do |attempt|
       begin
         Tasker.timeout(DEFAULT_COMMAND_TIMEOUT.seconds) do
-          result = run(instance, port, test_command, use_ssh_agent, false)
+          result_str = run(instance, port, test_command, use_ssh_agent, false).to_s.strip.gsub(/[\r\n]+/, "\n")
         end
-
-        result_str = result.to_s.strip.gsub(/[\r\n]+/, "\n")
 
         if debug
           puts "SSH command result: ===#{result_str}==="
@@ -84,19 +83,25 @@ class Util::SSH
           puts "Matching?: ===#{result_str == expected_result}==="
         end
 
-        unless result_str == expected_result
-          log_line "Instance #{instance.name} not ready, retrying...", log_prefix: "Instance #{instance.name}"
-          raise IO::Error.new("Result mismatch")
-        end
+        return result_str if result_str == expected_result
+
+        last_error = "the command output was #{result_str.inspect}"
       rescue ex : Tasker::Timeout
-        raise ex
-      rescue ex
-        raise ex
+        last_error = "the SSH command timed out after #{DEFAULT_COMMAND_TIMEOUT} seconds"
+      rescue ex : IO::Error
+        last_error = ex.message.to_s
       end
+
+      log_line "Instance #{instance.name} not ready after #{(Time.monotonic - started).total_seconds.round}s, attempt #{attempt + 1}/#{max_attempts}: #{last_error}",
+        log_prefix: "Instance #{instance.name}"
+
+      sleep retry_delay unless attempt == max_attempts - 1
     end
 
-    log_line "Instance #{instance.name} is ready", log_prefix: "Instance #{instance.name}" if debug
-    result_str
+    raise WaitTimeout.new(
+      "Instance #{instance.name} was not reachable over SSH after #{max_attempts} attempts " \
+      "(#{(Time.monotonic - started).total_seconds.round}s): #{last_error}"
+    )
   end
 
   # Run a command on a remote instance via SSH

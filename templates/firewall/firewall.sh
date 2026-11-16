@@ -8,8 +8,9 @@ trap 'log "ERROR: Command failed at line $LINENO: $BASH_COMMAND"; exit 1' ERR
 # Handles initial setup, ongoing updates, and restoration on boot
 # =============================================================================
 
+readonly HETZNER_TOKEN_FILE="/etc/hetzner-k3s/hetzner-ips-token"
+
 # Configuration (injected via Crinja templating)
-readonly HETZNER_TOKEN="{{ hetzner_token }}"
 readonly HETZNER_IPS_URL="{{ hetzner_ips_query_server_url }}/ips"
 readonly SSH_PORT="{{ ssh_port }}"
 readonly CLUSTER_CIDR="{{ cluster_cidr }}"
@@ -43,6 +44,16 @@ readonly LAST_IPS_FILE="/tmp/last_node_ips.txt"
 log() {
     echo "$*"
 }
+
+# The token lives in a 0600 file so it is not world readable inside this script. It may be a
+# read-only token: the only call made with it is the node IP lookup.
+read_hetzner_token() {
+    if [ -r "$HETZNER_TOKEN_FILE" ]; then
+        cat "$HETZNER_TOKEN_FILE"
+    fi
+}
+
+HETZNER_TOKEN=$(read_hetzner_token)
 
 validate_ip_network() {
     [[ $1 =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]
@@ -237,6 +248,12 @@ restore_iptables() {
 
 fetch_node_ips() {
     local attempt=0
+
+    # Without a token the lookup cannot succeed; go straight to the cached addresses.
+    if [ -z "$HETZNER_TOKEN" ]; then
+        [ -f "$LAST_IPS_FILE" ] && cat "$LAST_IPS_FILE"
+        return 1
+    fi
 
     while [ $attempt -lt $API_RETRIES ]; do
         local response

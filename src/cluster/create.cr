@@ -7,6 +7,7 @@ require "./firewall_manager"
 require "./instance_builder"
 require "./load_balancer_manager"
 require "./network_manager"
+require "./node_pool_reconciler"
 require "./placement_group_manager"
 
 class Cluster::Create
@@ -45,7 +46,7 @@ class Cluster::Create
   private getter placement_group_manager : PlacementGroupManager
   private getter placement_groups : PlacementGroupManager::PlacementGroups
 
-  def initialize(@configuration)
+  def initialize(@configuration, @force : Bool = false, @dry_run : Bool = false)
     validate_external_nodes
 
     @network_manager = NetworkManager.new(settings, hetzner_client)
@@ -80,7 +81,25 @@ class Cluster::Create
       exit 1
     end
 
+    reconcile_node_pools
+
     warn_if_not_protected
+  end
+
+  # Only ever removes workers: the expected set contains every rendered name, masters included, so a
+  # master is spared, and autoscaled nodes are excluded by the reconciler itself.
+  private def reconcile_node_pools
+    return unless settings.reconcile_node_pools
+
+    documented_names = (master_instances + worker_instances).map(&.instance_name)
+
+    reconciler = Cluster::NodePoolReconciler.new(configuration, @force, @dry_run)
+    return if reconciler.run(documented_names)
+
+    puts
+    reconciler.errors.each { |error| puts "Failed to remove #{error}".colorize(:red) }
+    puts "Re-run create once the nodes above can be drained.".colorize(:yellow)
+    exit 1
   end
 
   private def validate_external_nodes

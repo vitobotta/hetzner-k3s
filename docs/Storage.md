@@ -168,6 +168,8 @@ addons:
     enabled: true
 ```
 
+`local-path` is then the default storage class for the cluster. If you want to keep it available but leave `hcloud-volumes` as the default, add `default: false`; the annotation is re-applied on every `create` because k3s restores it on each start. See [Non-default local-path storage class](Creating_a_cluster.md#non-default-local-path-storage-class).
+
 ### Usage Example
 
 ```yaml

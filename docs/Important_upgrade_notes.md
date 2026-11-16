@@ -1,5 +1,11 @@
 # Important Upgrade Notes
 
+## HCLOUD_TOKEN Takes Precedence - Sunday, November 15, 2026
+
+`HCLOUD_TOKEN` now wins over `hetzner_token` in the configuration file. Before this version the file won, so someone who exported the variable for another project and also keeps a token in this config ran against the project in the config. After upgrading, the same setup runs against the project the variable points at.
+
+No configuration change is needed. If both are set and they differ, the tool prints one line before it does anything: `HCLOUD_TOKEN is set and differs from hetzner_token in the configuration file, using the one from HCLOUD_TOKEN`. The values themselves are never printed. An empty or whitespace-only variable still counts as unset and the file is used.
+
 ## OpenSSH Upgrade Notice - Friday, August 1, 2025
 
 ### Critical Information

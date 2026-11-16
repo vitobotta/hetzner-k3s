@@ -15,6 +15,17 @@ module JoinIpAddressSpec
     }))
   end
 
+  # A master the API describes the way it describes an IPv6-only server: the /64 network only.
+  def self.ipv6_master(ipv4 : String? = nil)
+    public_net = {"ipv6" => {"ip" => "2a01:4f8:c17:3333::/64"}}
+    public_net["ipv4"] = {"ip" => ipv4} if ipv4
+    Hetzner::Instance.from_json({"id" => 9, "name" => "routing-test-master1", "status" => "running", "public_net" => public_net}.to_json)
+  end
+
+  def self.ipv6_config : String
+    RoutingSpec.config.sub("  public_network:\n", "  public_network:\n    ipv4: false\n")
+  end
+
   def self.config(use_private_ip = false)
     RoutingSpec.config
       .sub("networking:\n", "networking:\n  ssh:\n    use_private_ip: #{use_private_ip}\n")
@@ -33,9 +44,18 @@ module JoinIpAddressSpec
     script.match(/K3S_URL=(\S+) /).not_nil![1]
   end
 
-  def self.tls_sans(loader, load_balancer) : Array(String)
+  def self.tls_sans(loader, load_balancer, master = RoutingSpec.master) : Array(String)
     manager = Kubernetes::KubeconfigManager.new(loader, loader.settings, RoutingSpec::RecordingSSH.new("/nonexistent/test-key"))
-    manager.generate_tls_sans([RoutingSpec.master], RoutingSpec.master, load_balancer).split(" ")
+    manager.generate_tls_sans([master], master, load_balancer).split(" ")
+  end
+
+  def self.k3s_url_for(loader, master) : String
+    pool = loader.settings.worker_node_pools.first
+    pool.instance_type = "cpx22"
+    pool.external = nil
+    generator = RoutingSpec::WorkerGenerator.new(loader, loader.settings, nil)
+    script = generator.generate_script(master, master, pool, nil)
+    script.match(/K3S_URL=(\S+) /).not_nil![1]
   end
 end
 
@@ -78,6 +98,34 @@ describe "Worker join through the API load balancer" do
   it "keeps workers on the first master without a load balancer" do
     RoutingSpec.with_loader(RoutingSpec.config) do |loader|
       JoinIpAddressSpec.k3s_url(loader, nil).should eq("https://#{JoinIpAddressSpec::FIRST_MASTER_PRIVATE_IP}:6443")
+    end
+  end
+end
+
+describe "IPv6 only clusters" do
+  it "brackets the node address in the worker join URL" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.ipv6_config) do |loader|
+      JoinIpAddressSpec.k3s_url_for(loader, JoinIpAddressSpec.ipv6_master).should eq("https://[2a01:4f8:c17:3333::1]:6443")
+    end
+  end
+
+  # Adding an IPv6 SAN to a dual-stack cluster rewrites the k3s unit, which restarts the masters and
+  # costs etcd quorum. It is only rendered where there is no public IPv4 to serve on.
+  it "adds no IPv6 SAN to a dual-stack cluster" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.config) do |loader|
+      sans = JoinIpAddressSpec.tls_sans(loader, nil, JoinIpAddressSpec.ipv6_master(ipv4: "192.0.2.10"))
+
+      sans.any?(&.includes?("2a01:4f8")).should be_false
+      sans.should contain("--tls-san=192.0.2.10")
+    end
+  end
+
+  it "serves the certificate on the node address when IPv4 is disabled" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.ipv6_config) do |loader|
+      sans = JoinIpAddressSpec.tls_sans(loader, nil, JoinIpAddressSpec.ipv6_master)
+
+      sans.should contain("--tls-san=2a01:4f8:c17:3333::1")
+      sans.any?(&.ends_with?("/64")).should be_false
     end
   end
 end

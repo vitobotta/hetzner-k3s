@@ -1,6 +1,20 @@
 require "./routing_spec_helper"
 
 describe "Worker install script" do
+  # The pipeline used to hide this: a failed download leaves `sh -s -` with an empty script and exits
+  # 0, so the node reported a successful install that never happened.
+  it "records a failed installer download as a failed install" do
+    RoutingSpec.with_loader do |loader|
+      result = RoutingSpec.install(RoutingSpec.worker_script(loader), download_fails: true)
+
+      result[:output].should contain("could not download the k3s installer")
+      result[:success].should be_false
+      # The script touches the marker on entry, so "true" is what a completed run leaves.
+      result[:initialized].should_not eq("true")
+      result[:calls].none?(&.starts_with?("systemctl start")).should be_true
+    end
+  end
+
   it "starts a k3s-agent the installer left inactive (unit unchanged, service start skipped)" do
     RoutingSpec.with_loader do |loader|
       result = RoutingSpec.install(RoutingSpec.worker_script(loader), agent_state: "inactive")

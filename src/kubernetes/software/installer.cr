@@ -10,6 +10,8 @@ require "./hetzner/cloud_controller_manager"
 require "./hetzner/csi_driver"
 require "./system_upgrade_controller"
 require "./cluster_autoscaler"
+require "./coredns"
+require "./local_path_storage_class"
 
 class Kubernetes::Software::Installer
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @load_balancer : ::Hetzner::LoadBalancer? = nil)
@@ -17,6 +19,8 @@ class Kubernetes::Software::Installer
 
   def install_all(first_master, masters, ssh, autoscaling_worker_node_pools)
     install_cni_if_needed
+    configure_coredns
+    configure_local_path_storage_class
     create_hetzner_secret
     install_hetzner_cloud_controller_manager_if_enabled
     install_hetzner_csi_driver_if_enabled
@@ -26,6 +30,14 @@ class Kubernetes::Software::Installer
 
   private def install_cni_if_needed
     Kubernetes::Software::Cilium.new(@configuration, @settings).install if @settings.networking.cni.enabled? && @settings.networking.cni.cilium?
+  end
+
+  private def configure_coredns
+    Kubernetes::Software::CoreDNS.new(@configuration, @settings).install
+  end
+
+  private def configure_local_path_storage_class
+    Kubernetes::Software::LocalPathStorageClass.new(@configuration, @settings).configure
   end
 
   private def create_hetzner_secret
@@ -50,4 +62,3 @@ class Kubernetes::Software::Installer
     end
   end
 end
-
