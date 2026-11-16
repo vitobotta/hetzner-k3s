@@ -20,8 +20,9 @@ end
 private def public_network_errors(ipv4 : Bool, ipv6 : Bool, private_network : Bool = true, use_private_ip : Bool = false)
   errors = [] of String
   settings = Configuration::Main.from_yaml(
-    RoutingSpec.config.sub("networking:\n", "networking:\n  ssh:\n    use_private_ip: #{use_private_ip}\n  private_network:\n    enabled: #{private_network}\n")
+    RoutingSpec.config(private_network: private_network).sub("networking:\n", "networking:\n  ssh:\n    use_private_ip: #{use_private_ip}\n")
       .sub("  public_network:\n", "  public_network:\n    ipv4: #{ipv4}\n    ipv6: #{ipv6}\n")
+      .sub("    use_local_firewall: true\n", "    use_local_firewall: false\n")
   )
 
   Configuration::Validators::NetworkingConfig::PublicNetwork.new(errors, settings.networking.public_network, settings).validate
@@ -95,16 +96,29 @@ describe Configuration::Validators::NetworkingConfig::PublicNetwork do
     public_network_errors(ipv4: false, ipv6: true).should be_empty
   end
 
-  it "rejects disabling both families" do
-    errors = public_network_errors(ipv4: false, ipv6: false, use_private_ip: true)
-
-    errors.should contain("networking.public_network.ipv4 and networking.public_network.ipv6 are both false, so no public address is left to connect to")
+  it "accepts IPv4 with IPv6 disabled" do
+    public_network_errors(ipv4: true, ipv6: false).should be_empty
   end
 
-  it "asks for use_private_ip when both families are disabled" do
-    errors = public_network_errors(ipv4: false, ipv6: false, use_private_ip: true)
-    errors.size.should eq(1)
+  it "accepts disabling both public families when connecting over the private network" do
+    public_network_errors(ipv4: false, ipv6: false, use_private_ip: true).should be_empty
+  end
 
-    public_network_errors(ipv4: false, ipv6: false).size.should eq(2)
+  it "requires private SSH access when both public families are disabled" do
+    public_network_errors(ipv4: false, ipv6: false).should eq([
+      "networking.public_network.ipv4 and networking.public_network.ipv6 are both false: enable a private network and set networking.ssh.use_private_ip to true",
+    ])
+  end
+
+  it "requires a private network even when private SSH access is selected" do
+    public_network_errors(ipv4: false, ipv6: false, private_network: false, use_private_ip: true).should eq([
+      "networking.public_network.ipv4 and networking.public_network.ipv6 are both false: enable a private network and set networking.ssh.use_private_ip to true",
+    ])
+  end
+
+  it "rejects disabling all networks" do
+    public_network_errors(ipv4: false, ipv6: false, private_network: false).should eq([
+      "networking.public_network.ipv4 and networking.public_network.ipv6 are both false: enable a private network and set networking.ssh.use_private_ip to true",
+    ])
   end
 end
