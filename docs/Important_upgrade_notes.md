@@ -1,5 +1,9 @@
 # Important Upgrade Notes
 
+## Private-only clusters require use_private_ip - Monday, November 16, 2026
+
+A cluster with both `public_network.ipv4` and `public_network.ipv6` disabled must set `networking.ssh.use_private_ip: true`. The 2.12.0 validator already enforced this, but the private-cluster guide did not show the key. The guide now does. If an older configuration relies on the private-address fallback, add the key before running `create`; this release only makes the guide consistent with the validator, the requirement itself is unchanged.
+
 ## IPv6 Clusters Restart Their Masters Once - Sunday, November 15, 2026
 
 A cluster with `public_network.ipv4: false` now gets a `--tls-san` for each master's IPv6 address, so the API certificate can actually be served on the address the cluster is reached at. The flag changes the `k3s server` command line, the installer writes a new unit and restarts k3s: the first master alone and then the others together, as `create` always does. On three masters that is one short API outage.
