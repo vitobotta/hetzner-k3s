@@ -6,7 +6,9 @@ To add one or more nodes to a node pool, simply update the instance count in the
 
 ## Scaling Down a Node Pool
 
-To reduce the size of a node pool:
+With `reconcile_node_pools: true` in the configuration, `create` does this for you: lower the instance count or remove the whole pool, run `create`, and it drains and deletes the extra nodes. See [Reconciling node pools](Creating_a_cluster.md#reconciling-node-pools).
+
+The manual steps, without that flag:
 
 1. Lower the instance count in the configuration file to ensure the extra nodes are not recreated in the future.
 2. Drain and delete the additional nodes from Kubernetes. These are typically the last nodes when sorted alphabetically by name (`kubectl drain Node` followed by `kubectl delete node <name>`).

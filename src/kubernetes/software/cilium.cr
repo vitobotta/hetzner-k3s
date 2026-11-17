@@ -283,16 +283,20 @@ class Kubernetes::Software::Cilium
   private def generate_helm_values
     cilium_config = settings.networking.cni.cilium
 
+    # `|| true` would swallow an explicit false, since false is falsy in Crystal. Relay and UI are
+    # only useful with Hubble itself, so they follow it unless they say otherwise.
+    hubble_enabled = enabled_unless_disabled(cilium_config.hubble_enabled, true)
+
     template_vars = {
       mtu:                     CiliumMTU.explicit_mtu(cilium_config.mtu),
       encryption_enabled:      settings.networking.cni.encryption,
       encryption_type:         cilium_config.encryption_type || DEFAULT_ENCRYPTION_TYPE,
       routing_mode:            cilium_config.routing_mode || DEFAULT_ROUTING_MODE,
       tunnel_protocol:         cilium_config.tunnel_protocol || DEFAULT_TUNNEL_PROTOCOL,
-      hubble_enabled:          cilium_config.hubble_enabled || true,
+      hubble_enabled:          hubble_enabled,
       hubble_metrics:          build_hubble_metrics_array(cilium_config.hubble_metrics),
-      hubble_relay_enabled:    cilium_config.hubble_relay_enabled || true,
-      hubble_ui_enabled:       cilium_config.hubble_ui_enabled || true,
+      hubble_relay_enabled:    enabled_unless_disabled(cilium_config.hubble_relay_enabled, hubble_enabled),
+      hubble_ui_enabled:       enabled_unless_disabled(cilium_config.hubble_ui_enabled, hubble_enabled),
       k8s_service_host:        cilium_config.k8s_service_host || DEFAULT_K8S_SERVICE_HOST,
       k8s_service_port:        cilium_config.k8s_service_port || DEFAULT_K8S_SERVICE_PORT,
       operator_replicas:       cilium_config.operator_replicas || DEFAULT_OPERATOR_REPLICAS,
@@ -302,6 +306,10 @@ class Kubernetes::Software::Cilium
     }
 
     Crinja.render(CILIUM_VALUES_TEMPLATE, template_vars)
+  end
+
+  private def enabled_unless_disabled(value : Bool?, fallback : Bool) : Bool
+    value.nil? ? fallback : value
   end
 
   private def build_hubble_metrics_array(custom_metrics : String?) : Array(String)

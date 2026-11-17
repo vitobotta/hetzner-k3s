@@ -40,9 +40,11 @@ Replace `10.0.0.0/16` with your actual subnet if it's different. Also, make sure
 
 ## Cluster configuration
 
-- [ ] Edit the configuration file for your cluster and set both `ipv4` and `ipv6` to `false`, plus reference the existing private network you have already created:
+- [ ] Edit the configuration file for your cluster and set both `ipv4` and `ipv6` to `false`, reference the existing private network you have already created, and set `ssh.use_private_ip` to `true` so `create` connects to the nodes over the private network:
 
 ```yaml
+  ssh:
+    use_private_ip: true
   public_network:
     ipv4: false
     ipv6: false

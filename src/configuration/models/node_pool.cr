@@ -3,6 +3,7 @@ require "yaml"
 require "./node_pool_config/label"
 require "./node_pool_config/taint"
 require "./node_pool_config/autoscaling"
+require "./external_config"
 
 abstract class Configuration::Models::NodePool
   include YAML::Serializable
@@ -20,6 +21,11 @@ abstract class Configuration::Models::NodePool
   property additional_packages : Array(String) | Nil
   property include_cluster_name_as_prefix : Bool = true
   property grow_root_partition_automatically : Bool? = nil
+  property external : Configuration::Models::ExternalConfig?
+
+  def external? : Bool
+    instance_type == "external"
+  end
 
   getter autoscaling_enabled : Bool do
     autoscaling.try(&.enabled) || false

@@ -13,7 +13,11 @@ class Hetzner::LoadBalancer
     public_net.try(&.ipv4).try(&.ip)
   end
 
+  def public_ipv6_address : String?
+    public_net.try(&.ipv6).try(&.ip)
+  end
+
   def private_ip_address : String?
-    private_net.first?.try(&.ip) || public_ip_address
+    private_net.first?.try(&.ip) || public_ip_address || public_ipv6_address
   end
 end

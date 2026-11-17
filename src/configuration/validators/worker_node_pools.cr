@@ -4,6 +4,8 @@ require "../models/datastore"
 require "../../hetzner/instance_type"
 require "../../hetzner/location"
 require "./node_pool"
+require "./external_node_pool"
+require "../main"
 
 class Configuration::Validators::WorkerNodePools
   getter errors : Array(String) = [] of String
@@ -14,6 +16,7 @@ class Configuration::Validators::WorkerNodePools
   getter all_locations : Array(Hetzner::Location)
   getter datastore : Configuration::Models::Datastore
   getter private_network_enabled : Bool
+  getter settings : Configuration::Main
 
   def initialize(
     @errors,
@@ -23,7 +26,8 @@ class Configuration::Validators::WorkerNodePools
     @instance_types,
     @all_locations,
     @datastore,
-    @private_network_enabled
+    @private_network_enabled,
+    @settings
   )
   end
 
@@ -47,6 +51,17 @@ class Configuration::Validators::WorkerNodePools
         datastore: datastore,
         private_network_enabled: private_network_enabled
       ).validate
+    end
+
+    worker_node_pools.each do |pool|
+      if pool.external && !pool.external?
+        errors << "Worker node pool '#{pool.name}' has an external section but instance_type is '#{pool.instance_type}'. Set instance_type: external to use external nodes."
+      end
+    end
+
+    worker_node_pools.each do |pool|
+      next unless pool.external?
+      Configuration::Validators::ExternalNodePool.new(errors, pool, settings).validate
     end
   end
 end

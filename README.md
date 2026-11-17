@@ -16,7 +16,7 @@
 >
 > hetzner-k3s is maintained by a single developer. If it saves you time or money, please consider sponsoring its continued development.
 >
-> **[Become a sponsor →](https://github.com/sponsors/vitobotta)**
+> **[Become a sponsor →](https://github.com/sponsors/vitobotta)** · from $1/month
 
 ---
 
@@ -43,9 +43,14 @@
 - [Key Features](#key-features)
 - [Documentation](#documentation)
 - [Who am I?](#who-am-i)
-- [Sponsors](#sponsors)
+- [Sponsors](#why-sponsor)
+  - [Diamond Sponsors](#diamond-sponsors)
+  - [Bronze Sponsors](#bronze-sponsors)
+  - [Backers](#backers)
 - [Contributing](#contributing)
+- [Code of Conduct](#code-of-conduct)
 - [License](#license)
+- [Star History](#star-history)
 
 ---
 
@@ -88,7 +93,7 @@ No Terraform. No Packer. No Ansible. No management cluster. No third-party accou
 [Hetzner Cloud](https://hetzner.cloud/?ref=mqx6KKKwyook) offers the best performance-to-cost ratio in the industry:
 
 - **Up to 80% lower costs** than AWS, Google Cloud, and Azure
-- **Transparent pricing** — traffic, IPv4/IPv6, DDoS protection, and firewalls included
+- **Transparent pricing** — 20 TB of traffic, IPv6, DDoS protection, and firewalls included (a public IPv4 is €0.50/month per server)
 - **Global presence** — data centers in Germany (Nuremberg, Falkenstein), Finland (Helsinki), USA (Ashburn, Hillsboro), and Singapore
 - **Flexible instance types** — x86 and ARM architectures, including cost-effective ARM instances (CAX) for budget-friendly clusters
 - **Proven reliability** — trusted by companies worldwide for over 25 years
@@ -103,16 +108,16 @@ No Terraform. No Packer. No Ansible. No management cluster. No third-party accou
 
 ### Sample Monthly Costs
 
-Real infrastructure costs for common cluster configurations (December 2025 pricing):
+Real infrastructure costs for common cluster configurations (November 2026 pricing):
 
 | Cluster Type | Configuration | Monthly Cost |
 |--------------|---------------|--------------|
-| **Development** | 1 master (CX23), 2 workers (CX23) | ~€16/month |
-| **Small Production** | 3 masters (CPX22), 3 workers (CPX32) | ~€58/month |
-| **Medium Production** | 3 masters (CPX22), 10 workers (CPX32) | ~€135/month |
-| **Large Production** | 3 masters (CPX42), 50 workers (CPX32) | ~€615/month |
+| **Development** | 1 master (CX23), 2 workers (CX23) | ~€18/month |
+| **Small Production** | 3 masters (CPX22), 3 workers (CPX32) | ~€175/month |
+| **Medium Production** | 3 masters (CPX22), 10 workers (CPX32) | ~€427/month |
+| **Large Production** | 3 masters (CPX42), 50 workers (CPX32) | ~€2,017/month |
 
-*Includes load balancer (~€5.50/month). No management fees, no per-user fees—just infrastructure.*
+*Per-node prices include the primary IPv4 (€0.50/month), and the multi-master clusters add a load balancer (~€7.50/month). Prices are Hetzner Cloud list prices for EU locations, excluding VAT. No management fees, no per-user fees—just infrastructure.*
 
 **Compare to managed alternatives:**
 - Equivalent AWS EKS: 3-5x higher infrastructure cost + $0.10/hour cluster fee (~$73/month)
@@ -147,7 +152,7 @@ brew install vitobotta/tap/hetzner_k3s
 
 **Linux binary (amd64):**
 ```bash
-wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.6.0/hetzner-k3s-linux-amd64
+wget https://github.com/vitobotta/hetzner-k3s/releases/download/v2.13.1/hetzner-k3s-linux-amd64
 chmod +x hetzner-k3s-linux-amd64
 sudo mv hetzner-k3s-linux-amd64 /usr/local/bin/hetzner-k3s
 ```
@@ -301,7 +306,7 @@ This project is maintained by a single developer in my spare time. Sponsorship h
 - Ship new features regularly
 - Keep the project compatible with new Hetzner Cloud updates
 
-If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta).
+If hetzner-k3s saves you time or money, please consider [supporting its development](https://github.com/sponsors/vitobotta). Sponsorship starts at $1/month.
 
 ### Diamond Sponsors
 
@@ -309,19 +314,15 @@ If hetzner-k3s saves you time or money, please consider [supporting its developm
 
 [SprintPulse](https://sprintpulse.io/?utm_source=github&utm_medium=social&utm_campaign=hetzner-k3s&utm_content=readme) — the retrospective tool teams actually love. Run engaging retros with real-time collaboration, AI-powered insights, and actionable outcomes. Set up in 60 seconds, no training required.
 
-<a href="https://alamos.gmbh"><img src="Alamos_black.svg" alt="Alamos GmbH" height="70"></a>
-
-A special thank you to [Alamos GmbH](https://alamos.gmbh) for sponsoring the development of key features!
-
 ### Bronze Sponsors
 
-<a href="https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme"><img src="devopssquad-logo-small.png" alt="DevOps Squad" height="80"></a>
+<a href="https://github.com/devopssquaddev/zelkor-platform"><img src="zelkor-logo-small.png" alt="Zelkor" height="80"></a>
 
-[DevOps Squad](https://devopssquad.dev/cloud-exit-calculator/?utm_source=github&utm_medium=sponsorship&utm_campaign=hetzner-k3s-readme) — Deploying is easy; Day 2 is hard. Cut your AWS bill by 60% with fully-managed Hetzner infrastructure ($2,995/mo). Run the **Cloud Exit Calculator** to see your savings.
+[Zelkor](https://github.com/devopssquaddev/zelkor-platform) — The self-hosted agent runtime on Kubernetes. Bring the agent you already wrote; it can't break out, reach unauthorized data or networks, its prompts are verified, budget controlled, and it is under observation; tenants stay isolated.
 
 ### Backers
 
-Thanks to [@deubert-it](https://github.com/deubert-it), [@mitja](https://github.com/mitja), [@elderapo](https://github.com/elderapo), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz), [@QuentinFAIDIDE](https://github.com/QuentinFAIDIDE) for their support!
+Thanks to [@deubert-it](https://github.com/deubert-it), [@elderapo](https://github.com/elderapo), [@jonasbadstuebner](https://github.com/jonasbadstuebner), [@ricristian](https://github.com/ricristian), [@mykongee](https://github.com/mykongee), [@mertcangokgoz](https://github.com/mertcangokgoz) for their support!
 
 ---
 
@@ -341,4 +342,5 @@ Open source under the [MIT License](https://github.com/vitobotta/hetzner-k3s/blo
 
 ## Star History
 
-[![Stargazers over time](https://starchart.cc/vitobotta/hetzner-k3s.svg)](https://starchart.cc/vitobotta/hetzner-k3s)
+[![Stargazers over time](assets/star-history.svg)](https://github.com/vitobotta/hetzner-k3s/stargazers)
+
