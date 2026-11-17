@@ -23,8 +23,18 @@ class Kubernetes::Software::Installer
     install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
   end
 
+  # Runs after the worker nodes have joined, so the check can test the
+  # worker-to-worker path and single-master clusters are not rejected early.
+  def validate_cni_connectivity_if_needed
+    Kubernetes::Software::Cilium.new(@configuration, @settings).validate_network_connectivity if cilium_enabled?
+  end
+
   private def install_cni_if_needed
-    Kubernetes::Software::Cilium.new(@configuration, @settings).install if @settings.networking.cni.enabled? && @settings.networking.cni.cilium?
+    Kubernetes::Software::Cilium.new(@configuration, @settings).install if cilium_enabled?
+  end
+
+  private def cilium_enabled?
+    @settings.networking.cni.enabled? && @settings.networking.cni.cilium?
   end
 
   private def create_hetzner_secret

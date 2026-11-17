@@ -67,6 +67,8 @@ class Kubernetes::Installer
       workers = @worker_setup.set_up_workers(workers_installation_queue_channel, worker_count, @masters, @first_master_instance)
     end
 
+    @software_installer.validate_cni_connectivity_if_needed
+
     switch_to_context(default_context)
 
     completed_channel.send(nil)

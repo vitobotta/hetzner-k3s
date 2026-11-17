@@ -80,8 +80,12 @@ networking:
       # When specified, this file will be used instead of the default values
       # helm_values_path: "./cilium-values.yaml"
       # chart_version: "v1.17.2"
-      # mtu: 1450 # optional: Cilium underlay MTU; pod MTU is reduced by VXLAN overhead
-      # underlay_mtu: 1450 # optional: validation-only network path MTU constraint
+      # mtu: 1450 # optional: written to Cilium's MTU setting; 0 or unset = auto-detect. See "Cilium MTU and network validation" below
+      # underlay_mtu: 1450 # optional: only used to validate mtu (default: 1450 with private networking, 1500 without); requires mtu
+      # connectivity_check:
+      #   enabled: true # set to false to skip the cross-node pod network check that runs after all nodes have joined
+      #   image: "nicolaka/netshoot:v0.16" # image for the two test pods; point it at your registry for air-gapped clusters or mirrors
+      #   timeout_seconds: 300 # how long to wait for Cilium, the nodes and the test pods to become ready
 
   # cluster_cidr: 10.244.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for pod IPs
   # service_cidr: 10.43.0.0/16 # optional: a custom IPv4/IPv6 network CIDR to use for service IPs. Warning, if you change this, you should also change cluster_dns!
@@ -300,6 +304,30 @@ To adjust the Service-CIDR, uncomment or add the `service_cidr` option in your c
 
 **Sizing the Networks:**
 The networks you choose should have enough space for your expected number of pods and services. By default, `/16` networks are used. Select an appropriate size, as changing the CIDR later is not supported.
+
+---
+
+### Cilium MTU and network validation
+
+These settings apply only when `networking.cni.mode` is `cilium`.
+
+**`mtu`** is written to Cilium's `MTU` Helm value. Leave it unset (or set it to `0`) to let Cilium auto-detect the MTU from the node's network interface. Cilium keeps this MTU on each pod's `eth0` and lowers the MTU of the pod's routes by the tunnel and encryption overhead: 50 bytes for VXLAN tunnelling (`routing_mode: tunnel`, the default), plus 80 bytes for WireGuard or about 77 bytes for IPsec when encryption is enabled. With `mtu: 1450`, tunnelling and WireGuard, pods therefore use 1320-byte packets. When you use `helm_values_path`, set `MTU` in that file instead; setting `mtu` as well is an error.
+
+**`underlay_mtu`** is never passed to Cilium. It only describes the MTU of the network path between your nodes, so hetzner-k3s can reject an `mtu` that does not fit before any servers are created. It defaults to 1450 (the Hetzner private network MTU) when the private network is enabled and 1500 otherwise. Validation fails when:
+
+- `mtu` is negative, or between 1 and 1279
+- `mtu` is larger than `underlay_mtu`
+- `mtu` minus the tunnel and encryption overhead leaves pods with an MTU below 1230
+- `underlay_mtu` is below 1280, or is set without a positive `mtu` (in your config or in the Helm values file)
+
+**Connectivity check.** After all nodes have joined, `create` checks pod networking across nodes. It starts two short-lived test pods in `kube-system` on two different Ready nodes (two workers when the cluster has them), pings from one to the other, then sends a ping as large as the pod MTU with the don't-fragment bit set. When a configured MTU is known, it also checks that the pods actually use it. If any step fails, `create` stops with an error, because a too-large MTU otherwise shows up later as connections that hang only on large packets.
+
+Things to know about the check:
+
+- It needs at least two Ready nodes. Clusters with a single node skip it and print a warning.
+- Each test node pulls `nicolaka/netshoot:v0.16` from Docker Hub. For air-gapped clusters or clusters that can only pull through a registry mirror, set `connectivity_check.image` to a copy in a registry your nodes can reach, ideally pinned by digest.
+- It waits up to `connectivity_check.timeout_seconds` (default 300) for Cilium, the nodes and the test pods to become ready.
+- Set `connectivity_check.enabled: false` to skip it.
 
 ---
 
