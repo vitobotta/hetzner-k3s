@@ -2,10 +2,12 @@ require "./routing_spec_helper"
 require "../src/configuration/validators/api_load_balancer"
 require "../src/hetzner/load_balancer/create"
 
+# Keeps the one load balancer the API would report, and changes it the way the API does when
+# the load balancer is created or its public interface is disabled.
 private class FakeLoadBalancerClient < Hetzner::Client
-  getter posts = [] of String
+  getter posts = [] of {String, String}
 
-  def initialize(@load_balancer_json : String)
+  def initialize(@load_balancer_json : String? = nil)
     super("fake-token")
   end
 
@@ -14,7 +16,15 @@ private class FakeLoadBalancerClient < Hetzner::Client
   end
 
   def post(path, params = {} of KeyType => ValueType)
-    @posts << path
+    body = params.to_json
+    @posts << {path, body}
+
+    if path == "/load_balancers"
+      @load_balancer_json = ApiLoadBalancerSpec.load_balancer_json(enabled: JSON.parse(body)["public_interface"].as_bool)
+    elsif path.ends_with?("/actions/disable_public_interface")
+      @load_balancer_json = @load_balancer_json.not_nil!.sub(%("enabled":true), %("enabled":false))
+    end
+
     {true, "{}"}
   end
 end
@@ -52,7 +62,7 @@ module ApiLoadBalancerSpec
   end
 
   # Runs Create against an existing load balancer with the flag on; returns the client to inspect.
-  def self.create(json : String, &)
+  def self.create(json : String?, &)
     client = FakeLoadBalancerClient.new(json)
     RoutingSpec.with_loader(config) do |loader|
       yield Hetzner::LoadBalancer::Create.new(loader.settings, client, "nbg1", NETWORK_ID), client
@@ -136,6 +146,25 @@ describe Hetzner::LoadBalancer::Create do
     ApiLoadBalancerSpec.create(ApiLoadBalancerSpec.load_balancer_json(enabled: false)) do |create, client|
       create.run.not_nil!.id.should eq(1)
       client.posts.should be_empty
+    end
+  end
+
+  it "disables the public interface of an attached load balancer with private targets" do
+    ApiLoadBalancerSpec.create(ApiLoadBalancerSpec.load_balancer_json) do |create, client|
+      create.run.not_nil!.public_interface_enabled?.should be_false
+      client.posts.map(&.first).should eq(["/load_balancers/1/actions/disable_public_interface"])
+    end
+  end
+
+  it "creates a missing load balancer without a public interface, attached to the network" do
+    ApiLoadBalancerSpec.create(nil) do |create, client|
+      create.run.not_nil!.public_interface_enabled?.should be_false
+      client.posts.size.should eq(1)
+      path, body = client.posts.first
+      path.should eq("/load_balancers")
+      payload = JSON.parse(body)
+      payload["public_interface"].as_bool.should be_false
+      payload["network"].as_i64.should eq(ApiLoadBalancerSpec::NETWORK_ID)
     end
   end
 end
