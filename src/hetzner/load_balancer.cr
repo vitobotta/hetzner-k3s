@@ -48,11 +48,11 @@ class Hetzner::LoadBalancer
   # Why the load balancer cannot be (or stay) reachable only via the private network, if anything.
   def private_only_error(network_id) : String?
     unless attached_to_network?(network_id)
-      return "The load balancer is not attached to the configured private network. Attach it in the Hetzner console (or delete it so that it can be recreated), then run create again."
+      return "The load balancer is not attached to the configured private network. Delete the load balancer in the Hetzner console so that it can be recreated attached to the network with private targets, then run create again."
     end
 
     unless targets.all? { |target| target.use_private_ip == true }
-      "The load balancer has targets that do not use private IPs, which prevents making it reachable only via the private network. Remove them or switch them to private IPs in the Hetzner console, then run create again."
+      "The load balancer has targets that do not use private IPs, which prevents making it reachable only via the private network. Delete the load balancer in the Hetzner console so that it can be recreated with private targets, then run create again."
     end
   end
 end

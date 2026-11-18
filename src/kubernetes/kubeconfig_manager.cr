@@ -84,7 +84,7 @@ class Kubernetes::KubeconfigManager
     sans = ["--tls-san=#{api_server_ip_address(first_master)}", "--tls-san=127.0.0.1"]
 
     load_balancer_ip = load_balancer_ip_address(load_balancer)
-    sans << "--tls-san=#{load_balancer_ip}" if load_balancer_ip
+    sans << "--tls-san=#{load_balancer_ip}" if @settings.create_load_balancer_for_the_kubernetes_api
     sans << "--tls-san=#{@settings.api_server_hostname}" if @settings.api_server_hostname
 
     # An IPv6 SAN only where there is no public IPv4 to reach the masters on. Adding it everywhere

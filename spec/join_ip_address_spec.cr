@@ -127,6 +127,12 @@ describe "Worker join through the API load balancer" do
     end
   end
 
+  it "keeps the SAN list of a cluster with the load balancer setting on but no load balancer unchanged" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.config) do |loader|
+      JoinIpAddressSpec.tls_sans(loader, nil).should contain("--tls-san=")
+    end
+  end
+
   it "keeps external nodes on the first master when a load balancer exists" do
     RoutingSpec.with_loader(JoinIpAddressSpec.config) do |loader|
       JoinIpAddressSpec.k3s_url(loader, JoinIpAddressSpec.load_balancer, external: true).should eq("https://#{JoinIpAddressSpec::FIRST_MASTER_PRIVATE_IP}:6443")

@@ -1,5 +1,23 @@
 require "./routing_spec_helper"
 require "../src/configuration/validators/api_load_balancer"
+require "../src/hetzner/load_balancer/create"
+
+private class FakeLoadBalancerClient < Hetzner::Client
+  getter posts = [] of String
+
+  def initialize(@load_balancer_json : String)
+    super("fake-token")
+  end
+
+  def get(path, params : Hash = {} of Symbol => String | Bool | Nil)
+    {true, %({"load_balancers": [#{@load_balancer_json}]})}
+  end
+
+  def post(path, params = {} of KeyType => ValueType)
+    @posts << path
+    {true, "{}"}
+  end
+end
 
 module ApiLoadBalancerSpec
   NETWORK_ID = 42_i64
@@ -20,13 +38,25 @@ module ApiLoadBalancerSpec
   end
 
   def self.load_balancer(network = NETWORK_ID, enabled = true, use_private_ip = true)
-    Hetzner::LoadBalancer.from_json({
+    Hetzner::LoadBalancer.from_json(load_balancer_json(network, enabled, use_private_ip))
+  end
+
+  def self.load_balancer_json(network = NETWORK_ID, enabled = true, use_private_ip = true) : String
+    ({
       "id"          => 1,
       "name"        => "routing-test-api",
       "private_net" => [{"ip" => "10.20.0.254", "network" => network}],
       "public_net"  => {"enabled" => enabled, "ipv4" => {"ip" => "198.51.100.7"}},
       "targets"     => [{"use_private_ip" => use_private_ip}],
-    }.to_json)
+    }).to_json
+  end
+
+  # Runs Create against an existing load balancer with the flag on; returns the client to inspect.
+  def self.create(json : String, &)
+    client = FakeLoadBalancerClient.new(json)
+    RoutingSpec.with_loader(config) do |loader|
+      yield Hetzner::LoadBalancer::Create.new(loader.settings, client, "nbg1", NETWORK_ID), client
+    end
   end
 end
 
@@ -83,6 +113,29 @@ describe Hetzner::LoadBalancer do
 
     it "still rejects a public target when the public interface is already disabled" do
       ApiLoadBalancerSpec.load_balancer(enabled: false, use_private_ip: false).private_only_error(ApiLoadBalancerSpec::NETWORK_ID).not_nil!.should contain("targets that do not use private IPs")
+    end
+  end
+end
+
+describe Hetzner::LoadBalancer::Create do
+  it "rejects an already-private load balancer with a public-IP target without calling the API" do
+    ApiLoadBalancerSpec.create(ApiLoadBalancerSpec.load_balancer_json(enabled: false, use_private_ip: false)) do |create, client|
+      expect_raises(Exception, /targets that do not use private IPs/) { create.run }
+      client.posts.should be_empty
+    end
+  end
+
+  it "rejects an already-private load balancer that is not attached to the network" do
+    ApiLoadBalancerSpec.create(ApiLoadBalancerSpec.load_balancer_json(network: 7, enabled: false)) do |create, client|
+      expect_raises(Exception, /not attached to the configured private network/) { create.run }
+      client.posts.should be_empty
+    end
+  end
+
+  it "returns an already-private, valid load balancer untouched" do
+    ApiLoadBalancerSpec.create(ApiLoadBalancerSpec.load_balancer_json(enabled: false)) do |create, client|
+      create.run.not_nil!.id.should eq(1)
+      client.posts.should be_empty
     end
   end
 end
