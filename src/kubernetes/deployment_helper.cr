@@ -29,7 +29,7 @@ module Kubernetes::DeploymentHelper
   # kubeconfig already carry (KubeconfigManager), so no master's certificate changes.
   def self.join_ip_address(first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?, use_private_ip : Bool) : String
     if load_balancer
-      address = use_private_ip ? load_balancer.private_ip_address : load_balancer.public_ip_address
+      address = load_balancer.ip_address(use_private_ip)
       return address if address
     end
 

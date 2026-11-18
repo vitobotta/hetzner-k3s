@@ -64,10 +64,10 @@ class Kubernetes::KubeconfigManager
 
     # With a private-only API load balancer the first master's context may point at an unreachable public IP
     default_context = if load_balancer_kubeconfig_path && @settings.disable_public_interface_for_the_kubernetes_api_load_balancer
-      @settings.cluster_name
-    else
-      first_master.name
-    end
+                        @settings.cluster_name
+                      else
+                        first_master.name
+                      end
 
     switch_to_context(default_context, kubeconfig_path)
 

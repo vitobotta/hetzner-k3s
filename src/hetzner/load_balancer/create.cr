@@ -52,15 +52,11 @@ class Hetzner::LoadBalancer::Create
   # it and target the masters via private IPs, so only the public interface needs to be disabled.
   # Anything else was changed outside this tool and is not converged automatically.
   private def make_private(load_balancer : Hetzner::LoadBalancer) : Hetzner::LoadBalancer
+    if error = load_balancer.private_only_error(network_id.not_nil!)
+      fail_with error
+    end
+
     return load_balancer unless load_balancer.public_interface_enabled?
-
-    unless load_balancer.attached_to_network?(network_id.not_nil!)
-      fail_with "The load balancer is not attached to the configured private network. Attach it in the Hetzner console (or delete it so that it can be recreated), then run create again."
-    end
-
-    unless load_balancer.targets.all? { |target| target.use_private_ip == true }
-      fail_with "The load balancer has targets that do not use private IPs, which prevents disabling its public interface. Remove them or switch them to private IPs in the Hetzner console, then run create again."
-    end
 
     log_line "Disabling public interface of load balancer for API server..."
 

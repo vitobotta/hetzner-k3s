@@ -1,5 +1,13 @@
 # Important Upgrade Notes
 
+## Private API Load Balancer Restarts k3s Once - Wednesday, November 18, 2026
+
+`disable_public_interface_for_the_kubernetes_api_load_balancer` is off by default, so existing clusters are unaffected until they set it.
+
+Turning it on for an existing cluster switches the load balancer address in the masters' `--tls-san` from its public IP to its private IP, and workers join through that private IP. The next `create` therefore restarts k3s on the masters, the first master alone and then the others together, which on three masters is one short API outage, and restarts the k3s agent on every worker once. Turning the setting off again (after re-enabling the public interface in the Hetzner console) restarts them the same way.
+
+Before turning it on, make sure the machine that runs `hetzner-k3s` can reach the private network, for example through a VPN or a bastion host: with the setting on, `create` talks to the API through the load balancer's private IP as soon as the first master is up, and so does every later command. If the existing load balancer is not attached to the cluster's private network, or any of its targets uses a public IP, `create` stops before changing anything and says what to fix in the Hetzner console.
+
 ## Private-only clusters require use_private_ip - Monday, November 16, 2026
 
 A cluster with both `public_network.ipv4` and `public_network.ipv6` disabled must set `networking.ssh.use_private_ip: true`. The 2.12.0 validator already enforced this, but the private-cluster guide did not show the key. The guide now does. If an older configuration relies on the private-address fallback, add the key before running `create`; this release only makes the guide consistent with the validator, the requirement itself is unchanged.
