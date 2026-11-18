@@ -13,6 +13,7 @@ require "./worker_node_pools"
 require "./kubectl_presence"
 require "./helm_presence"
 require "./autoscaler_ssh_key"
+require "./api_load_balancer"
 require "./join_via_api_server_hostname"
 require "./addons_config/cluster_autoscaler"
 require "./addons_config/coredns"
@@ -77,6 +78,8 @@ class Configuration::Validators::CreateSettings
       private_network_enabled: settings.networking.private_network.enabled,
       settings: settings
     ).validate
+
+    Configuration::Validators::ApiLoadBalancer.new(errors, settings).validate
 
     Configuration::Validators::AddonsConfig::CoreDNS.new(errors, settings.addons.coredns).validate
 

@@ -5,6 +5,7 @@ require "./ipv6"
 class Hetzner::PublicNet
   include JSON::Serializable
 
+  property enabled : Bool?
   property ipv4 : Hetzner::Ipv4?
   property ipv6 : Hetzner::Ipv6?
 

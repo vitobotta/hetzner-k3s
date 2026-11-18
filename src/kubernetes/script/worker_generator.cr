@@ -97,7 +97,7 @@ class Kubernetes::Script::WorkerGenerator
     hostname = @settings.api_server_hostname
     return url_host(hostname) if hostname && @settings.join_via_api_server_hostname && !is_external
 
-    url_host(join_ip_address(first_master, join_load_balancer, @settings.networking.ssh.use_private_ip))
+    url_host(join_ip_address(first_master, join_load_balancer, @settings.use_private_ip_for_the_kubernetes_api_load_balancer?))
   end
 
   private def generate_k3s_token(masters, first_master)

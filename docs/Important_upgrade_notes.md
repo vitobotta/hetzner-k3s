@@ -1,5 +1,17 @@
 # Important Upgrade Notes
 
+## Private API Load Balancer Restarts k3s Once - Wednesday, November 18, 2026
+
+`disable_public_interface_for_the_kubernetes_api_load_balancer` is off by default, so existing clusters are unaffected until they set it.
+
+Turning it on for an existing cluster switches the load balancer address in the masters' `--tls-san` from its public IP to its private IP, and workers join through that private IP. The next `create` therefore restarts k3s on the masters, the first master alone and then the others together, which on three masters is one short API outage, and restarts the k3s agent on every static worker once. Turning the setting off again (after re-enabling the public interface in the Hetzner console) restarts them the same way.
+
+Existing autoscaled nodes are not re-rendered by `create` unless `synchronise_autoscaled_nodes` is on, so they keep joining through the load balancer's public IP, which stops answering once the setting disables it. Such a node keeps serving until its agent restarts, and then cannot rejoin. Enable `synchronise_autoscaled_nodes` so that the same `create` updates them too, or let the autoscaler replace them; nodes it launches after the change use the private IP.
+
+With `join_via_api_server_hostname: true`, workers join through the name rather than the load balancer address, so their join address does not change and they do not restart. If the record points at the load balancer's public IP, change it to the private IP (or to the masters' private IPs) before turning the setting on, or workers cannot join.
+
+Before turning it on, make sure the machine that runs `hetzner-k3s` can reach the private network, for example through a VPN or a bastion host: with the setting on, `create` talks to the API through the load balancer's private IP as soon as the first master is up, and so does every later command. If the existing load balancer is not attached to the cluster's private network, or any of its targets uses a public IP, `create` stops before changing anything; delete the load balancer in the Hetzner console and run `create` again to have it recreated.
+
 ## Private-only clusters require use_private_ip - Monday, November 16, 2026
 
 A cluster with both `public_network.ipv4` and `public_network.ipv6` disabled must set `networking.ssh.use_private_ip: true`. The 2.12.0 validator already enforced this, but the private-cluster guide did not show the key. The guide now does. If an older configuration relies on the private-address fallback, add the key before running `create`; this release only makes the guide consistent with the validator, the requirement itself is unchanged.

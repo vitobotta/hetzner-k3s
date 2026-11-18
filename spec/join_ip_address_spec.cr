@@ -15,6 +15,16 @@ module JoinIpAddressSpec
     }))
   end
 
+  # Public interface disabled: the API still reports the public IP, which must not be used.
+  def self.private_only_load_balancer
+    Hetzner::LoadBalancer.from_json(%({
+      "id": 1,
+      "name": "routing-test-api",
+      "private_net": [{"ip": "#{LB_PRIVATE_IP}"}],
+      "public_net": {"enabled": false, "ipv4": {"ip": "#{LB_PUBLIC_IP}"}}
+    }))
+  end
+
   # A master the API describes the way it describes an IPv6-only server: the /64 network only.
   def self.ipv6_master(ipv4 : String? = nil)
     public_net = {"ipv6" => {"ip" => "2a01:4f8:c17:3333::/64"}}
@@ -86,6 +96,40 @@ describe "Worker join through the API load balancer" do
         JoinIpAddressSpec.k3s_url(loader, lb).should eq("https://#{expected}:6443")
         JoinIpAddressSpec.tls_sans(loader, lb).should contain("--tls-san=#{expected}")
       end
+    end
+  end
+
+  it "joins a private-only load balancer by its private address (use_private_ip: false)" do
+    yaml = JoinIpAddressSpec.config(false) + "disable_public_interface_for_the_kubernetes_api_load_balancer: true\n"
+    RoutingSpec.with_loader(yaml) do |loader|
+      lb = JoinIpAddressSpec.private_only_load_balancer
+      JoinIpAddressSpec.k3s_url(loader, lb).should eq("https://#{JoinIpAddressSpec::LB_PRIVATE_IP}:6443")
+      sans = JoinIpAddressSpec.tls_sans(loader, lb)
+      sans.should contain("--tls-san=#{JoinIpAddressSpec::LB_PRIVATE_IP}")
+      sans.should_not contain("--tls-san=#{JoinIpAddressSpec::LB_PUBLIC_IP}")
+    end
+  end
+
+  it "joins by the private address while the flag is on and the public interface is not yet disabled" do
+    yaml = JoinIpAddressSpec.config(false) + "disable_public_interface_for_the_kubernetes_api_load_balancer: true\n"
+    RoutingSpec.with_loader(yaml) do |loader|
+      lb = JoinIpAddressSpec.load_balancer
+      JoinIpAddressSpec.k3s_url(loader, lb).should eq("https://#{JoinIpAddressSpec::LB_PRIVATE_IP}:6443")
+      JoinIpAddressSpec.tls_sans(loader, lb).should contain("--tls-san=#{JoinIpAddressSpec::LB_PRIVATE_IP}")
+    end
+  end
+
+  it "joins a load balancer whose public interface is still disabled by its private address after the flag is turned off" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.config(false)) do |loader|
+      lb = JoinIpAddressSpec.private_only_load_balancer
+      JoinIpAddressSpec.k3s_url(loader, lb).should eq("https://#{JoinIpAddressSpec::LB_PRIVATE_IP}:6443")
+      JoinIpAddressSpec.tls_sans(loader, lb).should contain("--tls-san=#{JoinIpAddressSpec::LB_PRIVATE_IP}")
+    end
+  end
+
+  it "keeps the SAN list of a cluster with the load balancer setting on but no load balancer unchanged" do
+    RoutingSpec.with_loader(JoinIpAddressSpec.config) do |loader|
+      JoinIpAddressSpec.tls_sans(loader, nil).should contain("--tls-san=")
     end
   end
 
