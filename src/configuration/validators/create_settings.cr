@@ -14,6 +14,7 @@ require "./kubectl_presence"
 require "./helm_presence"
 require "./autoscaler_ssh_key"
 require "./api_load_balancer"
+require "./join_via_api_server_hostname"
 require "./addons_config/cluster_autoscaler"
 require "./addons_config/coredns"
 require "./addons_config/local_path_storage_class"
@@ -85,6 +86,8 @@ class Configuration::Validators::CreateSettings
     Configuration::Validators::AddonsConfig::LocalPathStorageClass.new(errors, settings.addons.local_path_storage_class).validate
 
     Configuration::Validators::AddonsConfig::ClusterAutoscaler.new(errors, settings.addons.cluster_autoscaler).validate
+
+    Configuration::Validators::JoinViaApiServerHostname.new(errors, settings).validate
 
     Configuration::Validators::KubectlPresence.new(errors).validate
 

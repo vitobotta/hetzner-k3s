@@ -33,8 +33,6 @@ class Configuration::Validators::NetworkingConfig::PublicNetwork
   private def validate_address_families
     return if public_network.ipv4 || public_network.ipv6
 
-    errors << "networking.public_network.ipv4 and networking.public_network.ipv6 are both false, so no public address is left to connect to"
-
     unless settings.networking.private_network.enabled && settings.networking.ssh.use_private_ip
       errors << "networking.public_network.ipv4 and networking.public_network.ipv6 are both false: enable a private network and set networking.ssh.use_private_ip to true"
     end

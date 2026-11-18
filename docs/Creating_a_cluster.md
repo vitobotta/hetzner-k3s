@@ -234,6 +234,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 # - arg1
 # - ...
 # api_server_hostname: k8s.example.com # optional: DNS for the k8s API LoadBalancer. After the script has run, create a DNS record with the address of the API LoadBalancer.
+# join_via_api_server_hostname: false # optional: workers join through api_server_hostname instead of the API load balancer or the first master's IP (see below). Requires the name to resolve on the nodes (DNS or root-level additional_pre_k3s_commands).
 ```
 
 Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
@@ -378,13 +379,34 @@ With `enabled: false` the storage class is not installed at all, so `default: fa
 
 The patch runs on the first master and waits up to a minute for the class to appear; if the flag is written back after the patch it retries once and then aborts the run.
 
-The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API.
+The `api_server_hostname` setting is useful when you enable `create_load_balancer_for_the_kubernetes_api`. After the cluster is created, you can point this DNS name to the API load balancer's address, giving you a stable hostname for accessing the Kubernetes API. With `join_via_api_server_hostname` (below), workers also join through it.
 
-With `create_load_balancer_for_the_kubernetes_api` enabled (and more than one master), workers, static and autoscaled, register with the cluster through the load balancer instead of the first master, so a node can still join while that master is down. They use the same load balancer address as the kubeconfig, because that is the address in the masters' certificates: the private one with `networking.ssh.use_private_ip: true`, the public one otherwise. Masters and external nodes keep joining through the first master.
+Workers register with the cluster (the `K3S_URL` their `k3s-agent` bootstraps from) through one of three addresses:
+
+- No API load balancer, `join_via_api_server_hostname` off: the first master.
+- `create_load_balancer_for_the_kubernetes_api` enabled (and more than one master), `join_via_api_server_hostname` off: the load balancer.
+- `join_via_api_server_hostname: true` with `api_server_hostname` set: the name, whether or not there is a load balancer.
+
+External nodes always join through the first master. Through the load balancer or the name, a node, static or autoscaled, can still join while the first master is down.
+
+With the load balancer, workers use the same load balancer address as the kubeconfig, because that is the address in the masters' certificates: the private one with `networking.ssh.use_private_ip: true`, the public one otherwise.
 
 That address is what the agent bootstraps from, not where its traffic normally goes. Once a worker has joined, `k3s-agent` fetches the list of API servers from the supervisor (the masters' advertised addresses, their private IPs on a cluster with a private network) and load-balances across them; the `K3S_URL` server is kept only as a fallback for when none of them answers. So steady-state traffic from workers to the control plane stays on the private network whatever `use_private_ip` is set to. With the default `use_private_ip: false` the join itself, and the fallback, go to the load balancer's public IP; `use_private_ip: true` moves both to its private IP, which the masters' certificates already carry in that mode. Using the private IP regardless of `use_private_ip` would mean adding it to the certificates, which restarts every master on an existing cluster, so it is not done automatically.
 
-On a cluster created with an earlier version, the next `create` restarts `k3s-agent` once on each static worker (up to ten in parallel; running pods keep running); existing autoscaled nodes keep the old address and new ones use the load balancer.
+On a cluster created with an earlier version, the next `create` restarts `k3s-agent` once on each static worker (up to ten in parallel; running pods keep running); existing autoscaled nodes keep the old address and new ones use the load balancer, unless `synchronise_autoscaled_nodes` is enabled: then the next `create` updates the existing ones too, five at a time.
+
+#### Joining through `api_server_hostname`
+
+`join_via_api_server_hostname: true` makes workers join through `api_server_hostname`. It is what lets a cluster without an API load balancer survive the first master being down: point the name at all masters, for example with one A record per master's private IP. The agent tries the addresses in turn until one answers, paying a connect timeout on each dead one. On a cluster with a load balancer the setting adds less, since workers already join through it; it is only useful there if you want the name, rather than the load balancer address, in `K3S_URL`.
+
+With the flag on, the name decides the path: whatever it resolves to is what workers connect to, so `networking.ssh.use_private_ip` no longer governs the join. As above, this only affects the join and the fallback; steady-state traffic still goes to the masters' advertised addresses.
+
+The name must already resolve on the nodes when the setting takes effect, through DNS or through the root-level `additional_pre_k3s_commands` (for example lines appended to `/etc/hosts`). A pool-level `additional_pre_k3s_commands` is not enough for autoscaled pools: static workers run the pool's commands, but the cluster autoscaler's cloud-init carries only the root-level ones, so autoscaled nodes would never resolve the name and never join. If the name points at the API load balancer, whose address only exists after the first `create`, create the cluster first, add the DNS record, then enable the setting and run `create` again. With the default `synchronise_autoscaled_nodes: false`, existing autoscaled nodes keep the address they joined with and only new ones use the hostname. With it on, the next `create` updates the existing nodes too, five at a time, and restarts `k3s-agent` where the address changed.
+
+Enabling it on a running cluster restarts nodes, so do it in a quiet window:
+
+- **Static workers.** The next `create` points every static worker's `k3s-agent` at the name and restarts it once. Workers are updated in parallel, up to ten at a time, not one by one. Restarting `k3s-agent` does not stop running containers, so pods are not evicted, but each node's kubelet is briefly unavailable while it reconnects. A name that does not resolve leaves those workers unable to reach the API.
+- **Masters, if `api_server_hostname` is new as well.** `create` runs the install script on every master each time, and the k3s installer restarts `k3s` only when its unit or environment changed. Adding the name changes the masters' TLS SANs, so this time `k3s` restarts on every master: the first master on its own, then all the other masters at the same time. On a three-master cluster with the embedded etcd datastore that takes two of the three members down together, so expect the Kubernetes API to be unavailable until they are back. Adding `api_server_hostname` in one `create` and `join_via_api_server_hostname` in a later one only separates the two restarts. If the name is already set, the masters are not restarted.
 
 Currently, Hetzner Cloud offers six locations: two in Germany (`nbg1` in Nuremberg and `fsn1` in Falkenstein), one in Finland (`hel1` in Helsinki), two in the USA (`ash` in Ashburn, Virginia and `hil` in Hillsboro, Oregon), and one in Singapore (`sin`). Be aware that not all instance types are available in every location, so it’s a good idea to check the Hetzner site and their status page for details.
 
