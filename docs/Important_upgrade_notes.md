@@ -10,7 +10,7 @@ Existing autoscaled nodes are not re-rendered by `create` unless `synchronise_au
 
 With `join_via_api_server_hostname: true`, workers join through the name rather than the load balancer address, so their join address does not change and they do not restart. If the record points at the load balancer's public IP, change it to the private IP (or to the masters' private IPs) before turning the setting on, or workers cannot join.
 
-Before turning it on, make sure the machine that runs `hetzner-k3s` can reach the private network, for example through a VPN or a bastion host: with the setting on, `create` talks to the API through the load balancer's private IP as soon as the first master is up, and so does every later command. If the existing load balancer is not attached to the cluster's private network, or any of its targets uses a public IP, `create` stops before changing anything; delete the load balancer in the Hetzner console and run `create` again to have it recreated.
+Before turning it on, make sure the machine that runs `hetzner-k3s` can reach the private network, for example through a VPN or a bastion host: with the setting on, `create` talks to the API through the load balancer's private IP as soon as the first master is up, and so does every later command. If the existing load balancer is not attached to the cluster's private network, has no targets, or has a target that uses a public IP, `create` stops before changing anything; delete the load balancer in the Hetzner console and run `create` again to have it recreated.
 
 ## Private-only clusters require use_private_ip - Monday, November 16, 2026
 

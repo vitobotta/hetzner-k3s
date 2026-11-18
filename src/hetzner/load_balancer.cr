@@ -51,6 +51,10 @@ class Hetzner::LoadBalancer
       return "The load balancer is not attached to the configured private network. Delete the load balancer in the Hetzner console so that it can be recreated attached to the network with private targets, then run create again."
     end
 
+    if targets.empty?
+      return "The load balancer has no targets, so it cannot serve the Kubernetes API. Delete the load balancer in the Hetzner console so that it can be recreated with private targets, then run create again."
+    end
+
     unless targets.all? { |target| target.use_private_ip == true }
       "The load balancer has targets that do not use private IPs, which prevents making it reachable only via the private network. Delete the load balancer in the Hetzner console so that it can be recreated with private targets, then run create again."
     end
