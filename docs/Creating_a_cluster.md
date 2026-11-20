@@ -192,6 +192,9 @@ worker_node_pools:
 #     crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/crd.yaml"
 #   embedded_registry_mirror:
 #     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+#   gvisor:
+#     enabled: false # Adds the gVisor (runsc) container runtime next to runc and a "gvisor" RuntimeClass. Debian and Ubuntu images only. See "Sandboxed workloads with gVisor" below.
+#     version: "20261116.0" # runsc build installed from the gVisor apt repository. Pinned on purpose; the repository itself is rolling.
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
@@ -321,6 +324,7 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **servicelb**: k3s's built-in load balancer for bare-metal environments. Disabled by default; typically not needed when using Hetzner's load balancers.
 - **metrics_server**: Enables `kubectl top` commands for viewing resource usage. Disabled by default.
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
+- **gvisor**: Installs the gVisor (runsc) container runtime next to runc and creates a `gvisor` RuntimeClass, so selected pods can run under a user-space kernel. Debian and Ubuntu images only. Disabled by default, because only pods that ask for it use it. See [Sandboxed workloads with gVisor](#sandboxed-workloads-with-gvisor).
 
 ### Customizing CoreDNS
 
@@ -347,6 +351,57 @@ Point to keep in mind:
 - The managed deployment keeps the k3s object names and the `k8s-app: kube-dns` label, and the `kube-dns` Service keeps its ClusterIP from `cluster_dns`. That matters if you run a node-local DNS cache, which forwards to the Service, and for the resolver configuration of every pod.
 - Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
 - While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
+
+### Sandboxed workloads with gVisor
+
+gVisor adds a second container runtime to every node: pods that ask for it run under a user-space kernel instead of the host kernel, which shrinks what a compromised workload can reach. hetzner-k3s installs `runsc` next to containerd, registers it as a runtime, and creates a cluster-scoped RuntimeClass:
+
+```yaml
+addons:
+  gvisor:
+    enabled: true
+    # version: "20261116.0" # runsc build from the gVisor apt repository
+```
+
+Workloads opt in individually:
+
+```yaml
+spec:
+  runtimeClassName: gvisor
+```
+
+Pods that leave `runtimeClassName` unset keep using runc, so the rest of the cluster runs as before.
+
+Points to keep in mind:
+
+- **Debian and Ubuntu images only.** `runsc` comes from the `.deb` the gVisor project publishes, and there is no RPM. Setup stops with an error on any other image instead of finishing without the runtime. External node pools already require a Debian-based OS.
+- **`version` pins the build.** The gVisor apt repository has a single rolling component, so an unpinned install would upgrade `runsc` on every node at every `create`. Bump `version` when you want a newer build.
+- **It costs disk and memory on every node.** The package is about 87 MB compressed and roughly 250 MB installed, and every sandboxed pod keeps a second kernel in memory.
+- **Enabling it on an existing cluster restarts k3s.** The containerd template is read only when k3s starts. `create` compares the template and restarts `k3s-agent` on each cloud worker whose file changed, and restarts `k3s` on a master only when `schedule_workloads_on_masters` is true, since a tainted master never runs these pods. Nodes without a change are left alone. Autoscaled nodes pick the runtime up when they launch; existing ones only with `synchronise_autoscaled_nodes`.
+- **External node pools are not re-provisioned.** hetzner-k3s skips the setup script once an external node is initialized, and prints a warning saying runsc is missing there. Install it by hand or re-initialize the node:
+
+```bash
+apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl -fsSL https://gvisor.dev/archive.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && apt-get install -y "runsc=20261116.0"
+```
+
+Then add the runtime to the containerd template and restart the agent:
+
+```toml
+# /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+{{ template "base" . }}
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+```
+
+```bash
+systemctl restart k3s-agent
+```
+
+- **Some workloads do not work under it.** gVisor implements a subset of the Linux API. GPU access, `hostNetwork` tricks and some security tooling are unsupported, so try a workload under the RuntimeClass before moving production traffic to it.
 
 ### Cluster Autoscaler on Kubernetes 1.35 and later
 

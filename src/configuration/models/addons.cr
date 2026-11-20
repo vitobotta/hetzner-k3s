@@ -5,6 +5,7 @@ require "./addons_config/system_upgrade_controller"
 require "./addons_config/embedded_registry_mirror"
 require "./addons_config/coredns"
 require "./addons_config/local_path_storage_class"
+require "./addons_config/gvisor"
 
 module Configuration
   module Models
@@ -40,6 +41,7 @@ module Configuration
       getter system_upgrade_controller : Configuration::Models::AddonsConfig::SystemUpgradeController = Configuration::Models::AddonsConfig::SystemUpgradeController.new
       getter embedded_registry_mirror : Configuration::Models::AddonsConfig::EmbeddedRegistryMirror = Configuration::Models::AddonsConfig::EmbeddedRegistryMirror.new
       getter coredns : Configuration::Models::AddonsConfig::CoreDNS = Configuration::Models::AddonsConfig::CoreDNS.new
+      getter gvisor : Configuration::Models::AddonsConfig::GVisor = Configuration::Models::AddonsConfig::GVisor.new
 
       def initialize
       end

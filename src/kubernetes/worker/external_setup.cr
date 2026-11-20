@@ -77,6 +77,11 @@ class Kubernetes::Worker::ExternalSetup
     # still reconcile the firewall, which is safe to redeploy.
     if node_initialized?(node_ssh, instance, node.ssh_port, use_sudo)
       log_line "External node #{node.host} is already initialized, reconciling firewall only", node.host
+      # runsc is installed by the setup script below, which this node skipped. Say so instead of
+      # letting the cluster believe gVisor is available on a node that has no runtime for it.
+      if settings.addons.gvisor.enabled?
+        log_line "addons.gvisor is enabled, but runsc is installed by the setup script this node skipped: install it manually (see the gVisor section of the docs) or re-initialize the node", node.host
+      end
       deploy_firewall(instance, node_ssh, node.ssh_port, use_sudo)
       log_line "...external node #{node.host} set up", node.host
       return
