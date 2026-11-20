@@ -48,6 +48,7 @@ class Kubernetes::Script::WorkerGenerator
       extra_args:                       kubelet_args_list(external_config),
       labels_and_taints:                labels_and_taints,
       gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
+      gvisor_version:                   @settings.addons.gvisor.version,
       private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
       additional_post_k3s_commands:     post_k3s_commands,
       kubelet_provider_id:              kubelet_provider_id(pool, external_node),
