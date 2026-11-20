@@ -5,6 +5,9 @@ require "../../models/networking_config/allowed_networks"
 require "./firewall_rule"
 
 class Configuration::Validators::NetworkingConfig::AllowedNetworks
+  IP_LOOKUP_CONNECT_TIMEOUT = 5.seconds
+  IP_LOOKUP_READ_TIMEOUT    = 10.seconds
+
   getter errors : Array(String) = [] of String
   getter allowed_networks : Configuration::Models::NetworkingConfig::AllowedNetworks
   getter skip_current_ip_validation : Bool = false
@@ -22,9 +25,13 @@ class Configuration::Validators::NetworkingConfig::AllowedNetworks
     current_ip = nil
 
     begin
-      current_ip = IPAddress.new(Crest.get("https://ipinfo.io/ip").body)
-    rescue ex : Crest::RequestFailed
-      errors << "Unable to determine your current IP (necessary to validate allowed networks for SSH and API)"
+      # Explicit timeouts: without them an unreachable ipinfo.io stalls validation before anything
+      # else happens, and the message below is the only place the cause would be visible.
+      current_ip = IPAddress.new(
+        Crest.get("https://ipinfo.io/ip", connect_timeout: IP_LOOKUP_CONNECT_TIMEOUT, read_timeout: IP_LOOKUP_READ_TIMEOUT).body
+      )
+    rescue ex : Crest::RequestFailed | IO::Error | Socket::Error | ArgumentError
+      errors << "Unable to determine your current IP (necessary to validate allowed networks for SSH and API): #{ex.message}. Use --skip-ip-validation to skip the check."
       return
     end
 

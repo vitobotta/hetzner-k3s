@@ -27,6 +27,10 @@ Keep in mind that the following resources created by your applications will not 
 
 This behavior is by design to prevent accidental data loss. These resources might be improved in future updates.
 
+### External Node Cleanup
+
+For external node pools, the delete command connects to each external node via SSH, uninstalls k3s, removes the local firewall files, and resets iptables/ip6tables policies so inbound and forwarded traffic are accepted again.
+
 ## Manual Cleanup Steps
 
 ### Before Deleting the Cluster

@@ -21,7 +21,7 @@ class Kubernetes::Script::MasterGenerator
     etcd_arguments = ""
 
     if @settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address(first_master)}:6443 "
+      server = master == first_master ? " --cluster-init " : " --server https://#{url_host(api_server_ip_address(first_master))}:6443 "
       etcd_arguments = " --etcd-expose-metrics=true #{@settings.datastore.etcd.generate_etcd_args} "
     else
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{@settings.datastore.external_datastore_endpoint}' "
@@ -48,6 +48,7 @@ class Kubernetes::Script::MasterGenerator
       cluster_cidr:                     @settings.networking.cluster_cidr,
       service_cidr:                     @settings.networking.service_cidr,
       cluster_dns:                      @settings.networking.cluster_dns,
+      cluster_domain:                   @settings.networking.cluster_domain || "",
       datastore_endpoint:               datastore_endpoint,
       etcd_arguments:                   etcd_arguments,
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
@@ -56,8 +57,10 @@ class Kubernetes::Script::MasterGenerator
       traefik_enabled:                  @settings.addons.traefik.enabled.to_s,
       servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
       metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
-      labels_and_taints:                labels_and_taints,
+      coredns_enabled:                  @settings.addons.coredns.enabled.to_s,
       gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
+      kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
+      labels_and_taints:                labels_and_taints,
       additional_post_k3s_commands:     post_k3s_commands,
     })
   end
@@ -83,6 +86,7 @@ class Kubernetes::Script::MasterGenerator
   end
 
   private def kube_proxy_args_list
+    return "" unless @settings.networking.cni.kube_proxy?
     ::Kubernetes::Util.kubernetes_component_args_list("kube-proxy", @settings.kube_proxy_args)
   end
 

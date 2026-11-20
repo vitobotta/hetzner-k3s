@@ -1,3 +1,4 @@
+#!/bin/bash
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
@@ -13,11 +14,15 @@ if [ "{{ private_network_enabled }}" = "true" ]; then
   DELAY=10
 
   for i in $(seq 1 $MAX_ATTEMPTS); do
-    # Simplified network interface detection
+    # Simplified network interface detection.
+    # NOTE: MTU 1280 matches WireGuard's default — mesh agents like NetBird,
+    # Tailscale, or raw wg-quick create interfaces (wt0, wg0, tailscale0,
+    # netbird0, ...) that would otherwise be picked here over the real
+    # Hetzner private vlan (enp7s0, MTU 1450). Exclude them by name.
     NETWORK_INTERFACE=$(
       ip -o link show |
         awk -F': ' '/mtu (1450|1280)/ {print $2}' |
-        grep -Ev 'cilium|lxc|br|flannel|docker|veth' |
+        grep -Ev 'cilium|lxc|br|flannel|docker|veth|wt|wg|tailscale|netbird' |
         head -n1
     )
 
@@ -99,6 +104,21 @@ else
   METRICS_SERVER_PLUGIN="--disable metrics-server"
 fi
 
+# CoreDNS: disabled here when hetzner-k3s deploys its own copy, so the packaged manifest and its
+# AddOn prune do not fight the managed deployment.
+if [ "{{ coredns_enabled }}" = "true" ]; then
+  COREDNS_PLUGIN="--disable coredns"
+else
+  COREDNS_PLUGIN=""
+fi
+
+# Kube-proxy arguments
+if [ "{{ kube_proxy_enabled }}" = "true" ]; then
+  KUBE_PROXY_ARG='--kube-proxy-arg=metrics-bind-address=0.0.0.0'
+else
+  KUBE_PROXY_ARG=""
+fi
+
 # Create k3s directories
 mkdir -p /etc/rancher/k3s
 mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
@@ -139,10 +159,21 @@ if [ "{{ private_network_enabled }}" = "false" ]; then
   fi
 fi
 
+# Cluster domain override (cluster.local default)
+if [ -n "{{ cluster_domain }}" ]; then
+  CLUSTER_DOMAIN="--cluster-domain={{ cluster_domain }}"
+else
+  CLUSTER_DOMAIN=""
+fi
+
 # Install k3s
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-curl -sfL https://get.k3s.io | \
+# See the worker script: a pipeline reports the status of `sh`, so the download is checked on its own.
+installer=$(mktemp)
+install_status_file=$(mktemp)
+if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; then
+{
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_TOKEN="{{ k3s_token }}" \
   {{ datastore_endpoint }} \
@@ -153,13 +184,15 @@ curl -sfL https://get.k3s.io | \
     $TRAEFIK_PLUGIN \
     $SERVICELB_PLUGIN \
     $METRICS_SERVER_PLUGIN \
+    $COREDNS_PLUGIN \
     --write-kubeconfig-mode=644 \
     --node-name=$HOSTNAME \
     --cluster-cidr={{ cluster_cidr }} \
     --service-cidr={{ service_cidr }} \
     --cluster-dns={{ cluster_dns }} \
+    $CLUSTER_DOMAIN \
     --kube-controller-manager-arg="bind-address=0.0.0.0" \
-    --kube-proxy-arg="metrics-bind-address=0.0.0.0" \
+    $KUBE_PROXY_ARG \
     --kube-scheduler-arg="bind-address=0.0.0.0" \
     {{ master_taint }} {{ labels_and_taints }} {{ extra_args }} {{ etcd_arguments }} \
     $KUBELET_INSTANCE_ID \
@@ -169,10 +202,19 @@ curl -sfL https://get.k3s.io | \
     --advertise-address=$PRIVATE_IP \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
-    {{ server }} {{ tls_sans }} 2>&1 | tee -a /var/log/hetzner-k3s.log
+    {{ server }} {{ tls_sans }} < "$installer"; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+else
+  echo "ERROR: could not download the k3s installer" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo 1 >"$install_status_file"
+fi
+rm -f "$installer"
 
-# Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+# Check if installation was successful. PIPESTATUS is bash-only while cloud-init runs this with sh,
+# so the status of the installer, not of tee, is written to a file.
+install_status=$(cat "$install_status_file")
+rm -f "$install_status_file"
+
+if [ "$install_status" -ne 0 ]; then
   echo "ERROR: k3s installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
   exit 1
 fi

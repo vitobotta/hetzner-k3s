@@ -27,22 +27,27 @@ class Kubernetes::KubeconfigManager
 
     File.write(kubeconfig_path, kubeconfig)
 
-    if @settings.create_load_balancer_for_the_kubernetes_api
+    load_balancer_ip = load_balancer_ip_address(load_balancer)
+    load_balancer_kubeconfig_path = nil
+
+    if load_balancer_ip
       load_balancer_kubeconfig_path = "#{kubeconfig_path}-#{@settings.cluster_name}"
-      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{load_balancer_ip_address(load_balancer)}:6443")
+      load_balancer_kubeconfig = kubeconfig.gsub("server: https://127.0.0.1:6443", "server: https://#{url_host(load_balancer_ip)}:6443")
 
       File.write(load_balancer_kubeconfig_path, load_balancer_kubeconfig)
     end
 
     masters.each_with_index do |master, index|
-      master_ip_address = if @settings.networking.ssh.use_private_ip
-        master.private_ip_address
-      else
-        @settings.networking.public_network.ipv4 ? master.public_ip_address : master.private_ip_address
-      end
+      master_ip_address = if @settings.networking.tailscale.enabled
+                            master.tailscale_host(@settings.networking.tailscale.hostname_suffix)
+                          elsif @settings.networking.ssh.use_private_ip
+                            master.private_ip_address
+                          else
+                            master.public_ip_address || master.public_ipv6_address || master.private_ip_address
+                          end
       master_kubeconfig_path = "#{kubeconfig_path}-#{master.name}"
       master_kubeconfig = kubeconfig
-        .gsub("server: https://127.0.0.1:6443", "server: https://#{master_ip_address}:6443")
+        .gsub("server: https://127.0.0.1:6443", "server: https://#{url_host(master_ip_address.to_s)}:6443")
         .gsub("name: #{@settings.cluster_name}", "name: #{master.name}")
         .gsub("cluster: #{@settings.cluster_name}", "cluster: #{master.name}")
         .gsub("user: #{@settings.cluster_name}", "user: #{master.name}")
@@ -51,13 +56,20 @@ class Kubernetes::KubeconfigManager
       File.write(master_kubeconfig_path, master_kubeconfig)
     end
 
-    paths = @settings.create_load_balancer_for_the_kubernetes_api ? [load_balancer_kubeconfig_path] : [] of String
+    paths = load_balancer_kubeconfig_path ? [load_balancer_kubeconfig_path] : [] of String
 
     paths = (paths + masters.map { |master| "#{kubeconfig_path}-#{master.name}" }).join(":")
 
     run_shell_command("KUBECONFIG=#{paths} kubectl config view --flatten > #{kubeconfig_path}", "", @settings.hetzner_token, log_prefix: "Control plane")
 
-    switch_to_context(first_master.name, kubeconfig_path)
+    # With a private-only API load balancer the first master's context may point at an unreachable public IP
+    default_context = if load_balancer_kubeconfig_path && @settings.disable_public_interface_for_the_kubernetes_api_load_balancer
+                        @settings.cluster_name
+                      else
+                        first_master.name
+                      end
+
+    switch_to_context(default_context, kubeconfig_path)
 
     masters.each do |master|
       FileUtils.rm("#{kubeconfig_path}-#{master.name}")
@@ -70,21 +82,30 @@ class Kubernetes::KubeconfigManager
 
   def generate_tls_sans(masters : Array(Hetzner::Instance), first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?)
     sans = ["--tls-san=#{api_server_ip_address(first_master)}", "--tls-san=127.0.0.1"]
-    sans << "--tls-san=#{load_balancer_ip_address(load_balancer)}" if @settings.create_load_balancer_for_the_kubernetes_api
+
+    load_balancer_ip = load_balancer_ip_address(load_balancer)
+    sans << "--tls-san=#{load_balancer_ip}" if @settings.create_load_balancer_for_the_kubernetes_api
     sans << "--tls-san=#{@settings.api_server_hostname}" if @settings.api_server_hostname
+
+    # An IPv6 SAN only where there is no public IPv4 to reach the masters on. Adding it everywhere
+    # changes the `k3s server` command line of every existing cluster, and the resulting unit rewrite
+    # restarts the masters, which costs etcd quorum while the API is down.
+    add_ipv6_sans = !@settings.networking.public_network.ipv4
 
     masters.each do |master|
       sans << "--tls-san=#{master.private_ip_address}"
       sans << "--tls-san=#{master.public_ip_address}"
+      sans << "--tls-san=#{master.public_ipv6_address}" if add_ipv6_sans
+      if @settings.networking.tailscale.enabled
+        sans << "--tls-san=#{master.tailscale_host(@settings.networking.tailscale.hostname_suffix)}"
+      end
     end
 
     sans.uniq.sort.join(" ")
   end
 
   private def load_balancer_ip_address(load_balancer : Hetzner::LoadBalancer?)
-    return nil unless load_balancer
-
-    @settings.networking.ssh.use_private_ip ? load_balancer.private_ip_address : load_balancer.public_ip_address
+    load_balancer.try(&.ip_address(@settings.use_private_ip_for_the_kubernetes_api_load_balancer?))
   end
 
   private def switch_to_context(context_name : String, kubeconfig_path : String)

@@ -11,6 +11,8 @@ require "./networking_config/node_port_range"
 require "./networking_config/private_network"
 require "./networking_config/public_network"
 require "./networking_config/ssh"
+require "./external_routing"
+require "./networking_config/tailscale"
 
 class Configuration::Validators::Networking
   getter errors : Array(String)
@@ -24,15 +26,17 @@ class Configuration::Validators::Networking
   end
 
   def validate
+    Configuration::Validators::ExternalRouting.new(errors, settings).validate
     Configuration::Validators::NetworkingConfig::CNI.new(errors, networking.cni, private_network).validate
     Configuration::Validators::NetworkingConfig::AllowedNetworks.new(
       errors,
       networking.allowed_networks,
-      skip_current_ip_validation: skip_current_ip_validation
+      skip_current_ip_validation: skip_current_ip_validation || networking.tailscale.enabled
     ).validate
     Configuration::Validators::NetworkingConfig::NodePortRange.new(errors, networking.node_port_range).validate
     Configuration::Validators::NetworkingConfig::PrivateNetwork.new(errors, private_network, hetzner_client).validate
     Configuration::Validators::NetworkingConfig::PublicNetwork.new(errors, networking.public_network, settings).validate
     Configuration::Validators::NetworkingConfig::SSH.new(errors, networking.ssh, hetzner_client, settings.cluster_name).validate
+    Configuration::Validators::NetworkingConfig::Tailscale.new(errors, networking.tailscale).validate
   end
 end

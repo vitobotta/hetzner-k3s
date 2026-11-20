@@ -52,6 +52,7 @@ nav:
     - Recommendations: Recommendations.md
     - Masters in Different Locations: Masters_in_different_locations.md
     - Private Clusters: Private_clusters_with_public_network_interface_disabled.md
+    - Tailscale Integration: Tailscale_integration.md
     - Floating IP Egress: Floating_IP_egress.md
     - Resizing Root Partition: Resizing_root_partition_with_post_create_commands.md
   - Reference:

@@ -1,4 +1,8 @@
+require "./name_format"
+
 class Configuration::Validators::ClusterName
+  INVALID_FORMAT_MESSAGE = "cluster_name is an invalid format (#{Configuration::Validators::NameFormat::ALLOWED_CHARACTERS_DESCRIPTION})"
+
   getter cluster_name : String
   getter errors : Array(String)
 
@@ -6,8 +10,8 @@ class Configuration::Validators::ClusterName
   end
 
   def validate
-    return errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)" if cluster_name.empty?
-    return errors << "cluster_name is an invalid format (only lowercase letters, digits and dashes are allowed)" unless /\A[a-z\d-]+\z/.match(cluster_name)
-    return errors << "Ensure that cluster_name starts and ends with a normal letter" unless /\A[a-z]+.*([a-z]|\d)+\z/.match(cluster_name)
+    return errors << INVALID_FORMAT_MESSAGE if cluster_name.empty?
+    return errors << INVALID_FORMAT_MESSAGE unless Configuration::Validators::NameFormat.allowed_characters?(cluster_name)
+    return errors << "Ensure that cluster_name starts and ends with a normal letter" unless Configuration::Validators::NameFormat.starts_and_ends_correctly?(cluster_name)
   end
 end

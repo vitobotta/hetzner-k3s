@@ -1,12 +1,43 @@
 require "../hetzner/instance"
+require "../hetzner/load_balancer"
 
 module Kubernetes::DeploymentHelper
   def self.api_server_ip_address(instance : Hetzner::Instance) : String
-    instance.private_ip_address || instance.public_ip_address.not_nil!
+    instance.private_ip_address || instance.public_ip_address || instance.public_ipv6_address ||
+      raise "Instance #{instance.name} has no IP address"
   end
 
   def api_server_ip_address(instance : Hetzner::Instance) : String
     DeploymentHelper.api_server_ip_address(instance)
+  end
+
+  # An IPv6 literal has to be bracketed inside a URL (`https://[2001:db8::1]:6443`), an IPv4 one
+  # must not be.
+  def self.url_host(address : String) : String
+    return address if address.starts_with?("[") || !address.includes?(":")
+
+    "[#{address}]"
+  end
+
+  def url_host(address : String) : String
+    DeploymentHelper.url_host(address)
+  end
+
+  # The address a joining worker registers against: the API load balancer when there is one, so
+  # a worker (an autoscaled one included) can join while the first master is down; the first
+  # master otherwise. The load balancer address is the one the masters' TLS SANs and the
+  # kubeconfig already carry (KubeconfigManager), so no master's certificate changes.
+  def self.join_ip_address(first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?, use_private_ip : Bool) : String
+    if load_balancer
+      address = load_balancer.ip_address(use_private_ip)
+      return address if address
+    end
+
+    api_server_ip_address(first_master)
+  end
+
+  def join_ip_address(first_master : Hetzner::Instance, load_balancer : Hetzner::LoadBalancer?, use_private_ip : Bool) : String
+    DeploymentHelper.join_ip_address(first_master, load_balancer, use_private_ip)
   end
 end
 

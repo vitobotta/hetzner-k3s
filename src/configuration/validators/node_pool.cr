@@ -11,8 +11,8 @@ class Configuration::Validators::NodePool
   getter instance_types : Array(Hetzner::InstanceType) = [] of Hetzner::InstanceType
   getter all_locations : Array(Hetzner::Location) = [] of Hetzner::Location
 
-  getter pool_name : String { masters? ? "masters" : pool.try(&.name) || "<unnamed-pool>" }
-  getter pool_description : String { workers? ? "Worker mode pool '#{pool_name}'" : "Masters pool" }
+  getter pool_name : String? { masters? ? "masters" : pool.try(&.name) }
+  getter pool_description : String { workers? ? "Worker mode pool '#{pool_name || "<unnamed-pool>"}'" : "Masters pool" }
 
   getter datastore : Configuration::Models::Datastore
   getter private_network_enabled : Bool = true
@@ -25,11 +25,15 @@ class Configuration::Validators::NodePool
 
     Configuration::Validators::NodePoolConfig::PoolName.new(errors, pool_type, pool_name).validate
     Configuration::Validators::NodePoolConfig::InstanceType.new(errors, pool, instance_types).validate
-    Configuration::Validators::NodePoolConfig::Location.new(errors, pool, pool_type, masters_pool, all_locations, private_network_enabled, datastore.mode).validate
-    Configuration::Validators::NodePoolConfig::InstanceCount.new(errors, pool, pool_type, datastore).validate unless pool.autoscaling_enabled
+
+    unless pool.try(&.external?)
+      Configuration::Validators::NodePoolConfig::Location.new(errors, pool, pool_type, masters_pool, all_locations, private_network_enabled, datastore.mode).validate
+      Configuration::Validators::NodePoolConfig::InstanceCount.new(errors, pool, pool_type, datastore).validate unless pool.autoscaling_enabled
+    end
+
     Configuration::Validators::NodePoolConfig::Labels.new(errors, pool_type, pool.try(&.labels)).validate
     Configuration::Validators::NodePoolConfig::Taints.new(errors, pool_type, pool.try(&.taints)).validate
-    Configuration::Validators::NodePoolConfig::Autoscaling.new(errors, pool).validate if workers?
+    Configuration::Validators::NodePoolConfig::Autoscaling.new(errors, pool).validate if workers? && !pool.try(&.external?)
   end
 
   private def workers?
