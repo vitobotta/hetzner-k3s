@@ -137,6 +137,20 @@ hetzner-k3s connects to the nodes over their public IPv6 address when public IPv
 
 3. **Check Taints and Tolerations**: Ensure pods have tolerations for any node taints
 
+### gVisor Pods Fail to Start
+
+**Symptoms**: pods with `runtimeClassName: gvisor` stay in `ContainerCreating`, and `kubectl describe pod` shows an error such as `failed to create containerd task: ... no runtime for "runsc" is configured`.
+
+**Solutions:**
+
+1. **Check the runtime on the node that scheduled the pod.** `addons.gvisor` installs runsc during node setup, so check `command -v runsc` and the template at `/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl` on that node with `kubectl debug node/<node>` or SSH.
+
+2. **The node may predate the addon.** A node that joined before `addons.gvisor` was enabled keeps its old containerd config until `k3s` or `k3s-agent` restarts there. Workers are restarted by `create` if their template changed. Masters restart only with `schedule_workloads_on_masters`. See the [upgrade notes](Important_upgrade_notes.md).
+
+3. **External nodes are not re-provisioned.** hetzner-k3s skips the setup script on an external node that is already initialized and prints a warning. Install runsc there by hand following [Sandboxed workloads with gVisor](Creating_a_cluster.md#sandboxed-workloads-with-gvisor), then restart `k3s-agent`.
+
+4. **Check the node image.** The runsc package comes from the gVisor apt repository, so only Debian and Ubuntu images are supported. The setup script stops with an error on any other image, which means `create` would have failed before the cluster was built.
+
 ### Storage Issues
 
 **Symptoms**: PVCs stuck in `Pending` state, pods can't mount volumes
