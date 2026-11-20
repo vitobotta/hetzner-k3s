@@ -1,5 +1,15 @@
 # Important Upgrade Notes
 
+## gVisor Restarts k3s When It Is Enabled - Friday, November 20, 2026
+
+`addons.gvisor` is off by default, so existing clusters are unaffected until they set it.
+
+The runtime is installed by the node setup scripts, and the containerd template they write is read only when k3s starts. On a new cluster the installer starts k3s after the template is in place, so nothing extra happens. On a cluster that already exists, the next `create` restarts `k3s-agent` on each cloud worker whose template changed, and restarts `k3s` on a master only when `schedule_workloads_on_masters` is true, since a tainted master never runs these pods. Masters that cannot schedule workloads keep the new template for their next restart. Autoscaled nodes pick the runtime up when they launch; existing ones only with `synchronise_autoscaled_nodes`.
+
+External nodes are not re-provisioned: hetzner-k3s skips the setup script on a node that is already initialized and prints a warning. Install runsc there by hand and restart `k3s-agent`, or re-initialize the node.
+
+Two more things to know before turning it on: the apt install requires a Debian or Ubuntu image and stops with an error on any other image, and `version` pins the runsc build rather than following the rolling repository.
+
 ## Private API Load Balancer Restarts k3s Once - Wednesday, November 18, 2026
 
 `disable_public_interface_for_the_kubernetes_api_load_balancer` is off by default, so existing clusters are unaffected until they set it.
