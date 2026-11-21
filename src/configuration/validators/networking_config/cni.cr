@@ -6,8 +6,9 @@ class Configuration::Validators::NetworkingConfig::CNI
   getter errors : Array(String)
   getter cni : Configuration::Models::NetworkingConfig::CNI
   getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
+  getter dual_stack : Bool
 
-  def initialize(@errors, @cni, @private_network)
+  def initialize(@errors, @cni, @private_network, @dual_stack = false)
   end
 
   def validate
@@ -16,6 +17,6 @@ class Configuration::Validators::NetworkingConfig::CNI
     errors << "CNI encryption must be enabled when private networking is disabled" unless cni.encryption || private_network.enabled
     errors << "CNI mode must be either 'flannel' or 'cilium' when CNI is enabled" unless {"flannel", "cilium"}.includes?(cni.mode)
 
-    Configuration::Validators::NetworkingConfig::CNIConfig::Cilium.new(errors, cni.cilium).validate if cni.cilium?
+    Configuration::Validators::NetworkingConfig::CNIConfig::Cilium.new(errors, cni, private_network, dual_stack).validate if cni.cilium?
   end
 end

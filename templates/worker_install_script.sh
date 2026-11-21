@@ -2,10 +2,39 @@
 touch /etc/initialized
 
 HOSTNAME=$(hostname -f)
+EXTERNAL_NODE_NAME="{{ external_node_name }}"
+if [ -n "$EXTERNAL_NODE_NAME" ]; then
+  HOSTNAME="$EXTERNAL_NODE_NAME"
+fi
 PUBLIC_IP=$(hostname -I | awk '{print $1}')
+NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
 
 # Network configuration
-if [ "{{ private_network_enabled }}" = "true" ]; then
+if [ "{{ is_external }}" = "true" ] && [ "{{ private_network_enabled }}" = "true" ] && [ "{{ private_network_external_routing }}" = "true" ]; then
+  echo "Using externally routed private network" >/var/log/hetzner-k3s.log
+  PRIVATE_IP="{{ external_node_ip }}"
+  PUBLIC_IP="{{ external_node_host }}"
+  NODE_EXTERNAL_IP=""
+  if [ "$PUBLIC_IP" != "$PRIVATE_IP" ]; then
+    NODE_EXTERNAL_IP="--node-external-ip=$PUBLIC_IP"
+  fi
+
+  # The routed address must belong to this node, not to a NAT gateway or proxy.
+  # Select its interface explicitly, including on multihomed/VPN-connected hosts.
+  NETWORK_INTERFACE=$(
+    ip -4 -o addr show |
+      awk -v address="$PRIVATE_IP" 'split($4, cidr, "/") && cidr[1] == address {sub(/@.*/, "", $2); print $2; exit}'
+  )
+  if [ -z "$NETWORK_INTERFACE" ]; then
+    echo "ERROR: Routed cluster IP $PRIVATE_IP is not assigned to a local interface; set external.nodes[].ip to the node's routed IPv4 address" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    exit 1
+  fi
+
+  FLANNEL_SETTINGS=""
+  if [ "{{ cni }}" = "true" ] && [ "{{ cni_mode }}" = "flannel" ]; then
+    FLANNEL_SETTINGS="--flannel-iface=$NETWORK_INTERFACE"
+  fi
+elif [ "{{ private_network_enabled }}" = "true" ]; then
   echo "Using Hetzner private network" >/var/log/hetzner-k3s.log
   SUBNET="{{ private_network_subnet }}"
 
@@ -64,19 +93,80 @@ else
 fi
 
 # Create k3s directories
-mkdir -p /etc/rancher/k3s
+mkdir -p /etc/rancher/k3s{% if gvisor_enabled == "true" %}
 
-# Create registries.yaml
-cat >/etc/rancher/k3s/registries.yaml <<\EOF
+# gVisor (runsc) is an opt-in extra containerd runtime. apt-get is the only supported path, so a
+# node without it stops here instead of later, when a pod first asks for the runtime.
+GVISOR_VERSION="{{ gvisor_version }}"
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  echo "ERROR: addons.gvisor needs a Debian or Ubuntu image and this node has no apt-get" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+echo "Installing gVisor (runsc $GVISOR_VERSION)..." 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl --proto '=https' --proto-redir '=https' -fsSL https://gvisor.dev/archive.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "runsc=$GVISOR_VERSION"
+
+if ! command -v runsc >/dev/null 2>&1; then
+  echo "ERROR: gVisor (runsc $GVISOR_VERSION) could not be installed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+# k3s renders config.toml from this template at every start, so a change needs a restart. The
+# content is compared first, the same way the worker script treats registries.yaml, so a re-run of
+# create on a node that already has the runtime does not touch systemd.
+CONTAINERD_TEMPLATE=/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+mkdir -p "$(dirname "$CONTAINERD_TEMPLATE")"
+containerd_temp=$(mktemp)
+cat >"$containerd_temp" <<\GVCONF
+{{ "{{ template \"base\" . }}" }}
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+GVCONF
+
+containerd_changed=false
+if [ "$(sha256sum "$containerd_temp" | cut -d' ' -f1)" != "$(sha256sum "$CONTAINERD_TEMPLATE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  containerd_changed=true
+  mv "$containerd_temp" "$CONTAINERD_TEMPLATE"
+  chmod 644 "$CONTAINERD_TEMPLATE"
+else
+  rm -f "$containerd_temp"
+fi
+
+echo "gVisor containerd configuration written" 2>&1 | tee -a /var/log/hetzner-k3s.log{% endif %}
+
+# Create registries.yaml. The content is compared first: k3s only reads this file at startup, so a
+# change needs an agent restart, while an identical file must not cause one. Written through a temp
+# file so the comparison is against a complete copy either way.
+REGISTRIES_FILE=/etc/rancher/k3s/registries.yaml
+registries_temp=$(mktemp)
+cat >"$registries_temp" <<\EOF
 {{ private_registry_config | trim }}
 EOF
 
-# Get instance ID for public network
-KUBELET_INSTANCE_ID=""
-if [ "{{ private_network_enabled }}" = "false" ]; then
-  INSTANCE_ID=$(curl -s http://169.254.169.254/hetzner/v1/metadata/instance-id)
+registries_changed=false
+if [ "$(sha256sum "$registries_temp" | cut -d' ' -f1)" != "$(sha256sum "$REGISTRIES_FILE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  registries_changed=true
+  mv "$registries_temp" "$REGISTRIES_FILE"
+  chmod 644 "$REGISTRIES_FILE"
+else
+  rm -f "$registries_temp"
+fi
+
+# Set provider ID. Generic external nodes use a non-HCCM scheme; Robot nodes
+# use hrobot:// so HCCM can initialize them when Robot support is enabled.
+KUBELET_PROVIDER_ID=""
+if [ -n "{{ kubelet_provider_id }}" ]; then
+  KUBELET_PROVIDER_ID="--kubelet-arg=provider-id={{ kubelet_provider_id }}"
+elif [ "{{ private_network_enabled }}" = "false" ]; then
+  INSTANCE_ID=$(curl -s --max-time 2 http://169.254.169.254/hetzner/v1/metadata/instance-id 2>/dev/null || true)
   if [ -n "$INSTANCE_ID" ]; then
-    KUBELET_INSTANCE_ID="--kubelet-arg=provider-id=hcloud://$INSTANCE_ID"
+    KUBELET_PROVIDER_ID="--kubelet-arg=provider-id=hcloud://$INSTANCE_ID"
   else
     echo "WARNING: Could not retrieve instance ID" 2>&1 | tee -a /var/log/hetzner-k3s.log
   fi
@@ -85,7 +175,23 @@ fi
 # Install k3s worker
 echo "Installing k3s worker..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-curl -sfL https://get.k3s.io | \
+# Sampled before the installer: on a re-run of create the agent of an existing worker is already
+# running, and install.sh downloads and verifies the binary before it touches systemd, so an
+# installer failure there (a missing release artifact, a network error) leaves that agent running.
+# The recovery below must not read that as a successful restart.
+agent_state_before_install=$(systemctl is-active k3s-agent 2>/dev/null)
+# A node bootstrapping for the first time gets a restart from the installer itself, so a change to
+# the registries file only needs its own restart on a node that already has a unit.
+unit_existed_before_install=false
+[ -f /etc/systemd/system/k3s-agent.service ] && unit_existed_before_install=true
+
+# The status of a pipeline is the status of its last command, so the installer has to be fetched
+# first: a failed download leaves `sh -s -` with an empty script and exit 0, which used to be recorded
+# as a successful install.
+installer=$(mktemp)
+install_status_file=$(mktemp)
+if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; then
+{
   K3S_TOKEN="{{ k3s_token }}" \
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_URL=https://{{ api_server_ip_address }}:6443 \
@@ -94,17 +200,82 @@ curl -sfL https://get.k3s.io | \
     --node-name=$HOSTNAME \
     {{ extra_args }} {{ labels_and_taints }} \
     --node-ip=$PRIVATE_IP \
-    --node-external-ip=$PUBLIC_IP \
-    $KUBELET_INSTANCE_ID \
-    $FLANNEL_SETTINGS 2>&1 | tee -a /var/log/hetzner-k3s.log
+    $NODE_EXTERNAL_IP \
+    $KUBELET_PROVIDER_ID \
+    $FLANNEL_SETTINGS < "$installer"; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+else
+  echo "ERROR: could not download the k3s installer" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo 1 >"$install_status_file"
+fi
+rm -f "$installer"
+
+# PIPESTATUS is bash-only while cloud-init runs this with sh, so the installer status goes through a
+# file. The former two element array becomes the installer status and the start status below.
+install_status=$(cat "$install_status_file")
+install_start_status=0
+rm -f "$install_status_file"
+
+# The installer skips the service start when the unit it wrote is identical to the existing one
+# ("No change detected so skipping service start"), so an in-place reinstall with unchanged flags
+# (k3s-killall.sh, then create) ends with a stopped agent and create times out waiting for the
+# node. An inactive or failed unit is started here; one that systemd is already starting is left
+# to it.
+if [ "$install_status" -eq 0 ] && [ "$install_start_status" -eq 0 ]; then
+  agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+  if [ "$agent_state" = "inactive" ] || [ "$agent_state" = "failed" ]; then
+    echo "k3s-agent is not running after the installer (unit unchanged, service start skipped): starting it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status_file=$(mktemp)
+    { systemctl start k3s-agent; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+    install_status=$(cat "$install_status_file")
+    install_start_status=0
+    rm -f "$install_status_file"
+  fi
+fi
+
+# The installer's final "systemctl restart k3s-agent" can report a failure for a start that k3s
+# itself gave up on: the agent registers the node and flannel annotates it a moment later, and
+# when the node is not yet visible to k3s's own client it shuts down ("flannel failed to sync
+# address annotations: node not found"). systemd records the start as failed (Result=protocol)
+# and restarts the unit 5 s later, which succeeds. Give the unit that chance before declaring
+# the installation failed: only for an agent that was not running before the installer, and only
+# while systemd is (re)starting it. A unit whose restart is pending reports "activating"; an
+# inactive or failed one is not coming back on its own, so that failure is reported at once.
+if { [ "$install_status" -ne 0 ] || [ "$install_start_status" -ne 0 ]; } && [ "$agent_state_before_install" != "active" ]; then
+  for i in $(seq 1 24); do
+    agent_state=$(systemctl is-active k3s-agent 2>/dev/null)
+    if [ "$agent_state" = "active" ]; then
+      echo "k3s-agent is active after a failed first start (systemd restarted it); continuing" 2>&1 | tee -a /var/log/hetzner-k3s.log
+      install_status=0
+      install_start_status=0
+      break
+    fi
+    [ "$agent_state" = "activating" ] || break
+    sleep 5
+  done
+fi
 
 # Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+if [ "$install_status" -ne 0 ] || [ "$install_start_status" -ne 0 ]; then
   echo "ERROR: k3s worker installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  journalctl -u k3s-agent --no-pager -n 30 2>/dev/null | tee -a /var/log/hetzner-k3s.log || true
   exit 1
 fi
 
 echo "k3s worker installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# The installer restarts k3s-agent only when the unit it writes changed, so a registries.yaml change
+# alone would not be picked up. Restart here when the file changed; when the unit changed too this
+# is a second, immediate restart, which is cheaper than detecting the installer's own message.
+if [ "$registries_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
+  echo "registries.yaml changed; restarting k3s-agent so k3s re-reads it" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl restart k3s-agent
+fi{% if gvisor_enabled == "true" %}
+
+# The containerd template is read at startup only, so it gets the same treatment as registries.yaml.
+if [ "$containerd_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
+  echo "containerd gVisor configuration changed; restarting k3s-agent so runsc is loaded" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl restart k3s-agent
+fi{% endif %}
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

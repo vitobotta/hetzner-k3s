@@ -35,6 +35,10 @@ If the tool stops working after creating instances and you experience timeouts, 
    chmod 600 ~/.ssh/your_private_key
    ```
 
+### Cloud-init Script Fails with "Bad substitution"
+
+The init scripts run under `sh` on cloud-init, which is why older versions could abort at the end of `/etc/init-0.sh` on autoscaled and newly created nodes with `sh: <n>: Bad substitution`, leaving `/etc/initialized` empty and the node half configured. The scripts are `sh` compatible now, and cloud-init invokes them with `bash` as well. Upgrading hetzner-k3s and running `create` again rewrites them.
+
 ### Enable Debug Mode
 
 You can run `hetzner-k3s` with the `DEBUG` environment variable set to `true` for more detailed output:
@@ -44,6 +48,21 @@ DEBUG=true hetzner-k3s create --config cluster_config.yaml
 ```
 
 This will provide more detailed output, which can help you identify the root of the problem.
+
+### Create Appears to Hang on an Instance
+
+**Symptoms**: `create` stops printing after `Instance status: running` and appears frozen.
+
+It is waiting for the node to power on, to be attached to the private network, and to answer over SSH, retrying in between. These waits are now bounded and report what failed:
+
+- power on: 30 attempts, then an error
+- attach to the private network: 30 attempts, then an error
+- SSH readiness: 20 attempts, then an error naming the last failure, for example an authentication failure rather than a silent timeout
+- the whole readiness step: 20 minutes
+
+Each SSE wait prints the elapsed time, the attempt count and the reason it is not ready yet, so a run that is merely slow looks different from one that cannot work.
+
+**If it fails**, the message names the cause. `SSH command failed ... Permission denied` means the key is not the one on the server: check `networking.ssh` and `existing_ssh_key_name`. `no route to host` or timeouts point at the network: check `allowed_networks` and the Hetzner firewall rules. For more detail, run with `DEBUG=true`.
 
 ### Cluster Creation Fails after Node Creation
 
@@ -61,6 +80,9 @@ This will provide more detailed output, which can help you identify the root of 
 4. **Check Network Configuration**: See section below for IPv4/IPv6 configuration issues
 
 ### IPv4 Disabled with IPv6 Only Configuration
+
+hetzner-k3s connects to the nodes over their public IPv6 address when public IPv4 is disabled, so SSH, the kubeconfig and the API TLS SANs use it. A connection timeout on `2a01:...` addresses means the machine running the tool has no IPv6 route; test with `ping6` or `curl -6` first. `ssh.use_private_ip: true` switches to the private network instead, which requires access to it.
+
 
 **Symptoms**: Cluster creation hangs after nodes are created. SSH connection times out when trying to connect to a private IP address.
 
@@ -115,6 +137,20 @@ This will provide more detailed output, which can help you identify the root of 
 
 3. **Check Taints and Tolerations**: Ensure pods have tolerations for any node taints
 
+### gVisor Pods Fail to Start
+
+**Symptoms**: pods with `runtimeClassName: gvisor` stay in `ContainerCreating`, and `kubectl describe pod` shows an error such as `failed to create containerd task: ... no runtime for "runsc" is configured`.
+
+**Solutions:**
+
+1. **Check the runtime on the node that scheduled the pod.** `addons.gvisor` installs runsc during node setup, so check `command -v runsc` and the template at `/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl` on that node with `kubectl debug node/<node>` or SSH.
+
+2. **The node may predate the addon.** A node that joined before `addons.gvisor` was enabled keeps its old containerd config until `k3s` or `k3s-agent` restarts there. Workers are restarted by `create` if their template changed. Masters restart only with `schedule_workloads_on_masters`. See the [upgrade notes](Important_upgrade_notes.md).
+
+3. **External nodes are not re-provisioned.** hetzner-k3s skips the setup script on an external node that is already initialized and prints a warning. Install runsc there by hand following [Sandboxed workloads with gVisor](Creating_a_cluster.md#sandboxed-workloads-with-gvisor), then restart `k3s-agent`.
+
+4. **Check the node image.** The runsc package comes from the gVisor apt repository, so only Debian and Ubuntu images are supported. The setup script stops with an error on any other image, which means `create` would have failed before the cluster was built.
+
 ### Storage Issues
 
 **Symptoms**: PVCs stuck in `Pending` state, pods can't mount volumes
@@ -146,6 +182,22 @@ This will provide more detailed output, which can help you identify the root of 
    ```
 
 2. **Restart CNI**: Restart the relevant CNI pods
+
+### Cilium Network Validation Fails
+
+**Symptoms**: `create` stops with `Failed Cilium network validation`
+
+With `mode: cilium`, `create` runs a cross-node pod network check after all nodes have joined (see [Cilium MTU and network validation](Creating_a_cluster.md#cilium-mtu-and-network-validation)). The error says which step failed:
+
+1. **Test pods did not become Ready**: the nodes could not pull the test image or start the pods. Check `kubectl -n kube-system get pods -l app.kubernetes.io/name=cilium-network-validation -o wide` while `create` is running. In air-gapped clusters or with registry mirrors, set `networking.cni.cilium.connectivity_check.image` to an image your nodes can pull. On slow links, raise `networking.cni.cilium.connectivity_check.timeout_seconds`.
+
+2. **Small packet ping failed**: pods on different nodes cannot reach each other at all. Check the Cilium agents with `kubectl -n kube-system get pods -l k8s-app=cilium -o wide` and their logs, and check that the firewall allows traffic between nodes.
+
+3. **Pod MTU ping failed**: small packets get through but packets as large as the pod MTU are dropped, which typically shows up as TLS handshakes or large requests that hang. Lower `networking.cni.cilium.mtu` (or `MTU` in your Helm values file) so that it fits the network path between your nodes, and set `underlay_mtu` to that path MTU so `create` validates it up front.
+
+4. **Pod MTU differs from the configured MTU**: Cilium did not apply the configured MTU. Changing `mtu` does not restart the Cilium agents, so run `kubectl -n kube-system rollout restart ds cilium` and then `create` again, and check the `mtu` key in Cilium's configuration with `kubectl -n kube-system get configmap cilium-config -o yaml`.
+
+To skip the check, set `networking.cni.cilium.connectivity_check.enabled: false`.
 
 ### Upgrade Issues
 

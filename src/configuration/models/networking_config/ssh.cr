@@ -1,3 +1,6 @@
+require "yaml"
+require "../../../util/ssh_key_env"
+
 class Configuration::Models::NetworkingConfig::SSH
   include YAML::Serializable
   include YAML::Serializable::Unmapped
@@ -12,12 +15,14 @@ class Configuration::Models::NetworkingConfig::SSH
   def initialize
   end
 
+  # SSH_PRIVATE_KEY / SSH_PUBLIC_KEY take precedence over the configured paths, which lets CI pass
+  # the keys without writing files first.
   def private_key_path
-    absolute_path(@private_key_path)
+    Util::SSHKeyEnv.private_key_path || absolute_path(@private_key_path)
   end
 
   def public_key_path
-    absolute_path(@public_key_path)
+    Util::SSHKeyEnv.public_key_path || absolute_path(@public_key_path)
   end
 
   def ssh_key_name(cluster_name : String) : String

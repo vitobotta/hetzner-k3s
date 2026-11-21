@@ -1,5 +1,53 @@
 # Important Upgrade Notes
 
+## Cilium Clusters Run a Network Check on the Next `create` - Saturday, November 21, 2026
+
+With `networking.cni.mode: cilium`, `create` now ends with a cross-node pod network check: two short-lived pods in `kube-system` on two Ready nodes, a small ping and a ping as large as the pod MTU with the don't-fragment bit set. It needs at least two Ready nodes and pulls `nicolaka/netshoot:v0.16` from Docker Hub on each of them.
+
+`create` re-runs the whole installation for existing clusters, so the next `create` against a cilium cluster created with an older version runs the check too, and stops with `Failed Cilium network validation` if pods cannot carry packets of their full MTU. That is the failure the check exists to find, but it is a new failure mode for a command that used to succeed.
+
+Air-gapped clusters and clusters that pull only through a registry mirror should point `networking.cni.cilium.connectivity_check.image` at a reachable copy, or set `connectivity_check.enabled: false` to skip the check. Clusters with a single node skip it and print a warning.
+
+The check compares the MTU pods actually use with the size the configuration implies and stops when the two differ. Cilium's Helm chart does not restart its agents when the MTU changes, so on a cluster whose `mtu` was set or changed, run `kubectl -n kube-system rollout restart ds cilium` before `create`. Otherwise the pods still carry the previous MTU, which is a different size from the one the configuration asks for, and `create` stops with `Failed Cilium network validation`.
+
+## gVisor Restarts k3s When It Is Enabled - Friday, November 20, 2026
+
+`addons.gvisor` is off by default, so existing clusters are unaffected until they set it.
+
+The runtime is installed by the node setup scripts, and the containerd template they write is read only when k3s starts. On a new cluster the installer starts k3s after the template is in place, so nothing extra happens. On a cluster that already exists, the next `create` restarts `k3s-agent` on each cloud worker whose template changed, and restarts `k3s` on a master only when `schedule_workloads_on_masters` is true, since a tainted master never runs these pods. Masters that cannot schedule workloads keep the new template for their next restart. Autoscaled nodes pick the runtime up when they launch; existing ones only with `synchronise_autoscaled_nodes`.
+
+External nodes are not re-provisioned: hetzner-k3s skips the setup script on a node that is already initialized and prints a warning. Install runsc there by hand and restart `k3s-agent`, or re-initialize the node.
+
+Two more things to know before turning it on: the apt install requires a Debian or Ubuntu image and stops with an error on any other image, and `version` pins the runsc build rather than following the rolling repository.
+
+## Private API Load Balancer Restarts k3s Once - Wednesday, November 18, 2026
+
+`disable_public_interface_for_the_kubernetes_api_load_balancer` is off by default, so existing clusters are unaffected until they set it.
+
+Turning it on for an existing cluster switches the load balancer address in the masters' `--tls-san` from its public IP to its private IP, and workers join through that private IP. The next `create` therefore restarts k3s on the masters, the first master alone and then the others together, which on three masters is one short API outage, and restarts the k3s agent on every static worker once. Turning the setting off again (after re-enabling the public interface in the Hetzner console) restarts them the same way.
+
+Existing autoscaled nodes are not re-rendered by `create` unless `synchronise_autoscaled_nodes` is on, so they keep joining through the load balancer's public IP, which stops answering once the setting disables it. Such a node keeps serving until its agent restarts, and then cannot rejoin. Enable `synchronise_autoscaled_nodes` so that the same `create` updates them too, or let the autoscaler replace them; nodes it launches after the change use the private IP.
+
+With `join_via_api_server_hostname: true`, workers join through the name rather than the load balancer address, so their join address does not change and they do not restart. If the record points at the load balancer's public IP, change it to the private IP (or to the masters' private IPs) before turning the setting on, or workers cannot join.
+
+Before turning it on, make sure the machine that runs `hetzner-k3s` can reach the private network, for example through a VPN or a bastion host: with the setting on, `create` talks to the API through the load balancer's private IP as soon as the first master is up, and so does every later command. If the existing load balancer is not attached to the cluster's private network, has no targets, or has a target that uses a public IP, `create` stops before changing anything; delete the load balancer in the Hetzner console and run `create` again to have it recreated.
+
+## Private-only clusters require use_private_ip - Monday, November 16, 2026
+
+A cluster with both `public_network.ipv4` and `public_network.ipv6` disabled must set `networking.ssh.use_private_ip: true`. The 2.12.0 validator already enforced this, but the private-cluster guide did not show the key. The guide now does. If an older configuration relies on the private-address fallback, add the key before running `create`; this release only makes the guide consistent with the validator, the requirement itself is unchanged.
+
+## IPv6 Clusters Restart Their Masters Once - Sunday, November 15, 2026
+
+A cluster with `public_network.ipv4: false` now gets a `--tls-san` for each master's IPv6 address, so the API certificate can actually be served on the address the cluster is reached at. The flag changes the `k3s server` command line, the installer writes a new unit and restarts k3s: the first master alone and then the others together, as `create` always does. On three masters that is one short API outage.
+
+Dual-stack clusters are unaffected. Their IPv6 SAN is not rendered, so their command line stays byte for byte the same and no master restarts.
+
+## HCLOUD_TOKEN Takes Precedence - Sunday, November 15, 2026
+
+`HCLOUD_TOKEN` now wins over `hetzner_token` in the configuration file. Before this version the file won, so someone who exported the variable for another project and also keeps a token in this config ran against the project in the config. After upgrading, the same setup runs against the project the variable points at.
+
+No configuration change is needed. If both are set and they differ, the tool prints one line before it does anything: `HCLOUD_TOKEN is set and differs from hetzner_token in the configuration file, using the one from HCLOUD_TOKEN`. The values themselves are never printed. An empty or whitespace-only variable still counts as unset and the file is used.
+
 ## OpenSSH Upgrade Notice - Friday, August 1, 2025
 
 ### Critical Information

@@ -104,6 +104,14 @@ else
   METRICS_SERVER_PLUGIN="--disable metrics-server"
 fi
 
+# CoreDNS: disabled here when hetzner-k3s deploys its own copy, so the packaged manifest and its
+# AddOn prune do not fight the managed deployment.
+if [ "{{ coredns_enabled }}" = "true" ]; then
+  COREDNS_PLUGIN="--disable coredns"
+else
+  COREDNS_PLUGIN=""
+fi
+
 # Kube-proxy arguments
 if [ "{{ kube_proxy_enabled }}" = "true" ]; then
   KUBE_PROXY_ARG='--kube-proxy-arg=metrics-bind-address=0.0.0.0'
@@ -112,7 +120,57 @@ else
 fi
 
 # Create k3s directories
-mkdir -p /etc/rancher/k3s
+mkdir -p /etc/rancher/k3s{% if gvisor_enabled == "true" %}
+
+# gVisor (runsc) is an opt-in extra containerd runtime. apt-get is the only supported path, so a
+# node without it stops here instead of later, when a pod first asks for the runtime.
+GVISOR_VERSION="{{ gvisor_version }}"
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  echo "ERROR: addons.gvisor needs a Debian or Ubuntu image and this node has no apt-get" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+echo "Installing gVisor (runsc $GVISOR_VERSION)..." 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl --proto '=https' --proto-redir '=https' -fsSL https://gvisor.dev/archive.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "runsc=$GVISOR_VERSION"
+
+if ! command -v runsc >/dev/null 2>&1; then
+  echo "ERROR: gVisor (runsc $GVISOR_VERSION) could not be installed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+# k3s renders config.toml from this template at every start, so a change needs a restart. The
+# content is compared first, the same way the worker script treats registries.yaml, so a re-run of
+# create on a node that already has the runtime does not touch systemd.
+CONTAINERD_TEMPLATE=/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+mkdir -p "$(dirname "$CONTAINERD_TEMPLATE")"
+containerd_temp=$(mktemp)
+cat >"$containerd_temp" <<\GVCONF
+{{ "{{ template \"base\" . }}" }}
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+GVCONF
+
+containerd_changed=false
+if [ "$(sha256sum "$containerd_temp" | cut -d' ' -f1)" != "$(sha256sum "$CONTAINERD_TEMPLATE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  containerd_changed=true
+  mv "$containerd_temp" "$CONTAINERD_TEMPLATE"
+  chmod 644 "$CONTAINERD_TEMPLATE"
+else
+  rm -f "$containerd_temp"
+fi
+
+echo "gVisor containerd configuration written" 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+# Sampled before the installer: on a re-run of create the control plane is already running, and a
+# changed containerd template only takes effect after k3s restarts.
+k3s_active_before_install=false
+systemctl is-active --quiet k3s 2>/dev/null && k3s_active_before_install=true{% endif %}
 
 # Create registries.yaml
 cat >/etc/rancher/k3s/registries.yaml <<\EOF
@@ -140,7 +198,11 @@ fi
 # Install k3s
 echo "Installing k3s..." 2>&1 | tee -a /var/log/hetzner-k3s.log
 
-curl -sfL https://get.k3s.io | \
+# See the worker script: a pipeline reports the status of `sh`, so the download is checked on its own.
+installer=$(mktemp)
+install_status_file=$(mktemp)
+if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; then
+{
   INSTALL_K3S_VERSION="{{ k3s_version }}" \
   K3S_TOKEN="{{ k3s_token }}" \
   {{ datastore_endpoint }} \
@@ -151,6 +213,7 @@ curl -sfL https://get.k3s.io | \
     $TRAEFIK_PLUGIN \
     $SERVICELB_PLUGIN \
     $METRICS_SERVER_PLUGIN \
+    $COREDNS_PLUGIN \
     --write-kubeconfig-mode=644 \
     --node-name=$HOSTNAME \
     --cluster-cidr={{ cluster_cidr }} \
@@ -168,15 +231,36 @@ curl -sfL https://get.k3s.io | \
     --advertise-address=$PRIVATE_IP \
     --node-ip=$PRIVATE_IP \
     --node-external-ip=$PUBLIC_IP \
-    {{ server }} {{ tls_sans }} 2>&1 | tee -a /var/log/hetzner-k3s.log
+    {{ server }} {{ tls_sans }} < "$installer"; echo $? >"$install_status_file"; } 2>&1 | tee -a /var/log/hetzner-k3s.log
+else
+  echo "ERROR: could not download the k3s installer" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  echo 1 >"$install_status_file"
+fi
+rm -f "$installer"
 
-# Check if installation was successful
-if [ ${PIPESTATUS[0]} -ne 0 ]; then
+# Check if installation was successful. PIPESTATUS is bash-only while cloud-init runs this with sh,
+# so the status of the installer, not of tee, is written to a file.
+install_status=$(cat "$install_status_file")
+rm -f "$install_status_file"
+
+if [ "$install_status" -ne 0 ]; then
   echo "ERROR: k3s installation failed" 2>&1 | tee -a /var/log/hetzner-k3s.log
   exit 1
 fi
 
-echo "k3s installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log
+echo "k3s installation completed successfully" 2>&1 | tee -a /var/log/hetzner-k3s.log{% if gvisor_enabled == "true" %}
+
+# The containerd template is read at startup only. A master with the CriticalAddonsOnly taint never
+# runs gVisor pods, so it keeps the new config for its next restart instead of restarting the API
+# server for nothing. A schedulable master restarts here, which is a brief API interruption.
+if [ "$containerd_changed" = "true" ] && [ "$k3s_active_before_install" = "true" ]; then
+  if [ "{{ masters_can_schedule }}" = "true" ]; then
+    echo "containerd gVisor configuration changed; restarting k3s so runsc is loaded" 2>&1 | tee -a /var/log/hetzner-k3s.log
+    systemctl restart k3s
+  else
+    echo "containerd gVisor configuration changed; it takes effect when k3s next restarts on this master" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  fi
+fi{% endif %}
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

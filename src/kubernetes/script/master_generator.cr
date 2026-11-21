@@ -21,7 +21,7 @@ class Kubernetes::Script::MasterGenerator
     etcd_arguments = ""
 
     if @settings.datastore.mode == "etcd"
-      server = master == first_master ? " --cluster-init " : " --server https://#{api_server_ip_address(first_master)}:6443 "
+      server = master == first_master ? " --cluster-init " : " --server https://#{url_host(api_server_ip_address(first_master))}:6443 "
       etcd_arguments = " --etcd-expose-metrics=true #{@settings.datastore.etcd.generate_etcd_args} "
     else
       datastore_endpoint = " K3S_DATASTORE_ENDPOINT='#{@settings.datastore.external_datastore_endpoint}' "
@@ -54,12 +54,16 @@ class Kubernetes::Script::MasterGenerator
       embedded_registry_mirror_enabled: @settings.addons.embedded_registry_mirror.enabled.to_s,
       private_registry_config:          @settings.addons.embedded_registry_mirror.private_registry_config,
       local_path_storage_class_enabled: @settings.addons.local_path_storage_class.enabled.to_s,
-      traefik_enabled:        @settings.addons.traefik.enabled.to_s,
-      servicelb_enabled:      @settings.addons.servicelb.enabled.to_s,
-      metrics_server_enabled: @settings.addons.metrics_server.enabled.to_s,
-      labels_and_taints:      labels_and_taints,
-      additional_post_k3s_commands: post_k3s_commands,
-      kube_proxy_enabled:             @settings.networking.cni.kube_proxy?.to_s,
+      traefik_enabled:                  @settings.addons.traefik.enabled.to_s,
+      servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
+      metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
+      coredns_enabled:                  @settings.addons.coredns.enabled.to_s,
+      gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
+      gvisor_version:                   @settings.addons.gvisor.version,
+      masters_can_schedule:             @settings.schedule_workloads_on_masters.to_s,
+      kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
+      labels_and_taints:                labels_and_taints,
+      additional_post_k3s_commands:     post_k3s_commands,
     })
   end
 

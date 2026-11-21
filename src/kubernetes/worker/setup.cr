@@ -50,7 +50,7 @@ class Kubernetes::Worker::Setup
 
     worker_count.times { workers_ready_channel.receive }
 
-    wait_for_one_worker_to_be_ready(first_master_instance)
+    wait_for_one_worker_to_be_ready(first_master_instance, workers.map(&.name))
 
     workers
   end
@@ -62,17 +62,22 @@ class Kubernetes::Worker::Setup
     deploy_to_instance(instance, script)
   end
 
-  private def wait_for_one_worker_to_be_ready(first_master : Hetzner::Instance)
+  private def wait_for_one_worker_to_be_ready(first_master : Hetzner::Instance, worker_names : Array(String))
+    return if worker_names.empty?
+
     log_line "Waiting for at least one worker node to be ready...", log_prefix: "Cluster Autoscaler"
 
     timeout = Time.monotonic + 5.minutes
 
     loop do
-      output = @ssh.run(first_master, @settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes", @settings.networking.ssh.use_agent, print_output: false)
+      output = @ssh.run(first_master, @settings.networking.ssh.port, "KUBECONFIG=/etc/rancher/k3s/k3s.yaml kubectl get nodes -o='custom-columns=NAME:.metadata.name,STATUS:.status.conditions[?(@.type==\"Ready\")].status' --no-headers 2>/dev/null", @settings.networking.ssh.use_agent, print_output: false)
 
-      ready_workers = output.lines.count { |line| line.includes?("worker") && line.includes?("Ready") }
+      ready = output.lines.any? do |line|
+        name = line.split.first?
+        name && worker_names.includes?(name) && line.includes?("True")
+      end
 
-      break if ready_workers > 0
+      break if ready
 
       if Time.monotonic > timeout
         log_line "Timeout waiting for worker nodes, aborting", log_prefix: "Cluster Autoscaler"

@@ -13,14 +13,41 @@ class Configuration::Validators::NetworkingConfig::SSH
   end
 
   def validate
-    validate_path(errors, ssh.private_key_path, "private")
-    validate_path(errors, ssh.public_key_path, "public")
+    validate_environment_keys
+    validate_agent_conflict
+
+    return unless validate_key_paths
 
     if ssh.using_existing_ssh_key?
       validate_existing_ssh_key(errors, hetzner_client)
     else
       validate_ssh_key_fingerprint(errors, hetzner_client, cluster_name)
     end
+  end
+
+  private def validate_environment_keys
+    if Util::SSHKeyEnv.private_key? && !Util::SSHKeyEnv.valid_private_key_format?
+      errors << "#{Util::SSHKeyEnv::PRIVATE_KEY_VAR} is set but does not contain an OpenSSH or PEM private key"
+    end
+
+    if Util::SSHKeyEnv.public_key? && !Util::SSHKeyEnv.valid_public_key_format?
+      errors << "#{Util::SSHKeyEnv::PUBLIC_KEY_VAR} is set but does not contain a valid OpenSSH public key"
+    end
+  end
+
+  private def validate_agent_conflict
+    return unless ssh.use_agent && Util::SSHKeyEnv.private_key?
+
+    errors << "use_agent is true, so #{Util::SSHKeyEnv::PRIVATE_KEY_VAR} would be ignored. Set use_agent to false or unset #{Util::SSHKeyEnv::PRIVATE_KEY_VAR}."
+  end
+
+  private def validate_key_paths : Bool
+    validate_path(errors, ssh.private_key_path, "private")
+    validate_path(errors, ssh.public_key_path, "public")
+    true
+  rescue ex : SshKeyEnvError
+    errors << ex.message.to_s
+    false
   end
 
   private def validate_path(errors, path, key_type)

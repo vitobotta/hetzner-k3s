@@ -17,7 +17,23 @@ class Hetzner::Instance::Create
   INITIAL_DELAY =  1 # 1 second
   MAX_DELAY     = 60
 
+  # Bounds so a stuck Hetzner action reports an error instead of looping forever with no output.
+  MAX_POWER_ON_ATTEMPTS = 30
+  MAX_ATTACH_ATTEMPTS   = 30
+  READINESS_TIMEOUT     = 20.minutes
+  READINESS_POLL        = 10.seconds
+
+  # Nodes take longer to become reachable via SSH when they first need to
+  # install Tailscale and register with the tailnet during cloud-init.
+  TAILSCALE_SSH_WAIT_ATTEMPTS = 60
+
   getter instance_name : String
+
+  # Bounds and pacing, exposed so specs do not have to wait minutes.
+  property max_power_on_attempts : Int32 = MAX_POWER_ON_ATTEMPTS
+  property max_attach_attempts : Int32 = MAX_ATTACH_ATTEMPTS
+  property readiness_timeout : Time::Span = READINESS_TIMEOUT
+  property readiness_poll : Time::Span = READINESS_POLL
 
   private getter settings : Configuration::Main
   private getter legacy_instance_name : String
@@ -37,9 +53,10 @@ class Hetzner::Instance::Create
   private getter ssh : Configuration::Models::NetworkingConfig::SSH
   private getter mutex : Mutex
   private getter ssh_client : Util::SSH do
-    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip)
+    Util::SSH.new(ssh.private_key_path, ssh.public_key_path, ssh.use_private_ip,
+      tailscale_hostname_suffix: settings.networking.tailscale.ssh_hostname_suffix)
   end
-  private property instance_existed : Bool = false
+  property instance_existed : Bool = false
   private property powering_on_count : Int32 = 0
   private property attaching_to_network_count : Int32 = 0
 
@@ -131,9 +148,14 @@ class Hetzner::Instance::Create
     ready = false
     self.powering_on_count = 0
     self.attaching_to_network_count = 0
+    started = Time.monotonic
 
     until ready
-      sleep 10.seconds if !instance_existed && private_network_enabled?
+      if Time.monotonic - started > readiness_timeout
+        raise "Instance #{instance_name} did not become ready within #{readiness_timeout.total_minutes.to_i} minutes"
+      end
+
+      sleep readiness_poll if !instance_existed && private_network_enabled?
 
       instance = find_instance
       next unless instance
@@ -142,11 +164,11 @@ class Hetzner::Instance::Create
 
       next unless powered_on?(instance)
 
-      sleep 5.seconds
+      sleep readiness_poll / 2
 
       next unless attached_to_network?(instance)
 
-      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready"
+      ssh_client.wait_for_instance instance, ssh.port, ssh.use_agent, "echo ready", "ready", ssh_wait_attempts
       ready = true
     end
 
@@ -156,6 +178,8 @@ class Hetzner::Instance::Create
   private def powered_on?(instance)
     return true unless needs_powering_on?(instance)
 
+    raise "Instance #{instance_name} did not reach the running state after #{max_power_on_attempts} power on attempts" if powering_on_count >= max_power_on_attempts
+
     power_on_instance(instance)
 
     false
@@ -164,6 +188,8 @@ class Hetzner::Instance::Create
   private def attached_to_network?(instance)
     return true unless needs_attaching_to_private_network?(instance)
 
+    raise "Instance #{instance_name} was not attached to the private network after #{max_attach_attempts} attempts" if attaching_to_network_count >= max_attach_attempts
+
     attach_instance_to_network(instance)
 
     false
@@ -171,6 +197,10 @@ class Hetzner::Instance::Create
 
   private def private_network_enabled?
     settings.networking.private_network.enabled
+  end
+
+  private def ssh_wait_attempts
+    settings.networking.tailscale.enabled ? TAILSCALE_SSH_WAIT_ATTEMPTS : Util::SSH::DEFAULT_MAX_ATTEMPTS
   end
 
   private def needs_powering_on?(instance)
@@ -185,7 +215,8 @@ class Hetzner::Instance::Create
     self.powering_on_count += 1
 
     log_line "Powering on instance (attempt #{powering_on_count})"
-    hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
+    success, response = hetzner_client.post("/servers/#{instance.id}/actions/poweron", {} of String => String)
+    log_line "Power on request failed: #{response}" unless success
     log_line "Waiting for instance to be powered on..."
   end
 
@@ -194,7 +225,8 @@ class Hetzner::Instance::Create
 
     mutex.synchronize do
       log_line "Attaching instance to network (attempt #{attaching_to_network_count})"
-      hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", {:network => network.not_nil!.id})
+      success, response = hetzner_client.post("/servers/#{instance.id}/actions/attach_to_network", {:network => network.not_nil!.id})
+      log_line "Attach to network request failed: #{response}" unless success
       log_line "Waiting for instance to be attached to the network..."
     end
   end
@@ -250,7 +282,7 @@ class Hetzner::Instance::Create
   end
 
   private def wait_for_ssh_response(instance)
-    result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready")
+    result = ssh_client.wait_for_instance(instance, ssh.port, ssh.use_agent, "echo ready", "ready", ssh_wait_attempts)
     result == "ready"
   end
 
