@@ -44,6 +44,7 @@ nav:
     - Complete Tutorial: Setting_up_a_cluster.md
   - Operations:
     - Cluster Maintenance: Maintenance.md
+    - etcd Snapshots and Restore: Etcd_snapshots_and_restore.md
     - Load Balancers: Load_balancers.md
     - Storage: Storage.md
     - Deleting a Cluster: Deleting_a_cluster.md

@@ -155,3 +155,7 @@ additional_post_k3s_commands:
 ```
 
 Refer to the Kured documentation for additional configuration options, such as maintenance windows.
+
+## Restoring etcd from a Snapshot
+
+If the cluster state has to be rolled back, the restore runs with the k3s CLI against a snapshot on the node or in the S3 bucket. The complete procedure, for one master and for a highly available control plane, is in [etcd Snapshots and Restore](Etcd_snapshots_and_restore.md).
