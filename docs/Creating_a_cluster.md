@@ -207,6 +207,8 @@ protect_against_deletion: true # prevents accidental deletion of the cluster wit
 synchronise_autoscaled_nodes: false # also bring existing nodes of autoscaling pools up to date on create; see below
 reconcile_node_pools: false # also remove worker nodes that the configuration no longer renders; see below
 
+placement_groups_enabled: false # when true, creates Hetzner spread placement groups for the masters and the static worker pools, so their nodes land on different physical hosts; not every server type or location supports them (cpx31 in ash/hil, for example)
+
 create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
 
 disable_public_interface_for_the_kubernetes_api_load_balancer: false # makes the API load balancer reachable only via the private network; see Limitations below

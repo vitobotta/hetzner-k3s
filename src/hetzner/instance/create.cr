@@ -17,6 +17,25 @@ class Hetzner::Instance::Create
   INITIAL_DELAY =  1 # 1 second
   MAX_DELAY     = 60
 
+  # The delay doubles up to MAX_DELAY. The exponent is capped because nothing bounds the number
+  # of attempts: 2 ** 31 overflows Int32, and with a 60 second cap that is about an hour of
+  # retries away, which a sold out server type reaches.
+  def self.retry_delay_seconds(attempts : Int32) : Int64
+    exponent = (attempts - 1).clamp(0, 6)
+    [INITIAL_DELAY.to_i64 * (2_i64 ** exponent), MAX_DELAY.to_i64].min
+  end
+
+  # Hetzner answers a permanent rejection with this code, and no amount of retrying fixes it.
+  # Parsed rather than matched against the body text, so pretty printing or the code appearing
+  # inside a message cannot change the verdict.
+  def self.invalid_input?(response : String) : Bool
+    error = JSON.parse(response).as_h?.try(&.["error"]?).try(&.as_h?)
+    return false unless error
+    error["code"]?.try(&.as_s?) == "invalid_input"
+  rescue JSON::ParseException
+    false
+  end
+
   # Bounds so a stuck Hetzner action reports an error instead of looping forever with no output.
   MAX_POWER_ON_ATTEMPTS = 30
   MAX_ATTACH_ATTEMPTS   = 30
@@ -122,7 +141,14 @@ class Hetzner::Instance::Create
         break
       else
         log_line "Creating instance #{instance_name} failed: #{response}"
-        delay = [INITIAL_DELAY * (2 ** (attempts - 1)), MAX_DELAY].min
+
+        if self.class.invalid_input?(response)
+          log_line "Aborting: Hetzner API rejected the request as invalid input, retrying will not help.\n#{response}"
+          log_line "Hint: if the error is \"unsupported location for server type\", the server type may not be available in the target location. Common causes: (1) the server type is not offered in that datacenter, (2) the private network's zone does not cover the server's location (e.g. an eu-central network cannot host servers in ash/hil). See the README for details."
+          exit 1
+        end
+
+        delay = self.class.retry_delay_seconds(attempts)
         log_line "Waiting #{delay} seconds before retry..."
         sleep delay.seconds
       end

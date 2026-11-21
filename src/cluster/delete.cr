@@ -221,6 +221,9 @@ class Cluster::Delete
     end
   end
 
+  # Groups are found by the cluster label, not by the flag: a cluster created before the option
+  # existed, or one whose flag was turned off later, still has groups to remove, and a left over
+  # group eats into the 50 per project budget that later creates depend on.
   private def delete_placement_groups
     placement_group_manager.delete
   end

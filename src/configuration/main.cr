@@ -67,6 +67,7 @@ class Configuration::Main
   getter join_via_api_server_hostname : Bool = false
   getter k3s_upgrade_concurrency : Int64 = 1
   getter grow_root_partition_automatically : Bool = true
+  getter placement_groups_enabled : Bool = false
 
   # Trimmed, or nil when unset or blank: the masters' TLS SANs and the workers' join address
   # read the same value, so whitespace around the name in the config cannot split the
