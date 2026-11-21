@@ -1,5 +1,13 @@
 # Important Upgrade Notes
 
+## Cilium Clusters Run a Network Check on the Next `create` - Saturday, November 21, 2026
+
+With `networking.cni.mode: cilium`, `create` now ends with a cross-node pod network check: two short-lived pods in `kube-system` on two Ready nodes, a small ping and a ping as large as the pod MTU with the don't-fragment bit set. It needs at least two Ready nodes and pulls `nicolaka/netshoot:v0.16` from Docker Hub on each of them.
+
+`create` re-runs the whole installation for existing clusters, so the next `create` against a cilium cluster created with an older version runs the check too, and stops with `Failed Cilium network validation` if pods cannot carry packets of their full MTU. That is the failure the check exists to find, but it is a new failure mode for a command that used to succeed.
+
+Air-gapped clusters and clusters that pull only through a registry mirror should point `networking.cni.cilium.connectivity_check.image` at a reachable copy, or set `connectivity_check.enabled: false` to skip the check. Clusters with a single node skip it and print a warning.
+
 ## Private-only clusters require use_private_ip - Monday, November 16, 2026
 
 A cluster with both `public_network.ipv4` and `public_network.ipv6` disabled must set `networking.ssh.use_private_ip: true`. The 2.12.0 validator already enforced this, but the private-cluster guide did not show the key. The guide now does. If an older configuration relies on the private-address fallback, add the key before running `create`; this release only makes the guide consistent with the validator, the requirement itself is unchanged.
