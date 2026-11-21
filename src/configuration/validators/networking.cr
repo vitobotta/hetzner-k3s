@@ -27,7 +27,7 @@ class Configuration::Validators::Networking
 
   def validate
     Configuration::Validators::ExternalRouting.new(errors, settings).validate
-    Configuration::Validators::NetworkingConfig::CNI.new(errors, networking.cni, private_network).validate
+    Configuration::Validators::NetworkingConfig::CNI.new(errors, networking.cni, private_network, dual_stack?).validate
     Configuration::Validators::NetworkingConfig::AllowedNetworks.new(
       errors,
       networking.allowed_networks,
@@ -38,5 +38,11 @@ class Configuration::Validators::Networking
     Configuration::Validators::NetworkingConfig::PublicNetwork.new(errors, networking.public_network, settings).validate
     Configuration::Validators::NetworkingConfig::SSH.new(errors, networking.ssh, hetzner_client, settings.cluster_name).validate
     Configuration::Validators::NetworkingConfig::Tailscale.new(errors, networking.tailscale).validate
+  end
+
+  # A pod network with an IPv6 CIDR needs an MTU of at least 1280 inside pods,
+  # because the kernel does not bring up IPv6 below that.
+  def dual_stack? : Bool
+    Configuration::Models::NetworkingConfig::CNIConfig::CiliumMTU.dual_stack?(networking.cluster_cidr, networking.service_cidr)
   end
 end

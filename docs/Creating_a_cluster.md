@@ -481,13 +481,13 @@ The networks you choose should have enough space for your expected number of pod
 
 These settings apply only when `networking.cni.mode` is `cilium`.
 
-**`mtu`** is written to Cilium's `MTU` Helm value. Leave it unset (or set it to `0`) to let Cilium auto-detect the MTU from the node's network interface. Cilium keeps this MTU on each pod's `eth0` and lowers the MTU of the pod's routes by the tunnel and encryption overhead: 50 bytes for VXLAN tunnelling (`routing_mode: tunnel`, the default), plus 80 bytes for WireGuard or about 77 bytes for IPsec when encryption is enabled. With `mtu: 1450`, tunnelling and WireGuard, pods therefore use 1320-byte packets. When you use `helm_values_path`, set `MTU` in that file instead; setting `mtu` as well is an error.
+**`mtu`** is written to Cilium's `MTU` Helm value. Leave it unset (or set it to `0`) to let Cilium auto-detect the MTU from the node's network interface. Cilium keeps this MTU on each pod's `eth0` and lowers the MTU of the pod's routes by the tunnel and encryption overhead: 50 bytes for VXLAN tunnelling (`routing_mode: tunnel`, the default), plus 80 bytes for WireGuard up to Cilium v1.19.0 and 95 bytes from v1.19.5, or about 77 bytes for IPsec when encryption is enabled. With `mtu: 1450`, tunnelling and WireGuard, pods therefore use 1320-byte packets with the default chart, or 1305 with a v1.19.5 chart. When you use `helm_values_path`, set `MTU` in that file instead; setting `mtu` as well is an error.
 
 **`underlay_mtu`** is never passed to Cilium. It only describes the MTU of the network path between your nodes, so hetzner-k3s can reject an `mtu` that does not fit before any servers are created. It defaults to 1450 (the Hetzner private network MTU) when the private network is enabled and 1500 otherwise. Validation fails when:
 
 - `mtu` is negative, or between 1 and 1279
 - `mtu` is larger than `underlay_mtu`
-- `mtu` minus the tunnel and encryption overhead leaves pods with an MTU below 1230
+- `mtu` minus the tunnel and encryption overhead leaves pods with an MTU below 1230, or below 1280 when `cluster_cidr` or `service_cidr` is an IPv6 CIDR (pods lose IPv6 networking under 1280)
 - `underlay_mtu` is below 1280, or is set without a positive `mtu` (in your config or in the Helm values file)
 
 **Connectivity check.** After all nodes have joined, `create` checks pod networking across nodes. It starts two short-lived test pods in `kube-system` on two different Ready nodes (two workers when the cluster has them), pings from one to the other, then sends a ping as large as the pod MTU with the don't-fragment bit set. When a configured MTU is known, it also checks that the pods actually use it. If any step fails, `create` stops with an error, because a too-large MTU otherwise shows up later as connections that hang only on large packets.

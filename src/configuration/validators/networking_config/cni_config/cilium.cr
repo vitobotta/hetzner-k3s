@@ -8,8 +8,9 @@ class Configuration::Validators::NetworkingConfig::CNIConfig::Cilium
   getter errors : Array(String)
   getter cni : Configuration::Models::NetworkingConfig::CNI
   getter private_network : Configuration::Models::NetworkingConfig::PrivateNetwork
+  getter dual_stack : Bool
 
-  def initialize(@errors, @cni, @private_network)
+  def initialize(@errors, @cni, @private_network, @dual_stack = false)
   end
 
   def validate
@@ -74,7 +75,7 @@ class Configuration::Validators::NetworkingConfig::CNIConfig::Cilium
     effective_underlay_mtu = underlay_mtu || CiliumMTU.default_underlay_mtu(private_network.enabled)
     underlay_source = underlay_mtu ? "underlay_mtu" : "default underlay MTU; set underlay_mtu if your network path differs"
 
-    CiliumMTU.problems(explicit_mtu, effective_underlay_mtu, mtu_settings.overhead, underlay_source).each do |problem|
+    CiliumMTU.problems(explicit_mtu, effective_underlay_mtu, mtu_settings.overhead, underlay_source, CiliumMTU.min_pod_mtu(dual_stack)).each do |problem|
       errors << "Cilium #{problem}"
     end
   end
@@ -86,7 +87,7 @@ class Configuration::Validators::NetworkingConfig::CNIConfig::Cilium
     return CiliumMTU.settings_from_config(cni) unless helm_values_path
     return unless File.file?(helm_values_path)
 
-    CiliumMTU.settings_from_helm_values(File.read(helm_values_path))
+    CiliumMTU.settings_from_helm_values(File.read(helm_values_path), cilium.chart_version)
   rescue ex : CiliumMTU::Error
     errors << "Cilium helm_values_path '#{helm_values_path}' could not be read for MTU validation: #{ex.message}"
     nil

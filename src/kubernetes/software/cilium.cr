@@ -254,10 +254,11 @@ class Kubernetes::Software::Cilium
   # Largest pod MTU the configured Cilium MTU allows once tunnel and encryption
   # overhead are subtracted, or nil when Cilium auto-detects the MTU.
   private def expected_pod_mtu : Int32?
-    helm_values_path = settings.networking.cni.cilium.helm_values_path
+    cilium = settings.networking.cni.cilium
+    helm_values_path = cilium.helm_values_path
 
     mtu_settings = if helm_values_path && File.exists?(helm_values_path)
-                     CiliumMTU.settings_from_helm_values(File.read(helm_values_path))
+                     CiliumMTU.settings_from_helm_values(File.read(helm_values_path), cilium.chart_version)
                    else
                      CiliumMTU.settings_from_config(settings.networking.cni)
                    end
