@@ -557,6 +557,7 @@ Things to know about the check:
 - Each test node pulls `nicolaka/netshoot:v0.16` from Docker Hub. For air-gapped clusters or clusters that can only pull through a registry mirror, set `connectivity_check.image` to a copy in a registry your nodes can reach, ideally pinned by digest.
 - It waits up to `connectivity_check.timeout_seconds` (default 300) for Cilium, the nodes and the test pods to become ready.
 - Set `connectivity_check.enabled: false` to skip it.
+- The test pods are named `cilium-netcheck-<timestamp>-src` and `cilium-netcheck-<timestamp>-dst` in `kube-system`, and `create` deletes them when the check finishes, whether it passes or fails. If a run is interrupted they stay behind and can be deleted by hand.
 
 ---
 
