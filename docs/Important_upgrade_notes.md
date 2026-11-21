@@ -1,5 +1,15 @@
 # Important Upgrade Notes
 
+## Cilium Clusters Run a Network Check on the Next `create` - Saturday, November 21, 2026
+
+With `networking.cni.mode: cilium`, `create` now ends with a cross-node pod network check: two short-lived pods in `kube-system` on two Ready nodes, a small ping and a ping as large as the pod MTU with the don't-fragment bit set. It needs at least two Ready nodes and pulls `nicolaka/netshoot:v0.16` from Docker Hub on each of them.
+
+`create` re-runs the whole installation for existing clusters, so the next `create` against a cilium cluster created with an older version runs the check too, and stops with `Failed Cilium network validation` if pods cannot carry packets of their full MTU. That is the failure the check exists to find, but it is a new failure mode for a command that used to succeed.
+
+Air-gapped clusters and clusters that pull only through a registry mirror should point `networking.cni.cilium.connectivity_check.image` at a reachable copy, or set `connectivity_check.enabled: false` to skip the check. Clusters with a single node skip it and print a warning.
+
+The check compares the MTU pods actually use with the size the configuration implies and stops when the two differ. Cilium's Helm chart does not restart its agents when the MTU changes, so on a cluster whose `mtu` was set or changed, run `kubectl -n kube-system rollout restart ds cilium` before `create`. Otherwise the pods still carry the previous MTU, which is a different size from the one the configuration asks for, and `create` stops with `Failed Cilium network validation`.
+
 ## gVisor Restarts k3s When It Is Enabled - Friday, November 20, 2026
 
 `addons.gvisor` is off by default, so existing clusters are unaffected until they set it.

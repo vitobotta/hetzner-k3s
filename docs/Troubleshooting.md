@@ -183,6 +183,22 @@ hetzner-k3s connects to the nodes over their public IPv6 address when public IPv
 
 2. **Restart CNI**: Restart the relevant CNI pods
 
+### Cilium Network Validation Fails
+
+**Symptoms**: `create` stops with `Failed Cilium network validation`
+
+With `mode: cilium`, `create` runs a cross-node pod network check after all nodes have joined (see [Cilium MTU and network validation](Creating_a_cluster.md#cilium-mtu-and-network-validation)). The error says which step failed:
+
+1. **Test pods did not become Ready**: the nodes could not pull the test image or start the pods. Check `kubectl -n kube-system get pods -l app.kubernetes.io/name=cilium-network-validation -o wide` while `create` is running. In air-gapped clusters or with registry mirrors, set `networking.cni.cilium.connectivity_check.image` to an image your nodes can pull. On slow links, raise `networking.cni.cilium.connectivity_check.timeout_seconds`.
+
+2. **Small packet ping failed**: pods on different nodes cannot reach each other at all. Check the Cilium agents with `kubectl -n kube-system get pods -l k8s-app=cilium -o wide` and their logs, and check that the firewall allows traffic between nodes.
+
+3. **Pod MTU ping failed**: small packets get through but packets as large as the pod MTU are dropped, which typically shows up as TLS handshakes or large requests that hang. Lower `networking.cni.cilium.mtu` (or `MTU` in your Helm values file) so that it fits the network path between your nodes, and set `underlay_mtu` to that path MTU so `create` validates it up front.
+
+4. **Pod MTU larger than the configured MTU allows**: Cilium did not apply the configured MTU. Check the `mtu` key in Cilium's config with `kubectl -n kube-system get configmap cilium-config -o yaml`.
+
+To skip the check, set `networking.cni.cilium.connectivity_check.enabled: false`.
+
 ### Upgrade Issues
 
 **Symptoms**: Cluster upgrade process gets stuck

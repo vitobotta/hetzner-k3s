@@ -1,9 +1,17 @@
+require "./cilium_connectivity_check"
+
 class Configuration::Models::NetworkingConfig::CNIConfig::Cilium
   include YAML::Serializable
   include YAML::Serializable::Unmapped
 
+  DEFAULT_ROUTING_MODE    = "tunnel"
+  DEFAULT_ENCRYPTION_TYPE = "wireguard"
+
   getter chart_version : String = "v1.17.2"
   getter helm_values_path : String?
+  getter mtu : Int32?
+  getter underlay_mtu : Int32?
+  getter connectivity_check : Configuration::Models::NetworkingConfig::CNIConfig::CiliumConnectivityCheck = Configuration::Models::NetworkingConfig::CNIConfig::CiliumConnectivityCheck.new
   getter encryption_type : String? = nil
   getter routing_mode : String? = nil
   getter tunnel_protocol : String? = nil

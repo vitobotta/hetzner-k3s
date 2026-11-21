@@ -78,6 +78,8 @@ class Kubernetes::Installer
 
     @external_worker_setup.wait_for_external_workers_to_be_ready(first_master) if has_external_workers?
 
+    @software_installer.validate_cni_connectivity_if_needed
+
     switch_to_context(default_context)
   end
 
