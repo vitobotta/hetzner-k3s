@@ -548,11 +548,12 @@ These settings apply only when `networking.cni.mode` is `cilium`.
 - `mtu` minus the tunnel and encryption overhead leaves pods with an MTU below 1230, or below 1280 when `cluster_cidr` or `service_cidr` is an IPv6 CIDR (pods lose IPv6 networking under 1280)
 - `underlay_mtu` is below 1280, or is set without a positive `mtu` (in your config or in the Helm values file)
 
-**Connectivity check.** After all nodes have joined, `create` checks pod networking across nodes. It starts two short-lived test pods in `kube-system` on two different Ready nodes (two workers when the cluster has them), pings from one to the other, then sends a ping as large as the pod MTU with the don't-fragment bit set. When a configured MTU is known, it also checks that the pods actually use it. If any step fails, `create` stops with an error, because a too-large MTU otherwise shows up later as connections that hang only on large packets.
+**Connectivity check.** After all nodes have joined, `create` checks pod networking across nodes. It starts two short-lived test pods in `kube-system` on two different Ready nodes (two workers when the cluster has them), pings from one to the other, then sends a ping as large as the pod MTU with the don't-fragment bit set. When a configured MTU is known, it also checks that the pods use exactly that size and stops when they use a different one in either direction. If any step fails, `create` stops with an error, because a too-large MTU otherwise shows up later as connections that hang only on large packets.
 
 Things to know about the check:
 
 - It needs at least two Ready nodes. Clusters with a single node skip it and print a warning.
+- Changing `mtu` on a cluster that already exists needs `kubectl -n kube-system rollout restart ds cilium` before the next `create`: the Helm upgrade updates Cilium's configuration but does not restart its agents, so pods keep the previous MTU and the check stops with `Failed Cilium network validation` until they do.
 - Each test node pulls `nicolaka/netshoot:v0.16` from Docker Hub. For air-gapped clusters or clusters that can only pull through a registry mirror, set `connectivity_check.image` to a copy in a registry your nodes can reach, ideally pinned by digest.
 - It waits up to `connectivity_check.timeout_seconds` (default 300) for Cilium, the nodes and the test pods to become ready.
 - Set `connectivity_check.enabled: false` to skip it.

@@ -8,6 +8,8 @@ With `networking.cni.mode: cilium`, `create` now ends with a cross-node pod netw
 
 Air-gapped clusters and clusters that pull only through a registry mirror should point `networking.cni.cilium.connectivity_check.image` at a reachable copy, or set `connectivity_check.enabled: false` to skip the check. Clusters with a single node skip it and print a warning.
 
+The check compares the MTU pods actually use with the size the configuration implies and stops when the two differ. Cilium's Helm chart does not restart its agents when the MTU changes, so on a cluster whose `mtu` was set or changed, run `kubectl -n kube-system rollout restart ds cilium` before `create`. Otherwise the pods still carry the previous MTU, which is a different size from the one the configuration asks for, and `create` stops with `Failed Cilium network validation`.
+
 ## gVisor Restarts k3s When It Is Enabled - Friday, November 20, 2026
 
 `addons.gvisor` is off by default, so existing clusters are unaffected until they set it.

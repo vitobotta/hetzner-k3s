@@ -136,8 +136,8 @@ class Kubernetes::Software::Cilium
       '' | *[!0-9]* | 0) fail "could not determine the pod MTU of $src_pod from: $mtu_report" ;;
     esac
 
-    if [ "$expected_pod_mtu" -gt 0 ] && [ "$pod_mtu" -gt "$expected_pod_mtu" ]; then
-      fail "$src_pod on $src_node uses a pod MTU of $pod_mtu, but the configured Cilium MTU allows at most $expected_pod_mtu after tunnel/encryption overhead, so Cilium did not apply the configured MTU."
+    if [ "$expected_pod_mtu" -gt 0 ] && [ "$pod_mtu" -ne "$expected_pod_mtu" ]; then
+      fail "$src_pod on $src_node uses a pod MTU of $pod_mtu, but the configured Cilium MTU implies $expected_pod_mtu after tunnel/encryption overhead. Cilium did not apply the configured MTU to this pod: changing the MTU in the configuration does not restart the Cilium agents, so run kubectl -n kube-system rollout restart ds cilium and then create again."
     fi
 
     if ! output="$(kubectl -n "$namespace" exec "$src_pod" -- ping -c 3 -W 2 "$dst_ip" 2>&1)"; then
