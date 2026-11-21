@@ -1,5 +1,19 @@
 # Important Upgrade Notes
 
+## Placement Groups Are Opt-in and No Longer Created by Default - Saturday, November 21, 2026
+
+Placement groups were created unconditionally until now. Hetzner rejects `POST /servers` with `invalid_input` for server types and locations that do not support them, for example `cpx31` in `ash` and `hil`, so `create` now leaves them off unless `placement_groups_enabled: true` is set.
+
+That changes existing clusters as well. Their configuration has no key, so the next `create` stops creating groups for the nodes it adds: a new worker pool, or extra instances in an existing pool. Nodes that already exist keep the group they were created in, and `delete` still removes every group labelled with the cluster name, including the ones an older version created.
+
+Set `placement_groups_enabled: true` to keep the previous spreading behaviour. It is the right choice for EU clusters on server types that support placement groups; leave it off for US locations.
+
+## `create` Stops Early on a Private Network in the Wrong Zone - Saturday, November 21, 2026
+
+The private network is looked up by name, so a network left behind by an earlier attempt in another region used to be reused silently, and Hetzner then rejected every server in the new location. `create` now compares the network's subnet zone with the zone of the masters' location and stops with a `hcloud network delete` instruction before anything else is created.
+
+This only fires for a cluster whose configured location moved to another zone, or whose `existing_network_name` points at a network in a different zone. Such a network has no servers of its own left on it, so deleting it is safe, and the message prints the exact command. A project with a manually added subnet of an unusual type no longer breaks the network listing either.
+
 ## Cilium Clusters Run a Network Check on the Next `create` - Saturday, November 21, 2026
 
 With `networking.cni.mode: cilium`, `create` now ends with a cross-node pod network check: two short-lived pods in `kube-system` on two Ready nodes, a small ping and a ping as large as the pod MTU with the don't-fragment bit set. It needs at least two Ready nodes and pulls `nicolaka/netshoot:v0.16` from Docker Hub on each of them.
