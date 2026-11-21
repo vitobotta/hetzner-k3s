@@ -198,6 +198,9 @@ worker_node_pools:
 #     crd_manifest_url: "https://github.com/rancher/system-upgrade-controller/releases/download/v0.19.2/crd.yaml"
 #   embedded_registry_mirror:
 #     enabled: false # Enables fast p2p distribution of container images between nodes for faster pod startup. Check if your k3s version is compatible before enabling this option. You can find more information at https://docs.k3s.io/installation/registry-mirror
+#   gvisor:
+#     enabled: false # Adds the gVisor (runsc) container runtime next to runc and a "gvisor" RuntimeClass. Debian and Ubuntu images only. See "Sandboxed workloads with gVisor" below.
+#     version: "20261116.0" # runsc build installed from the gVisor apt repository. Pinned on purpose; the repository itself is rolling.
 
 protect_against_deletion: true # prevents accidental deletion of the cluster with the "hetzner-k3s delete" command
 
@@ -205,6 +208,8 @@ synchronise_autoscaled_nodes: false # also bring existing nodes of autoscaling p
 reconcile_node_pools: false # also remove worker nodes that the configuration no longer renders; see below
 
 create_load_balancer_for_the_kubernetes_api: false # creates a load balancer for HA API access, which workers also join through; note: Hetzner firewalls can't yet restrict access to load balancers by IP
+
+disable_public_interface_for_the_kubernetes_api_load_balancer: false # makes the API load balancer reachable only via the private network; see Limitations below
 
 k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increase for faster upgrades in large clusters, but higher values may impact availability
 
@@ -325,6 +330,7 @@ The `addons` section controls which components hetzner-k3s installs automaticall
 - **servicelb**: k3s's built-in load balancer for bare-metal environments. Disabled by default; typically not needed when using Hetzner's load balancers.
 - **metrics_server**: Enables `kubectl top` commands for viewing resource usage. Disabled by default.
 - **embedded_registry_mirror**: Enables peer-to-peer distribution of container images between nodes for faster pod startup. Disabled by default; check k3s version compatibility before enabling.
+- **gvisor**: Installs the gVisor (runsc) container runtime next to runc and creates a `gvisor` RuntimeClass, so selected pods can run under a user-space kernel. Debian and Ubuntu images only. Disabled by default, because only pods that ask for it use it. See [Sandboxed workloads with gVisor](#sandboxed-workloads-with-gvisor).
 
 ### Customizing CoreDNS
 
@@ -351,6 +357,58 @@ Point to keep in mind:
 - The managed deployment keeps the k3s object names and the `k8s-app: kube-dns` label, and the `kube-dns` Service keeps its ClusterIP from `cluster_dns`. That matters if you run a node-local DNS cache, which forwards to the Service, and for the resolver configuration of every pod.
 - Switching the toggle off, or removing the block, hands CoreDNS back: the k3s defaults are applied immediately, the ownership label is removed, and k3s owns the deployment again from its next restart. The rollout uses `maxSurge: 1` and `maxUnavailable: 0`, so a replica stays available unless the cluster has no room for the surge pod.
 - While the toggle is on the config is authoritative, so a manual `kubectl scale` or `kubectl edit` is reset on the next `create`. With the toggle off, `replicas` is only reconciled when you set it, so a manual scale stays in place unless the field is present in the config. `replicas` is the only setting that applies in both modes.
+
+### Sandboxed workloads with gVisor
+
+gVisor adds a second container runtime to every node: pods that ask for it run under a user-space kernel instead of the host kernel, which shrinks what a compromised workload can reach. hetzner-k3s installs `runsc` next to containerd, registers it as a runtime, and creates a cluster-scoped RuntimeClass:
+
+```yaml
+addons:
+  gvisor:
+    enabled: true
+    # version: "20261116.0" # runsc build from the gVisor apt repository
+```
+
+Workloads opt in individually:
+
+```yaml
+spec:
+  runtimeClassName: gvisor
+```
+
+Pods that leave `runtimeClassName` unset keep using runc, so the rest of the cluster runs as before.
+
+Points to keep in mind:
+
+- **Debian and Ubuntu images only.** `runsc` comes from the `.deb` the gVisor project publishes, and there is no RPM. Setup stops with an error on any other image instead of finishing without the runtime. External node pools already require a Debian-based OS.
+- **`version` pins the build.** The gVisor apt repository has a single rolling component, so an unpinned install would upgrade `runsc` on every node at every `create`. Bump `version` when you want a newer build.
+- **It costs disk and memory on every node.** The package is about 87 MB compressed and roughly 250 MB installed, and every sandboxed pod keeps a second kernel in memory.
+- **The template is the version 2 containerd format.** k3s prefers `config-v3.toml.tmpl` if a node has one, and otherwise falls back to `config.toml.tmpl`, which containerd 2.x still reads, so this works across the k3s versions the tool supports. The runtime section is the same in both formats.
+- **Enabling it on an existing cluster restarts k3s.** The containerd template is read only when k3s starts. `create` compares the template and restarts `k3s-agent` on each cloud worker whose file changed, and restarts `k3s` on a master only when `schedule_workloads_on_masters` is true, since a tainted master never runs these pods. Nodes without a change are left alone. Autoscaled nodes pick the runtime up when they launch; existing ones only with `synchronise_autoscaled_nodes`.
+- **External node pools are not re-provisioned.** hetzner-k3s skips the setup script once an external node is initialized, and prints a warning saying runsc is missing there. Install it by hand or re-initialize the node:
+
+```bash
+apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl -fsSL https://gvisor.dev/archive.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && apt-get install -y "runsc=20261116.0"
+```
+
+Then add the runtime to the containerd template and restart the agent:
+
+```toml
+# /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+{{ template "base" . }}
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+```
+
+```bash
+systemctl restart k3s-agent
+```
+
+- **Some workloads do not work under it.** gVisor implements a subset of the Linux API. GPU access, `hostNetwork` tricks and some security tooling are unsupported, so try a workload under the RuntimeClass before moving production traffic to it.
 
 ### Cluster Autoscaler on Kubernetes 1.35 and later
 
@@ -393,15 +451,15 @@ Workers register with the cluster (the `K3S_URL` their `k3s-agent` bootstraps fr
 
 External nodes always join through the first master. Through the load balancer or the name, a node, static or autoscaled, can still join while the first master is down.
 
-With the load balancer, workers use the same load balancer address as the kubeconfig, because that is the address in the masters' certificates: the private one with `networking.ssh.use_private_ip: true`, the public one otherwise.
+With the load balancer, workers use the same load balancer address as the kubeconfig, because that is the address in the masters' certificates: the private one with `networking.ssh.use_private_ip: true` or `disable_public_interface_for_the_kubernetes_api_load_balancer: true`, the public one otherwise.
 
-That address is what the agent bootstraps from, not where its traffic normally goes. Once a worker has joined, `k3s-agent` fetches the list of API servers from the supervisor (the masters' advertised addresses, their private IPs on a cluster with a private network) and load-balances across them; the `K3S_URL` server is kept only as a fallback for when none of them answers. So steady-state traffic from workers to the control plane stays on the private network whatever `use_private_ip` is set to. With the default `use_private_ip: false` the join itself, and the fallback, go to the load balancer's public IP; `use_private_ip: true` moves both to its private IP, which the masters' certificates already carry in that mode. Using the private IP regardless of `use_private_ip` would mean adding it to the certificates, which restarts every master on an existing cluster, so it is not done automatically.
+That address is what the agent bootstraps from, not where its traffic normally goes. Once a worker has joined, `k3s-agent` fetches the list of API servers from the supervisor (the masters' advertised addresses, their private IPs on a cluster with a private network) and load-balances across them; the `K3S_URL` server is kept only as a fallback for when none of them answers. So steady-state traffic from workers to the control plane stays on the private network whatever `use_private_ip` is set to. With the default `use_private_ip: false` the join itself, and the fallback, go to the load balancer's public IP; `use_private_ip: true` moves both to its private IP, which the masters' certificates already carry in that mode. Using the private IP without `use_private_ip` means adding it to the certificates, which restarts every master on an existing cluster, so it is not done automatically: `disable_public_interface_for_the_kubernetes_api_load_balancer: true` is the opt-in for it, and also removes the public address (see the Limitations below).
 
 On a cluster created with an earlier version, the next `create` restarts `k3s-agent` once on each static worker (up to ten in parallel; running pods keep running); existing autoscaled nodes keep the old address and new ones use the load balancer, unless `synchronise_autoscaled_nodes` is enabled: then the next `create` updates the existing ones too, five at a time.
 
 #### Joining through `api_server_hostname`
 
-`join_via_api_server_hostname: true` makes workers join through `api_server_hostname`. It is what lets a cluster without an API load balancer survive the first master being down: point the name at all masters, for example with one A record per master's private IP. The agent tries the addresses in turn until one answers, paying a connect timeout on each dead one. On a cluster with a load balancer the setting adds less, since workers already join through it; it is only useful there if you want the name, rather than the load balancer address, in `K3S_URL`.
+`join_via_api_server_hostname: true` makes workers join through `api_server_hostname`. It is what lets a cluster without an API load balancer survive the first master being down: point the name at all masters, for example with one A record per master's private IP. The agent tries the addresses in turn until one answers, paying a connect timeout on each dead one. On a cluster with a load balancer the setting adds less, since workers already join through it; it is only useful there if you want the name, rather than the load balancer address, in `K3S_URL`. If that cluster also sets `disable_public_interface_for_the_kubernetes_api_load_balancer`, the name must resolve to a private address (the load balancer's private IP, or the masters' private IPs): the name wins over the load balancer address, and a record that still points at the load balancer's public IP leaves workers unable to join.
 
 With the flag on, the name decides the path: whatever it resolves to is what workers connect to, so `networking.ssh.use_private_ip` no longer governs the join. As above, this only affects the join and the fallback; steady-state traffic still goes to the masters' advertised addresses.
 
@@ -818,7 +876,12 @@ The `create` command can be run multiple times with the same configuration witho
 ### Limitations:
 
 - Using a snapshot instead of a default image will take longer to create instances compared to regular images.
-- The `networking`.`allowed_networks`.`api` setting specifies which networks can access the Kubernetes API. This works with both single-master and multi-master clusters, but only when `create_load_balancer_for_the_kubernetes_api` is disabled. If the API load balancer is enabled, Hetzner's firewalls do not yet support load balancers, so the API would be exposed to the public internet regardless of the allowed networks configuration.
+- The `networking`.`allowed_networks`.`api` setting specifies which networks can access the Kubernetes API. This works with both single-master and multi-master clusters, but only when `create_load_balancer_for_the_kubernetes_api` is disabled. If the API load balancer is enabled, Hetzner's firewalls do not yet support load balancers, so the API would be exposed to the public internet regardless of the allowed networks configuration. To keep the API load balancer off the public internet, set `disable_public_interface_for_the_kubernetes_api_load_balancer` to `true`, which makes the load balancer reachable only via the private network. With it on:
+    - The master nodes themselves still expose the API on their public IPs, as controlled by `networking`.`allowed_networks`.`api`, so restrict that list as well (or disable the public network interface on the nodes) if the API must not be reachable from the public internet at all.
+    - kubectl and every hetzner-k3s command, including the `create` that first applies the setting, must be run from a machine that can reach the private network, for example via a VPN or a bastion host: as soon as the first master is up, `create` talks to the API through the load balancer's private IP.
+    - Turning the setting on or off for an existing cluster changes the load balancer address in the API server certificate, so the next `create` restarts k3s on the masters (the first master alone, then the others together, which on three masters means one short API outage) and the k3s agent on every static worker, which picks up the new join address. Existing autoscaled nodes keep the old address unless `synchronise_autoscaled_nodes` is enabled, or until the autoscaler replaces them; nodes it launches afterwards use the new one. See the [upgrade notes](Important_upgrade_notes.md).
+    - If an existing load balancer is not attached to the private network, or any of its targets uses a public IP, `create` stops before changing anything. Delete the load balancer in the Hetzner console and run `create` again, so that it is recreated attached to the network with private targets.
+    - Disabling the setting again does not re-enable the public interface of an existing load balancer; re-enable it manually in the Hetzner console and then run `create` again, so that the kubeconfig and the API server certificate use the public IP address.
 - If you enable autoscaling for a nodepool, avoid changing this setting later, as it can cause issues with the autoscaler.
 - Autoscaling is only supported with Ubuntu or other default images, not snapshots.
 - If you already have SSH keys in your Hetzner project, it's best to use a different key for your cluster—unless there's already a key with the same name and fingerprint as the one in your config file.  Hetzner doesn't allow two keys with the same fingerprint in one project. So if you've already added the key from your config but under a different name, Hetzner won't let you add it again. In that case, hetzner-k3s will skip creating the key and won't inject any SSH key into the cluster nodes.  Without an SSH key, Hetzner sets up the nodes with password login instead. That means you'll get an email for each node with its root password. Managing several nodes this way can get tricky. To avoid this, you can either use a new keypair for your cluster, or set `existing_ssh_key_name` in the SSH config to reference the existing key by name. When using `existing_ssh_key_name`, hetzner-k3s will use the specified key instead of creating a new one, and it won't delete the key when you delete the cluster.

@@ -12,6 +12,7 @@ require "./system_upgrade_controller"
 require "./cluster_autoscaler"
 require "./coredns"
 require "./local_path_storage_class"
+require "./gvisor"
 
 class Kubernetes::Software::Installer
   def initialize(@configuration : Configuration::Loader, @settings : Configuration::Main, @load_balancer : ::Hetzner::LoadBalancer? = nil)
@@ -25,6 +26,7 @@ class Kubernetes::Software::Installer
     install_hetzner_cloud_controller_manager_if_enabled
     install_hetzner_csi_driver_if_enabled
     install_system_upgrade_controller_if_enabled
+    install_gvisor_if_enabled
     install_cluster_autoscaler_if_enabled(first_master, masters, ssh, autoscaling_worker_node_pools)
   end
 
@@ -70,5 +72,9 @@ class Kubernetes::Software::Installer
     if @settings.addons.cluster_autoscaler.enabled? && first_master
       Kubernetes::Software::ClusterAutoscaler.new(@configuration, @settings, masters, first_master, ssh, autoscaling_worker_node_pools, @load_balancer).install
     end
+  end
+
+  private def install_gvisor_if_enabled
+    Kubernetes::Software::GVisor.new(@configuration, @settings).install if @settings.addons.gvisor.enabled?
   end
 end

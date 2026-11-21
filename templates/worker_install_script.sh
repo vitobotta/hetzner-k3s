@@ -93,7 +93,52 @@ else
 fi
 
 # Create k3s directories
-mkdir -p /etc/rancher/k3s
+mkdir -p /etc/rancher/k3s{% if gvisor_enabled == "true" %}
+
+# gVisor (runsc) is an opt-in extra containerd runtime. apt-get is the only supported path, so a
+# node without it stops here instead of later, when a pod first asks for the runtime.
+GVISOR_VERSION="{{ gvisor_version }}"
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  echo "ERROR: addons.gvisor needs a Debian or Ubuntu image and this node has no apt-get" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+echo "Installing gVisor (runsc $GVISOR_VERSION)..." 2>&1 | tee -a /var/log/hetzner-k3s.log
+
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https ca-certificates curl gnupg
+curl --proto '=https' --proto-redir '=https' -fsSL https://gvisor.dev/archive.key | gpg --batch --yes --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" | tee /etc/apt/sources.list.d/gvisor.list > /dev/null
+apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y "runsc=$GVISOR_VERSION"
+
+if ! command -v runsc >/dev/null 2>&1; then
+  echo "ERROR: gVisor (runsc $GVISOR_VERSION) could not be installed" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  exit 1
+fi
+
+# k3s renders config.toml from this template at every start, so a change needs a restart. The
+# content is compared first, the same way the worker script treats registries.yaml, so a re-run of
+# create on a node that already has the runtime does not touch systemd.
+CONTAINERD_TEMPLATE=/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+mkdir -p "$(dirname "$CONTAINERD_TEMPLATE")"
+containerd_temp=$(mktemp)
+cat >"$containerd_temp" <<\GVCONF
+{{ "{{ template \"base\" . }}" }}
+
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+  runtime_type = "io.containerd.runsc.v1"
+GVCONF
+
+containerd_changed=false
+if [ "$(sha256sum "$containerd_temp" | cut -d' ' -f1)" != "$(sha256sum "$CONTAINERD_TEMPLATE" 2>/dev/null | cut -d' ' -f1)" ]; then
+  containerd_changed=true
+  mv "$containerd_temp" "$CONTAINERD_TEMPLATE"
+  chmod 644 "$CONTAINERD_TEMPLATE"
+else
+  rm -f "$containerd_temp"
+fi
+
+echo "gVisor containerd configuration written" 2>&1 | tee -a /var/log/hetzner-k3s.log{% endif %}
 
 # Create registries.yaml. The content is compared first: k3s only reads this file at startup, so a
 # change needs an agent restart, while an identical file must not cause one. Written through a temp
@@ -224,7 +269,13 @@ echo "k3s worker installation completed successfully" 2>&1 | tee -a /var/log/het
 if [ "$registries_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
   echo "registries.yaml changed; restarting k3s-agent so k3s re-reads it" 2>&1 | tee -a /var/log/hetzner-k3s.log
   systemctl restart k3s-agent
-fi
+fi{% if gvisor_enabled == "true" %}
+
+# The containerd template is read at startup only, so it gets the same treatment as registries.yaml.
+if [ "$containerd_changed" = "true" ] && [ "$unit_existed_before_install" = "true" ]; then
+  echo "containerd gVisor configuration changed; restarting k3s-agent so runsc is loaded" 2>&1 | tee -a /var/log/hetzner-k3s.log
+  systemctl restart k3s-agent
+fi{% endif %}
 
 {% if additional_post_k3s_commands != "" %}
 # Additional post-k3s commands

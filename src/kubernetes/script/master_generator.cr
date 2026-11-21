@@ -58,9 +58,12 @@ class Kubernetes::Script::MasterGenerator
       servicelb_enabled:                @settings.addons.servicelb.enabled.to_s,
       metrics_server_enabled:           @settings.addons.metrics_server.enabled.to_s,
       coredns_enabled:                  @settings.addons.coredns.enabled.to_s,
+      gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
+      gvisor_version:                   @settings.addons.gvisor.version,
+      masters_can_schedule:             @settings.schedule_workloads_on_masters.to_s,
+      kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
       labels_and_taints:                labels_and_taints,
       additional_post_k3s_commands:     post_k3s_commands,
-      kube_proxy_enabled:               @settings.networking.cni.kube_proxy?.to_s,
     })
   end
 

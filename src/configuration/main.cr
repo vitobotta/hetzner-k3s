@@ -58,6 +58,7 @@ class Configuration::Main
   getter include_instance_type_in_instance_name : Bool = false
   getter protect_against_deletion : Bool = true
   getter create_load_balancer_for_the_kubernetes_api : Bool = false
+  getter disable_public_interface_for_the_kubernetes_api_load_balancer : Bool = false
   # Off by default: it makes `create` reach autoscaled nodes over SSH to bring config changes to
   # nodes the autoscaler owns. See docs/Creating_a_cluster.md.
   getter synchronise_autoscaled_nodes : Bool = false
@@ -76,6 +77,12 @@ class Configuration::Main
 
   def all_kubelet_args
     ["cloud-provider=external", "resolv-conf=/etc/k8s-resolv.conf"] + kubelet_args
+  end
+
+  def use_private_ip_for_the_kubernetes_api_load_balancer? : Bool
+    return false unless networking.private_network.enabled
+
+    networking.ssh.use_private_ip || disable_public_interface_for_the_kubernetes_api_load_balancer
   end
 
   def external_robot_node_pools : Array(Configuration::Models::WorkerNodePool)
