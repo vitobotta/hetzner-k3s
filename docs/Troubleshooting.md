@@ -195,7 +195,7 @@ With `mode: cilium`, `create` runs a cross-node pod network check after all node
 
 3. **Pod MTU ping failed**: small packets get through but packets as large as the pod MTU are dropped, which typically shows up as TLS handshakes or large requests that hang. Lower `networking.cni.cilium.mtu` (or `MTU` in your Helm values file) so that it fits the network path between your nodes, and set `underlay_mtu` to that path MTU so `create` validates it up front.
 
-4. **Pod MTU larger than the configured MTU allows**: Cilium did not apply the configured MTU. Check the `mtu` key in Cilium's config with `kubectl -n kube-system get configmap cilium-config -o yaml`.
+4. **Pod MTU differs from the configured MTU**: Cilium did not apply the configured MTU. Changing `mtu` does not restart the Cilium agents, so run `kubectl -n kube-system rollout restart ds cilium` and then `create` again, and check the `mtu` key in Cilium's configuration with `kubectl -n kube-system get configmap cilium-config -o yaml`.
 
 To skip the check, set `networking.cni.cilium.connectivity_check.enabled: false`.
 
