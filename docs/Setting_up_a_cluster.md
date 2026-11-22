@@ -67,7 +67,7 @@ worker_node_pools:
 For more details on all the available settings, refer to the full config example in [Creating a cluster](Creating_a_cluster.md).
 
 2. Create the cluster: `hetzner-k3s create --config hetzner-k3s_cluster_config.yaml`
-3. `hetzner-k3s` automatically generates a `kubeconfig` file for the cluster in the directory where you run the tool. You can either copy this file to `~/.kube/config` if it's the only cluster or run `export KUBECONFIG=./kubeconfig` in the same directory to access the cluster. After this, you can interact with your cluster using `kubectl`.
+3. `hetzner-k3s` automatically generates a `kubeconfig` file for the cluster in the directory where you run the tool. You can either copy this file to `~/.kube/config` if it's the only cluster or run `export KUBECONFIG=./kubeconfig` in the same directory to access the cluster. After this, you can interact with your cluster using `kubectl`. The path comes from `kubeconfig_path` in the configuration, and at the end of the run `create` prints the matching `export` line, so you can copy it straight from the output.
 
 TIP: If you don't want to run `kubectl apply ...` every time, you can store all your configuration files in a folder and then run `kubectl apply -f /path/to/configs/ -R`.
 
