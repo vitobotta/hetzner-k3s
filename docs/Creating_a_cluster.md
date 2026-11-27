@@ -248,7 +248,7 @@ k3s_upgrade_concurrency: 1 # how many nodes to upgrade at the same time; increas
 # join_via_api_server_hostname: false # optional: workers join through api_server_hostname instead of the API load balancer or the first master's IP (see below). Requires the name to resolve on the nodes (DNS or root-level additional_pre_k3s_commands).
 ```
 
-Most settings are straightforward and easy to understand. To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
+Most settings are straightforward and easy to understand. `kubelet_args` and `kube_proxy_args` reach the worker nodes as well as the masters. `kube_proxy_args` is skipped when kube-proxy does not run, so it has no effect with Cilium or with `flannel.disable_kube_proxy: true`. External nodes that hetzner-k3s has already initialized are left alone on `create`, so adding the key to a cluster with such a node needs the node re-initialized or the flags passed by hand. See the [upgrade notes](Important_upgrade_notes.md). To see a list of available k3s releases, you can run the command `hetzner-k3s releases`.
 
 If you prefer not to include the Hetzner token directly in the config file—perhaps for use with CI or to safely commit the config to a repository—you can use the `HCLOUD_TOKEN` environment variable instead. This variable takes precedence over the config file: while it is set and not blank, whatever `hetzner_token` contains is ignored, so a placeholder in a committed config is fine. An empty or whitespace-only value counts as unset. If both hold a token and the two differ, `create` prints one line saying that the variable is the one in use, so a token exported for another project does not go unnoticed.
 

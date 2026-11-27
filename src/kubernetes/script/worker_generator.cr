@@ -46,6 +46,7 @@ class Kubernetes::Script::WorkerGenerator
       cluster_cidr:                     @settings.networking.cluster_cidr,
       service_cidr:                     @settings.networking.service_cidr,
       extra_args:                       kubelet_args_list(external_config),
+      kube_proxy_args:                  kube_proxy_args_list,
       labels_and_taints:                labels_and_taints,
       gvisor_enabled:                   @settings.addons.gvisor.enabled?.to_s,
       gvisor_version:                   @settings.addons.gvisor.version,
@@ -62,6 +63,15 @@ class Kubernetes::Script::WorkerGenerator
     args = args.reject { |arg| arg.starts_with?("cloud-provider=") } if external_config.try(&.generic?)
 
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", args)
+  end
+
+  # kube-proxy runs on every node, so its arguments have to reach the agents as well. They are
+  # omitted when kube-proxy is not running (Cilium, or flannel.disable_kube_proxy), because k3s
+  # rejects --kube-proxy-arg in that case.
+  private def kube_proxy_args_list
+    return "" unless @settings.networking.cni.kube_proxy?
+
+    ::Kubernetes::Util.kubernetes_component_args_list("kube-proxy", @settings.kube_proxy_args)
   end
 
   private def kubelet_provider_id(pool, external_node : Configuration::Models::ExternalNode?) : String

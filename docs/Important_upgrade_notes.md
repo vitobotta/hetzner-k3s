@@ -1,5 +1,13 @@
 # Important Upgrade Notes
 
+## `kube_proxy_args` Reaches Worker Nodes - Friday, November 27, 2026
+
+`kube_proxy_args` reached the masters only. It now also reaches the k3s agent on the worker nodes, where kube-proxy runs for the pods scheduled there. A cluster that does not set the key renders the same worker script as before, so the cluster autoscaler's config checksum does not change and nothing restarts.
+
+With the key set, the next `create` re-deploys the worker script on every existing cloud worker. The unit changes, so the k3s installer restarts `k3s-agent`, and the workers are set up ten at a time, so up to ten agents restart together. Running pods keep running, but service traffic on a worker is reprogrammed by kube-proxy as its agent comes back, and a change of `proxy-mode` on a running cluster takes effect only on the nodes that restarted. Plan the run for a quiet period.
+
+External nodes are not re-provisioned: hetzner-k3s skips the setup script on a node that is already initialized (`/etc/initialized` is `true` and `k3s-agent` is active), so such a node keeps the k3s defaults. Re-initialize the node, or add the flags by hand to the `ExecStart` of `/etc/systemd/system/k3s-agent.service`, then run `systemctl daemon-reload` and restart the unit. Autoscaled nodes get the flag when the autoscaler launches them; existing ones only with `synchronise_autoscaled_nodes: true`, five at a time.
+
 ## Placement Groups Are Opt-in and No Longer Created by Default - Saturday, November 21, 2026
 
 Placement groups were created unconditionally until now. Hetzner rejects `POST /servers` with `invalid_input` for server types and locations that do not support them, for example `cpx31` in `ash` and `hil`, so `create` now leaves them off unless `placement_groups_enabled: true` is set.
