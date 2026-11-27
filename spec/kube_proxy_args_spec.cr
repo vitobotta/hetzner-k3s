@@ -57,4 +57,21 @@ describe "kube_proxy_args" do
       installed_kube_proxy_args(script).should be_empty
     end
   end
+
+  it "inserts nothing but the argument itself when the key is set" do
+    with_flag = ""
+    without_flag = ""
+    RoutingSpec.with_loader(kube_proxy_config) { |loader| with_flag = RoutingSpec.worker_script(loader) }
+    RoutingSpec.with_loader(kube_proxy_config(args: [] of String)) { |loader| without_flag = RoutingSpec.worker_script(loader) }
+
+    with_flag.sub(%( --kube-proxy-arg "proxy-mode=nftables" ), "").should eq(without_flag)
+  end
+
+  it "leaves the worker script byte identical for a cluster that never sets the key" do
+    # The rendered worker script is hashed into the cluster autoscaler's config checksum, so a
+    # placeholder that adds its own space would roll that deployment on every cluster with an
+    # autoscaling pool. Adjacent placeholders are what keeps the unset rendering unchanged.
+    Kubernetes::Script::WorkerGenerator::WORKER_INSTALL_SCRIPT
+      .should contain("{{ labels_and_taints }}{{ kube_proxy_args }}")
+  end
 end

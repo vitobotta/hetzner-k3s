@@ -198,7 +198,7 @@ if curl --proto '=https' --tlsv1.2 -fsSL -o "$installer" https://get.k3s.io; the
   INSTALL_K3S_EXEC="agent" \
   sh -s - \
     --node-name=$HOSTNAME \
-    {{ extra_args }} {{ labels_and_taints }} {{ kube_proxy_args }} \
+    {{ extra_args }} {{ labels_and_taints }}{{ kube_proxy_args }} \
     --node-ip=$PRIVATE_IP \
     $NODE_EXTERNAL_IP \
     $KUBELET_PROVIDER_ID \
