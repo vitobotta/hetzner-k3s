@@ -65,9 +65,9 @@ class Kubernetes::Script::WorkerGenerator
     ::Kubernetes::Util.kubernetes_component_args_list("kubelet", args)
   end
 
-  # kube-proxy runs on every node, so its arguments have to reach the agents as well. They are
-  # omitted when kube-proxy is not running (Cilium, or flannel.disable_kube_proxy), because k3s
-  # rejects --kube-proxy-arg in that case.
+  # kube-proxy runs on every node, so its arguments have to reach the agents as well. Like the
+  # master generator, this skips them if kube-proxy does not run (Cilium, or
+  # flannel.disable_kube_proxy), so a Cilium cluster that sets the key keeps its worker script.
   private def kube_proxy_args_list
     return "" unless @settings.networking.cni.kube_proxy?
 

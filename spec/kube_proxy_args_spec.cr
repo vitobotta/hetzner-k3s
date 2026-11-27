@@ -1,9 +1,9 @@
 require "./routing_spec_helper"
 
 # kube-proxy runs as a component of every node in the cluster, so kube_proxy_args has to reach the
-# k3s agent on workers as well as the k3s server on masters. It must be omitted entirely when
-# kube-proxy is not running (Cilium, or flannel.disable_kube_proxy), because k3s rejects the flag in
-# that case.
+# k3s agent on workers as well as the k3s server on masters. Like the masters, the workers leave it
+# out when kube-proxy does not run (Cilium, or flannel.disable_kube_proxy): k3s would only ignore
+# the flag there, and leaving it out keeps the worker script of such a cluster unchanged.
 private def kube_proxy_config(mode = "flannel", disable_kube_proxy : Bool? = nil, args = ["proxy-mode=nftables"]) : String
   document = YAML.parse(RoutingSpec.config(cni: mode)).as_h
   document[YAML::Any.new("kube_proxy_args")] = YAML.parse(args.to_yaml)
@@ -31,6 +31,28 @@ describe "kube_proxy_args" do
 
       script.should contain(%(--kube-proxy-arg "proxy-mode=nftables"))
       installed_kube_proxy_args(script).should eq(["proxy-mode=nftables"])
+    end
+  end
+
+  # RoutingSpec.config has a single external pool, so the example above renders the external node
+  # path. Static cloud pools and autoscaled pools go through the same generator and need the flag too.
+  it "reaches the k3s agent of static and autoscaled cloud pools" do
+    document = YAML.parse(kube_proxy_config).as_h
+    pools = document["worker_node_pools"].as_a
+    pools << YAML.parse({"name" => "static", "instance_type" => "cpx22", "instance_count" => 1, "location" => "nbg1"}.to_yaml)
+    pools << YAML.parse({"name" => "autoscaled", "instance_type" => "cpx22", "location" => "nbg1", "autoscaling" => {"enabled" => true, "min_instances" => 0, "max_instances" => 3}}.to_yaml)
+
+    RoutingSpec.with_loader(document.to_yaml) do |loader|
+      generator = RoutingSpec::WorkerGenerator.new(loader, loader.settings)
+      cloud_pools = loader.settings.worker_node_pools.reject(&.external?)
+      cloud_pools.map(&.name).should eq(["static", "autoscaled"])
+
+      cloud_pools.each do |pool|
+        script = generator.generate_script([RoutingSpec.master], RoutingSpec.master, pool)
+
+        script.should contain(%(--kube-proxy-arg "proxy-mode=nftables"))
+        installed_kube_proxy_args(script).should eq(["proxy-mode=nftables"])
+      end
     end
   end
 
